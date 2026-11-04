@@ -259,3 +259,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 稀疏层4 KDA 40+1预填的缓存、设备和进程内存采样见 [记录](validation/sparse40-memory-round466.json)。
 
 归档准备阶段支持存活rank错误协调；注入失败与正常恢复的四rank验证见 [记录](validation/archive-prepare-round467.json)。
+
+归档恢复后的请求准入支持存活rank错误协调；注入失败与正常恢复的四rank验证见 [记录](validation/archive-open-round468.json)。

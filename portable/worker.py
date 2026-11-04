@@ -123,7 +123,14 @@ try:
      except Exception as exc:failure=exc
      restore_status=torch.tensor([int(failure is not None)],dtype=torch.int32,device='npu');dist.all_reduce(restore_status,op=dist.ReduceOp.MAX)
      if int(restore_status.item()):raise RuntimeError('rank archive restore verification failed') from failure
-     report['archive_state_rank_agreement']=True;q=runner.open_request(restored)
+     # Do not let healthy peers enter generation if a live rank cannot
+     # admit its restored request. The finally block closes any opened owner.
+     open_status=torch.zeros((1,),dtype=torch.int32,device='npu');failure=None
+     try:q=runner.open_request(restored)
+     except Exception as exc:failure=exc
+     open_status.fill_(int(failure is not None));dist.all_reduce(open_status,op=dist.ReduceOp.MAX)
+     if int(open_status.item()):raise RuntimeError('rank archive request open failed') from failure
+     report['archive_state_rank_agreement']=True
      report['restore_after_first_token_completed']=True;save()
    report['stop_set_reached']=generated[-1] in stops;report['stop_token_id']=generated[-1] if report['stop_set_reached'] else None;report['stop_marker']=tok.decode([generated[-1]],skip_special_tokens=False) if report['stop_set_reached'] else None;report['tokenizer_eos_reached']=generated[-1]==tok.eos_token_id;report['cap_reached']=len(generated)==cap and not report['stop_set_reached'];report['generated_text']=tok.decode(generated,skip_special_tokens=False)
    body=generated[:-1] if report['stop_set_reached'] else generated
