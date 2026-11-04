@@ -281,3 +281,5 @@ KDA未来gate位置的干预对照见 [记录](validation/kda-gate-intervention-
 全部KDA层归档恢复检查见 [记录](validation/all-kda-restore-round478.json)。
 
 全部KDA层26 token算术提示验证见 [记录](validation/all-kda-short-round478.json)。
+
+全部KDA层首token完整logits与独立参考的差异见 [记录](validation/all-kda-logits-round478.json)。
