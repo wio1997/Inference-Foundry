@@ -277,3 +277,5 @@ KDA未来gate位置的干预对照见 [记录](validation/kda-gate-intervention-
 四rank实验选项 `--experimental-all-kda` 须同时使用 `--experimental-layer-major-kda --experimental-kda-prefill40 --kda-backend ascendc`，不得与 `--experimental-sparse-kda-layer4` 同时使用；单输入验证见 [记录](validation/all-kda-cli-round477.json)。
 
 全部KDA层recall42测试与独立参考的序列差异见 [记录](validation/all-kda-recall42-round477.json)。
+
+全部KDA层归档恢复检查见 [记录](validation/all-kda-restore-round478.json)。
