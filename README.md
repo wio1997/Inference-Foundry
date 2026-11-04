@@ -269,3 +269,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 8与41 token的低层KDA中间量初步观察及其限制见 [记录](validation/kda-intermediates-round473.json)。
 
 KDA低层结果与wrapper一致性及中间量重复性见 [记录](validation/kda-repeat-round474.json)。
+
+KDA score参考位置的长度对照见 [记录](validation/kda-anchor-round475.json)。
