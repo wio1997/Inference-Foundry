@@ -27,6 +27,7 @@ def main():
     prep.add_argument('--experimental-layer-major-kda', action='store_true')
     prep.add_argument('--experimental-kda-prefill40', action='store_true')
     prep.add_argument('--experimental-sparse-kda-layer4', action='store_true')
+    prep.add_argument('--experimental-all-kda', action='store_true')
     rank = commands.add_parser('rank')
     rank.add_argument('--rank', type=int, required=True)
     rank.add_argument('--die', type=int, required=True)
@@ -45,8 +46,10 @@ def main():
         os.environ['WORLD_SIZE'] = str(world_size)
         worker = Path(__file__).resolve().with_name('worker.py')
         os.execvp('python3', ['python3', str(worker), str(args.rank), str(args.die), str(args.port)])
-    if (args.experimental_kda_prefill40 or args.experimental_sparse_kda_layer4) and not args.experimental_layer_major_kda:
+    if (args.experimental_kda_prefill40 or args.experimental_sparse_kda_layer4 or args.experimental_all_kda) and not args.experimental_layer_major_kda:
         parser.error('experimental prefill options require layer-major KDA')
+    if args.experimental_all_kda and (not args.experimental_kda_prefill40 or args.experimental_sparse_kda_layer4):
+        parser.error('all KDA requires prefill40 and excludes sparse layer4 option')
     if args.experimental_layer_major_kda and args.kda_backend != 'ascendc':
         parser.error('experimental layer-major KDA requires ascendc')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,31}', args.run_id):
@@ -79,7 +82,7 @@ def main():
                'context_tokens': args.context_tokens, 'max_new_tokens': args.max_new_tokens,
                'cache_mib': args.cache_mib, 'kda_backend': args.kda_backend, 'expected_final': args.expected_final,
                'restore_after_first_token': args.restore_after_first_token}
-    for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4'):
+    for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4', 'experimental_all_kda'):
         if getattr(args, name):
             request[name] = True
     print(json.dumps(request))

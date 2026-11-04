@@ -69,6 +69,7 @@ def main():
     parser.add_argument('--experimental-layer-major-kda', action='store_true', help='opt in to the four-rank bounded dense KDA chunk prefill')
     parser.add_argument('--experimental-kda-prefill40', action='store_true', help='opt in to the tested dense KDA 40-token prefill')
     parser.add_argument('--experimental-sparse-kda-layer4', action='store_true', help='also chunk the tested sparse KDA layer 4')
+    parser.add_argument('--experimental-all-kda', action='store_true', help='experimental all KDA 40-token prefill')
     parser.add_argument('--rollback40-probe', action='store_true', help='run bounded four-rank 40-token rollback validation')
     parser.add_argument('--rollback-probe', action='store_true', help='run the bounded nonzero-state rollback probe')
     parser.add_argument('--reference-probe', action='store_true', help='run the installed four-rank reference')
@@ -82,6 +83,8 @@ def main():
         parser.error('--experimental-kda-prefill40 requires layer-major KDA')
     if args.experimental_sparse_kda_layer4 and not args.experimental_layer_major_kda:
         parser.error('--experimental-sparse-kda-layer4 requires --experimental-layer-major-kda')
+    if args.experimental_all_kda and (not args.experimental_layer_major_kda or not args.experimental_kda_prefill40 or args.experimental_sparse_kda_layer4):
+        parser.error('--experimental-all-kda requires layer-major prefill40 and excludes sparse-layer4')
     if args.experimental_layer_major_kda and (world_size != 4 or args.kda_backend != 'ascendc' or args.rollback_probe or args.rollback40_probe or args.reference_probe or args.snapshot_probe or args.cache_equivalence_probe):
         parser.error('experimental layer-major KDA requires four-rank ascendc text mode')
     timeout_seconds = 2100 if args.rollback40_probe else 1200 if args.cache_equivalence_probe else 900 if (args.snapshot_probe or args.rollback_probe) else 2100
@@ -175,6 +178,7 @@ def main():
         manifest['portable:world-size'] = hashlib.sha256(str(world_size).encode()).hexdigest()
         manifest['portable:layer-major-kda'] = hashlib.sha256(str(args.experimental_layer_major_kda).encode()).hexdigest()
         manifest['portable:sparse-kda-layer4'] = hashlib.sha256(str(args.experimental_sparse_kda_layer4).encode()).hexdigest()
+        if args.experimental_all_kda:manifest['portable:all-kda'] = hashlib.sha256(b'True').hexdigest()
         if args.experimental_kda_prefill40:manifest['portable:kda-prefill40'] = hashlib.sha256(b'True').hexdigest()
         payload = json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
         source_digest = hashlib.sha256(payload).hexdigest()
@@ -206,14 +210,14 @@ def main():
                 prepare += ['--expected-final', args.expected_final]
             if args.restore_after_first_token:
                 prepare.append('--restore-after-first-token')
-            for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4'):
+            for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4', 'experimental_all_kda'):
                 if getattr(args, name):
                     prepare.append('--' + name.replace('_', '-'))
             result = subprocess.run(prepare, input=input_text, capture_output=True, text=True, timeout=90, check=True)
             request = json.loads(result.stdout.strip().splitlines()[-1])
             if request['run_id'] != args.run_id or request['messages'] != json.loads(input_text) or request['kda_backend'] != args.kda_backend:
                 raise RuntimeError('request builder returned a different request')
-            for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4'):
+            for name in ('experimental_layer_major_kda', 'experimental_kda_prefill40', 'experimental_sparse_kda_layer4', 'experimental_all_kda'):
                 if request.get(name, False) is not getattr(args, name):
                     raise RuntimeError('request builder returned different experimental options: ' + name)
             if args.reference_probe:
@@ -321,7 +325,7 @@ def main():
                     else:
                         passed = (all(x[k] for k in ('rank_commit_agreement_enabled', 'semantic_pass', 'rank_agreement', 'stop_set_reached', 'destroyed')) and x['status'] == 'passed' and not x['cap_reached'])
                         if args.experimental_layer_major_kda:
-                            passed = passed and x['experimental_layer_major_kda'] and x['chunk_layers'] == ([0,1,2,4] if args.experimental_sparse_kda_layer4 else [0,1,2]) and sum(x['prefill_groups']) == len(x['prompt_ids']) and all(1 <= n <= (40 if args.experimental_kda_prefill40 else 8) for n in x['prefill_groups']) and x.get('experimental_kda_prefill40',False)==args.experimental_kda_prefill40
+                            passed = passed and x['experimental_layer_major_kda'] and x['chunk_layers'] == ([i for i in range(45) if i%4 != 3] if args.experimental_all_kda else [0,1,2,4] if args.experimental_sparse_kda_layer4 else [0,1,2]) and x.get('experimental_all_kda',False)==args.experimental_all_kda and sum(x['prefill_groups']) == len(x['prompt_ids']) and all(1 <= n <= (40 if args.experimental_kda_prefill40 else 8) for n in x['prefill_groups']) and x.get('experimental_kda_prefill40',False)==args.experimental_kda_prefill40
                     if not passed:
                         errors.append(f'rank{rank} semantic failure')
                 except (OSError, ValueError, KeyError, TypeError) as error:

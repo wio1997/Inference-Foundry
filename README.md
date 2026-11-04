@@ -273,3 +273,5 @@ KDA低层结果与wrapper一致性及中间量重复性见 [记录](validation/k
 KDA score参考位置的长度对照见 [记录](validation/kda-anchor-round475.json)。
 
 KDA未来gate位置的干预对照见 [记录](validation/kda-gate-intervention-round476.json)。
+
+四rank实验选项 `--experimental-all-kda` 须同时使用 `--experimental-layer-major-kda --experimental-kda-prefill40 --kda-backend ascendc`，不得与 `--experimental-sparse-kda-layer4` 同时使用；单输入验证见 [记录](validation/all-kda-cli-round477.json)。
