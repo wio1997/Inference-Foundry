@@ -255,3 +255,5 @@ recall17 第0层将前8 token 的核心输入补零至41后，未逐位复现实
 请求构造器更新后的四rank参考模式固定用例与保留参考输出的对比见 [记录](validation/reference-builder-round464.json)。
 
 四rank归档请求身份不匹配的协调拒绝及探针重试验证见 [记录](validation/archive-identity-round465.json)。
+
+稀疏层4 KDA 40+1预填的缓存、设备和进程内存采样见 [记录](validation/sparse40-memory-round466.json)。
