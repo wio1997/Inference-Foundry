@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-11-04",
+  "updated_at": "2026-11-06",
   "historical_archive": "v180 immutable; no implementation or speedup promotion",
   "count": 42,
   "candidates": [
@@ -1304,11 +1304,11 @@
     {
       "id": "F16",
       "name": "两级输出投影与 reduce-scatter 的分块重组",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "两级投影与 reduce-scatter 流水重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
       "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_status": "用户认可长prefill OA前移至交换前，保留待验证；未新增实现或性能证据",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -1321,15 +1321,15 @@
       "next_steps": [
         {
           "id": "F16-01",
-          "title": "复用两级投影和归约前舍入合同",
-          "description": "查 K12；不能把权重直接预乘当作等价融合；按真实 K 块、rank 和归约顺序定义交付。",
+          "title": "复用长prefill OA前移的行序、权重与BF16合同",
+          "description": "复用已有171源/目的组与内存模型，固定OA之后BF16、原OB和ReduceScatter；保留padding、全部参与者与输出读者。",
           "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
         },
         {
           "id": "F16-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "title": "若执行，冻结长prefill OA前移的完整段对照",
+          "description": "先验真实OA/OB数值，再比较原宽交换与新窄交换的完整端点，计新增权重读取、布局及峰值/KV容量。当前仅记录候选。",
+          "decision_rule": "正确性及通信/读者合同满足且新增成本后最晚输出有净推进才继续；不得以1.20%条件模型宣称实测收益。"
         }
       ],
       "evidence": [
@@ -1347,12 +1347,18 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F16.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "F16长prefill OA前移的用户保留决定",
+          "path": "evidence/F16-oa-before-exchange-user-decision-20261106.json",
+          "scope": "2026-11-06用户要求先记录；固定已有方案和来源SHA，非新实现、原生验收或性能结果。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "details_markdown": "## 本轮记录：长prefill先做OA，再交换较窄结果\n\n用户在2026-11-06表示“这个好像可以试试 先记录吧”。本轮将 **F16-OA-BEFORE-A2A** 保留为值得尝试的条件候选；仅登记用户选择和已有方案，不启动实施或提升正确性、性能及独立复核状态。其他F16分块接力方案保留原合同。\n\n```text\n原来：逆RoPE/pack → 交换4096维分组数据 → OA压到1024维 → OB → ReduceScatter\n候选：源rank先按目的组做OA → 交换1024维结果 → 原OB → 原ReduceScatter\n```\n\nOA与OB的必要MAC不减少，OA之后的BF16舍入、原OB及ReduceScatter、TP行序、padding和所有参与者保留。每rank每层发送面的逻辑载荷可变为原来的四分之一；原pack只在OA直接产出发送布局时领取一次节省，与F14/F15去重。\n\n代价是每个源rank需覆盖全部八份OA权重：每层逻辑覆盖8→64 MiB，额外读取56 MiB。40层常驻、原分片引用完整bank对应部分时，每rank新增2.1875 GiB；另保留原分片时新增2.50 GiB。实际峰值、构造临时面和KV容量仍待验证。\n\n复用171 v168五次长行调用的旧模型：若窄交换尾部耗时为原来的25%，保持旧OA时长与参考间隙、尚未扣除新增成本，直接TTFT敏感度中位约1.20%（0.51%–1.44%）。**这是条件估算，非实测提速；载荷减少四倍不保证耗时减少四倍。** M3 decode保持后置。\n\n未来若执行，先比较真实BF16 OA中间值与原OB输出；通过后再对照同组完整pack→OB/ReduceScatter端点，计入权重供给、形状变化、布局、发布与内存/KV代价。合同不满足或新增成本抵消最终推进时，停止该变体。来源提交、文件SHA及登记边界见[本次用户决定](evidence/F16-oa-before-exchange-user-decision-20261106.json)。"
     },
     {
       "id": "F17",
@@ -2783,7 +2789,7 @@
     }
   ],
   "current_focus": {
-    "candidate": "F09",
-    "variant": "非packed Index query尾64 RoPE→整128 INT8量化（待验证）"
+    "candidate": "F16",
+    "variant": "长prefill OA前移至All-to-All之前（用户认可，记录待验证）"
   }
 }

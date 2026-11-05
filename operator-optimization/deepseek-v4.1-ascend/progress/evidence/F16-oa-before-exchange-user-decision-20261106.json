@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "candidate": "F16",
+  "variant": "OA_BEFORE_ALL_TO_ALL_LONG_PREFILL",
+  "kind": "USER_CANDIDATE_RETAINED_NOT_EXECUTION_OR_PERFORMANCE_ACCEPTANCE",
+  "user_instruction": "这个好像可以试试 先记录吧",
+  "decision": "保留为用户认可值得尝试的长prefill条件方案，本次仅记录。",
+  "before": "逆RoPE/pack -> 4096维分组载荷All-to-All -> OA 4096至1024 -> BF16 -> OB -> ReduceScatter",
+  "proposed": "源rank按目的组先做OA 4096至1024 -> BF16窄载荷All-to-All -> 原OB -> 原ReduceScatter",
+  "work": {
+    "OA_and_OB_MAC_reduction": 0,
+    "send_plane_ratio_new_to_old": 0.25,
+    "collectives_retained": [
+      "All-to-All",
+      "ReduceScatter"
+    ],
+    "logical_OA_weight_coverage_MiB_per_rank_layer_before_after": [
+      8,
+      64
+    ],
+    "extra_resident_OA_GiB_per_rank_if_original_shard_aliases_full_bank": 2.1875,
+    "extra_resident_OA_GiB_per_rank_if_original_shard_is_retained": 2.5,
+    "extra_logical_OA_weight_read_MiB_per_rank_layer": 56
+  },
+  "reused_conditional_value": {
+    "cohort": "171 v168 five long-prefill TP8 calls; no new measurement",
+    "assumption": "窄交换尾部耗时为旧值25%，原OA时长及参考间隙固定；新增权重供给、布局与计算成本尚未扣除。",
+    "direct_TTFT_sensitivity_median": 0.012,
+    "direct_TTFT_sensitivity_range": [
+      0.0051,
+      0.0144
+    ],
+    "scope": "条件模型，不是实测提速；载荷变为四分之一不保证通信耗时同倍缩小。"
+  },
+  "future_validation": [
+    "先验证真实BF16 OA中间值、原OB输出、TP源/目的行序、padding和原ReduceScatter合同。",
+    "同组完整段对照计入新OA形状耗时、权重读取、布局/pack、窄交换、发布及最晚输出。",
+    "核实常驻权重和构造临时面、实际峰值及KV/前缀容量；两臂使用相同容量与负载。"
+  ],
+  "stop_condition": "数值/读者/通信合同不满足，或新增成本抵消最晚输出推进时，停止对应变体；保留其他适用域。",
+  "implementation_started": false,
+  "native_correctness": "UNKNOWN",
+  "measured_local_gain": "UNKNOWN",
+  "measured_inference_gain": "UNKNOWN",
+  "decode_scope": "M3 decode保持后置；不以长prefill预算外推。",
+  "source_snapshot": {
+    "workspace": "/Users/wio/work/operator-priority-plan-20261104",
+    "commit": "f2f6ae9e4ca7beceeb06b75e745dded8f0e089f4",
+    "sha256": {
+      "ATTENTION-VALUE-DECISION.md": "b8fc4c8f59dc050ef3eeae1bb6b65191b9ded28d2ba6ba917007b35dfcbf2455",
+      "analysis/171-f16-v168-oa-transport.json": "800364950a420ef47fe26d8177bda3054972712a47cd96fc3df5e55bd1dffcb1",
+      "analysis/171-f16-f14-rs-frontier.json": "839b0d55045bf8e1f7326b0699fffb03a4a45149e08af32c8f578f01374616b2",
+      "analysis/171-f16-oa-residency.json": "a22ef6f59ff9d1a5a3f6991fbe1304822076608006da3d93ac5fadb87f0e5349"
+    }
+  },
+  "new_profile": false,
+  "new_NPU_work": false,
+  "server_or_service_changes": false
+}

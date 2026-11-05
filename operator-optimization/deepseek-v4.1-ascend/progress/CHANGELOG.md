@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-06 · 20261106-F16-OA-BEFORE-A2A-USER-RETAINED
+
+涉及：[F16](F16.md)
+
+类型：USER_CANDIDATE_RETAINED_NOT_NEW_TECHNICAL_PROGRESS；依据：用户明确表示“这个好像可以试试 先记录吧”；复用已有171 v168长行、完整段和权重驻留模型，来源SHA见本次登记。
+
+保留F16长prefill OA前移至All-to-All之前的条件方案。记录载荷4096→1024、2.1875/2.50GiB额外权重及1.20%条件TTFT模型；未来先验数值及含权重/通信/布局的完整段净值。本次仅记录，不启动实施或升级正确性/性能/独立审查；M3 decode仍后置。
+
 ## 2026-11-04 · 20261104-F09-WORKED-EXAMPLE-AND-FUSION-BOUNDARIES
 
 涉及：[F09](F09.md)

@@ -2,7 +2,7 @@
 
 这是正在逐条讨论和复核的工作看板。历史 v180 分析归档保留；本看板不把候选登记、报告成稿或重复讲解当作实现完成。
 
-当前记录：2026-11-04（Asia/Shanghai）。
+当前记录：2026-11-06（Asia/Shanghai）。
 
 - 42/42 个既有候选族已建立独立记录入口；这是记录覆盖，不是优化验证完成率。
 - 本轮有新的逻辑复核记录：10/42。复核范围见各页；子方案澄清不关闭整个候选族。
@@ -11,7 +11,7 @@
 
 ## 从这里看
 
-- 当前讨论：[F09 · 非packed Index query尾64 RoPE→整128 INT8量化（待验证）](F09.md)。
+- 当前讨论：[F16 · 长prefill OA前移至All-to-All之前（用户认可，记录待验证）](F16.md)。
 - 更新规则：[记录规范](PROCESS.md)；新记录使用[模板](TEMPLATE.md)。
 - 所有进展：[变更记录](CHANGELOG.md)；结构化状态：[candidates.json](candidates.json)；追加事件：[events.jsonl](events.jsonl)。
 - 已登记 F01 Task 的机器恢复入口：[Task README](tasks/f01-early-y/README.md)和[恢复包](tasks/f01-early-y/resume-pack.json)。转向下一候选不代表关闭 F01。
@@ -35,7 +35,7 @@
 |[F13](F13.md)|稀疏注意力复合边界|已有稀疏 Attention 内部流水/拆分|沿用历史分析；待本轮逐条复核|选定内部队列或 SWA 提前子方案|
 |[F14](F14.md)|Attention → 逆 RoPE → 布局恢复 → 输出投影|Attention 收尾/逆 RoPE/布局接合|沿用历史分析；待本轮逐条复核|保留真实跨卡 head 恢复依赖|
 |[F15](F15.md)|Attention 输出填充/恢复 → 投影|填充/通信布局与投影流水重组|沿用历史分析；待本轮逐条复核|查清投影每块需要哪些参与者的数据|
-|[F16](F16.md)|两级输出投影与 reduce-scatter 的分块重组|两级投影与 reduce-scatter 流水重组|沿用历史分析；待本轮逐条复核|复用两级投影和归约前舍入合同|
+|[F16](F16.md)|两级输出投影与 reduce-scatter 的分块重组|两级投影与 reduce-scatter 流水重组|用户认可长prefill OA前移至交换前，保留待验证；未新增实现或性能证据|复用长prefill OA前移的行序、权重与BF16合同|
 |[F17](F17.md)|Compressor 两路输入投影，共享转换或分块|Compressor 双投影共享加载/分块|沿用历史分析；待本轮逐条复核|固定 C1/C2 类型域和两套独立输出|
 |[F18](F18.md)|Compressor 状态池化 → norm|状态池化/归一化与 ring 维护重组|沿用历史分析；待本轮逐条复核|明确旧 ring 读取与新值覆写顺序|
 |[F19](F19.md)|Compressor latent 分叉 → index key 与压缩 KV|latent 双分支共享读取/交接|沿用历史分析；待本轮逐条复核|固定未旋转 latent 的读者与覆写边界|
