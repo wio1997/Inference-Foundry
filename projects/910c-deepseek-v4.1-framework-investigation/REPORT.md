@@ -13,8 +13,8 @@
 | 软件与设备 | CANN 9.2、910C、16逻辑设备；DP2 TP8 EP16。已按文件哈希冻结的合同优先于同名接口推断 |
 | 主负载 | 冻结 C8、32K输入、1K输出、P90条件；每次比较继续核对其自身冻结参数、输出和前后参照 |
 | 当前目标资产 | 171；服务器资料位于 `/data/tiankuan/wio`，历史106/166/172资料只按各自版本和cohort引用 |
-| 分析来源提交 | `63de491f2f09afa18a692096178f19666924dfae`，来源是本地分析库，不是同名GitHub分支的提交 |
-| 报告快照时间 | 2026-11-06T21:09:13.483122+00:00 |
+| 分析来源提交 | `af63aa0418213e042d101afd877c1f7d58039a49`，来源是本地分析库，不是同名GitHub分支的提交 |
+| 报告快照时间 | 2026-11-06T21:20:01.043537+00:00 |
 
 选中源码、模型配置和原生 ABI 的具体哈希保存在原证据及本目录索引中。部分加载二进制、运行时选择、设备读者和物理资源绑定仍有缺口；不能把几个文件匹配扩展成全部版本已证明相同。
 
@@ -34,7 +34,7 @@
 | [M05 mHC FFN 前置与 RMS/cast](modules/M05.md) | SCOPED_PRIORITY_SCREENED_CONDITIONAL_FRONTIERS_RETAINED | FFN HcPre 中位约 1.4153 ms；norm/cast 中位约 0.1172 ms，后者最高 0.224%。Post/norm/三处间隔的联合零成本筛查最高 1.040%，并非严格小于 1%。 |
 | [M06 Router、路由/共享专家、EP 收发](modules/M06.md) | SCOPED_PRIORITY_DISPOSITIONS_RECORDED_OPEN_F21_FRONTIERS | 4480 次当前目标调用无固定路由表；selected-dot 不适用。共享四任务约 3.98% 周期，值得一次固定对照。显式 fork 的两种合成路由输出全等，但仅省 4.076/5.924 μs，低于 13.893 μs 门槛。 |
 | [M07 mHC FFN 后置与下一层状态](modules/M07.md) | SCOPED_PRIORITY_DISPOSITIONS_RECORDED | 4480 次 Post 已绑定。直接边界完整零成本筛查最高 0.538%，辅助边界 0.263%，终端 Post 到 norm 0.226%。全部联合的中位 0.971%、最高 1.042%；不能声称所有组合严格低于 1%。 |
-| [M08 终端 collapse、norm、词表 head](modules/M08.md) | ACTIVE_TERMINAL_AND_HEAD_VALUE_SCREEN | 当前已定位 112 条终端双 gather→copy/cast/mul/reduce/cast/norm 链。既有干净 head 价值筛查暂缓局限于该小阶段的实现；本轮按顺序复核联合方案。 |
+| [M08 终端 collapse、norm、词表 head](modules/M08.md) | ACTIVE_PREFILL_FINAL_FFN_AND_DELIVERY_VALUE_SCREEN | 当前112条同cohort终端Post到greedy校验的完整区间中位0.6442ms/1.1685%；保持head投影时长不变、其余全免费也至多0.9368%。小型独立实现暂缓，不能把整个联合区域说成低于1%。 |
 | [M09 采样、校验与输出状态](modules/M09.md) | QUEUED_REUSE_EXISTING_EVIDENCE | 已有 source 分支和 native 局部证据；当前 score 尾部单独诊断对采样均值的预算很小。完整 M09 顺序价值复核尚未完成。 |
 | [M10 DSpark context、decoder、draft head/Markov](modules/M10.md) | QUEUED_REUSE_EXISTING_EVIDENCE | 已有 context KV、draft 行域、Markov 状态及策略端点的局部合同。不能把旧 172 DeepInfer 结果混入本次 171 vLLM 框架收益。 |
 | [M11 下一迭代输入与状态交接](modules/M11.md) | QUEUED_REUSE_EXISTING_EVIDENCE | 已有发布、owner/ring、索引模板与状态代际证据。当前 M11 整体顺序价值复核尚未完成，不能因元数据很小或源码有缓存而认定可共享。 |
@@ -95,7 +95,7 @@ M06短profile包含512条同设备绑定。共享投影与F21的任务区间相�
 
 ## 过程反思与纠错
 
-新增[统一成本基线](baselines/README.md)：复用同一批112个本地周期的83类算子频次/区间导航、六组区域成本、设备容量和已有竞争反例。新候选先查表，再对完整改写区域定价；只有未测成本会改变选择时才补证。算子类型汇总混合shape和target/draft，只作导航，不是每shape微基准；完整范围和哈希在[成本数据表](baselines/atlas.json)。
+新增[统一成本基线](baselines/README.md)：复用同一批112个本地周期的83类算子频次/区间导航、八组区域成本或频次筛查、设备容量和已有竞争反例。新候选先查表，再对完整改写区域定价；只有未测成本会改变选择时才补证。算子类型汇总混合shape和target/draft，只作导航，不是每shape微基准；完整范围和哈希在[成本数据表](baselines/atlas.json)。
 
 通信、HBM/L2/host-UVA、计算及调度成本按实际用例共享准备，具体准入与停止规则见[集中补测清单](baselines/calibration-plan.json)。当前校准尚未执行，不能把等待区间、实测吞吐或设备容量当成物理上界。基线准备不阻塞可用已有证据推进的M08–M11，原冻结实验门槛不变。
 
