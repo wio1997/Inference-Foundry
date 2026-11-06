@@ -13,8 +13,8 @@
 | 软件与设备 | CANN 9.2、910C、16逻辑设备；DP2 TP8 EP16。已按文件哈希冻结的合同优先于同名接口推断 |
 | 主负载 | 冻结 C8、32K输入、1K输出、P90条件；每次比较继续核对其自身冻结参数、输出和前后参照 |
 | 当前目标资产 | 171；服务器资料位于 `/data/tiankuan/wio`，历史106/166/172资料只按各自版本和cohort引用 |
-| 分析来源提交 | `ca1395cffe5b77322ddc0a5c6f04359578800299`，来源是本地分析库，不是同名GitHub分支的提交 |
-| 报告快照时间 | 2026-11-06T21:59:57.709518+00:00 |
+| 分析来源提交 | `af9ae6bba8e1b6fea41b4d71809f52fa9eecba05`，来源是本地分析库，不是同名GitHub分支的提交 |
+| 报告快照时间 | 2026-11-06T22:20:16.149469+00:00 |
 
 选中源码、模型配置和原生 ABI 的具体哈希保存在原证据及本目录索引中。部分加载二进制、运行时选择、设备读者和物理资源绑定仍有缺口；不能把几个文件匹配扩展成全部版本已证明相同。
 
@@ -36,7 +36,7 @@
 | [M07 mHC FFN 后置与下一层状态](modules/M07.md) | SCOPED_PRIORITY_DISPOSITIONS_RECORDED | 4480 次 Post 已绑定。直接边界完整零成本筛查最高 0.538%，辅助边界 0.263%，终端 Post 到 norm 0.226%。全部联合的中位 0.971%、最高 1.042%；不能声称所有组合严格低于 1%。 |
 | [M08 终端 collapse、norm、词表 head](modules/M08.md) | SCOPED_PRIORITY_DISPOSITIONS_RECORDED | 当前112条同cohort终端Post到greedy校验的完整区间中位0.6442ms/1.1685%；保持head投影时长不变、其余全免费也至多0.9368%。小型独立实现暂缓，不能把整个联合区域说成低于1%。 |
 | [M09 采样、校验与输出状态](modules/M09.md) | SCOPED_PRIORITY_DISPOSITIONS_RECORDED | 复用112个当前窗口：seed/count+padded完整免费最高0.082894%；score→seed最高0.608161%。暂缓独立实现，8组分支引用已有合同。联合到context copy最高1.049986%，交给M10完整定价。 |
-| [M10 DSpark context、decoder、draft head/Markov](modules/M10.md) | ACTIVE_DSPARK_SHARED_PREFIX_VALUE_DECISION | 112个当前窗口完整DSpark中位4.004ms/7.314%；按每rank实际时长加权为7.692%–8.063%。context前缀中位1.0497ms，decoder2.1408ms。单独contextKV/Markov旧方案暂缓；共享坐标布局预算中位0.6822ms，继续完整替代方案定价。 |
+| [M10 DSpark context、decoder、draft head/Markov](modules/M10.md) | ACTIVE_DSPARK_PREFILL_FREQUENCY_SCREEN | 112窗口完整DSpark中位4.004ms/7.314%；每rank时长加权7.692%–8.063%。context前缀1.0497ms，decoder2.1408ms。共享布局0.6822ms是包含性预算；保留原通信、embedding查表及RoPE输入/写回后，达到1%排序参考只剩中位4.61μs替代时间，因此暂缓该具体版本。 |
 | [M11 下一迭代输入与状态交接](modules/M11.md) | QUEUED_REUSE_EXISTING_EVIDENCE | 已有发布、owner/ring、索引模板与状态代际证据。当前 M11 整体顺序价值复核尚未完成，不能因元数据很小或源码有缓存而认定可共享。 |
 
 每个模块页分别记录分支、语义读者、完整改写空间、已知证据和下一项缺口。旧语义台账另有26个模块索引、360条语义记录；两套编号服务于不同组织方式，不能直接按编号对应。索引行数和源码guard数量均不代表完成百分比。
@@ -95,7 +95,7 @@ M06短profile包含512条同设备绑定。共享投影与F21的任务区间相�
 
 ## 过程反思与纠错
 
-新增[统一成本基线](baselines/README.md)：复用同一批112个本地周期的83类算子频次/区间导航、十二组区域成本或频次筛查、设备容量和已有竞争反例。新候选先查表，再对完整改写区域定价；只有未测成本会改变选择时才补证。算子类型汇总混合shape和target/draft，只作导航，不是每shape微基准；完整范围和哈希在[成本数据表](baselines/atlas.json)。
+新增[统一成本基线](baselines/README.md)：复用同一批112个本地周期的83类算子频次/区间导航、十三组区域成本或频次筛查、设备容量和已有竞争反例。新候选先查表，再对完整改写区域定价；只有未测成本会改变选择时才补证。算子类型汇总混合shape和target/draft，只作导航，不是每shape微基准；完整范围和哈希在[成本数据表](baselines/atlas.json)。
 
 M09直接复用16份本地缓存和旧seed合同，未新增源码阅读、profile导出或NPU探针。完整seed/count+padded免费最高0.082894%，因此暂缓独立实现；包含score最高0.608161%。联合到context copy最高1.049986%，仍交给M10完整定价；这些重叠区间不能相加。复用产生了明确处置，未声称已量化分析速度倍数。
 
