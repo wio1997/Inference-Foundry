@@ -2,6 +2,14 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-06 · 20261106-VALUE-PRIORITY-RECONCILIATION
+
+涉及：[F01](F01.md)、[F02](F02.md)、[F03](F03.md)、[F04](F04.md)、[F05](F05.md)、[F06](F06.md)、[F07](F07.md)、[F08](F08.md)、[F09](F09.md)、[F10](F10.md)、[F11](F11.md)、[F12](F12.md)、[F13](F13.md)、[F14](F14.md)、[F15](F15.md)、[F16](F16.md)、[F17](F17.md)、[F18](F18.md)、[F19](F19.md)、[F20](F20.md)、[F21](F21.md)、[F22](F22.md)、[F23](F23.md)、[F24](F24.md)、[F25](F25.md)、[F26](F26.md)、[F27](F27.md)、[F28](F28.md)、[F29](F29.md)、[F30](F30.md)、[F31](F31.md)、[F32](F32.md)、[F33](F33.md)、[F34](F34.md)、[F35](F35.md)、[H01](H01.md)、[H02](H02.md)、[H03](H03.md)、[H04](H04.md)、[H05](H05.md)、[H06](H06.md)、[H07](H07.md)
+
+类型：USER_REQUESTED_PRIORITY_RECONCILIATION_NOT_NEW_EXPERIMENT；依据：用户授权将复核后的优先级更新到GitHub；复用公开8539c166及来源8d4adaa3的冻结结果，记录见evidence/priority-review-20261106.json
+
+纠正旧CPU计划后备/F12第二顺位标签：三项组合作为限定已验证基线；HcPre保留算法候选，联合Engram/注意力先定价。停止F12、owner和CPU组装不变版；OA普通MM数值失败。历史11项留档，不相加收益、不新增实验、不提升全族或独立审查状态。
+
 ## 2026-11-06 · 20261106-CURRENT-PROFILE-MECHANISM-SCREEN
 
 涉及：[F24](F24.md)、[F25](F25.md)、[F13](F13.md)

@@ -6,11 +6,11 @@
 
 ## 优先级与当前结果入口
 
-**[历史排序和最新结果](../PRIORITY-PLAN.md)**：历史点名保留11项、涉及9族；当前3个方向/4项改动，前端后备3项，长行或容量后备4项。
+**[当前优先级与证据](../PRIORITY-PLAN.md)**：已验证组合3项改动；具体算法候选1项，联合机制待定价2项；前端后备2项，长行/容量后备4项。停止的具体变体单列，历史11项不是当前开发顺序。
 
-已验证基线为CP+slot+CPUplan；当前复用profile定价Engram与注意力联合机制。owner传输、CPU联合组装和QLI相同变体停止重复比较。
+已验证组合CP+Slot+CPUplan；HcPre保留具体算法候选；Engram/注意力联合机制先定净值，F29/H07后备。F12当前表示、owner传输、CPU联合组装停止原样追测；OA普通MM替换数值失败。
 
-[结构化11项与42族行动](priority-plan.json) · [已有结果及来源SHA](evidence/priority-value-evidence-20261106.json)
+[当前分层与42族行动](priority-plan.json) · [本次优先级复核](evidence/priority-review-20261106.json) · [冻结运行结果](evidence/runtime-results-through-20261106.json)
 
 
 - 42/42 个既有候选族已建立独立记录入口；这是记录覆盖，不是优化验证完成率。
@@ -21,7 +21,7 @@
 
 ## 从这里看
 
-- 当前讨论：[F24 · Engram与注意力：复用当前profile筛选具体联合机制](F24.md)。
+- 当前讨论：[F24 · Engram/注意力联合机制净值定价；HcPre保留算法候选](F24.md)。
 - 更新规则：[记录规范](PROCESS.md)；新记录使用[模板](TEMPLATE.md)。
 - 所有进展：[变更记录](CHANGELOG.md)；结构化状态：[candidates.json](candidates.json)；追加事件：[events.jsonl](events.jsonl)。
 - 已登记 F01 Task 的机器恢复入口：[Task README](tasks/f01-early-y/README.md)和[恢复包](tasks/f01-early-y/resume-pack.json)。转向下一候选不代表关闭 F01。
@@ -31,47 +31,47 @@
 |编号|对象|优化类型|本轮状态|下一步|
 |---|---|---|---|---|
 |[F01](F01.md)|注意力前 mHC 复合边界|HC族内算法去冗余；旧EARLY-Y调度变体单列|行平方和有算法去冗余依据；试验版回放ERROR，旧重复collapse变体停止|HcPre直接计算行平方和|
-|[F02](F02.md)|embedding → 首层 mHC 系数投影；mHC pre → 输入归一化|相邻操作融合（本轮仅 Attention 侧 PRENORM）|PRENORM 源码边界已澄清；数值/实现/收益待验证|只补整行片上保留与数值归约的决策缺口|
-|[F03](F03.md)|attention 或 FFN mHC post → 下一次 mHC pre，跨边界重组|生产者/消费者融合或交接重组（本轮仅Attention Post→FFN Pre）|Post+Y保留长行重读消除价值；U仍有读者，不能删U。|Post同时输出U和下一次Y|
-|[F04](F04.md)|FFN 归一化与类型转换|已有归一化/转换融合；可选下游接口重组|已有融合已确认；整体耗时已分批统计，纯转换与新收益未知|决定是否选择Router内转换子方案|
-|[F05](F05.md)|Q norm → 动态量化 → Q 投影，多算子链|归一化＋动态量化融合（本轮QR-NORM-QUANT）|Q链与多消费者已澄清；融合数值/接口/收益待验证|选择保留原数值的NormQuant实现和接入接口|
-|[F06](F06.md)|Q 与 KV 投影，共享输入或合并投影|共享输入的多输出投影重组|同行输入联合投影已解释；已知行域反例及已有复用/重叠已复核，native与收益待验证|若实施，先选真实同行输入的分支|
-|[F07](F07.md)|Q 投影 → RoPE，生产者与消费者组合|投影收尾与 RoPE 融合|Q_B→部分RoPE源链、BF16边界与tail范围已复核；收尾接口、正确性和收益待证|先判断能否低成本接入Q_B收尾|
-|[F08](F08.md)|KV 投影 → norm → RoPE → SWA 缓存写入|投影/归一化/旋转/缓存发布融合|已复核非packed BF16 SWA的norm→部分RoPE→SK scatter；小边界实现、精度、收益和其他变体待证|若实施，先固定非packed BF16 SWA小原型|
-|[F09](F09.md)|Index query 投影 → RoPE → 量化|Index query 的 RoPE 与量化融合|Index query尾64旋转→整128量化及FP16比例规则已复核；融合实现、读者/调度和收益待证|若实施，先选择保留BF16结果的最小融合|
-|[F10](F10.md)|Index weight 投影 → 转换与缩放|投影收尾的转换/缩放融合|沿用历史分析；待本轮逐条复核|固定三次精度阶段和有效消费者|
-|[F11](F11.md)|Index key norm → RoPE → 量化 → key/scale 缓存写入|Index key 处理与持久缓存发布融合|沿用历史分析；待本轮逐条复核|复用 key 与 scale 的联合发布合同|
-|[F12](F12.md)|Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask|索引发布融合、表示重组与条件复用|修正版候选表示已过限定C8；端到端收益未定，停止同版追测|四个Indexer消费者共享候选成员表示|
+|[F02](F02.md)|embedding → 首层 mHC 系数投影；mHC pre → 输入归一化|相邻操作融合（本轮仅 Attention 侧 PRENORM）|PRENORM 源码边界已澄清；数值/实现/收益待验证|当前不独立开发；保留条件|
+|[F03](F03.md)|attention 或 FFN mHC post → 下一次 mHC pre，跨边界重组|生产者/消费者融合或交接重组（本轮仅Attention Post→FFN Pre）|Post+Y保留长行重读消除价值；U仍有读者，不能删U。|仅长行/容量条件准入|
+|[F04](F04.md)|FFN 归一化与类型转换|已有归一化/转换融合；可选下游接口重组|已有融合已确认；整体耗时已分批统计，纯转换与新收益未知|当前不独立开发；保留条件|
+|[F05](F05.md)|Q norm → 动态量化 → Q 投影，多算子链|归一化＋动态量化融合（本轮QR-NORM-QUANT）|Q链与多消费者已澄清；融合数值/接口/收益待验证|当前不独立开发；保留条件|
+|[F06](F06.md)|Q 与 KV 投影，共享输入或合并投影|共享输入的多输出投影重组|同行输入联合投影已解释；已知行域反例及已有复用/重叠已复核，native与收益待验证|当前不独立开发；保留条件|
+|[F07](F07.md)|Q 投影 → RoPE，生产者与消费者组合|投影收尾与 RoPE 融合|Q_B→部分RoPE源链、BF16边界与tail范围已复核；收尾接口、正确性和收益待证|当前不独立开发；保留条件|
+|[F08](F08.md)|KV 投影 → norm → RoPE → SWA 缓存写入|投影/归一化/旋转/缓存发布融合|已复核非packed BF16 SWA的norm→部分RoPE→SK scatter；小边界实现、精度、收益和其他变体待证|当前不独立开发；保留条件|
+|[F09](F09.md)|Index query 投影 → RoPE → 量化|Index query 的 RoPE 与量化融合|Index query尾64旋转→整128量化及FP16比例规则已复核；融合实现、读者/调度和收益待证|当前不独立开发；保留条件|
+|[F10](F10.md)|Index weight 投影 → 转换与缩放|投影收尾的转换/缩放融合|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F11](F11.md)|Index key norm → RoPE → 量化 → key/scale 缓存写入|Index key 处理与持久缓存发布融合|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F12](F12.md)|Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask|索引发布融合、表示重组与条件复用|修正版候选表示已过限定C8；端到端收益未定，停止同版追测|停止不变版；新机制才重开|
 |[F13](F13.md)|稀疏注意力复合边界|已有稀疏 Attention 内部流水/拆分|复用当前干净profile定价，等待具体联合机制净值决策|选定内部队列或 SWA 提前子方案|
-|[F14](F14.md)|Attention → 逆 RoPE → 布局恢复 → 输出投影|Attention 收尾/逆 RoPE/布局接合|沿用历史分析；待本轮逐条复核|保留真实跨卡 head 恢复依赖|
-|[F15](F15.md)|Attention 输出填充/恢复 → 投影|填充/通信布局与投影流水重组|沿用历史分析；待本轮逐条复核|查清投影每块需要哪些参与者的数据|
-|[F16](F16.md)|两级输出投影与 reduce-scatter 的分块重组|两级投影与 reduce-scatter 流水重组|新增OA普通MM替换变体数值门槛失败；OA前移等其他方案继续保留条件|OA前移后交换窄结果|
-|[F17](F17.md)|Compressor 两路输入投影，共享转换或分块|Compressor 双投影共享加载/分块|沿用历史分析；待本轮逐条复核|固定 C1/C2 类型域和两套独立输出|
-|[F18](F18.md)|Compressor 状态池化 → norm|状态池化/归一化与 ring 维护重组|沿用历史分析；待本轮逐条复核|明确旧 ring 读取与新值覆写顺序|
-|[F19](F19.md)|Compressor latent 分叉 → index key 与压缩 KV|latent 双分支共享读取/交接|沿用历史分析；待本轮逐条复核|固定未旋转 latent 的读者与覆写边界|
-|[F20](F20.md)|MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用|已有TopK内部算法优化、周边重复消除与跨算子融合候选|TopK已有融合与周边重复清理已复核；加载路径、正确性、收益及其他变体待验证|若实施，先验证同INT64接口的私有清理消除|
-|[F21](F21.md)|MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水|已有 MoE 融合内部流水|g12流水变体已有C8结果：未建立加速，停止该变体|保留g12负结果，停止同一变体|
-|[F22](F22.md)|共享 expert 的投影 → 激活量化 → 下投影|共享 expert 投影/激活量化/下投影衔接|沿用历史分析；待本轮逐条复核|固定 clamp 与整行量化统计边界|
-|[F23](F23.md)|共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC|expert 汇合与 HCPost 接合|M3汇合进HC局部更快但C8无已建立收益，停止该实现|停止已测M3汇合入口|
+|[F14](F14.md)|Attention → 逆 RoPE → 布局恢复 → 输出投影|Attention 收尾/逆 RoPE/布局接合|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F15](F15.md)|Attention 输出填充/恢复 → 投影|填充/通信布局与投影流水重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F16](F16.md)|两级输出投影与 reduce-scatter 的分块重组|两级投影与 reduce-scatter 流水重组|新增OA普通MM替换变体数值门槛失败；OA前移等其他方案继续保留条件|仅长行/容量条件准入|
+|[F17](F17.md)|Compressor 两路输入投影，共享转换或分块|Compressor 双投影共享加载/分块|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F18](F18.md)|Compressor 状态池化 → norm|状态池化/归一化与 ring 维护重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F19](F19.md)|Compressor latent 分叉 → index key 与压缩 KV|latent 双分支共享读取/交接|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F20](F20.md)|MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用|已有TopK内部算法优化、周边重复消除与跨算子融合候选|TopK已有融合与周边重复清理已复核；加载路径、正确性、收益及其他变体待验证|当前不独立开发；保留条件|
+|[F21](F21.md)|MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水|已有 MoE 融合内部流水|g12流水变体已有C8结果：未建立加速，停止该变体|当前不独立开发；保留条件|
+|[F22](F22.md)|共享 expert 的投影 → 激活量化 → 下投影|共享 expert 投影/激活量化/下投影衔接|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F23](F23.md)|共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC|expert 汇合与 HCPost 接合|M3汇合进HC局部更快但C8无已建立收益，停止该实现|当前不独立开发；保留条件|
 |[F24](F24.md)|Engram hash/lookup → ready → 行视图或分片；host-UVA 寻址|Engram 公共准备/查表/行组织重组|复用当前干净profile定价，等待具体联合机制净值决策|复用当前 backend 与全写合同|
 |[F25](F25.md)|Engram 投影 → gate/残差|Engram 投影提前与 gate/残差接合|复用当前干净profile定价，等待具体联合机制净值决策|区分可提前的纯投影与依赖 hidden 的 gate|
-|[F26](F26.md)|最终 HC collapse → norm 及 logits 边界|terminal collapse/norm/head 边界接合|无raw读者时owner collapse和单H gather，保留长行/容量条件。|owner collapse后单H gather|
-|[F27](F27.md)|DSpark 辅助上下文投影 → norm，候选流水|DSpark 上下文多输入投影/通信/归一化重组|沿用历史分析；待本轮逐条复核|固定三个 checkpoint 和完整特征归约|
-|[F28](F28.md)|DSpark embedding → HC 重复/初始化 → decoder|草稿 embedding/HC 展开/初始化重组|沿用历史分析；待本轮逐条复核|复用目标/草稿已有前置 shard 的区别|
-|[F29](F29.md)|DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引|三路 context KV 多输出投影与缓存发布|仅保留组合后重复位置准备的前端增量；旧KV窗口裁行不成立。|DSpark重复位置准备去重|
-|[F30](F30.md)|DSpark collapse/norm → Markov bias、logits/置信度/验证|DSpark head/Markov/选择及回馈重组|沿用历史分析；待本轮逐条复核|固定 Markov 前一步 ID 与 raw confidence 输入|
-|[F31](F31.md)|Attention/DSpark 相关 metadata 构造、共享与发布|metadata 多输出生产、共享与发布|CPU公共计划增量C8通过；后续联合组装C8未建立收益|CP长度去重|
-|[F32](F32.md)|SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信|投影前移与通信载荷重组|owner侧投影和窄传输已完成C8；当前变体收益未建立|owner KV投影后窄通信|
-|[F33](F33.md)|C1 compressor 与 SWA KV 的同域投影共享、联合分块与前移通信|C1 与 SWA 同输入双投影共享/前移|沿用历史分析；待本轮逐条复核|固定 C1 域与两个独立 norm|
-|[F34](F34.md)|C2 ring 状态的可观测性裁剪、稀疏维护与表示重组|C2 ring 可观察状态裁剪/表示重组|沿用历史分析；待本轮逐条复核|复用 rollback 反例并选定一个状态子方案|
-|[F35](F35.md)|目标采样的按需raw logits、行选择/转换/argmax与拒绝输出重组|采样按需输出/选择转换融合与重组|沿用历史分析；待本轮逐条复核|复用 greedy 不等于 score 全死的结论|
-|[H01](H01.md)|响应等待路径的轮询开销与重复等待工作|CPU 等待路径调度/记账重组|沿用历史分析；待本轮逐条复核|确认当前同请求的 on-CPU 与 producer-ready 边界|
-|[H02](H02.md)|输入准备中剩余小拷贝、锁页和元数据工作的合并重组|输入准备的小拷贝/缓冲/metadata 重组|联合CPU组装已完成实际模型C8；增量收益未建立|复用有序 gather 与跨 plane 别名合同|
-|[H03](H03.md)|前缀块哈希的跨请求重复工作|跨请求精确前缀哈希结果复用|沿用历史分析；待本轮逐条复核|核对完整 hash key 并给当前 CPU 成本定价|
-|[H04](H04.md)|前端长提示 tokenization 的精确复用、排队与批处理|tokenization 精确复用与排队重组|沿用历史分析；待本轮逐条复核|固定完整 tokenizer key 与当前排队成本|
-|[H05](H05.md)|前端 DecodeStream 早段长调用与输出就绪流水|DecodeStream 准备/串行卸载/发布流水|沿用历史分析；待本轮逐条复核|区分 CPU 工作与 wall 等待，并保留逐 token 语义|
-|[H06](H06.md)|固定 speculative 宽度下的 padding 域拆分与图 bucket 重组|padding 域与图 bucket 重组|沿用历史分析；待本轮逐条复核|复用24行约束和远端 receiver 工作事实|
-|[H07](H07.md)|原始 token ID 图回放与图外 embedding 的单一生产路径|图内外 embedding 单一生产路径|纯文本FULL图外死embedding可删；多模态分支保留，组合后增量未知。|纯文本FULL图外embedding去重|
+|[F26](F26.md)|最终 HC collapse → norm 及 logits 边界|terminal collapse/norm/head 边界接合|无raw读者时owner collapse和单H gather，保留长行/容量条件。|仅长行/容量条件准入|
+|[F27](F27.md)|DSpark 辅助上下文投影 → norm，候选流水|DSpark 上下文多输入投影/通信/归一化重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F28](F28.md)|DSpark embedding → HC 重复/初始化 → decoder|草稿 embedding/HC 展开/初始化重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F29](F29.md)|DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引|三路 context KV 多输出投影与缓存发布|仅保留组合后重复位置准备的前端增量；旧KV窗口裁行不成立。|仅核三项组合后增量|
+|[F30](F30.md)|DSpark collapse/norm → Markov bias、logits/置信度/验证|DSpark head/Markov/选择及回馈重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F31](F31.md)|Attention/DSpark 相关 metadata 构造、共享与发布|metadata 多输出生产、共享与发布|CPU公共计划增量C8通过；后续联合组装C8未建立收益|保留组合；采用入口时验资格|
+|[F32](F32.md)|SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信|投影前移与通信载荷重组|owner侧投影和窄传输已完成C8；当前变体收益未建立|停止当前版；其他目标条件留档|
+|[F33](F33.md)|C1 compressor 与 SWA KV 的同域投影共享、联合分块与前移通信|C1 与 SWA 同输入双投影共享/前移|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F34](F34.md)|C2 ring 状态的可观测性裁剪、稀疏维护与表示重组|C2 ring 可观察状态裁剪/表示重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[F35](F35.md)|目标采样的按需raw logits、行选择/转换/argmax与拒绝输出重组|采样按需输出/选择转换融合与重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[H01](H01.md)|响应等待路径的轮询开销与重复等待工作|CPU 等待路径调度/记账重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[H02](H02.md)|输入准备中剩余小拷贝、锁页和元数据工作的合并重组|输入准备的小拷贝/缓冲/metadata 重组|联合CPU组装已完成实际模型C8；增量收益未建立|停止不变版；新机制才重开|
+|[H03](H03.md)|前缀块哈希的跨请求重复工作|跨请求精确前缀哈希结果复用|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[H04](H04.md)|前端长提示 tokenization 的精确复用、排队与批处理|tokenization 精确复用与排队重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[H05](H05.md)|前端 DecodeStream 早段长调用与输出就绪流水|DecodeStream 准备/串行卸载/发布流水|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[H06](H06.md)|固定 speculative 宽度下的 padding 域拆分与图 bucket 重组|padding 域与图 bucket 重组|沿用历史分析；待本轮逐条复核|当前不独立开发；保留条件|
+|[H07](H07.md)|原始 token ID 图回放与图外 embedding 的单一生产路径|图内外 embedding 单一生产路径|纯文本FULL图外死embedding可删；多模态分支保留，组合后增量未知。|仅核三项组合后增量|
 
 ## 读表时的边界
 

@@ -1,22 +1,611 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "updated_at": "2026-11-06",
-  "source_commit": "38639a03e8fd52822801b1e328fc1fffc719ca7b",
-  "ordering_semantics": "Ranks1-3 are next-action order, not proven end-to-end gain ordering. Reserve members are not strongly ordered. Complexity is not a value penalty. Historical named-item ordering is retained as provenance; current_snapshot and subsequent variant results supersede its pending actions.",
+  "source_commit": "8d4adaa34996ed7ac1fe4100955ff7683df8dc56",
+  "ordering_semantics": "Action tiers distinguish scoped qualified baseline, concrete algorithm candidate, joint-mechanism pricing, conditional reserves and stopped variants. They do not prove a gain ordering among unmeasured candidates. Complexity is not a value penalty. Historical11-item labels are provenance only.",
   "counts": {
     "original_families": 42,
-    "named_retained_work_items": 11,
-    "unique_retained_families": 9,
-    "current_directions": 3,
-    "current_changes": 4,
-    "frontend_reserves": 3,
-    "long_or_capacity_reserves": 4
+    "registered_concrete_items": 15,
+    "qualified_baseline_changes": 3,
+    "algorithm_candidates": 1,
+    "joint_pricing_mechanisms": 2,
+    "frontend_reserves": 2,
+    "long_or_capacity_reserves": 4,
+    "stopped_entries": 3,
+    "stopped_tested_variants": 4
   },
   "non_candidates": [
     "CP_ONLY fallback baseline",
     "Unnamed archived conditional variants"
   ],
   "items": [
+    {
+      "id": "CP_LENGTH",
+      "family": "F31",
+      "group": "QUALIFIED_BASELINE",
+      "action_order": 1,
+      "title": "CP长度去重",
+      "change": "首组按原路生成；后续命中直接复用原长度，删重复长度链和suffix上传。",
+      "next_decision": "保留已验证组合及直接回退；只在实际采用新正常入口时验运行时来源、dispatch、读者和回退，不重复已成立计时。",
+      "status": "SCOPED_SERVICE_GAIN_ACCEPTED"
+    },
+    {
+      "id": "SLOT_WRITER",
+      "family": "F31",
+      "group": "QUALIFIED_BASELINE",
+      "action_order": 1,
+      "title": "Slot cache-only writer",
+      "change": "已有编译specialization直接写原coords/flat bank并返回原view。",
+      "next_decision": "保留已验证组合及直接回退；只在实际采用新正常入口时验运行时来源、dispatch、读者和回退，不重复已成立计时。",
+      "status": "SCOPED_SERVICE_GAIN_ACCEPTED"
+    },
+    {
+      "id": "F12_MEMBERSHIP",
+      "family": "F12",
+      "group": "STOP_UNCHANGED",
+      "action_order": null,
+      "title": "四个Indexer消费者共享候选成员表示",
+      "change": "L20编码并发布独立packet，L24/28/32/36复用；原列表及各层QK/TopK/prepare保留。",
+      "next_decision": "完整C8候选处于两参照之间；停止不变版追测。不同机制或足以改变决策的新证据才重开。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json",
+      "status": "END_TO_END_INCONCLUSIVE_STOP_UNCHANGED"
+    },
+    {
+      "id": "HC_ROW_NORM",
+      "family": "F01",
+      "group": "ALGORITHM_CANDIDATE",
+      "action_order": 2,
+      "title": "HcPre直接计算行平方和",
+      "change": "在已有输入tile上计算平方和，替代只用对角线的块Gram；混合投影和原输出/workspace保留。",
+      "next_decision": "明确的Gram去冗余机制保留；只对具体受支持的流水修正重开，先过完整输出及回放，再测完整HcPre净值，不重跑失败实现。",
+      "status": "PIPELINE_FAILURE_NEW_CORRECTION_REQUIRED"
+    },
+    {
+      "id": "F29_POSITION_REUSE",
+      "family": "F29",
+      "group": "FRONTEND_RESERVE",
+      "action_order": 4,
+      "title": "DSpark重复位置准备去重",
+      "change": "删无用层的准备，让需要层共享cos/sin和索引；原投影、旋转、cache读写保留。",
+      "next_decision": "只定价CP+Slot+CPUplan后的新增可删工作；没有足够增量则保持后置。"
+    },
+    {
+      "id": "H07_TEXT_EMBEDDING",
+      "family": "H07",
+      "group": "FRONTEND_RESERVE",
+      "action_order": 4,
+      "title": "纯文本FULL图外embedding去重",
+      "change": "保留图内token ID查表，删除已证明没有读者的图外embedding副本。",
+      "next_decision": "保留多模态等分支、原ID和图地址；只评价组合后增量。"
+    },
+    {
+      "id": "F31_CPU_PLAN",
+      "family": "F31",
+      "group": "QUALIFIED_BASELINE",
+      "action_order": 1,
+      "title": "CPU公共几何计划共享",
+      "change": "一次生成可共享计划，各组保留差异字段、bank、qsl地址与必要H2D。",
+      "next_decision": "保留CP+slot上的限定增量9.560%–10.364%；不相加历史百分比，不重复相同C8。各builder地址、必要H2D及原bank保留。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json",
+      "status": "SCOPED_SERVICE_GAIN_ACCEPTED"
+    },
+    {
+      "id": "F03_POST_Y",
+      "family": "F03",
+      "group": "LONG_OR_CAPACITY",
+      "action_order": null,
+      "title": "Post同时输出U和下一次Y",
+      "change": "用已舍入BF16的U tile生成Y；下次Pre仅做系数，仍写U给残差读者。",
+      "next_decision": "先验普通同层完整U/Y/系数；Engram和aux边界单列；长行完整段有净推进再继续。"
+    },
+    {
+      "id": "F16_OA_BEFORE_A2A",
+      "family": "F16",
+      "group": "LONG_OR_CAPACITY",
+      "action_order": null,
+      "title": "OA前移后交换窄结果",
+      "change": "源rank先做OA，交换4096维改1024维；保留OA/OB BF16边界和ReduceScatter。",
+      "next_decision": "核真实TP8数值及完整段；计新增权重读取、约2.19GiB/卡常驻权重和KV容量代价。"
+    },
+    {
+      "id": "F26_OWNER_COLLAPSE",
+      "family": "F26",
+      "group": "LONG_OR_CAPACITY",
+      "action_order": null,
+      "title": "owner collapse后单H gather",
+      "change": "无raw读者分支先本卡collapse，再单H gather和原RMS，删raw快照。",
+      "next_decision": "证明raw无读者；真实TP8数值、最慢rank完成和容量回收通过才继续，有MTP/raw读者保留原路。"
+    },
+    {
+      "id": "F32_OWNER_KV",
+      "family": "F32",
+      "group": "LONG_OR_CAPACITY",
+      "action_order": null,
+      "title": "owner KV投影后窄通信",
+      "change": "各卡只算自己的KV行，再gather窄KV；QA按原owner行及提前交付合同执行。",
+      "next_decision": "当前owner流水线C8无已建立增量，停止该版；长行/容量或不同机制须另证数值和完整净值。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json",
+      "status": "TESTED_CURRENT_VARIANT_STOPPED_OTHER_WORKLOAD_RESERVE"
+    },
+    {
+      "id": "ENGRAM_JOINT",
+      "family": "F24",
+      "related_families": [
+        "F25"
+      ],
+      "group": "JOINT_MECHANISM_PRICING",
+      "action_order": 3,
+      "title": "Engram lookup/owner传输/常量联合机制",
+      "change": "仅定价已有共享之外可删的lookup、交付或常量工作；保原全写、owner、代际及gate数值。",
+      "status": "NET_VALUE_UNKNOWN",
+      "next_decision": "WKV投影单项仅约当前局部周期1%；更大的联合机制先扣lookup、通信、重排和新读写，足够净值才接入。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
+    },
+    {
+      "id": "ATTENTION_SELECTED_KV",
+      "family": "F13",
+      "group": "JOINT_MECHANISM_PRICING",
+      "action_order": 3,
+      "title": "注意力selected-KV共享或核内状态续算",
+      "change": "复用同KV与索引代际的选中数据或保持原次序的内部状态；各层独立Q及必要QK/softmax/PV保留。",
+      "status": "NET_VALUE_UNKNOWN",
+      "next_decision": "先核完整pack/读取/驻留/就绪净值；1.799ms是全部SMLA旧成本，不是小接口收益，旧BF16分支输出合并反例仍有效。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
+    },
+    {
+      "id": "CPU_ASSEMBLY",
+      "family": "F31",
+      "related_families": [
+        "H02"
+      ],
+      "group": "STOP_UNCHANGED",
+      "action_order": null,
+      "title": "CPU联合组装当前变体",
+      "change": "当前组合后的CPU字段与组装共享试验。",
+      "status": "SERVICE_GAIN_NOT_ESTABLISHED",
+      "next_decision": "对前后参照+1.370%/-0.291%，停止相同版本。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
+    },
+    {
+      "id": "OA_ORDINARY_MM",
+      "family": "F16",
+      "group": "STOP_UNCHANGED",
+      "action_order": null,
+      "title": "OA普通MM替换当前实现",
+      "change": "普通MM替代原OA计算API。",
+      "status": "FROZEN_EXACT_NUMERICAL_GATE_FAILED",
+      "next_decision": "有限值位差异已否定当前逐位等价合同；未计时，不重跑同实现，不否定所有OA前移方案。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
+    }
+  ],
+  "all42": [
+    {
+      "family": "F01",
+      "name": "注意力前 mHC 复合边界",
+      "group": "ALGORITHM_CANDIDATE",
+      "current_action_order": 2,
+      "retained_work_ids": [
+        "HC_ROW_NORM"
+      ],
+      "reason": "HcPre行平方和保留具体算法去冗余价值；现有实现失败。只对具体流水修正重开，不重跑旧重复collapse。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F02",
+      "name": "embedding → 首层 mHC 系数投影；mHC pre → 输入归一化",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "目标路径已先SP；已有ReduceScatter/NormCast能力不重复计收益，其他条件分支后置。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F03",
+      "name": "attention 或 FFN mHC post → 下一次 mHC pre，跨边界重组",
+      "group": "LONG_OR_CAPACITY",
+      "current_action_order": null,
+      "retained_work_ids": [
+        "F03_POST_Y"
+      ],
+      "reason": "Post+Y保留长行重读消除价值；U仍有读者，不能删U。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F04",
+      "name": "FFN 归一化与类型转换",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "已有RmsNormCast；需要新的实际暴露或接口机制才重开。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F05",
+      "name": "Q norm → 动态量化 → Q 投影，多算子链",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "与F09共享同一qr量化包去重预算；新NormQuant窄版不独立开发。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F06",
+      "name": "Q 与 KV 投影，共享输入或合并投影",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "朴素拼接会多算QA；合法联合仍须保QA重叠，去重算术归F32。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F07",
+      "name": "Q 投影 → RoPE，生产者与消费者组合",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "RoPE epilogue可行，但需扣原有/可提前的重叠，当前不独立开发。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F08",
+      "name": "KV 投影 → norm → RoPE → SWA 缓存写入",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "窄版省55296B和2启动/调用；干净窗口汇合模型0.463ms/target非请求收益。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F09",
+      "name": "Index query 投影 → RoPE → 量化",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "query旋转/量化边界保留，与F05共用输入量化去重，不重复计。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F10",
+      "name": "Index weight 投影 → 转换与缩放",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "M3仅96输出；最多约1920B接口和3后处理任务，不单独开发。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F11",
+      "name": "Index key norm → RoPE → 量化 → key/scale 缓存写入",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "key量化规则不能替换；paired-store小变体不独立开发，完整producer条件保留。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F12",
+      "name": "Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask",
+      "group": "STOP_UNCHANGED",
+      "current_action_order": null,
+      "retained_work_ids": [
+        "F12_MEMBERSHIP"
+      ],
+      "reason": "完整C8收益未定；停止当前候选成员表示追测，旧局部净值不再授予下一轮独立优先级。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F13",
+      "name": "稀疏注意力复合边界",
+      "group": "JOINT_MECHANISM_PRICING",
+      "current_action_order": 3,
+      "retained_work_ids": [
+        "ATTENTION_SELECTED_KV"
+      ],
+      "reason": "selected-KV共享/核内状态续算先定完整净值；全部SMLA约3.25%是旧成本，不是可删预算。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F14",
+      "name": "Attention → 逆 RoPE → 布局恢复 → 输出投影",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "逆旋转+pack原型退出；OB直写等容量变体留档，不在当前11项内。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F15",
+      "name": "Attention 输出填充/恢复 → 投影",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "当前全满T24无直接裁padding收益；其他形状有条件保留。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F16",
+      "name": "两级输出投影与 reduce-scatter 的分块重组",
+      "group": "LONG_OR_CAPACITY",
+      "current_action_order": null,
+      "retained_work_ids": [
+        "F16_OA_BEFORE_A2A",
+        "OA_ORDINARY_MM"
+      ],
+      "reason": "OA前移换窄通信保留长行条件；增加权重供给与常驻容量。 普通MM替换因数值失败停止，不能外推整个族。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F17",
+      "name": "Compressor 两路输入投影，共享转换或分块",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "两路FP32投影的必要MAC/权重不减；朴素输出stride不兼容。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F18",
+      "name": "Compressor 状态池化 → norm",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "池化+RMS可融合且需BF16边界；历史维护和其他已融合分支保留。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F19",
+      "name": "Compressor latent 分叉 → index key 与压缩 KV",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "latent分叉需保旋转前WK输入及ring行，与F11/F18/F34去重。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F20",
+      "name": "MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "TopK已有融合不等于算法封闭；固定ID表捷径当前不命中，需具体大净值机制。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F21",
+      "name": "MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "g12实际C8未建立加速，停止该变体；空专家权重跳过为已有能力。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F22",
+      "name": "共享 expert 的投影 → 激活量化 → 下投影",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "必要GEMM/权重保留；FusedMC2会关闭现有overlap，资源排程净值未知。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F23",
+      "name": "共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "局部22.342→4.717us但C8未建立加速；停止已测M3入口。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F24",
+      "name": "Engram hash/lookup → ready → 行视图或分片；host-UVA 寻址",
+      "group": "JOINT_MECHANISM_PRICING",
+      "current_action_order": 3,
+      "retained_work_ids": [
+        "ENGRAM_JOINT"
+      ],
+      "reason": "保留联合lookup/owner传输/常量机制定价；WKV投影单项约周期1%，不独立立项。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F25",
+      "name": "Engram 投影 → gate/残差",
+      "group": "JOINT_MECHANISM_PRICING",
+      "current_action_order": 3,
+      "retained_work_ids": [
+        "ENGRAM_JOINT"
+      ],
+      "reason": "与F24按同一Engram联合预算去重；保留hidden依赖、舍入和mask/NaN，不领取整个投影或gate时间。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F26",
+      "name": "最终 HC collapse → norm 及 logits 边界",
+      "group": "LONG_OR_CAPACITY",
+      "current_action_order": null,
+      "retained_work_ids": [
+        "F26_OWNER_COLLAPSE"
+      ],
+      "reason": "无raw读者时owner collapse和单H gather，保留长行/容量条件。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F27",
+      "name": "DSpark 辅助上下文投影 → norm，候选流水",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "Post+aux均值保留数值和checkpoint代际；当前不独立开发。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F28",
+      "name": "DSpark embedding → HC 重复/初始化 → decoder",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "draft可先切行再Tile；CPU用例不等于NPU或推理收益。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F29",
+      "name": "DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引",
+      "group": "FRONTEND_RESERVE",
+      "current_action_order": 4,
+      "retained_work_ids": [
+        "F29_POSITION_REUSE"
+      ],
+      "reason": "只定价CP+Slot+CPUplan之后重复位置准备的新增工作；旧KV窗口裁行不成立。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F30",
+      "name": "DSpark collapse/norm → Markov bias、logits/置信度/验证",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "全命中特化有限局部省19.841us；混合预分类重组更慢，停止后者。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F31",
+      "name": "Attention/DSpark 相关 metadata 构造、共享与发布",
+      "group": "QUALIFIED_BASELINE",
+      "current_action_order": 1,
+      "retained_work_ids": [
+        "CP_LENGTH",
+        "SLOT_WRITER",
+        "F31_CPU_PLAN",
+        "CPU_ASSEMBLY"
+      ],
+      "reason": "CP+Slot+CPUplan为限定已验证组合；CPU计划新增9.560%–10.364%。联合组装当前变体停止，正常入口采用资格单列。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F32",
+      "name": "SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信",
+      "group": "STOP_CURRENT_WITH_CONDITIONAL_RESERVE",
+      "current_action_order": null,
+      "retained_work_ids": [
+        "F32_OWNER_KV"
+      ],
+      "reason": "当前owner传输相对前后参照+0.260%/-0.432%，停止不变版；长行/容量或新机制条件留档。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F33",
+      "name": "C1 compressor 与 SWA KV 的同域投影共享、联合分块与前移通信",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "两路512维投影权重不同，不能视为重复结果；与F32预算去重。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F34",
+      "name": "C2 ring 状态的可观测性裁剪、稀疏维护与表示重组",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "当前共享页仅缩逻辑ring不回收物理容量；其他池布局条件留档。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "F35",
+      "name": "目标采样的按需raw logits、行选择/转换/argmax与拒绝输出重组",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "BR01/02删死备份与大greedy协议分开；NumPy用例不是NPU正确性。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "H01",
+      "name": "响应等待路径的轮询开销与重复等待工作",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "重复等待需保错误/取消/退休语义；当前无大请求收益依据。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "H02",
+      "name": "输入准备中剩余小拷贝、锁页和元数据工作的合并重组",
+      "group": "STOP_UNCHANGED",
+      "current_action_order": null,
+      "retained_work_ids": [
+        "CPU_ASSEMBLY"
+      ],
+      "reason": "当前CPU联合组装无双参照增量，停止不变版；其他小copy/模板仅保留有新净值的条件。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "H03",
+      "name": "前缀块哈希的跨请求重复工作",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "prefix hash复用CPU成本未知；0.9前缀率不是哈希耗时占比。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "H04",
+      "name": "前端长提示 tokenization 的精确复用、排队与批处理",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "tokenization同负载CPU成本/精确复用命中未知，保留前端条件。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "H05",
+      "name": "前端 DecodeStream 早段长调用与输出就绪流水",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "分离sample-ready和资源退休可能有效；直接早完成future不成立。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "H06",
+      "name": "固定 speculative 宽度下的 padding 域拆分与图 bucket 重组",
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
+      "retained_work_ids": [],
+      "reason": "固定6×SP8最小正数公共桶24；零发送rank仍可能接收，不能删通信。",
+      "whole_family_closed": false
+    },
+    {
+      "family": "H07",
+      "name": "原始 token ID 图回放与图外 embedding 的单一生产路径",
+      "group": "FRONTEND_RESERVE",
+      "current_action_order": 4,
+      "retained_work_ids": [
+        "H07_TEXT_EMBEDDING"
+      ],
+      "reason": "纯文本FULL图外死embedding只计三项组合后增量；多模态等原分支保留。",
+      "whole_family_closed": false
+    }
+  ],
+  "limits": [
+    "No whole-family semantic completion or exhaustive algorithm search claim.",
+    "No new model/NPU/profile/service operations in this publication.",
+    "Reserve display order is not a precise production-benefit ranking.",
+    "v168 instrumented percentages have no production-pricing qualification."
+  ],
+  "current_snapshot": {
+    "source_commit": "8d4adaa34996ed7ac1fe4100955ff7683df8dc56",
+    "evidence": "progress/evidence/runtime-results-through-20261106.json",
+    "current_action_summary": "已验证组合CP+Slot+CPUplan；HcPre保留具体算法候选；Engram/注意力联合机制先定净值，F29/H07后备。F12当前表示、owner传输、CPU联合组装停止原样追测；OA普通MM替换数值失败。",
+    "scope_note": "42族为稳定导航。15项具体登记含已验证、条件与停止项，不等于15项待开发或独立收益。历史11项及51工作单元/95关系不相加。",
+    "active_experiment": null,
+    "overall_complete": false,
+    "numeric_model_ceiling": null,
+    "priority_review_evidence": "progress/evidence/priority-review-20261106.json"
+  },
+  "historical_named_items_source_commit": "38639a03e8fd52822801b1e328fc1fffc719ca7b",
+  "historical_items": [
     {
       "id": "CP_LENGTH",
       "family": "F31",
@@ -120,420 +709,20 @@
       "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
     }
   ],
-  "all42": [
-    {
-      "family": "F01",
-      "name": "注意力前 mHC 复合边界",
-      "group": "CURRENT",
-      "current_action_order": 3,
-      "retained_work_ids": [
-        "HC_ROW_NORM"
-      ],
-      "reason": "保留行平方和新机制；当前实现ERROR。旧重复collapse双流变体已测更慢，停止。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F02",
-      "name": "embedding → 首层 mHC 系数投影；mHC pre → 输入归一化",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "目标路径已先SP；已有ReduceScatter/NormCast能力不重复计收益，其他条件分支后置。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F03",
-      "name": "attention 或 FFN mHC post → 下一次 mHC pre，跨边界重组",
-      "group": "LONG_OR_CAPACITY",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "F03_POST_Y"
-      ],
-      "reason": "Post+Y保留长行重读消除价值；U仍有读者，不能删U。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F04",
-      "name": "FFN 归一化与类型转换",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "已有RmsNormCast；需要新的实际暴露或接口机制才重开。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F05",
-      "name": "Q norm → 动态量化 → Q 投影，多算子链",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "与F09共享同一qr量化包去重预算；新NormQuant窄版不独立开发。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F06",
-      "name": "Q 与 KV 投影，共享输入或合并投影",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "朴素拼接会多算QA；合法联合仍须保QA重叠，去重算术归F32。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F07",
-      "name": "Q 投影 → RoPE，生产者与消费者组合",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "RoPE epilogue可行，但需扣原有/可提前的重叠，当前不独立开发。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F08",
-      "name": "KV 投影 → norm → RoPE → SWA 缓存写入",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "窄版省55296B和2启动/调用；干净窗口汇合模型0.463ms/target非请求收益。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F09",
-      "name": "Index query 投影 → RoPE → 量化",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "query旋转/量化边界保留，与F05共用输入量化去重，不重复计。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F10",
-      "name": "Index weight 投影 → 转换与缩放",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "M3仅96输出；最多约1920B接口和3后处理任务，不单独开发。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F11",
-      "name": "Index key norm → RoPE → 量化 → key/scale 缓存写入",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "key量化规则不能替换；paired-store小变体不独立开发，完整producer条件保留。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F12",
-      "name": "Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "F12_MEMBERSHIP"
-      ],
-      "reason": "完整C8未建立收益，旧局部净值不再授予原样追测优先级。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F13",
-      "name": "稀疏注意力复合边界",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "保留核内softmax状态续算可能；已有两段结果合并反例不泛化到全族。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F14",
-      "name": "Attention → 逆 RoPE → 布局恢复 → 输出投影",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "逆旋转+pack原型退出；OB直写等容量变体留档，不在当前11项内。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F15",
-      "name": "Attention 输出填充/恢复 → 投影",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "当前全满T24无直接裁padding收益；其他形状有条件保留。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F16",
-      "name": "两级输出投影与 reduce-scatter 的分块重组",
-      "group": "LONG_OR_CAPACITY",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "F16_OA_BEFORE_A2A"
-      ],
-      "reason": "OA前移换窄通信保留长行条件；增加权重供给与常驻容量。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F17",
-      "name": "Compressor 两路输入投影，共享转换或分块",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "两路FP32投影的必要MAC/权重不减；朴素输出stride不兼容。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F18",
-      "name": "Compressor 状态池化 → norm",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "池化+RMS可融合且需BF16边界；历史维护和其他已融合分支保留。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F19",
-      "name": "Compressor latent 分叉 → index key 与压缩 KV",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "latent分叉需保旋转前WK输入及ring行，与F11/F18/F34去重。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F20",
-      "name": "MoE router → TopK → dispatch；输入 ID 准备融合与跨层复用",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "TopK已有融合不等于算法封闭；固定ID表捷径当前不命中，需具体大净值机制。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F21",
-      "name": "MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "g12实际C8未建立加速，停止该变体；空专家权重跳过为已有能力。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F22",
-      "name": "共享 expert 的投影 → 激活量化 → 下投影",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "必要GEMM/权重保留；FusedMC2会关闭现有overlap，资源排程净值未知。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F23",
-      "name": "共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "局部22.342→4.717us但C8未建立加速；停止已测M3入口。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F24",
-      "name": "Engram hash/lookup → ready → 行视图或分片；host-UVA 寻址",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "已测换流无推理收益；owner交付/容量条件留档，不在当前11项内。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F25",
-      "name": "Engram 投影 → gate/残差",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "有有限gate局部证据；WKV分片容量条件留档，mask-false捷径有NaN反例。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F26",
-      "name": "最终 HC collapse → norm 及 logits 边界",
-      "group": "LONG_OR_CAPACITY",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "F26_OWNER_COLLAPSE"
-      ],
-      "reason": "无raw读者时owner collapse和单H gather，保留长行/容量条件。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F27",
-      "name": "DSpark 辅助上下文投影 → norm，候选流水",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "Post+aux均值保留数值和checkpoint代际；当前不独立开发。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F28",
-      "name": "DSpark embedding → HC 重复/初始化 → decoder",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "draft可先切行再Tile；CPU用例不等于NPU或推理收益。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F29",
-      "name": "DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引",
-      "group": "FRONTEND_RESERVE",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "F29_POSITION_REUSE"
-      ],
-      "reason": "仅保留组合后重复位置准备的前端增量；旧KV窗口裁行不成立。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F30",
-      "name": "DSpark collapse/norm → Markov bias、logits/置信度/验证",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "全命中特化有限局部省19.841us；混合预分类重组更慢，停止后者。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F31",
-      "name": "Attention/DSpark 相关 metadata 构造、共享与发布",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "CP_LENGTH",
-        "SLOT_WRITER",
-        "F31_CPU_PLAN"
-      ],
-      "reason": "CPU计划增量已验证；联合组装当前变体停止，其他入口/分支义务保留。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F32",
-      "name": "SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "F32_OWNER_KV"
-      ],
-      "reason": "当前owner传输完整C8未建立收益；只保留有新机制或目标的条件变体。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F33",
-      "name": "C1 compressor 与 SWA KV 的同域投影共享、联合分块与前移通信",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "两路512维投影权重不同，不能视为重复结果；与F32预算去重。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F34",
-      "name": "C2 ring 状态的可观测性裁剪、稀疏维护与表示重组",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "当前共享页仅缩逻辑ring不回收物理容量；其他池布局条件留档。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "F35",
-      "name": "目标采样的按需raw logits、行选择/转换/argmax与拒绝输出重组",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "BR01/02删死备份与大greedy协议分开；NumPy用例不是NPU正确性。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "H01",
-      "name": "响应等待路径的轮询开销与重复等待工作",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "重复等待需保错误/取消/退休语义；当前无大请求收益依据。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "H02",
-      "name": "输入准备中剩余小拷贝、锁页和元数据工作的合并重组",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "小copy/常驻模板P3；保图地址/代际，不重复计F31已删工作。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "H03",
-      "name": "前缀块哈希的跨请求重复工作",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "prefix hash复用CPU成本未知；0.9前缀率不是哈希耗时占比。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "H04",
-      "name": "前端长提示 tokenization 的精确复用、排队与批处理",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "tokenization同负载CPU成本/精确复用命中未知，保留前端条件。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "H05",
-      "name": "前端 DecodeStream 早段长调用与输出就绪流水",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "分离sample-ready和资源退休可能有效；直接早完成future不成立。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "H06",
-      "name": "固定 speculative 宽度下的 padding 域拆分与图 bucket 重组",
-      "group": "DEFERRED_CURRENT_LOAD",
-      "current_action_order": null,
-      "retained_work_ids": [],
-      "reason": "固定6×SP8最小正数公共桶24；零发送rank仍可能接收，不能删通信。",
-      "whole_family_closed": false
-    },
-    {
-      "family": "H07",
-      "name": "原始 token ID 图回放与图外 embedding 的单一生产路径",
-      "group": "FRONTEND_RESERVE",
-      "current_action_order": null,
-      "retained_work_ids": [
-        "H07_TEXT_EMBEDDING"
-      ],
-      "reason": "纯文本FULL图外死embedding可删；多模态分支保留，组合后增量未知。",
-      "whole_family_closed": false
-    }
-  ],
-  "limits": [
-    "No whole-family semantic completion or exhaustive algorithm search claim.",
-    "No new model/NPU/profile/service operations in this publication.",
-    "Reserve display order is not a precise production-benefit ranking.",
-    "v168 instrumented percentages have no production-pricing qualification."
-  ],
-  "current_snapshot": {
-    "source_commit": "8d4adaa34996ed7ac1fe4100955ff7683df8dc56",
-    "evidence": "progress/evidence/runtime-results-through-20261106.json",
-    "current_action_summary": "已验证基线为CP+slot+CPUplan；当前复用profile定价Engram与注意力联合机制。owner传输、CPU联合组装和QLI相同变体停止重复比较。",
-    "scope_note": "42族是稳定导航ID；51工作单元/95关系是新值生成台账，不互作完成率分母。历史11项清单保留，当前状态以本快照和候选结果为准。",
-    "active_experiment": null,
-    "overall_complete": false,
-    "numeric_model_ceiling": null
+  "historical_counts": {
+    "original_families": 42,
+    "named_retained_work_items": 11,
+    "unique_retained_families": 9,
+    "current_directions": 3,
+    "current_changes": 4,
+    "frontend_reserves": 3,
+    "long_or_capacity_reserves": 4
   },
-  "historical_named_items_source_commit": "38639a03e8fd52822801b1e328fc1fffc719ca7b"
+  "reviewed_public_commit": "8539c1664317317cef3a8c714e5853d56f0e1ea4",
+  "stopped_tested_variants": [
+    "F12_MEMBERSHIP",
+    "F32_OWNER_KV_CURRENT_C8",
+    "CPU_ASSEMBLY",
+    "OA_ORDINARY_MM"
+  ]
 }

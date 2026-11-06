@@ -51,15 +51,19 @@ def render():
         priority = item.get('current_priority')
         if priority:
             order = priority.get('current_action_order')
-            groups = {'CURRENT': '当前行动', 'FRONTEND_RESERVE': '前端后备',
-                      'LONG_OR_CAPACITY': '长行/容量后备', 'DEFERRED_CURRENT_LOAD': '当前不独立开发'}
-            order_text = f'当前行动顺序{order}' if order else groups[priority['group']]
+            groups = {'CURRENT': '历史当前行动', 'QUALIFIED_BASELINE': '已验证组合基线',
+                      'ALGORITHM_CANDIDATE': '具体算法候选', 'JOINT_MECHANISM_PRICING': '联合机制待定价',
+                      'FRONTEND_RESERVE': '前端条件后备', 'LONG_OR_CAPACITY': '长行/容量后备',
+                      'STOP_UNCHANGED': '停止当前不变变体',
+                      'STOP_CURRENT_WITH_CONDITIONAL_RESERVE': '当前变体停止，保留其他条件',
+                      'DEFERRED_CURRENT_LOAD': '当前不独立开发'}
+            order_text = groups[priority['group']] + (f'（行动层级{order}）' if order else '')
             lines[6:6] = ['## 当前优先级', '',
                           f"{order_text}：{priority['reason']}", '',
-                          '[完整排序、11项点名方案和停止条件](../PRIORITY-PLAN.md)。行动顺序不等于已证明的生产收益大小；未选变体继续保留其条件。', '']
+                          '[当前优先级、证据和停止条件](../PRIORITY-PLAN.md)。行动顺序不等于已证明的生产收益大小；未选变体继续保留其条件。', '']
         if item.get('details_markdown'):
             lines += [item['details_markdown'], '']
-        lines += ['## 可能要做的事', '', '清单保留已完成复核和未执行计划；没有执行证据时不能勾选。复核完成不表示实现或性能通过。', '']
+        lines += ['## 可能要做的事', '', '下列已完成记录和条件计划受上方当前优先级约束；停止变体不因保留待办而重开。没有执行证据不能勾选，复核完成不表示实现或性能通过。', '']
         for action in item['next_steps']:
             done = action.get('status') == 'DONE'
             if done and not action.get('evidence'):
@@ -99,14 +103,24 @@ def render():
     for c in candidates:
         pending = next((a for a in c['next_steps'] if a.get('status') != 'DONE'), None)
         next_title = pending['title'] if pending else '无已登记待办；不据此关闭候选'
+        priority_group = c.get('current_priority', {}).get('group')
+        current_actions = {
+            'QUALIFIED_BASELINE': '保留组合；采用入口时验资格',
+            'STOP_UNCHANGED': '停止不变版；新机制才重开',
+            'STOP_CURRENT_WITH_CONDITIONAL_RESERVE': '停止当前版；其他目标条件留档',
+            'FRONTEND_RESERVE': '仅核三项组合后增量',
+            'LONG_OR_CAPACITY': '仅长行/容量条件准入',
+            'DEFERRED_CURRENT_LOAD': '当前不独立开发；保留条件',
+        }
+        next_title = current_actions.get(priority_group, next_title)
         index.append(f"|[{c['id']}]({c['id']}.md)|{c['name']}|{c['kind']}|{c['review_status']}|{next_title}|")
     priority_plan = register.get('priority_plan')
     if priority_plan:
         cp = priority_plan['counts']
         index[5:5] = ['', '## 优先级与当前结果入口', '',
-                      f"**[历史排序和最新结果](../PRIORITY-PLAN.md)**：历史点名保留{cp['named_retained_work_items']}项、涉及{cp['unique_retained_families']}族；当前{cp['current_directions']}个方向/{cp['current_changes']}项改动，前端后备{cp['frontend_reserves']}项，长行或容量后备{cp['long_or_capacity_reserves']}项。", '',
+                      f"**[当前优先级与证据](../PRIORITY-PLAN.md)**：已验证组合{cp['qualified_baseline_changes']}项改动；具体算法候选{cp['algorithm_candidates']}项，联合机制待定价{cp['joint_pricing_mechanisms']}项；前端后备{cp['frontend_reserves']}项，长行/容量后备{cp['long_or_capacity_reserves']}项。停止的具体变体单列，历史11项不是当前开发顺序。", '',
                       register.get('current_snapshot', {}).get('current_action_summary', '历史排序见优先级页；当前结果按追加证据解释。'), '',
-                      '[结构化11项与42族行动](priority-plan.json) · [已有结果及来源SHA](evidence/priority-value-evidence-20261106.json)', '']
+                      '[当前分层与42族行动](priority-plan.json) · [本次优先级复核](evidence/priority-review-20261106.json) · [冻结运行结果](evidence/runtime-results-through-20261106.json)', '']
     index += ['', '## 读表时的边界', '',
               '42 个是候选族，包含融合、拆分、复用、状态重组和调度。不是 42 个新增融合算子。相互重叠的方案不能重复计算收益。', '',
               '源码逻辑成立、当前二进制实际执行、可实现性、数值正确性、性能收益分别记录。旧 166 时序、新 171 图回放、不同采集批次的工作量不能混成同一次实验。', '',

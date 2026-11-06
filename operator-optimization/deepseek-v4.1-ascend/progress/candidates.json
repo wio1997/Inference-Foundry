@@ -97,12 +97,12 @@
       "performance_summary": "行平方和完整核及推理收益UNKNOWN；旧EARLY-Y负结果单列",
       "independent_review_code": "REQUESTED_NOT_STARTED",
       "current_priority": {
-        "group": "CURRENT",
-        "current_action_order": 3,
+        "group": "ALGORITHM_CANDIDATE",
+        "current_action_order": 2,
         "retained_work_ids": [
           "HC_ROW_NORM"
         ],
-        "reason": "保留行平方和新机制；当前实现ERROR。旧重复collapse双流变体已测更慢，停止。",
+        "reason": "HcPre行平方和保留具体算法去冗余价值；现有实现失败。只对具体流水修正重开，不重跑旧重复collapse。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -1221,8 +1221,12 @@
         {
           "id": "F12_MEMBERSHIP",
           "title": "四个Indexer消费者共享候选成员表示",
-          "description": "L20编码并发布独立packet，L24/28/32/36复用；原列表及各层QK/TopK/prepare保留。 若进入第二批，只验证完整净值经最慢rank、主线程等待、下一target提交到请求的传播；以CP+Slot为基线。",
-          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
+          "description": "已完成限定C8，候选处于前后参照之间，端到端未定；停止当前表示不变版追测。",
+          "decision_rule": "只有不同机制或能改变决策的匹配新证据才重开；不据此否定全族。",
+          "status": "DONE",
+          "evidence": [
+            "evidence/runtime-results-through-20261106.json"
+          ]
         }
       ],
       "evidence": [
@@ -1257,12 +1261,12 @@
       "performance_summary": "15.859/16.147/16.230s（前/候选/后）；候选处于两参照之间，端到端INCONCLUSIVE",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "DEFERRED_CURRENT_LOAD",
+        "group": "STOP_UNCHANGED",
         "current_action_order": null,
         "retained_work_ids": [
           "F12_MEMBERSHIP"
         ],
-        "reason": "完整C8未建立收益，旧局部净值不再授予原样追测优先级。",
+        "reason": "完整C8收益未定；停止当前候选成员表示追测，旧局部净值不再授予下一轮独立优先级。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -1314,7 +1318,7 @@
         {
           "id": "F13-01",
           "title": "选定内部队列或 SWA 提前子方案",
-          "description": "保留 sink、重复索引贡献、BF16 exp 与 softmax/PV 次序；仅有归一化输出不能直接证明部分结果可合并。",
+          "description": "selected-KV共享/核内状态续算先定完整净值；全部SMLA约3.25%是旧成本，不是可删预算。 先复用当前保存profile和合同核算实际删除、替代成本及就绪；不自动新增NPU运行。",
           "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
         },
         {
@@ -1351,10 +1355,12 @@
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "DEFERRED_CURRENT_LOAD",
-        "current_action_order": null,
-        "retained_work_ids": [],
-        "reason": "保留核内softmax状态续算可能；已有两段结果合并反例不泛化到全族。",
+        "group": "JOINT_MECHANISM_PRICING",
+        "current_action_order": 3,
+        "retained_work_ids": [
+          "ATTENTION_SELECTED_KV"
+        ],
+        "reason": "selected-KV共享/核内状态续算先定完整净值；全部SMLA约3.25%是旧成本，不是可删预算。",
         "whole_family_closed": false
       },
       "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n当前112个完整局部周期中Engram WKV中位0.553ms约占1.00%；仅替换/缓存此投影缺足够新增净值。统一SMLA中位1.799ms约占3.25%，但包含必须保留的注意力计算。当前筛选Engram联合lookup/传输/常量与selected-KV共享等明确机制；无新NPU运行或已建立加速，不能把整个kernel跨度分配给小接口变换。",
@@ -1548,9 +1554,10 @@
         "group": "LONG_OR_CAPACITY",
         "current_action_order": null,
         "retained_work_ids": [
-          "F16_OA_BEFORE_A2A"
+          "F16_OA_BEFORE_A2A",
+          "OA_ORDINARY_MM"
         ],
-        "reason": "OA前移换窄通信保留长行条件；增加权重供给与常驻容量。",
+        "reason": "OA前移换窄通信保留长行条件；增加权重供给与常驻容量。 普通MM替换因数值失败停止，不能外推整个族。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -2108,7 +2115,7 @@
         {
           "id": "F24-01",
           "title": "复用当前 backend 与全写合同",
-          "description": "查 K09；新 run 重绑 overlap flag，保留 slot/owner、无主数据的显式零值、全部输出和事件代际。",
+          "description": "保留联合lookup/owner传输/常量机制定价；WKV投影单项约周期1%，不独立立项。 先复用当前保存profile和合同核算实际删除、替代成本及就绪；不自动新增NPU运行。",
           "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
         },
         {
@@ -2145,10 +2152,12 @@
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "DEFERRED_CURRENT_LOAD",
-        "current_action_order": null,
-        "retained_work_ids": [],
-        "reason": "已测换流无推理收益；owner交付/容量条件留档，不在当前11项内。",
+        "group": "JOINT_MECHANISM_PRICING",
+        "current_action_order": 3,
+        "retained_work_ids": [
+          "ENGRAM_JOINT"
+        ],
+        "reason": "保留联合lookup/owner传输/常量机制定价；WKV投影单项约周期1%，不独立立项。",
         "whole_family_closed": false
       },
       "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n当前112个完整局部周期中Engram WKV中位0.553ms约占1.00%；仅替换/缓存此投影缺足够新增净值。统一SMLA中位1.799ms约占3.25%，但包含必须保留的注意力计算。当前筛选Engram联合lookup/传输/常量与selected-KV共享等明确机制；无新NPU运行或已建立加速，不能把整个kernel跨度分配给小接口变换。",
@@ -2177,7 +2186,7 @@
         {
           "id": "F25-01",
           "title": "区分可提前的纯投影与依赖 hidden 的 gate",
-          "description": "完整 hidden 归约、rotation、原 residual、mask/NaN 与 BF16 边界保留；预先给 key 加权会改变 FP32 结合顺序。",
+          "description": "与F24按同一Engram联合预算去重；保留hidden依赖、舍入和mask/NaN，不领取整个投影或gate时间。 先复用当前保存profile和合同核算实际删除、替代成本及就绪；不自动新增NPU运行。",
           "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
         },
         {
@@ -2214,10 +2223,12 @@
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "DEFERRED_CURRENT_LOAD",
-        "current_action_order": null,
-        "retained_work_ids": [],
-        "reason": "有有限gate局部证据；WKV分片容量条件留档，mask-false捷径有NaN反例。",
+        "group": "JOINT_MECHANISM_PRICING",
+        "current_action_order": 3,
+        "retained_work_ids": [
+          "ENGRAM_JOINT"
+        ],
+        "reason": "与F24按同一Engram联合预算去重；保留hidden依赖、舍入和mask/NaN，不领取整个投影或gate时间。",
         "whole_family_closed": false
       },
       "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n当前112个完整局部周期中Engram WKV中位0.553ms约占1.00%；仅替换/缓存此投影缺足够新增净值。统一SMLA中位1.799ms约占3.25%，但包含必须保留的注意力计算。当前筛选Engram联合lookup/传输/常量与selected-KV共享等明确机制；无新NPU运行或已建立加速，不能把整个kernel跨度分配给小接口变换。",
@@ -2441,8 +2452,8 @@
         {
           "id": "F29_POSITION_REUSE",
           "title": "DSpark重复位置准备去重",
-          "description": "删无用层的准备，让需要层共享cos/sin和索引；原投影、旋转、cache读写保留。 只定价CP+Slot后的新增可删工作；没有足够增量则保持后置。",
-          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
+          "description": "删无用层的准备，让需要层共享cos/sin和索引；原投影、旋转、cache读写保留。 只定价CP+Slot+CPUplan后的新增可删工作；没有足够增量则保持后置。",
+          "decision_rule": "仅计CP+Slot+CPUplan后的新增净值；没有足够价值不启动实施，保留其他分支。"
         }
       ],
       "evidence": [
@@ -2473,11 +2484,11 @@
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
         "group": "FRONTEND_RESERVE",
-        "current_action_order": null,
+        "current_action_order": 4,
         "retained_work_ids": [
           "F29_POSITION_REUSE"
         ],
-        "reason": "仅保留组合后重复位置准备的前端增量；旧KV窗口裁行不成立。",
+        "reason": "只定价CP+Slot+CPUplan之后重复位置准备的新增工作；旧KV窗口裁行不成立。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -2570,19 +2581,19 @@
       "operator_binding": "历史语义链：坐标/长度/slot/group 等 metadata → 转换/稳定 bank → Indexer/Attention。",
       "baseline_flow": "原CP命中前仍上传suffix和生成长度，命中后丢弃新结果；Slot用多步表达式写坐标bank。",
       "proposal": "CP命中复用原长度；Slot用已编译writer直接写原bank和返回view，两者作为限定组合。",
-      "mechanism": "删除重复提交、小kernel、suffix上传/事件和坐标中间面；CPU_ONLY计划共享另列后备，收益不相加。",
+      "mechanism": "CP与Slot删重复提交、长度链、suffix上传和坐标中间面；CPU公共计划进一步复用局部几何、CPU张量/锁页准备和最大长度归约。三项作为已验证组合，历史百分比不相加。",
       "conditions": "保留首组、query offsets、local/global bank、6个ready键、原读者和冷miss-before-launch原producer；禁止服务内冷编译。正常入口实际dispatch仍待验收。",
       "next_steps": [
         {
           "id": "CP_LENGTH",
           "title": "CP长度去重",
-          "description": "首组按原路生成；后续命中直接复用原长度，删重复长度链和suffix上传。 核正常入口16worker真实命中、原bank/ready读者、首组和fallback；不重复已成立三臂。",
+          "description": "首组按原路生成；后续命中直接复用原长度，删重复长度链和suffix上传。 核正常入口16worker真实命中、原bank/ready读者、首组和fallback；不重复已成立三臂。 既有实验计时已成立；这条仅保留实际采用新正常入口时的运行时资格，不自动发起服务验收。",
           "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         },
         {
           "id": "SLOT_WRITER",
           "title": "Slot cache-only writer",
-          "description": "已有编译specialization直接写原coords/flat bank并返回原view。 与CP一起验正常入口dispatch；未准入/冷miss在启动前走原producer，不在服务内冷编译。",
+          "description": "已有编译specialization直接写原coords/flat bank并返回原view。 与CP一起验正常入口dispatch；未准入/冷miss在启动前走原producer，不在服务内冷编译。 既有实验计时已成立；这条仅保留实际采用新正常入口时的运行时资格，不自动发起服务验收。",
           "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         },
         {
@@ -2638,14 +2649,15 @@
       "performance_summary": "CPU计划12.866s，对同轮CP+slot前后14.354/14.226s下降10.364%/9.560%；联合组装未建立额外收益",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "DEFERRED_CURRENT_LOAD",
-        "current_action_order": null,
+        "group": "QUALIFIED_BASELINE",
+        "current_action_order": 1,
         "retained_work_ids": [
           "CP_LENGTH",
           "SLOT_WRITER",
-          "F31_CPU_PLAN"
+          "F31_CPU_PLAN",
+          "CPU_ASSEMBLY"
         ],
-        "reason": "CPU计划增量已验证；联合组装当前变体停止，其他入口/分支义务保留。",
+        "reason": "CP+Slot+CPUplan为限定已验证组合；CPU计划新增9.560%–10.364%。联合组装当前变体停止，正常入口采用资格单列。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -2706,9 +2718,9 @@
         },
         {
           "id": "F32_OWNER_KV",
-          "title": "owner KV投影后窄通信",
-          "description": "各卡只算自己的KV行，再gather窄KV；QA按原owner行及提前交付合同执行。 先解决改变GEMM行数后的BF16差异；再测完整投影+通信+就绪；补零不删除计算，不能领取去重收益。",
-          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
+          "title": "其他负载/新机制下的owner KV条件方案",
+          "description": "当前C8 owner试验已经完成且收益未建立。只保不同长行/容量目标的新机制；复用已验分支的数值证据，未观察形状及完整净值另证。",
+          "decision_rule": "不原样复测当前C8变体；新的具体目标和足够净值才准入。"
         }
       ],
       "evidence": [
@@ -2743,12 +2755,12 @@
       "performance_summary": "候选12.991s；前后13.025/12.935s，变化+0.260%/-0.432%，未通过双参照门槛",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "DEFERRED_CURRENT_LOAD",
+        "group": "STOP_CURRENT_WITH_CONDITIONAL_RESERVE",
         "current_action_order": null,
         "retained_work_ids": [
           "F32_OWNER_KV"
         ],
-        "reason": "当前owner传输完整C8未建立收益；只保留有新机制或目标的条件变体。",
+        "reason": "当前owner传输相对前后参照+0.260%/-0.432%，停止不变版；长行/容量或新机制条件留档。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -3075,10 +3087,12 @@
       "performance_summary": "12.974s，对前后13.155/12.937s变化+1.370%/-0.291%；双参照门槛失败",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "DEFERRED_CURRENT_LOAD",
+        "group": "STOP_UNCHANGED",
         "current_action_order": null,
-        "retained_work_ids": [],
-        "reason": "小copy/常驻模板P3；保图地址/代际，不重复计F31已删工作。",
+        "retained_work_ids": [
+          "CPU_ASSEMBLY"
+        ],
+        "reason": "当前CPU联合组装无双参照增量，停止不变版；其他小copy/模板仅保留有新净值的条件。",
         "whole_family_closed": false
       },
       "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n保持相同worker进程的单次加载比较完成；不能只选前参照宣称加速。正式计时前移除诊断。原服务恢复，同变体不加样重跑；其他元数据/发布机制仍需自己的净值依据。",
@@ -3355,7 +3369,7 @@
           "id": "H07_TEXT_EMBEDDING",
           "title": "纯文本FULL图外embedding去重",
           "description": "保留图内token ID查表，删除已证明没有读者的图外embedding副本。 保留多模态等分支、原ID和图地址；只评价组合后增量。",
-          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
+          "decision_rule": "仅计CP+Slot+CPUplan后的新增净值；没有足够价值不启动实施，保留其他分支。"
         }
       ],
       "evidence": [
@@ -3386,11 +3400,11 @@
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
         "group": "FRONTEND_RESERVE",
-        "current_action_order": null,
+        "current_action_order": 4,
         "retained_work_ids": [
           "H07_TEXT_EMBEDDING"
         ],
-        "reason": "纯文本FULL图外死embedding可删；多模态分支保留，组合后增量未知。",
+        "reason": "纯文本FULL图外死embedding只计三项组合后增量；多模态等原分支保留。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -3411,29 +3425,33 @@
   ],
   "current_focus": {
     "candidate": "F24",
-    "variant": "Engram与注意力：复用当前profile筛选具体联合机制"
+    "variant": "Engram/注意力联合机制净值定价；HcPre保留算法候选"
   },
   "priority_plan": {
     "path": "../PRIORITY-PLAN.md",
     "register": "priority-plan.json",
-    "evidence": "evidence/priority-value-evidence-20261106.json",
+    "evidence": "evidence/priority-review-20261106.json",
     "counts": {
       "original_families": 42,
-      "named_retained_work_items": 11,
-      "unique_retained_families": 9,
-      "current_directions": 3,
-      "current_changes": 4,
-      "frontend_reserves": 3,
-      "long_or_capacity_reserves": 4
-    }
+      "registered_concrete_items": 15,
+      "qualified_baseline_changes": 3,
+      "algorithm_candidates": 1,
+      "joint_pricing_mechanisms": 2,
+      "frontend_reserves": 2,
+      "long_or_capacity_reserves": 4,
+      "stopped_entries": 3,
+      "stopped_tested_variants": 4
+    },
+    "historical_evidence": "evidence/priority-value-evidence-20261106.json"
   },
   "current_snapshot": {
     "source_commit": "8d4adaa34996ed7ac1fe4100955ff7683df8dc56",
     "evidence": "progress/evidence/runtime-results-through-20261106.json",
-    "current_action_summary": "已验证基线为CP+slot+CPUplan；当前复用profile定价Engram与注意力联合机制。owner传输、CPU联合组装和QLI相同变体停止重复比较。",
-    "scope_note": "42族是稳定导航ID；51工作单元/95关系是新值生成台账，不互作完成率分母。历史11项清单保留，当前状态以本快照和候选结果为准。",
+    "current_action_summary": "已验证组合CP+Slot+CPUplan；HcPre保留具体算法候选；Engram/注意力联合机制先定净值，F29/H07后备。F12当前表示、owner传输、CPU联合组装停止原样追测；OA普通MM替换数值失败。",
+    "scope_note": "42族为稳定导航。15项具体登记含已验证、条件与停止项，不等于15项待开发或独立收益。历史11项及51工作单元/95关系不相加。",
     "active_experiment": null,
     "overall_complete": false,
-    "numeric_model_ceiling": null
+    "numeric_model_ceiling": null,
+    "priority_review_evidence": "progress/evidence/priority-review-20261106.json"
   }
 }
