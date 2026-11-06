@@ -489,9 +489,9 @@
     }
   },
   "ORDERED-TERMINAL-HEAD-DISPOSITIONS.json": {
-    "source_sha256": "b72ce36f832d92cde12957ad1e03bd1a07079a73a4b95530092019f895c3abab",
+    "source_sha256": "629f071d342f088ab1865d550a6810bcd9cabb0889da50a9ce1b80d90c1827a1",
     "data": {
-      "status": "M08_CURRENT_DECODE_SCREENED_PREFILL_JOINT_FRONTIER_ACTIVE",
+      "status": "M08_SCOPED_PRIORITY_SCREENED_CONDITIONAL_FRONTIERS_RETAINED",
       "summary": {
         "terminal_Post_through_norm": {
           "ms": {
@@ -664,14 +664,14 @@
           "condition": "raw必须保留，但normalized hidden只需部分行",
           "confirmed": "可保留全量raw分支，另按I并J输出collapse/norm；selected-premix与local-collapse是不同数据交付方案。",
           "contracts": "raw原完整交付与寿命、I/J有序重建、premix完整读者、原始bounds错误。",
-          "disposition": "更广prefill交付候选；只减少本地collapse计算不再单独探针。"
+          "disposition": "当前及采样prefill范围内低优先级；复用完整区域频次上界，不为selected-premix/local-collapse单独补探针。不同TTFT/读者/调度范围保留条件。"
         },
         {
           "id": "M08-B04",
           "condition": "prefill/混合batch，最终层FFN前可知需求行，raw/附加读者允许",
-          "confirmed": "历史40个eager终端绑定存在8184→3、6528→2、1688→13、6544→14；这些不是当前112decode的行人口。",
+          "confirmed": "历史40个eager终端绑定存在8184→3、6528→2、1688→13、6544→14；这些不是当前112decode的行人口。 新增同一v168数据库64个body、128个终端gather、56条紧邻head绑定；8条无紧邻head模式保留后续工作。",
           "contracts": "保留最终Attention KV/compressor/index发布；全体EP参与、EPLB/count输出；prompt logprobs、pool/PP/MTP/raw读者并入需求。",
-          "disposition": "ACTIVE_JOINT_VALUE_QUESTION；需要将最终FFN、通信、终端及行重建按同调用计价。不能把F21等待全部当可删计算。"
+          "disposition": "SCOPED_THROUGHPUT_DEFERRED：每rank四个prefill完整最终FFN/终端及紧邻head区间全免费，对同DB225个已选target调用耗时仅0.2175%–0.2298%；不启动实现。TTFT、改变区间外peer readiness或算法/更广所有权、其余head/读者仍条件保留。"
         },
         {
           "id": "M08-B05",
@@ -713,10 +713,17 @@
         "当前完整区域免费可超过1%，不能以小算子各自占比否定联合。",
         "保持head投影不变的固定时长敏感性，全部112窗口不足1%；只优化已记录native/DMA区间的union也均不足1%。这些是明确外部工作固定的排序筛查，不是所有算法的硬界。",
         "不为这批小stage新增通信/微kernel校准；当前证据已足以暂缓这些具体实现。",
-        "历史40个eager尾部仅计算频次已重用；collective未计入其分子，较大最终FFN/行所有权改写仍未定案。"
+        "历史40个eager尾部仅计算频次已重用；collective未计入其分子，较大最终FFN/行所有权改写仍未定案。",
+        "同v168记录中的64个prefill完整区域按发生次数计价，全免费最高0.2298%所选target耗时；结束该范围的实现投资，转M09。v164单次大耗时没有被混入v168分母。"
       ],
       "overall_complete": false,
-      "numeric_model_ceiling": null
+      "numeric_model_ceiling": null,
+      "remaining": [
+        "TTFT-specific or materially changed workload value; sampled-region frequency is not whole-C8 or a universal latency ceiling.",
+        "Actual raw/native/external readers and row-order/lifetime for any newly admitted implementation.",
+        "Eight no-immediate-head suffixes retain later work; no negative reader/absence conclusion.",
+        "Numerical acceptance of changed-M final FFN, norm/head fusion and owner routing; no new implementation accepted."
+      ]
     }
   },
   "TERMINAL-PREFILL-PRIORITY.json": {
@@ -759,6 +766,376 @@
         "Eager communication is not included in these numerators. This screen cannot reject a communication/ownership rewrite.",
         "Denominator is the union of all captured F21 tasks in that exact profile, including other captured invocations and roles. It is neither a target-only step period nor TTFT/full C8 wall time.",
         "Task sums can overcount overlap; ratios are navigation, not realized savings. Historical CPU/PMU overhead remains."
+      ],
+      "overall_complete": false,
+      "numeric_model_ceiling": null
+    }
+  },
+  "TERMINAL-PREFILL-JOINT-VALUE.json": {
+    "source_sha256": "2d0c92e32bd1c6616ddc98bc226c7959547ac82061d3a962451f4cf819fef002",
+    "data": {
+      "status": "M08_HISTORICAL_PREFILL_FULL_JOINT_REGION_AND_COLLECTIVES_BOUND",
+      "coverage": {
+        "profiles": 16,
+        "eager_target_bodies": 40,
+        "HcPre_bindings": 3200,
+        "terminal_gathers": 80
+      },
+      "summary": {
+        "last_FFN_Pre_to_head_end": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 12.363993,
+            "median": 15.504294999999999,
+            "max": 25.859564
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 0.009503829070225971,
+            "median": 0.013253611080829546,
+            "max": 0.02045227553042786
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.011277911720252597,
+            "median": 0.014619131832858382,
+            "max": 0.017725004085178655
+          }
+        },
+        "last_FFN_Pre_to_Post_end": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 7.75246,
+            "median": 9.3722965,
+            "max": 25.56952
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 0.0059588507965085726,
+            "median": 0.008180225847956378,
+            "max": 0.019093470085764317
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.006710021877982731,
+            "median": 0.010933782459082332,
+            "max": 0.015059860903382802
+          }
+        },
+        "Post_end_to_norm_end": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.09114,
+            "median": 4.39179,
+            "max": 5.94522
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 6.782398062171982e-05,
+            "median": 0.0033757122342568746,
+            "max": 0.00509732058219827
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.0024625046593017663,
+            "median": 0.0032376004228157626,
+            "max": 0.004191001598987973
+          }
+        },
+        "terminal_raw_gather_including_wait": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.01318,
+            "median": 2.47307,
+            "max": 3.34404
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 9.808207862566022e-06,
+            "median": 0.0021139560593606875,
+            "max": 0.0025703628806284106
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.0007115166581711664,
+            "median": 0.0011600086976152639,
+            "max": 0.0023708029439082
+          }
+        },
+        "terminal_mix_gather_including_wait": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.00634,
+            "median": 0.00983,
+            "max": 0.47322
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 4.718055198001223e-06,
+            "median": 8.399778138613007e-06,
+            "max": 0.0003637376848828874
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 5.946228868032207e-06,
+            "median": 7.984082480895239e-06,
+            "max": 0.00019741843159595628
+          }
+        },
+        "terminal_copy_and_collapse_norm_envelope": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.060519,
+            "median": 2.6083499999999997,
+            "max": 3.33446
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 4.503810080888992e-05,
+            "median": 0.0022150576757221504,
+            "max": 0.002850265991261062
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.0014458535297820442,
+            "median": 0.0015157628787056039,
+            "max": 0.0018752169938101137
+          }
+        },
+        "collapse_norm_after_raw_copy_envelope": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.052879,
+            "median": 2.2138299999999997,
+            "max": 2.83182
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 3.93524303553147e-05,
+            "median": 0.001882161965460578,
+            "max": 0.002420613904312213
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.0012261917376434424,
+            "median": 0.0012861671064371522,
+            "max": 0.0016294854403305207
+          }
+        },
+        "head_after_norm_envelope": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.16676,
+            "median": 0.2616775,
+            "max": 1.62598
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 0.00012412657534346909,
+            "median": 0.00022064876748884314,
+            "max": 0.0013940848816768334
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.00019109362257611193,
+            "median": 0.0002056227241554695,
+            "max": 0.000751884166617849
+          }
+        },
+        "last_F21_including_wait": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.63532,
+            "median": 8.5777645,
+            "max": 25.26522
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 0.0004891071423484857,
+            "median": 0.007584060717042179,
+            "max": 0.018868095366675882
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.00373077254693533,
+            "median": 0.008623130029195788,
+            "max": 0.014533394523472324
+          }
+        },
+        "recorded_compute_and_communication_union": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 2.4561,
+            "median": 15.488105000000001,
+            "max": 25.838625
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 0.0018908519365392492,
+            "median": 0.013239388611147464,
+            "max": 0.020389947809545304
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 0.007261366190152573,
+            "median": 0.012455833027161207,
+            "max": 0.01769726110143452
+          }
+        },
+        "not_covered_by_selected_records": {
+          "per_call_ms": {
+            "n": 40,
+            "min": 0.011319000000000301,
+            "median": 0.01798000000000055,
+            "max": 11.403960000000001
+          },
+          "per_call_body_fraction": {
+            "n": 40,
+            "min": 8.700535097205904e-06,
+            "median": 1.4296665408382062e-05,
+            "max": 0.008779447029932061
+          },
+          "occurrence_weighted_profile_fraction": {
+            "n": 16,
+            "min": 9.834696977201789e-06,
+            "median": 1.4782500266426476e-05,
+            "max": 0.004625072406880578
+          }
+        }
+      },
+      "limits": [
+        "v164 historical CPU/PMU capture; profiles contain measurement/CPU instrumentation overhead. These values are not an unprofiled C8/TTFT baseline.",
+        "Body denominator is first target HcPre to head end, excluding input preparation, later sampling and other iterations. Occurrence weighting covers only the 40 observed eager bodies.",
+        "Whole-region erasure is a fixed-outside-work optimistic screen. Necessary raw/readers/EP work and replacement cost remain.",
+        "F21 and collective intervals include waits; their total duration is not removable arithmetic or pure transfer.",
+        "Eager collective binding uses same-call source/interval/count/group uniqueness; it does not prove physical link bytes or identify every peer-ready instant.",
+        "Exported communication dataType labels static/release are retained verbatim and are not trusted dtype names. Operand types come from the separately pinned source/tensor contract.",
+        "Absent profile descriptors and gaps do not prove independent execution or deletable work. No cross-device clock subtraction or rank sum is used."
+      ],
+      "overall_complete": false,
+      "numeric_model_ceiling": null
+    }
+  },
+  "TERMINAL-PREFILL-FREQUENCY-VALUE.json": {
+    "source_sha256": "57710f05b6a4af30dda675dbceb18fad0d97c15cedf009ba70a04dca729775e2",
+    "data": {
+      "status": "M08_V168_COMPLETE_PREFILL_REGION_FREQUENCY_SCREEN",
+      "coverage": {
+        "ranks": 16,
+        "prefill_bodies": 64,
+        "terminal_collectives": 128,
+        "selected_target_calls_per_rank": 225,
+        "immediate_head_bound": 56,
+        "no_immediate_head_pattern_later_work_retained": 8
+      },
+      "summary": {
+        "whole_last_FFN_terminal_and_immediate_head": {
+          "four_body_sum_ms": {
+            "n": 16,
+            "min": 22.19174,
+            "median": 22.658710000000003,
+            "max": 23.14252
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.0021754670013913605,
+            "median": 0.002235592553287199,
+            "max": 0.0022984353356513324
+          }
+        },
+        "final_FFN_Pre_through_Post": {
+          "four_body_sum_ms": {
+            "n": 16,
+            "min": 13.356020000000001,
+            "median": 13.79866,
+            "max": 14.267375
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.0013096323519199565,
+            "median": 0.0013611519127448542,
+            "max": 0.0014170932807950841
+          }
+        },
+        "Post_end_through_norm_or_immediate_head": {
+          "four_body_sum_ms": {
+            "n": 16,
+            "min": 8.79382,
+            "median": 8.8733135,
+            "max": 8.93818
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.0008620624262079212,
+            "median": 0.0008761176333320009,
+            "max": 0.0008881604287269345
+          }
+        },
+        "terminal_raw_and_mix_gather_including_wait": {
+          "four_body_sum_ms": {
+            "n": 16,
+            "min": 2.4101719999999998,
+            "median": 2.5017044999999998,
+            "max": 2.5927
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.0002393632113875738,
+            "median": 0.0002460272222506441,
+            "max": 0.0002576289069542483
+          }
+        },
+        "raw_copy_collapse_norm_envelope": {
+          "four_body_sum_ms": {
+            "n": 16,
+            "min": 5.149316,
+            "median": 5.2731200000000005,
+            "max": 5.41514
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.000504836980651799,
+            "median": 0.0005202420031080885,
+            "max": 0.0005374117971004883
+          }
+        },
+        "collapse_norm_after_raw_copy_envelope": {
+          "four_body_sum_ms": {
+            "n": 16,
+            "min": 4.372052,
+            "median": 4.474119999999999,
+            "max": 4.60806
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.00042863431394240696,
+            "median": 0.00044141006591530765,
+            "max": 0.0004573581134429447
+          }
+        },
+        "immediate_head_after_norm_envelope": {
+          "four_body_sum_ms": {
+            "n": 16,
+            "min": 0.71868,
+            "median": 0.847372,
+            "max": 0.960141
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 7.135873738143185e-05,
+            "median": 8.356894634408316e-05,
+            "max": 9.413185818077565e-05
+          }
+        }
+      },
+      "decision": "DEFER_PREFILL_ONLY_FINAL_FFN_TERMINAL_SPECIALIZATION_FOR_SAMPLED_THROUGHPUT",
+      "limits": [
+        "This is a frequency-weighted regional priority screen, not an unprofiled full-C8/TTFT bound or an accepted implementation.",
+        "Eight small-local-row bodies have no immediate IndexCheck/Index/head pattern in the saved suffix. Their following work is retained, not assigned zero cost or declared absent. The screen does not reject a transformation extending into that later work.",
+        "The selected225target-call denominator is not claimed to include every prefill, input, sampler or draft interval. Full-call/body IDs and source hashes are retained.",
+        "F21 and collective waiting, raw readers, required outputs, routing and replacement work are all generously treated as free within the erased region; real savings are lower unless the transformation changes work outside this region.",
+        "Keep TTFT-specific and broader readiness/algorithm/ownership/resource alternatives conditional. Missing or unobserved legal branches remain open.",
+        "Current decode head and historical eager values are not added to this cohort. Each has a separate decision scope."
       ],
       "overall_complete": false,
       "numeric_model_ceiling": null
