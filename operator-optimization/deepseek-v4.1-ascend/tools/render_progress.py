@@ -103,9 +103,9 @@ def render():
     priority_plan = register.get('priority_plan')
     if priority_plan:
         cp = priority_plan['counts']
-        index[5:5] = ['', '## 当前优先级入口', '',
-                      f"**[详细排序和方案](../PRIORITY-PLAN.md)**：点名保留{cp['named_retained_work_items']}项、涉及{cp['unique_retained_families']}族；当前{cp['current_directions']}个方向/{cp['current_changes']}项改动，前端后备{cp['frontend_reserves']}项，长行或容量后备{cp['long_or_capacity_reserves']}项。", '',
-                      '当前行动：**CP＋Slot组合 → F12真实净传播 → HcPre行平方和有效完整实现**。后两项生产收益UNKNOWN，后备不强排；组合正常入口尚未实际运行验收。', '',
+        index[5:5] = ['', '## 优先级与当前结果入口', '',
+                      f"**[历史排序和最新结果](../PRIORITY-PLAN.md)**：历史点名保留{cp['named_retained_work_items']}项、涉及{cp['unique_retained_families']}族；当前{cp['current_directions']}个方向/{cp['current_changes']}项改动，前端后备{cp['frontend_reserves']}项，长行或容量后备{cp['long_or_capacity_reserves']}项。", '',
+                      register.get('current_snapshot', {}).get('current_action_summary', '历史排序见优先级页；当前结果按追加证据解释。'), '',
                       '[结构化11项与42族行动](priority-plan.json) · [已有结果及来源SHA](evidence/priority-value-evidence-20261106.json)', '']
     index += ['', '## 读表时的边界', '',
               '42 个是候选族，包含融合、拆分、复用、状态重组和调度。不是 42 个新增融合算子。相互重叠的方案不能重复计算收益。', '',
@@ -140,3 +140,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

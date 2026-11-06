@@ -2,6 +2,22 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-06 · 20261106-CURRENT-PROFILE-MECHANISM-SCREEN
+
+涉及：[F24](F24.md)、[F25](F25.md)、[F13](F13.md)
+
+类型：SCOPED_EXISTING_RUNTIME_EVIDENCE_IMPORT；依据：源工作区固定提交8d4adaa34996ed7ac1fe4100955ff7683df8dc56；结构化结果与原文件SHA见evidence/runtime-results-through-20261106.json
+
+112局部周期绑定Engram WKV与统一注意力成本。投影单项后置；仅为具体联合lookup/传输/常量或selected-KV机制核算净值，未新增NPU实验或生产收益。
+
+## 2026-11-06 · 20261106-RUNTIME-C8-RESULTS
+
+涉及：[F31](F31.md)、[F32](F32.md)、[H02](H02.md)、[F12](F12.md)、[F16](F16.md)
+
+类型：SCOPED_EXISTING_RUNTIME_EVIDENCE_IMPORT；依据：源工作区固定提交8d4adaa34996ed7ac1fe4100955ff7683df8dc56；结构化结果与原文件SHA见evidence/runtime-results-through-20261106.json
+
+CPU计划增量通过；owner传输和CPU联合组装未通过双参照收益门槛；QLI完整C8收益未定；OA普通MM数值失败。保留各自范围、停止条件和原服务恢复证据，不相加历史百分比。
+
 ## 2026-11-06 · 20261106-V168-PROVENANCE-AND-F16-PRICING-CORRECTION
 
 涉及：[F01](F01.md)、[F12](F12.md)、[F16](F16.md)

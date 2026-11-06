@@ -2,7 +2,7 @@
   "schema_version": 1,
   "updated_at": "2026-11-06",
   "source_commit": "38639a03e8fd52822801b1e328fc1fffc719ca7b",
-  "ordering_semantics": "Ranks1-3 are next-action order, not proven end-to-end gain ordering. Reserve members are not strongly ordered. Complexity is not a value penalty.",
+  "ordering_semantics": "Ranks1-3 are next-action order, not proven end-to-end gain ordering. Reserve members are not strongly ordered. Complexity is not a value penalty. Historical named-item ordering is retained as provenance; current_snapshot and subsequent variant results supersede its pending actions.",
   "counts": {
     "original_families": 42,
     "named_retained_work_items": 11,
@@ -42,7 +42,8 @@
       "action_order": 2,
       "title": "四个Indexer消费者共享候选成员表示",
       "change": "L20编码并发布独立packet，L24/28/32/36复用；原列表及各层QK/TopK/prepare保留。",
-      "next_decision": "若进入第二批，只验证完整净值经最慢rank、主线程等待、下一target提交到请求的传播；以CP+Slot为基线。"
+      "next_decision": "完整C8收益未定；停止不变版本追测。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
     },
     {
       "id": "HC_ROW_NORM",
@@ -78,7 +79,8 @@
       "action_order": null,
       "title": "CPU公共几何计划共享",
       "change": "一次生成可共享计划，各组保留差异字段、bank、qsl地址与必要H2D。",
-      "next_decision": "旧CPU替身约0.4ms/26组不是当前净值；14ms空白未归因，不据此新立kernel或服务试验。"
+      "next_decision": "冻结C8增量收益已通过；不原样重测。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
     },
     {
       "id": "F03_POST_Y",
@@ -114,7 +116,8 @@
       "action_order": null,
       "title": "owner KV投影后窄通信",
       "change": "各卡只算自己的KV行，再gather窄KV；QA按原owner行及提前交付合同执行。",
-      "next_decision": "先解决改变GEMM行数后的BF16差异；再测完整投影+通信+就绪；补零不删除计算，不能领取去重收益。"
+      "next_decision": "当前owner流水线C8收益未建立；不同长行/容量机制单独准入。",
+      "latest_result_evidence": "progress/evidence/runtime-results-through-20261106.json"
     }
   ],
   "all42": [
@@ -224,12 +227,12 @@
     {
       "family": "F12",
       "name": "Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask",
-      "group": "CURRENT",
-      "current_action_order": 2,
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
       "retained_work_ids": [
         "F12_MEMBERSHIP"
       ],
-      "reason": "完整含保护局部图有净值；生产跨rank/跨步传播未知，条件前列。",
+      "reason": "完整C8未建立收益，旧局部净值不再授予原样追测优先级。",
       "whole_family_closed": false
     },
     {
@@ -403,25 +406,25 @@
     {
       "family": "F31",
       "name": "Attention/DSpark 相关 metadata 构造、共享与发布",
-      "group": "CURRENT",
-      "current_action_order": 1,
+      "group": "DEFERRED_CURRENT_LOAD",
+      "current_action_order": null,
       "retained_work_ids": [
         "CP_LENGTH",
         "SLOT_WRITER",
         "F31_CPU_PLAN"
       ],
-      "reason": "首选CP+Slot组合，CPU计划共享单列后备；不相加历史单项百分比。",
+      "reason": "CPU计划增量已验证；联合组装当前变体停止，其他入口/分支义务保留。",
       "whole_family_closed": false
     },
     {
       "family": "F32",
       "name": "SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信",
-      "group": "LONG_OR_CAPACITY",
+      "group": "DEFERRED_CURRENT_LOAD",
       "current_action_order": null,
       "retained_work_ids": [
         "F32_OWNER_KV"
       ],
-      "reason": "删除跨TP重复KV，保留长行条件；真实形状数值尚未闭合。",
+      "reason": "当前owner传输完整C8未建立收益；只保留有新机制或目标的条件变体。",
       "whole_family_closed": false
     },
     {
@@ -522,5 +525,15 @@
     "No new model/NPU/profile/service operations in this publication.",
     "Reserve display order is not a precise production-benefit ranking.",
     "v168 instrumented percentages have no production-pricing qualification."
-  ]
+  ],
+  "current_snapshot": {
+    "source_commit": "8d4adaa34996ed7ac1fe4100955ff7683df8dc56",
+    "evidence": "progress/evidence/runtime-results-through-20261106.json",
+    "current_action_summary": "已验证基线为CP+slot+CPUplan；当前复用profile定价Engram与注意力联合机制。owner传输、CPU联合组装和QLI相同变体停止重复比较。",
+    "scope_note": "42族是稳定导航ID；51工作单元/95关系是新值生成台账，不互作完成率分母。历史11项清单保留，当前状态以本快照和候选结果为准。",
+    "active_experiment": null,
+    "overall_complete": false,
+    "numeric_model_ceiling": null
+  },
+  "historical_named_items_source_commit": "38639a03e8fd52822801b1e328fc1fffc719ca7b"
 }

@@ -1207,10 +1207,10 @@
       "kind": "索引发布融合、表示重组与条件复用",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
       "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
-      "review_status": "含保护独立bank原生局部净值已引入；真实模型传播UNKNOWN",
+      "review_status": "修正版候选表示已过限定C8；端到端收益未定，停止同版追测",
       "implemented": true,
-      "correctness_status": "限定原生合成图及逐行保护用例通过；不是模型/TP8全域证明",
-      "measured_speedup": true,
+      "correctness_status": "8路文本与前后原版一致，冻结计数和生产图集成通过；非全模型逐位证明",
+      "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史语义链：QLI/TopK → 修整/过滤/排序/填充/长度 → 稳定 bank；候选块列表是另一状态。",
       "baseline_flow": "L20发布原候选列表；L24/28/32/36各重复成员处理，再做自己的QK/scoring/TopK/prepare。",
@@ -1245,19 +1245,24 @@
           "label": "2026-11-06已存在的限定证据与来源SHA",
           "path": "evidence/priority-value-evidence-20261106.json",
           "scope": "引入已有实验，不是本次新增NPU执行；具体变体、局部/推理和失败分别记录。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
       "correctness_code": "PASS",
-      "performance_status": "MEASURED_GAIN",
-      "performance_summary": "含保护完整局部图净省约1.211/0.821ms；生产收益UNKNOWN",
+      "performance_status": "MEASURED_INCONCLUSIVE",
+      "performance_summary": "15.859/16.147/16.230s（前/候选/后）；候选处于两参照之间，端到端INCONCLUSIVE",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "CURRENT",
-        "current_action_order": 2,
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
         "retained_work_ids": [
           "F12_MEMBERSHIP"
         ],
-        "reason": "完整含保护局部图有净值；生产跨rank/跨步传播未知，条件前列。",
+        "reason": "完整C8未建立收益，旧局部净值不再授予原样追测优先级。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -1275,24 +1280,27 @@
         }
       ],
       "implementation_evidence": [
-        "evidence/priority-value-evidence-20261106.json"
+        "evidence/priority-value-evidence-20261106.json",
+        "evidence/implementation-snapshots-20261106.json",
+        "evidence/runtime-results-through-20261106.json"
       ],
       "performance_scope": "NATIVE_LOCAL",
       "correctness_evidence": [
-        "evidence/priority-value-evidence-20261106.json"
+        "evidence/runtime-results-through-20261106.json"
       ],
       "performance_evidence": [
-        "evidence/priority-value-evidence-20261106.json"
-      ]
+        "evidence/runtime-results-through-20261106.json"
+      ],
+      "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n后续完整模型证据覆盖了此前仅局部原生图的状态。单次计时/阶段无法建立可重复服务收益；局部净值不升级为请求加速。相同表示变体不重复补样；具体新机制或匹配原生分解才重开。"
     },
     {
       "id": "F13",
       "name": "稀疏注意力复合边界",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "已有稀疏 Attention 内部流水/拆分",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "复用当前干净profile定价，等待具体联合机制净值决策",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -1331,6 +1339,11 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F13.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
       "correctness_code": "NOT_RUN",
@@ -1343,7 +1356,11 @@
         "retained_work_ids": [],
         "reason": "保留核内softmax状态续算可能；已有两段结果合并反例不泛化到全族。",
         "whole_family_closed": false
-      }
+      },
+      "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n当前112个完整局部周期中Engram WKV中位0.553ms约占1.00%；仅替换/缓存此投影缺足够新增净值。统一SMLA中位1.799ms约占3.25%，但包含必须保留的注意力计算。当前筛选Engram联合lookup/传输/常量与selected-KV共享等明确机制；无新NPU运行或已建立加速，不能把整个kernel跨度分配给小接口变换。",
+      "implementation_evidence": [
+        "evidence/implementation-snapshots-20261106.json"
+      ]
     },
     {
       "id": "F14",
@@ -1471,10 +1488,10 @@
       "updated_at": "2026-11-06",
       "kind": "两级投影与 reduce-scatter 流水重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
-      "review_status": "OA前移换窄通信保留长行条件；增加权重供给与常驻容量。",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "新增OA普通MM替换变体数值门槛失败；OA前移等其他方案继续保留条件",
+      "implemented": true,
+      "correctness_status": "OA MM原生7用例63比较中15次有限输出位不一致；该替换未准入",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史语义链：wo_a → BF16 中间值 → wo_b → 每 rank BF16 partial → ReduceScatter。",
@@ -1515,13 +1532,18 @@
           "label": "当前优先级与适用条件",
           "path": "../PRIORITY-PLAN.md",
           "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
-      "correctness_code": "NOT_RUN",
+      "correctness_code": "FAILED_FOR_TESTED_VARIANT",
       "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
+      "performance_summary": "OA MM因数值门槛失败未计时；不能推断无速度潜力或整个OA族不可能",
       "independent_review_code": "NOT_REQUESTED",
-      "details_markdown": "## 本轮记录：长prefill先做OA，再交换较窄结果\n\n用户在2026-11-06表示“这个好像可以试试 先记录吧”。本轮将 **F16-OA-BEFORE-A2A** 保留为值得尝试的条件候选；仅登记用户选择和已有方案，不启动实施或提升正确性、性能及独立复核状态。其他F16分块接力方案保留原合同。\n\n```text\n原来：逆RoPE/pack → 交换4096维分组数据 → OA压到1024维 → OB → ReduceScatter\n候选：源rank先按目的组做OA → 交换1024维结果 → 原OB → 原ReduceScatter\n```\n\nOA与OB的必要MAC不减少，OA之后的BF16舍入、原OB及ReduceScatter、TP行序、padding和所有参与者保留。每rank每层发送面的逻辑载荷可变为原来的四分之一；原pack只在OA直接产出发送布局时领取一次节省，与F14/F15去重。\n\n代价是每个源rank需覆盖全部八份OA权重：每层逻辑覆盖8→64 MiB，额外读取56 MiB。40层常驻、原分片引用完整bank对应部分时，每rank新增2.1875 GiB；另保留原分片时新增2.50 GiB。实际峰值、构造临时面和KV容量仍待验证。\n\n来源纠正（2026-11-06）：v168注入设备观测器和额外读者。此前1.20%仅保留历史诊断敏感度身份，撤销其生产收益预测或上限资格；不能据此为当前方案定价。载荷1/4和额外权重账本独立保留；真实长行净值UNKNOWN，M3 decode后置。\n\n未来若执行，先比较真实BF16 OA中间值与原OB输出；通过后再对照同组完整pack→OB/ReduceScatter端点，计入权重供给、形状变化、布局、发布与内存/KV代价。合同不满足或新增成本抵消最终推进时，停止该变体。来源提交、文件SHA及登记边界见[本次用户决定](evidence/F16-oa-before-exchange-user-decision-20261106.json)。",
+      "details_markdown": "## 本轮记录：长prefill先做OA，再交换较窄结果\n\n用户在2026-11-06表示“这个好像可以试试 先记录吧”。本轮将 **F16-OA-BEFORE-A2A** 保留为值得尝试的条件候选；仅登记用户选择和已有方案，不启动实施或提升正确性、性能及独立复核状态。其他F16分块接力方案保留原合同。\n\n```text\n原来：逆RoPE/pack → 交换4096维分组数据 → OA压到1024维 → OB → ReduceScatter\n候选：源rank先按目的组做OA → 交换1024维结果 → 原OB → 原ReduceScatter\n```\n\nOA与OB的必要MAC不减少，OA之后的BF16舍入、原OB及ReduceScatter、TP行序、padding和所有参与者保留。每rank每层发送面的逻辑载荷可变为原来的四分之一；原pack只在OA直接产出发送布局时领取一次节省，与F14/F15去重。\n\n代价是每个源rank需覆盖全部八份OA权重：每层逻辑覆盖8→64 MiB，额外读取56 MiB。40层常驻、原分片引用完整bank对应部分时，每rank新增2.1875 GiB；另保留原分片时新增2.50 GiB。实际峰值、构造临时面和KV容量仍待验证。\n\n来源纠正（2026-11-06）：v168注入设备观测器和额外读者。此前1.20%仅保留历史诊断敏感度身份，撤销其生产收益预测或上限资格；不能据此为当前方案定价。载荷1/4和额外权重账本独立保留；真实长行净值UNKNOWN，M3 decode后置。\n\n未来若执行，先比较真实BF16 OA中间值与原OB输出；通过后再对照同组完整pack→OB/ReduceScatter端点，计入权重供给、形状变化、布局、发布与内存/KV代价。合同不满足或新增成本抵消最终推进时，停止该变体。来源提交、文件SHA及登记边界见[本次用户决定](evidence/F16-oa-before-exchange-user-decision-20261106.json)。\n\n## 2026-11-06 后续执行结果同步\n\n本次失败的是T24/G1/K4096/N1024下用普通MM代替transpose-batch-matmul的变体。普通输入可复现6/8元素差异；图重放也复现。原算法、BF16边界保留；没有进行该实现的完整C8。此变体与OA先投影后窄交换分开记账。",
       "current_priority": {
         "group": "LONG_OR_CAPACITY",
         "current_action_order": null,
@@ -1544,6 +1566,10 @@
           "description": "先验真实OA/OB数值，再比较原宽交换与新窄交换的完整端点，计新增权重读取、布局及峰值/KV容量。当前仅记录候选。",
           "decision_rule": "正确性及通信/读者合同满足且新增成本后最晚输出有净推进才继续；不得以1.20%条件模型宣称实测收益。"
         }
+      ],
+      "implementation_evidence": [
+        "evidence/implementation-snapshots-20261106.json",
+        "evidence/runtime-results-through-20261106.json"
       ]
     },
     {
@@ -2064,11 +2090,11 @@
     {
       "id": "F24",
       "name": "Engram hash/lookup → ready → 行视图或分片；host-UVA 寻址",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "Engram 公共准备/查表/行组织重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "复用当前干净profile定价，等待具体联合机制净值决策",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -2107,6 +2133,11 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F24.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
       "correctness_code": "NOT_RUN",
@@ -2119,16 +2150,20 @@
         "retained_work_ids": [],
         "reason": "已测换流无推理收益；owner交付/容量条件留档，不在当前11项内。",
         "whole_family_closed": false
-      }
+      },
+      "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n当前112个完整局部周期中Engram WKV中位0.553ms约占1.00%；仅替换/缓存此投影缺足够新增净值。统一SMLA中位1.799ms约占3.25%，但包含必须保留的注意力计算。当前筛选Engram联合lookup/传输/常量与selected-KV共享等明确机制；无新NPU运行或已建立加速，不能把整个kernel跨度分配给小接口变换。",
+      "implementation_evidence": [
+        "evidence/implementation-snapshots-20261106.json"
+      ]
     },
     {
       "id": "F25",
       "name": "Engram 投影 → gate/残差",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "Engram 投影提前与 gate/残差接合",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "复用当前干净profile定价，等待具体联合机制净值决策",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -2167,6 +2202,11 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F25.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
       "correctness_code": "NOT_RUN",
@@ -2179,7 +2219,11 @@
         "retained_work_ids": [],
         "reason": "有有限gate局部证据；WKV分片容量条件留档，mask-false捷径有NaN反例。",
         "whole_family_closed": false
-      }
+      },
+      "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n当前112个完整局部周期中Engram WKV中位0.553ms约占1.00%；仅替换/缓存此投影缺足够新增净值。统一SMLA中位1.799ms约占3.25%，但包含必须保留的注意力计算。当前筛选Engram联合lookup/传输/常量与selected-KV共享等明确机制；无新NPU运行或已建立加速，不能把整个kernel跨度分配给小接口变换。",
+      "implementation_evidence": [
+        "evidence/implementation-snapshots-20261106.json"
+      ]
     },
     {
       "id": "F26",
@@ -2518,9 +2562,9 @@
       "kind": "metadata 多输出生产、共享与发布",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
       "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
-      "review_status": "CP+Slot组合限定正确性/推理收益通过；正常入口尚未运行验收",
+      "review_status": "CPU公共计划增量C8通过；后续联合组装C8未建立收益",
       "implemented": true,
-      "correctness_status": "16批文本/负载、16worker读者及64完整bank比较限定通过",
+      "correctness_status": "CPU计划12轮8路文本及16worker元数据检查通过；联合组装12轮通过；范围限定于实际合同",
       "measured_speedup": true,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史语义链：坐标/长度/slot/group 等 metadata → 转换/稳定 bank → Indexer/Attention。",
@@ -2544,8 +2588,22 @@
         {
           "id": "F31_CPU_PLAN",
           "title": "CPU公共几何计划共享",
-          "description": "一次生成可共享计划，各组保留差异字段、bank、qsl地址与必要H2D。 旧CPU替身约0.4ms/26组不是当前净值；14ms空白未归因，不据此新立kernel或服务试验。",
-          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
+          "description": "实际CPU计划共享已完成冻结C8，限定增量收益通过；原bank、必要H2D和权威长度保留。",
+          "decision_rule": "不再原样重复已完成比较；扩大范围需新适用证据。",
+          "status": "DONE",
+          "evidence": [
+            "evidence/runtime-results-through-20261106.json"
+          ]
+        },
+        {
+          "id": "CPU_ASSEMBLY_C8",
+          "title": "联合CPU组装的完整C8定案",
+          "status": "DONE",
+          "description": "12轮通过但双参照收益门槛失败，停止当前变体。",
+          "decision_rule": "新机制和可区分证据才重开。",
+          "evidence": [
+            "evidence/runtime-results-through-20261106.json"
+          ]
         }
       ],
       "evidence": [
@@ -2568,21 +2626,26 @@
           "label": "2026-11-06已存在的限定证据与来源SHA",
           "path": "evidence/priority-value-evidence-20261106.json",
           "scope": "引入已有实验，不是本次新增NPU执行；具体变体、局部/推理和失败分别记录。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
       "correctness_code": "PASS",
       "performance_status": "MEASURED_GAIN",
-      "performance_summary": "同轮组合中位14.217s，对前后原版耗时下降11.198%/10.057%；CP增量5.434%",
+      "performance_summary": "CPU计划12.866s，对同轮CP+slot前后14.354/14.226s下降10.364%/9.560%；联合组装未建立额外收益",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "CURRENT",
-        "current_action_order": 1,
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
         "retained_work_ids": [
           "CP_LENGTH",
           "SLOT_WRITER",
           "F31_CPU_PLAN"
         ],
-        "reason": "首选CP+Slot组合，CPU计划共享单列后备；不相加历史单项百分比。",
+        "reason": "CPU计划增量已验证；联合组装当前变体停止，其他入口/分支义务保留。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -2600,15 +2663,18 @@
         }
       ],
       "implementation_evidence": [
-        "evidence/priority-value-evidence-20261106.json"
+        "evidence/priority-value-evidence-20261106.json",
+        "evidence/implementation-snapshots-20261106.json",
+        "evidence/runtime-results-through-20261106.json"
       ],
       "performance_scope": "FROZEN_C8_INFERENCE",
       "correctness_evidence": [
-        "evidence/priority-value-evidence-20261106.json"
+        "evidence/runtime-results-through-20261106.json"
       ],
       "performance_evidence": [
-        "evidence/priority-value-evidence-20261106.json"
-      ]
+        "evidence/runtime-results-through-20261106.json"
+      ],
+      "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\nCP+slot与CPU计划分别保留各自对照。CPU计划三组各3计时，全部候选样本低于两组参照；固定顺序与有限样本限制保留。后续CPU联合组装相对前参照1.370%，对后参照-0.291%，未通过双参照门槛，停止同版本复测。已有入口性能不等于永久部署或所有分支证明。"
     },
     {
       "id": "F32",
@@ -2616,10 +2682,10 @@
       "updated_at": "2026-11-06",
       "kind": "投影前移与通信载荷重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
-      "review_status": "删除跨TP重复KV，保留长行条件；真实形状数值尚未闭合。",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "owner侧投影和窄传输已完成C8；当前变体收益未建立",
+      "implemented": true,
+      "correctness_status": "13轮8路文本；16worker每40层的实际生产者数值比较通过；不覆盖所有分支",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史语义链：SP hidden gather → Q_a/KV 等投影；各消费者行域不同。",
@@ -2628,6 +2694,16 @@
       "mechanism": "在参数和行归属允许时本地先投影，再通信真正需要的结果。",
       "conditions": "保留行映射/权重归属/数值/原hidden读者，不盲拼不同M。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
+        {
+          "id": "OWNER_TRANSPORT_C8",
+          "title": "当前owner传输完整C8定案",
+          "status": "DONE",
+          "description": "完整模型比较未建立增量收益，停止不变版本。",
+          "decision_rule": "新机制或负载/容量目标才重开。",
+          "evidence": [
+            "evidence/runtime-results-through-20261106.json"
+          ]
+        },
         {
           "id": "F32_OWNER_KV",
           "title": "owner KV投影后窄通信",
@@ -2655,19 +2731,24 @@
           "label": "当前优先级与适用条件",
           "path": "../PRIORITY-PLAN.md",
           "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
-      "correctness_code": "NOT_RUN",
-      "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
+      "correctness_code": "PASS",
+      "performance_status": "MEASURED_NO_ESTABLISHED_GAIN",
+      "performance_summary": "候选12.991s；前后13.025/12.935s，变化+0.260%/-0.432%，未通过双参照门槛",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
-        "group": "LONG_OR_CAPACITY",
+        "group": "DEFERRED_CURRENT_LOAD",
         "current_action_order": null,
         "retained_work_ids": [
           "F32_OWNER_KV"
         ],
-        "reason": "删除跨TP重复KV，保留长行条件；真实形状数值尚未闭合。",
+        "reason": "当前owner传输完整C8未建立收益；只保留有新机制或目标的条件变体。",
         "whole_family_closed": false
       },
       "historical_next_steps": [
@@ -2683,6 +2764,17 @@
           "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
           "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
         }
+      ],
+      "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n先前真实权重/epsilon和TP8局部准入已进入完整模型比较。13轮包含限定诊断和三组计时；保持必要Q工作、36/1/3角色和全部输出。当前实现停止；长行、容量和其他表示变体保留独立合同，不能从本结果推全族不可能。",
+      "implementation_evidence": [
+        "evidence/implementation-snapshots-20261106.json",
+        "evidence/runtime-results-through-20261106.json"
+      ],
+      "correctness_evidence": [
+        "evidence/runtime-results-through-20261106.json"
+      ],
+      "performance_evidence": [
+        "evidence/runtime-results-through-20261106.json"
       ]
     },
     {
@@ -2928,13 +3020,13 @@
     {
       "id": "H02",
       "name": "输入准备中剩余小拷贝、锁页和元数据工作的合并重组",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "输入准备的小拷贝/缓冲/metadata 重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "联合CPU组装已完成实际模型C8；增量收益未建立",
+      "implemented": true,
+      "correctness_status": "12轮8路文本与16worker；3328次common和owned结果身份检查，0不匹配",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史已有持久 batch 缓冲、提前提交和 accepted-token 异步修正。",
@@ -2971,11 +3063,16 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/H02.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "截至2026-11-06的限定执行结果",
+          "path": "evidence/runtime-results-through-20261106.json",
+          "scope": "来源提交及原文件SHA、正/负/未定结果；本次发布没有新实验，不关闭整个候选族。"
         }
       ],
-      "correctness_code": "NOT_RUN",
-      "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
+      "correctness_code": "PASS",
+      "performance_status": "MEASURED_NO_ESTABLISHED_GAIN",
+      "performance_summary": "12.974s，对前后13.155/12.937s变化+1.370%/-0.291%；双参照门槛失败",
       "independent_review_code": "NOT_REQUESTED",
       "current_priority": {
         "group": "DEFERRED_CURRENT_LOAD",
@@ -2983,7 +3080,18 @@
         "retained_work_ids": [],
         "reason": "小copy/常驻模板P3；保图地址/代际，不重复计F31已删工作。",
         "whole_family_closed": false
-      }
+      },
+      "details_markdown": "\n\n## 2026-11-06 后续执行结果同步\n\n保持相同worker进程的单次加载比较完成；不能只选前参照宣称加速。正式计时前移除诊断。原服务恢复，同变体不加样重跑；其他元数据/发布机制仍需自己的净值依据。",
+      "implementation_evidence": [
+        "evidence/implementation-snapshots-20261106.json",
+        "evidence/runtime-results-through-20261106.json"
+      ],
+      "correctness_evidence": [
+        "evidence/runtime-results-through-20261106.json"
+      ],
+      "performance_evidence": [
+        "evidence/runtime-results-through-20261106.json"
+      ]
     },
     {
       "id": "H03",
@@ -3302,8 +3410,8 @@
     }
   ],
   "current_focus": {
-    "candidate": "F31",
-    "variant": "CP+Slot已验限定组合；F12与HC行平方和按行动顺序条件保留"
+    "candidate": "F24",
+    "variant": "Engram与注意力：复用当前profile筛选具体联合机制"
   },
   "priority_plan": {
     "path": "../PRIORITY-PLAN.md",
@@ -3318,5 +3426,14 @@
       "frontend_reserves": 3,
       "long_or_capacity_reserves": 4
     }
+  },
+  "current_snapshot": {
+    "source_commit": "8d4adaa34996ed7ac1fe4100955ff7683df8dc56",
+    "evidence": "progress/evidence/runtime-results-through-20261106.json",
+    "current_action_summary": "已验证基线为CP+slot+CPUplan；当前复用profile定价Engram与注意力联合机制。owner传输、CPU联合组装和QLI相同变体停止重复比较。",
+    "scope_note": "42族是稳定导航ID；51工作单元/95关系是新值生成台账，不互作完成率分母。历史11项清单保留，当前状态以本快照和候选结果为准。",
+    "active_experiment": null,
+    "overall_complete": false,
+    "numeric_model_ceiling": null
   }
 }
