@@ -1,0 +1,164 @@
+{
+  "status": "PLANNED_NOT_EXECUTED",
+  "purpose": "一次准备当前负载能复用的公共成本；既有证据充分时直接跳过相应补测。",
+  "not_a_completed_bandwidth_benchmark": true,
+  "new_NPU_work": false,
+  "selection": "先从固定cohort的现有descriptor/通信payload记录提取实际范围。合并相同机制，保留小消息、拐点、大消息及真实组/拓扑；缺少字节或拓扑时先补这一个字段，不编造速率。",
+  "families": [
+    {
+      "id": "C01",
+      "resource": "communication",
+      "beneficiaries": [
+        "M00",
+        "M01",
+        "M03",
+        "M04",
+        "M06",
+        "M07",
+        "M08",
+        "M10"
+      ],
+      "decision": "移动或减少collective、调整TP/EP所有权是否仍有净收益；与rank就绪调度分开判断。",
+      "reuse": [
+        "CURRENT-MECHANISM-VALUE.json",
+        "ENGRAM-TP-TIMING.json",
+        "ORDERED-POST-FFN-BOUNDARY.json",
+        "COLLECTIVE-VALUE-DELIVERY-CONTRACTS.json"
+      ],
+      "cases": "实际命中的TP8 AllReduce/AllGather/ReduceScatter和EP路径，按消息大小及物理组分组。MC2内部收发不能用独立AllToAll吞吐直接替代。",
+      "metrics": [
+        "local duration distribution",
+        "explicit payload bytes and byte convention",
+        "effective rate only with valid bytes",
+        "rank-local ready/wait evidence",
+        "algorithm/group/role/concurrency"
+      ],
+      "stop": "只有含等待区间时记unknown，不倒推出链路GB/s；已有区域全部免费也低价值则不为该候选启动通信测量。"
+    },
+    {
+      "id": "C02",
+      "resource": "memory_and_delivery",
+      "beneficiaries": [
+        "M01",
+        "M02",
+        "M03",
+        "M05",
+        "M07",
+        "M08",
+        "M10",
+        "M11"
+      ],
+      "decision": "消除物化、直接写目标布局或缓存是否有足够净收益；权重/工作集驻留是否改变排序。",
+      "reuse": [
+        "CURRENT-DEVICE-CAPACITY.json",
+        "WEIGHT-RESIDENCY-CUT.json",
+        "EXPERT-TEMPORAL-RESIDENCY.json",
+        "ENGRAM-STATE-UVA-CONTRACTS.json"
+      ],
+      "cases": "实际必要的HBM读写、跨L2工作集、host-UVA查表/搬运和布局；冷热、步长、并发按候选分组，禁止用小热缓存结果替代大权重流。",
+      "metrics": [
+        "logical bytes",
+        "physical traffic if observed, otherwise unknown",
+        "working set/cache condition",
+        "elapsed distribution",
+        "effective rate scope"
+      ],
+      "stop": "物理字节不明只保留经验时延；容量查询已复用，无环境变化不重复。"
+    },
+    {
+      "id": "C03",
+      "resource": "compute",
+      "beneficiaries": [
+        "M01",
+        "M02",
+        "M03",
+        "M05",
+        "M06",
+        "M08",
+        "M10"
+      ],
+      "decision": "大范围计算消除、低M投影/归约/量化重组是否超过替代开销。",
+      "reuse": [
+        "CURRENT-MECHANISM-VALUE.json",
+        "ORDERED-MHC-VALUE.json",
+        "CURRENT-MOE-SCHEDULE-VALUE.json",
+        "CLEAN-TARGET-HEAD-VALUE.json"
+      ],
+      "cases": "只对高价值候选实际M/N/K、dtype和NZ/ND布局补测；小算子按归约/量化/搬运族复用，不逐个Cast开探针。",
+      "metrics": [
+        "latency distribution",
+        "useful operations with counting convention",
+        "effective throughput",
+        "cache/layout/concurrency",
+        "correctness contract"
+      ],
+      "stop": "profile已有适用基线即复用；经验吞吐不能证明所有融合算法的理论极限。"
+    },
+    {
+      "id": "C04",
+      "resource": "scheduling_and_contention",
+      "beneficiaries": [
+        "M01",
+        "M02",
+        "M03",
+        "M06",
+        "M10",
+        "M11"
+      ],
+      "decision": "高价值新fork/join或通信计算重排能否兑现收益。",
+      "reuse": [
+        "MOE-SHARED-F21-RESULT.json",
+        "MOE-SHARED-F21-PROFILE.json",
+        "GRAPH-HC-AND-MOE-RESOURCE-CUTS.json",
+        "CPU-STAGE-ATTRIBUTION.json"
+      ],
+      "cases": "只测具备新机制和价值预测的资源组合。图区间、CPU提交、event依赖分别计价；不做无关算子配对矩阵。",
+      "metrics": [
+        "isolated vs concurrent same-case duration",
+        "launch/event/graph context",
+        "native output equality",
+        "useful overlap vs waiting",
+        "paired unprofiled time"
+      ],
+      "stop": "已失败F21/shared具体版本不复测；图内kernel不按每个Python调用开销计价。"
+    }
+  ],
+  "admission": {
+    "required": [
+      "至少一个仍有价值的具体候选和全部可复用模块",
+      "现有证据无法定案且参数敏感性会改变决定",
+      "固定shape/dtype/布局/组/并发与原服务回收计划",
+      "在测量前冻结预热、样本数、统计口径、正确性及停止阈值"
+    ],
+    "batching": "共享同一环境窗口与准备工作；每类测量独立case/result，避免把多个假设混成一个A/B。",
+    "budget": "先选最小代表集合再冻结数值预算；本清单没有自动授权全量扫描或自动启动入口。现有用户服务操作授权保留，无需为同范围例行动作反复请示。"
+  },
+  "environment_reuse": {
+    "source": "MOE-SHARED-F21-LOOP.json#/bootstrap_corrections",
+    "checks": [
+      "成功运行的container bind destination",
+      "安装CANN/torch_npu及vendor/OPP优先级",
+      "可写per-rank编译目录",
+      "HCCL已验证设置与占用核对",
+      "NZ逻辑shape及原始kernel入口",
+      "CPU导入和静态检查",
+      "仅自身进程清理与原服务恢复"
+    ]
+  },
+  "measurement_record": [
+    "evidence_id",
+    "source/configuration hashes",
+    "host/topology",
+    "shape/dtype/layout",
+    "phase/role",
+    "group/payload convention",
+    "warmup/cache/streams/concurrency",
+    "raw samples and summary",
+    "confidence/noise",
+    "dependent decisions",
+    "invalidation keys"
+  ],
+  "continue_modules": "M08继续使用已有区域成本；其他高价值公共缺口集中排程，不等待完成一套通用硬件百科。",
+  "unchanged_frozen_experiments": true,
+  "overall_complete": false
+}
