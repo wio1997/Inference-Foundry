@@ -42,12 +42,21 @@ def render():
                  f"最近有意义的更新：{item['updated_at']}（Asia/Shanghai）", '', '## 当前状态', '',
                  '|项目|状态|', '|---|---|', f"|优化类型|{item['kind']}|",
                  f"|历史分析|{item['historical_status']}|", f"|本轮复核|{item['review_status']}|",
-                 '|新增实现|未实施|' if not item['implemented'] else '|新增实现|见实现证据|',
-                 f"|新实现正确性|{item['correctness_status']}|",
+                 '|已登记的实现/试验|本台账未登记实现|' if not item['implemented'] else '|已登记的实现/试验|见具体变体的实现证据；含引入的已有实验|',
+                 f"|已登记的正确性|{item['correctness_status']}|",
                  f"|优化后同条件性能|{item['performance_summary']}|",
                  f"|独立复核|{item['independent_review']}|", '', '## 算子与原有流程', '',
                  item['operator_binding'], '', item['baseline_flow'], '', '## 候选改动及其意义', '',
                  item['proposal'], '', item['mechanism'], '', '## 成立条件与证据边界', '', item['conditions'], '']
+        priority = item.get('current_priority')
+        if priority:
+            order = priority.get('current_action_order')
+            groups = {'CURRENT': '当前行动', 'FRONTEND_RESERVE': '前端后备',
+                      'LONG_OR_CAPACITY': '长行/容量后备', 'DEFERRED_CURRENT_LOAD': '当前不独立开发'}
+            order_text = f'当前行动顺序{order}' if order else groups[priority['group']]
+            lines[6:6] = ['## 当前优先级', '',
+                          f"{order_text}：{priority['reason']}", '',
+                          '[完整排序、11项点名方案和停止条件](../PRIORITY-PLAN.md)。行动顺序不等于已证明的生产收益大小；未选变体继续保留其条件。', '']
         if item.get('details_markdown'):
             lines += [item['details_markdown'], '']
         lines += ['## 可能要做的事', '', '清单保留已完成复核和未执行计划；没有执行证据时不能勾选。复核完成不表示实现或性能通过。', '']
@@ -77,9 +86,10 @@ def render():
              '这是正在逐条讨论和复核的工作看板。历史 v180 分析归档保留；本看板不把候选登记、报告成稿或重复讲解当作实现完成。', '',
              f"当前记录：{register['updated_at']}（Asia/Shanghai）。", '',
              f"- 42/42 个既有候选族已建立独立记录入口；这是记录覆盖，不是优化验证完成率。",
-             f"- 本轮有新的逻辑复核记录：{len(candidates)-counts['HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW']}/42。复核范围见各页；子方案澄清不关闭整个候选族。",
-             f"- 其余 {counts['HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW']}/42 沿用历史条件分析，待按用户顺序逐条复核。",
-             f'- 新实现：{implementation_count}/42；新实现正确性通过：{correctness_count}/42；有同条件性能结论：{performance_count}/42；已完成独立复核：{independent_count}/42。', '',
+             f"- 已记录子方案讨论、复核或已有证据引入：{len(candidates)-counts['HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW']}/42。范围见各页；引入已有结果不是本轮新增实验，子方案不关闭整个候选族。",
+             f"- 其余 {counts['HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW']}/42 的详细技术页保留历史条件记录；当前42族行动筛选见优先级页，不自动重开逐条调查。",
+             f'- 本台账已登记实现/试验的族：{implementation_count}/42；有具体变体限定正确性通过：{correctness_count}/42；有同条件性能结论（含无已建立收益）：{performance_count}/42；已完成独立复核：{independent_count}/42。',
+             '- 上述是已登记证据计数，包含外部已有实验的引入，不是全量实现/全族验收率。native局部收益、真实推理收益和失败分别记录。', '',
              '## 从这里看', '',
              f"- 当前讨论：[{focus['candidate']} · {focus['variant']}]({focus['candidate']}.md)。",
              '- 更新规则：[记录规范](PROCESS.md)；新记录使用[模板](TEMPLATE.md)。',
@@ -90,6 +100,13 @@ def render():
         pending = next((a for a in c['next_steps'] if a.get('status') != 'DONE'), None)
         next_title = pending['title'] if pending else '无已登记待办；不据此关闭候选'
         index.append(f"|[{c['id']}]({c['id']}.md)|{c['name']}|{c['kind']}|{c['review_status']}|{next_title}|")
+    priority_plan = register.get('priority_plan')
+    if priority_plan:
+        cp = priority_plan['counts']
+        index[5:5] = ['', '## 当前优先级入口', '',
+                      f"**[详细排序和方案](../PRIORITY-PLAN.md)**：点名保留{cp['named_retained_work_items']}项、涉及{cp['unique_retained_families']}族；当前{cp['current_directions']}个方向/{cp['current_changes']}项改动，前端后备{cp['frontend_reserves']}项，长行或容量后备{cp['long_or_capacity_reserves']}项。", '',
+                      '当前行动：**CP＋Slot组合 → F12真实净传播 → HcPre行平方和有效完整实现**。后两项生产收益UNKNOWN，后备不强排；组合正常入口尚未实际运行验收。', '',
+                      '[结构化11项与42族行动](priority-plan.json) · [已有结果及来源SHA](evidence/priority-value-evidence-20261106.json)', '']
     index += ['', '## 读表时的边界', '',
               '42 个是候选族，包含融合、拆分、复用、状态重组和调度。不是 42 个新增融合算子。相互重叠的方案不能重复计算收益。', '',
               '源码逻辑成立、当前二进制实际执行、可实现性、数值正确性、性能收益分别记录。旧 166 时序、新 171 图回放、不同采集批次的工作量不能混成同一次实验。', '',

@@ -7,38 +7,26 @@
     {
       "id": "F01",
       "name": "注意力前 mHC 复合边界",
-      "updated_at": "2026-11-03",
-      "kind": "已有融合边界的拆分/调度（本轮仅 EARLY-Y）",
+      "updated_at": "2026-11-06",
+      "kind": "HC族内算法去冗余；旧EARLY-Y调度变体单列",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
-      "review_status": "EARLY-Y 源码逻辑已澄清；可实现性与收益待验证",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "行平方和有算法去冗余依据；试验版回放ERROR，旧重复collapse变体停止",
+      "implemented": true,
+      "correctness_status": "回放L0C冲突，完成候选比较0例；没有数值验收",
       "measured_speedup": false,
-      "independent_review": "已请求 GPT-6.1 / xhigh；临时侧聊禁止启动子代理，实际尚未启动、未收到结果",
-      "operator_binding": "绑定源码中的 npu_hc_pre_v3 / aclnnHcPre；profile 语义名 HcPre。新接口尚不存在。",
+      "independent_review": "此前EARLY-Y请求的独立复核尚未启动；本次引入已有native结果，不因此标为独立复核完成。",
+      "operator_binding": "沿用npu_hc_pre_v3 / aclnnHcPre的四输出ABI，当前具体机制只替换范数生产；原EARLY-Y需要的独立Y-ready接口另列，不作为行平方和前提。",
       "baseline_flow": "已有 HcPre 一次调用返回 Y、post、comb、pre。归档 A3 源码先做投影/统计并同步；第二阶段对每个数据块依次计算新 pre、生成并写出 Y、计算 post/comb。下游归一化等任务按整体 HcPre 完成后推进。",
-      "proposal": "本轮只审查 HC93-EARLY-Y：在进入算子前已有 pre_mix 时，将 Y 的生成/交付与当前新系数生产分离，让使用 Y 的原有路径有机会提前推进。",
-      "mechanism": "解除对当前新系数生产的不必要等待；不删除原有系数计算，也不以 CPU 调度时间作为成立依据。",
-      "conditions": "只适用于有外部 pre_mix 的已核对源码分支。保留 Y 的 BF16 舍入、全部当前新系数、原残差及消费者；post/comb 要在当前 HcPost 使用前就绪，pre 要在后续 FFN HcPre 使用前就绪。数据依赖允许分离，不证明当前硬件、二进制和新任务安排可有效并行。",
+      "proposal": "新增保留：直接逐行平方和替代只取对角线的块Gram；混合投影、数值边界及全部输出保留。",
+      "mechanism": "数学上只需各行自身的平方和。删除行间内积及小M块填充工作；原native试验回放失败，未证明数值或速度。",
+      "conditions": "现有试验特化BF16 M3/K20480及匹配tile条件，其他域保留原路。行平方和机制不依赖EARLY-Y的外部pre_mix独立性；可选pre_mix分支、混合投影HF32模式、K部分合并、epsilon、workspace、全部pre/post/comb/Y和残差读者按原合同保留。数学等价不证明逐位一致；候选完成0例比较，不能领取数值或性能验收。",
       "next_steps": [
         {
-          "id": "F01-01",
-          "title": "完成请求中的独立复核",
-          "description": "在允许启动代理的主对话中，按用户要求使用 GPT-6.1、xhigh，只读检查本页依赖、源码顺序、profile 能力和分类；本侧聊不代为启动。",
-          "decision_rule": "实际收到可追溯产物后才更新独立复核状态；审查通过仍不代表实现/性能通过。"
-        },
-        {
-          "id": "F01-02",
-          "title": "从已有171 profile 固定当前同批次基线",
-          "description": "只查选定同一 case 中 HcPre→norm→Attention路径→HcPost 及图/队列依赖。当前本地可复核的细时序为旧166，171归档可确认FULL回放；不得把166的微秒数迁移到171。",
-          "decision_rule": "先复用已有数据；不为源码已回答的问题重新采集。记录当前171同一调用边界，不能仅由间隔推断端到端关键路径。"
-        },
-        {
-          "id": "F01-03",
-          "title": "若值得实施，再冻结顺序/并行对照",
-          "description": "未来分别比较A原版、B拆分顺序执行、C拆分尝试重叠。相同输入/权重/精度与执行方式，核对Y、所有新系数和最终HcPost；计时一直到所需结果合并完成。属于未来计划，本次未执行。",
-          "decision_rule": "C稳定优于A才有收益证据；C仅优于B说明重叠可能抵消部分拆分成本；无收益只记录该实现/条件下未观察到改善，不宣称所有拆分均不可行。"
+          "id": "HC_ROW_NORM",
+          "title": "HcPre直接计算行平方和",
+          "description": "在已有输入tile上计算平方和，替代只用对角线的块Gram；混合投影和原输出/workspace保留。 仅对具体pipeline修正重开；先过完整输出及回放，再测整个HcPre，最后评价实际命中和请求价值。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -96,13 +84,51 @@
           "label": "Task/Loop/Run恢复入口",
           "path": "tasks/f01-early-y/README.md",
           "scope": "本轮记录状态和可恢复的下一步；未来实验仍未执行。"
+        },
+        {
+          "label": "2026-11-06已存在的限定证据与来源SHA",
+          "path": "evidence/priority-value-evidence-20261106.json",
+          "scope": "引入已有实验，不是本次新增NPU执行；具体变体、局部/推理和失败分别记录。"
         }
       ],
-      "details_markdown": "## 本轮逻辑说明\n\n这次讨论的是 F01 族内的 **EARLY-Y** 子方案。F01 族还登记了其他复合/列优先级等变体，本轮没有据此关闭整个候选族。\n\n### 输入和结果\n\n|对象|含义|消费者|\n|---|---|---|\n|X|当前 token 的4路原始数据|Y 生成、新系数生产、当前 HcPost 的 residual|\n|已有 pre_mix|进入当前 HcPre 前已有的混合配比|当前 Y；首层由模型初始化，后续由前面的 mHC 阶段传递|\n|Y|4路按已有配比相乘相加后的1路数据|当前输入归一化与后续 Attention 路径|\n|新 post、comb|当前输入算出的合并配比|当前 Attention 结果与原 residual 的 HcPost 合并|\n|新 pre|当前输入算出的下一阶段混合配比|后续 FFN 的 HcPre；不是有外部 pre_mix 分支中当前 Y 的必需输入|\n\n`ProcessY` 的源码动作是：将 X 扩展到 FP32，按指定配比逐项相乘，沿4路求和，再按原方式转回输出类型。它用的是进入算子前的配比时，不需要当前系数投影、统计、Sigmoid 或 Sinkhorn 的结果。\n\n源码关键选择为：\n\n```cpp\nProcessY(...,\n    tilingData->hasPreMix != 0 ? preMixLocal : mixes01ReduceLocal,\n    ...);\n```\n\n没有外部 pre_mix 时会改用新 pre，不能直接套用本轮的独立性结论。\n\n### 当前实现与候选安排\n\n当前归档源码的控制顺序：\n\n```text\n投影和统计 → 阶段间同步 → 新pre → 生成并写出Y → post/comb → HcPre完成\n                                                               ↓\n                                               原有norm/通信/Attention路径\n                                                               ↓\n                                                        当前HcPost\n```\n\n这里是每个处理块的主要顺序；多个硬件单元仍有原有分工和流水，不能理解为整卡所有工作完全串行。Y 已经写入输出位置不等于下游获得了可单独使用的就绪通知。\n\n候选按计算依赖可画成：\n\n```mermaid\nflowchart LR\n  X[当前4路数据 X] --> Y[用已有pre_mix生成Y]\n  P[已有pre_mix] --> Y\n  Y --> A[原有norm和通信及Attention路径]\n  X --> C[当前新系数生产]\n  A --> H[当前HcPost合并]\n  X --> H\n  C -->|post和comb| H\n  C -->|pre| F[后续FFN的HcPre]\n  H --> F\n```\n\n这只是允许研究的依赖图。它没有指定一个已可运行的并行实现；还要定义新算子/接口、事件交接、输入存活、数值等价及真实调度资源。两条队列不保证两项任务可同时驻留，当前混合算子中的空闲计算部件也不自动对另一任务可用。\n\n### 已有 profile 能说明什么\n\n旧166的已绑定目标图中，有2560组 Attention HcPre→RmsNorm 对。HcPre 中位35.401µs，随后间隔中位0.980µs，RmsNorm 中位3.960µs；已登记的这类边都在同一流。数据来自旧166，不能当作171新运行耗时。\n\n171的归档有 FULL 图回放及 aclmdlRIExecuteAsync 对应记录。这支持“该记录中有事先安排的图任务”，不证明每个当前 native HcPre 与旧源码逐指令一致，也不提供166计时到171的迁移依据。\n\n这些证据没有给出内部 Y 的最早可用时间，没有证明整段请求关键路径或可节省35µs。HcPre 结束至 HcPost 开始的 Attention 路径跨度也不是免费的可隐藏时间。\n\n### 本轮纠正\n\n1. 不能把 EARLY-Y 称为新增计算融合；它是已有融合边界的拆分/交付和调度重组候选。\n2. 当前 Y 在 post/comb 前就生成并写出；不能说“全部新配比算完后才生成 Y”。\n3. 有外部 pre_mix 时，当前 Y 不依赖本次新配比；并非所有 HcPre 分支都独立。\n4. 不能由源码独立性、两条队列或卡上部分单元空闲，直接判定并行可运行/可加速。\n5. CPU 可异步提交，但修改 CPU 提交时机本身不能解除设备图中的整算子完成依赖。已有证据不证明 CPU 在整个请求中从不构成瓶颈。\n6. “Y＋归一化融合”与 F02 接口机会重叠，是另一项可组合但需单独验证的变体；本轮不把它用来证明 EARLY-Y 本身属于融合。\n\n### 本轮结论\n\n**已支持：归档有外部 pre_mix 的源码分支中，Y 不依赖本次新系数。未建立：当前二进制的改动资格、新接口可实现性、实际资源重叠、运行正确性和性能收益。**\n\n记录源码性质不等于接受性能方案；整个 F01 仍为 CONDITIONAL。\n",
-      "correctness_code": "NOT_RUN",
+      "details_markdown": "## 当前优先级更新（2026-11-06）\n\n当前行动顺序3，具体变体为HC_ROW_NORM。与旧EARLY-Y分开：旧重复collapse双流graph约慢54–55%，停止该实现。行平方和试验完成候选比较0例，不能领取正确性或收益。完整方案、原子账本、流水风险和停止条件见[优先级方案](../PRIORITY-PLAN.md)。\n\n## 以下为此前EARLY-Y讨论记录\n\n以下旧文中的“待验证”由上方限定native负结果更新；它仍用于保存源码依赖分析，不自动恢复独立审查或实验。\n\n## 本轮逻辑说明\n\n这次讨论的是 F01 族内的 **EARLY-Y** 子方案。F01 族还登记了其他复合/列优先级等变体，本轮没有据此关闭整个候选族。\n\n### 输入和结果\n\n|对象|含义|消费者|\n|---|---|---|\n|X|当前 token 的4路原始数据|Y 生成、新系数生产、当前 HcPost 的 residual|\n|已有 pre_mix|进入当前 HcPre 前已有的混合配比|当前 Y；首层由模型初始化，后续由前面的 mHC 阶段传递|\n|Y|4路按已有配比相乘相加后的1路数据|当前输入归一化与后续 Attention 路径|\n|新 post、comb|当前输入算出的合并配比|当前 Attention 结果与原 residual 的 HcPost 合并|\n|新 pre|当前输入算出的下一阶段混合配比|后续 FFN 的 HcPre；不是有外部 pre_mix 分支中当前 Y 的必需输入|\n\n`ProcessY` 的源码动作是：将 X 扩展到 FP32，按指定配比逐项相乘，沿4路求和，再按原方式转回输出类型。它用的是进入算子前的配比时，不需要当前系数投影、统计、Sigmoid 或 Sinkhorn 的结果。\n\n源码关键选择为：\n\n```cpp\nProcessY(...,\n    tilingData->hasPreMix != 0 ? preMixLocal : mixes01ReduceLocal,\n    ...);\n```\n\n没有外部 pre_mix 时会改用新 pre，不能直接套用本轮的独立性结论。\n\n### 当前实现与候选安排\n\n当前归档源码的控制顺序：\n\n```text\n投影和统计 → 阶段间同步 → 新pre → 生成并写出Y → post/comb → HcPre完成\n                                                               ↓\n                                               原有norm/通信/Attention路径\n                                                               ↓\n                                                        当前HcPost\n```\n\n这里是每个处理块的主要顺序；多个硬件单元仍有原有分工和流水，不能理解为整卡所有工作完全串行。Y 已经写入输出位置不等于下游获得了可单独使用的就绪通知。\n\n候选按计算依赖可画成：\n\n```mermaid\nflowchart LR\n  X[当前4路数据 X] --> Y[用已有pre_mix生成Y]\n  P[已有pre_mix] --> Y\n  Y --> A[原有norm和通信及Attention路径]\n  X --> C[当前新系数生产]\n  A --> H[当前HcPost合并]\n  X --> H\n  C -->|post和comb| H\n  C -->|pre| F[后续FFN的HcPre]\n  H --> F\n```\n\n这只是允许研究的依赖图。它没有指定一个已可运行的并行实现；还要定义新算子/接口、事件交接、输入存活、数值等价及真实调度资源。两条队列不保证两项任务可同时驻留，当前混合算子中的空闲计算部件也不自动对另一任务可用。\n\n### 已有 profile 能说明什么\n\n旧166的已绑定目标图中，有2560组 Attention HcPre→RmsNorm 对。HcPre 中位35.401µs，随后间隔中位0.980µs，RmsNorm 中位3.960µs；已登记的这类边都在同一流。数据来自旧166，不能当作171新运行耗时。\n\n171的归档有 FULL 图回放及 aclmdlRIExecuteAsync 对应记录。这支持“该记录中有事先安排的图任务”，不证明每个当前 native HcPre 与旧源码逐指令一致，也不提供166计时到171的迁移依据。\n\n这些证据没有给出内部 Y 的最早可用时间，没有证明整段请求关键路径或可节省35µs。HcPre 结束至 HcPost 开始的 Attention 路径跨度也不是免费的可隐藏时间。\n\n### 本轮纠正\n\n1. 不能把 EARLY-Y 称为新增计算融合；它是已有融合边界的拆分/交付和调度重组候选。\n2. 当前 Y 在 post/comb 前就生成并写出；不能说“全部新配比算完后才生成 Y”。\n3. 有外部 pre_mix 时，当前 Y 不依赖本次新配比；并非所有 HcPre 分支都独立。\n4. 不能由源码独立性、两条队列或卡上部分单元空闲，直接判定并行可运行/可加速。\n5. CPU 可异步提交，但修改 CPU 提交时机本身不能解除设备图中的整算子完成依赖。已有证据不证明 CPU 在整个请求中从不构成瓶颈。\n6. “Y＋归一化融合”与 F02 接口机会重叠，是另一项可组合但需单独验证的变体；本轮不把它用来证明 EARLY-Y 本身属于融合。\n\n### 本轮结论\n\n**已支持：归档有外部 pre_mix 的源码分支中，Y 不依赖本次新系数。未建立：当前二进制的改动资格、新接口可实现性、实际资源重叠、运行正确性和性能收益。**\n\n记录源码性质不等于接受性能方案；整个 F01 仍为 CONDITIONAL。\n",
+      "correctness_code": "ERROR",
       "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "REQUESTED_NOT_STARTED"
+      "performance_summary": "行平方和完整核及推理收益UNKNOWN；旧EARLY-Y负结果单列",
+      "independent_review_code": "REQUESTED_NOT_STARTED",
+      "current_priority": {
+        "group": "CURRENT",
+        "current_action_order": 3,
+        "retained_work_ids": [
+          "HC_ROW_NORM"
+        ],
+        "reason": "保留行平方和新机制；当前实现ERROR。旧重复collapse双流变体已测更慢，停止。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F01-01",
+          "title": "完成请求中的独立复核",
+          "description": "在允许启动代理的主对话中，按用户要求使用 GPT-6.1、xhigh，只读检查本页依赖、源码顺序、profile 能力和分类；本侧聊不代为启动。",
+          "decision_rule": "实际收到可追溯产物后才更新独立复核状态；审查通过仍不代表实现/性能通过。"
+        },
+        {
+          "id": "F01-02",
+          "title": "从已有171 profile 固定当前同批次基线",
+          "description": "只查选定同一 case 中 HcPre→norm→Attention路径→HcPost 及图/队列依赖。当前本地可复核的细时序为旧166，171归档可确认FULL回放；不得把166的微秒数迁移到171。",
+          "decision_rule": "先复用已有数据；不为源码已回答的问题重新采集。记录当前171同一调用边界，不能仅由间隔推断端到端关键路径。"
+        },
+        {
+          "id": "F01-03",
+          "title": "若值得实施，再冻结顺序/并行对照",
+          "description": "未来分别比较A原版、B拆分顺序执行、C拆分尝试重叠。相同输入/权重/精度与执行方式，核对Y、所有新系数和最终HcPost；计时一直到所需结果合并完成。属于未来计划，本次未执行。",
+          "decision_rule": "C稳定优于A才有收益证据；C仅优于B说明重叠可能抵消部分拆分成本；无收益只记录该实现/条件下未观察到改善，不宣称所有拆分均不可行。"
+        }
+      ],
+      "implementation_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_scope": "NATIVE_ATTEMPT_ERROR"
     },
     {
       "id": "F02",
@@ -187,16 +213,23 @@
         "date": "2026-11-03",
         "statement": "将原来紧随HcPre的归一化接入HcPre底层实现；保留原系数输出和Y的精度边界。",
         "meaning": "确认讨论对象和表述，不是实现/正确性/性能验收。"
+      },
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "目标路径已先SP；已有ReduceScatter/NormCast能力不重复计收益，其他条件分支后置。",
+        "whole_family_closed": false
       }
     },
     {
       "id": "F03",
       "name": "attention 或 FFN mHC post → 下一次 mHC pre，跨边界重组",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "生产者/消费者融合或交接重组（本轮仅Attention Post→FFN Pre）",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "SOURCE_LOGIC_CLARIFIED_PARTIAL",
-      "review_status": "层内Post→Pre交接已澄清；新实现/数值/收益待验证",
+      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
+      "review_status": "Post+Y保留长行重读消除价值；U仍有读者，不能删U。",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -208,22 +241,10 @@
       "conditions": "保持Post原乘法/加法次序及BF16 R，再按原配比生成下一Y并保留其舍入。R还供下一系数生产和未来FFN Post残差使用。真实tile布局、容量、就绪/存活协议及数值需验证；跨层Engram/aux读者不纳入本轮快捷路径，F02的norm收益不重复计算。",
       "next_steps": [
         {
-          "id": "F03-01",
-          "title": "界定一个可实现的Post→下一Y接口",
-          "description": "复用已证实的消费者和中间舍入，只检查所选tile如何从Post传给下一Y生成、需要哪些新接口。现有HcPre若仍照常重读/重算Y就没有这项节省，不能只改Python包装。",
-          "decision_rule": "没有合法交接/消费端改造依据就保留有条件，不声称原API直接支持。"
-        },
-        {
-          "id": "F03-02",
-          "title": "只对剩余读者保留必要发布并核对数值",
-          "description": "保留R写出、下一系数输入及后续FFN Post读R，按选定实现核对全部输出和BF16边界。新存活方案才重开相关alias/捕获/进展问题。",
-          "decision_rule": "不能把一个省掉的R读取再算成R写入也省了；跨层Engram/aux路径单独审查。"
-        },
-        {
-          "id": "F03-03",
-          "title": "候选通过约束后再做完整范围对照",
-          "description": "未来用同输入、权重、配比与精度对比原Post→Pre和选定改造，计入保留的写读、启动、额外暂存/重算；本次没有实施或计时。",
-          "decision_rule": "正确性和有效同条件收益均有证据才接受；与F01/F02共用接口只计一次，不由逻辑字节数换算提速。"
+          "id": "F03_POST_Y",
+          "title": "Post同时输出U和下一次Y",
+          "description": "用已舍入BF16的U tile生成Y；下次Pre仅做系数，仍写U给残差读者。 先验普通同层完整U/Y/系数；Engram和aux边界单列；长行完整段有净推进再继续。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -266,6 +287,11 @@
           "label": "早期重组变体与已排除无条件预折叠",
           "path": "../records/history/continuation/profile-first-20261031/HC-fusion-split-reorganization-variants-v59.json",
           "scope": "POST-COLLAPSE-NORM与ALGEBRAIC-PREFOLD条件；本轮只审查前者的Post→Y交接部分。"
+        },
+        {
+          "label": "当前优先级与适用条件",
+          "path": "../PRIORITY-PLAN.md",
+          "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
         }
       ],
       "correctness_code": "NOT_RUN",
@@ -277,7 +303,36 @@
         "date": "2026-11-03",
         "response": "ok 了解了下一个",
         "meaning": "对上一条解释表示了解并转F04；不是实现或收益验收。"
-      }
+      },
+      "current_priority": {
+        "group": "LONG_OR_CAPACITY",
+        "current_action_order": null,
+        "retained_work_ids": [
+          "F03_POST_Y"
+        ],
+        "reason": "Post+Y保留长行重读消除价值；U仍有读者，不能删U。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F03-01",
+          "title": "界定一个可实现的Post→下一Y接口",
+          "description": "复用已证实的消费者和中间舍入，只检查所选tile如何从Post传给下一Y生成、需要哪些新接口。现有HcPre若仍照常重读/重算Y就没有这项节省，不能只改Python包装。",
+          "decision_rule": "没有合法交接/消费端改造依据就保留有条件，不声称原API直接支持。"
+        },
+        {
+          "id": "F03-02",
+          "title": "只对剩余读者保留必要发布并核对数值",
+          "description": "保留R写出、下一系数输入及后续FFN Post读R，按选定实现核对全部输出和BF16边界。新存活方案才重开相关alias/捕获/进展问题。",
+          "decision_rule": "不能把一个省掉的R读取再算成R写入也省了；跨层Engram/aux路径单独审查。"
+        },
+        {
+          "id": "F03-03",
+          "title": "候选通过约束后再做完整范围对照",
+          "description": "未来用同输入、权重、配比与精度对比原Post→Pre和选定改造，计入保留的写读、启动、额外暂存/重算；本次没有实施或计时。",
+          "decision_rule": "正确性和有效同条件收益均有证据才接受；与F01/F02共用接口只计一次，不由逻辑字节数换算提速。"
+        }
+      ]
     },
     {
       "id": "F04",
@@ -427,6 +482,13 @@
         "date": "2026-11-03",
         "response": "ok 我了解了。下一个 把问题逻辑记得记录好",
         "meaning": "用户表示了解量级筛选并转F05；试验意向保留，未实际实施或验收。"
+      },
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "已有RmsNormCast；需要新的实际暴露或接口机制才重开。",
+        "whole_family_closed": false
       }
     },
     {
@@ -634,7 +696,14 @@
             "evidence/F05-indexer-attention-join-20261103.json"
           ]
         }
-      ]
+      ],
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "与F09共享同一qr量化包去重预算；新NormQuant窄版不独立开发。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F06",
@@ -732,6 +801,13 @@
         "direct_dense_concat": "NOT_RECOMMENDED",
         "reason": "缺少相对已有复用/流水的边际收益证据",
         "not_measured_performance_rejection": true
+      },
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "朴素拼接会多算QA；合法联合仍须保QA重叠，去重算术归F32。",
+        "whole_family_closed": false
       }
     },
     {
@@ -801,7 +877,14 @@
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
-      "details_markdown": "\n## 第七条：Q投影＋RoPE位置旋转\n\n本轮只看 **Q_B→部分RoPE**，不包含Q_A、归一化、KV旋转或整个Attention。\n\n### 两个操作叫什么、各做什么\n\n|操作|当前接口|底层作用|\n|---|---|---|\n|Q_B投影|`attn.wq_b`，CV路径为`wq_b.matmul`|矩阵乘法生成主Q，按原规则输出BF16|\n|部分RoPE|`torch.ops._C_ascend.inplace_partial_rotary_mul`|按位置和维度对的角度，旋转每个head的指定尾部|\n\n归档case每head512维，只旋转末尾64维，前448维保持原值。Q_B输出宽32768对应64个head；不按TP8擅自再除8。\n\nRoPE把两个数看成一对，做二维旋转：u'=u cosθ-v sinθ，v'=u sinθ+v cosθ。比如仅为说明取90度，[2,3]变为[-3,2]；实际每个位置/维度对有其角度，不是统一转90度。cos/sin表按原模型提供。它让Q与K的配合包含位置信息。\n\n### 现在怎么接，候选怎么接\n\n```text\n原来：\nQ_B矩阵计算 → 按原规则舍入BF16 → 写完整Q到显存\n                                      ↓\n                   RoPE读末尾64维 → 旋转 → 原位写回\n                                      ↓\n                                  Attention\n\n候选：\n[Q_B矩阵计算 → 原BF16舍入 → 在片上旋转末尾64维]\n                                      ↓\n                               写出最终完整Q\n                                      ↓\n                                  Attention\n```\n\n必要的矩阵乘法和旋转计算都保留；希望省的是未旋转tail的中间写出/再读取，以及独立RoPE的交接。原部分RoPE内部的配对交换、乘加、cast已经在现有kernel中，不能再计一次首次融合这些基础操作的收益。\n\n### 能省多少，不能误算什么\n\nM3、64head、tail64、BF16时，tail为24,576B（24KiB）；若所有相关原读者/输出协议允许，可研究省一写一读共49,152B（48KiB）逻辑接口量。前448维仍要输出，旋转后的tail也仍要输出。\n\n原RoPE是原位处理，原来没有必然额外分配一整份Q结果。因此这主要是流量/交接候选，不声称峰值显存减少48KiB，更不能把完整Q的192KiB当可删输出。逻辑字节数不是实测HBM节省。\n\n### 精度和实现关口\n\n必须保留“Q_B先BF16舍入→转FP32按原cos/sin旋转→CAST_RINT BF16”的数值边界；用未舍入的矩阵累加值直接旋转可能改变结果。还要保持interleave配对、head/位置映射、输出布局、所有读者和cos/sin表生命周期。\n\n矩阵输出tile须能得到成对值；现有GEMM后端能否低成本扩展收尾尚未证明。CV路径中Q_B矩阵计算原本与KV归一化/RoPE交错，新增Q旋转使用的资源和就绪时刻须一起比较，不能只看独立任务消失。\n\n### 旧profile量级和当前判断\n\n旧166的2560条root-bound图链中，独立Q旋转任务中位4.04微秒、p90为4.48微秒。它包含整个原部分RoPE任务，不是可全省的排序/CPU启动时间，更不是171新测量或请求提速。\n\n**这是有生产者/消费者接合依据的小范围候选，可先检查低成本收尾接口；目前不推荐为它盲目重写整个矩阵核。** 新实现需同时证明精度、完整链耗时、矩阵核无退化及图内存/KV容量代价。没有新kernel、native正确性或收益结果，F07其他条件路径不关闭。\n"
+      "details_markdown": "\n## 第七条：Q投影＋RoPE位置旋转\n\n本轮只看 **Q_B→部分RoPE**，不包含Q_A、归一化、KV旋转或整个Attention。\n\n### 两个操作叫什么、各做什么\n\n|操作|当前接口|底层作用|\n|---|---|---|\n|Q_B投影|`attn.wq_b`，CV路径为`wq_b.matmul`|矩阵乘法生成主Q，按原规则输出BF16|\n|部分RoPE|`torch.ops._C_ascend.inplace_partial_rotary_mul`|按位置和维度对的角度，旋转每个head的指定尾部|\n\n归档case每head512维，只旋转末尾64维，前448维保持原值。Q_B输出宽32768对应64个head；不按TP8擅自再除8。\n\nRoPE把两个数看成一对，做二维旋转：u'=u cosθ-v sinθ，v'=u sinθ+v cosθ。比如仅为说明取90度，[2,3]变为[-3,2]；实际每个位置/维度对有其角度，不是统一转90度。cos/sin表按原模型提供。它让Q与K的配合包含位置信息。\n\n### 现在怎么接，候选怎么接\n\n```text\n原来：\nQ_B矩阵计算 → 按原规则舍入BF16 → 写完整Q到显存\n                                      ↓\n                   RoPE读末尾64维 → 旋转 → 原位写回\n                                      ↓\n                                  Attention\n\n候选：\n[Q_B矩阵计算 → 原BF16舍入 → 在片上旋转末尾64维]\n                                      ↓\n                               写出最终完整Q\n                                      ↓\n                                  Attention\n```\n\n必要的矩阵乘法和旋转计算都保留；希望省的是未旋转tail的中间写出/再读取，以及独立RoPE的交接。原部分RoPE内部的配对交换、乘加、cast已经在现有kernel中，不能再计一次首次融合这些基础操作的收益。\n\n### 能省多少，不能误算什么\n\nM3、64head、tail64、BF16时，tail为24,576B（24KiB）；若所有相关原读者/输出协议允许，可研究省一写一读共49,152B（48KiB）逻辑接口量。前448维仍要输出，旋转后的tail也仍要输出。\n\n原RoPE是原位处理，原来没有必然额外分配一整份Q结果。因此这主要是流量/交接候选，不声称峰值显存减少48KiB，更不能把完整Q的192KiB当可删输出。逻辑字节数不是实测HBM节省。\n\n### 精度和实现关口\n\n必须保留“Q_B先BF16舍入→转FP32按原cos/sin旋转→CAST_RINT BF16”的数值边界；用未舍入的矩阵累加值直接旋转可能改变结果。还要保持interleave配对、head/位置映射、输出布局、所有读者和cos/sin表生命周期。\n\n矩阵输出tile须能得到成对值；现有GEMM后端能否低成本扩展收尾尚未证明。CV路径中Q_B矩阵计算原本与KV归一化/RoPE交错，新增Q旋转使用的资源和就绪时刻须一起比较，不能只看独立任务消失。\n\n### 旧profile量级和当前判断\n\n旧166的2560条root-bound图链中，独立Q旋转任务中位4.04微秒、p90为4.48微秒。它包含整个原部分RoPE任务，不是可全省的排序/CPU启动时间，更不是171新测量或请求提速。\n\n**这是有生产者/消费者接合依据的小范围候选，可先检查低成本收尾接口；目前不推荐为它盲目重写整个矩阵核。** 新实现需同时证明精度、完整链耗时、矩阵核无退化及图内存/KV容量代价。没有新kernel、native正确性或收益结果，F07其他条件路径不关闭。\n",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "RoPE epilogue可行，但需扣原有/可提前的重叠，当前不独立开发。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F08",
@@ -897,7 +980,14 @@
           "evidence": "evidence/F08-rope-targets-review-20261104.json",
           "kind": "SOURCE_TARGET_AND_SHARED_KV_SEMANTICS_CLARIFICATION"
         }
-      ]
+      ],
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "窄版省55296B和2启动/调用；干净窗口汇合模型0.463ms/target非请求收益。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F09",
@@ -981,7 +1071,14 @@
           "evidence": "evidence/F09-rope-quant-worked-example-20261104.json",
           "kind": "EXPLANATORY_NUMERICAL_EXAMPLE_NOT_NATIVE_PROOF"
         }
-      ]
+      ],
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "query旋转/量化边界保留，与F05共用输入量化去重，不重复计。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F10",
@@ -1034,7 +1131,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "M3仅96输出；最多约1920B接口和3后处理任务，不单独开发。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F11",
@@ -1087,37 +1191,38 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "key量化规则不能替换；paired-store小变体不独立开发，完整producer条件保留。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F12",
       "name": "Indexer TopK → 索引修整 → 共享索引发布；候选块号排序跨层复用或位图 mask",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "索引发布融合、表示重组与条件复用",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
-      "measured_speedup": false,
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "含保护独立bank原生局部净值已引入；真实模型传播UNKNOWN",
+      "implemented": true,
+      "correctness_status": "限定原生合成图及逐行保护用例通过；不是模型/TP8全域证明",
+      "measured_speedup": true,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史语义链：QLI/TopK → 修整/过滤/排序/填充/长度 → 稳定 bank；候选块列表是另一状态。",
-      "baseline_flow": "历史登记的原流程：QLI output → index fixup → stable buffer copy / padding。本页登记不等于对当前运行二进制完成重新绑定。",
-      "proposal": "TopK修整/过滤/padding/长度直接发布；候选membership研究位图表示。",
-      "mechanism": "将最终修整与发布接合，或让多个 membership 消费者复用排序/位图；这些是不同子方案。",
-      "conditions": "位置TopK512与候选块2048是不同状态，保留所有读者与代际。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
+      "baseline_flow": "L20发布原候选列表；L24/28/32/36各重复成员处理，再做自己的QK/scoring/TopK/prepare。",
+      "proposal": "保留原列表，源端一次编码并发布独立成员packet供四个消费者读取。",
+      "mechanism": "删除跨层重复成员算术；增加编码、保护、发布和稳定bank，不宣称减少HBM。",
+      "conditions": "原候选列表、原QK/FIX/TopK/tie/prepare及所有读者保留。不同代packet首写须晚于四消费者末读。已有局部净值不是TP8或真实请求收益；后续以CP+Slot为基线。",
       "next_steps": [
         {
-          "id": "F12-01",
-          "title": "先选定 TopK 发布或 membership 表示子方案",
-          "description": "查 K05/K06；位置 TopK512 与候选块2048分开，保留排序/tie/sentinel、读者和代际；不把缺边当独立。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "F12-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "F12_MEMBERSHIP",
+          "title": "四个Indexer消费者共享候选成员表示",
+          "description": "L20编码并发布独立packet，L24/28/32/36复用；原列表及各层QK/TopK/prepare保留。 若进入第二批，只验证完整净值经最慢rank、主线程等待、下一target提交到请求的传播；以CP+Slot为基线。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -1135,12 +1240,50 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F12.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "2026-11-06已存在的限定证据与来源SHA",
+          "path": "evidence/priority-value-evidence-20261106.json",
+          "scope": "引入已有实验，不是本次新增NPU执行；具体变体、局部/推理和失败分别记录。"
         }
       ],
-      "correctness_code": "NOT_RUN",
-      "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "correctness_code": "PASS",
+      "performance_status": "MEASURED_GAIN",
+      "performance_summary": "含保护完整局部图净省约1.211/0.821ms；生产收益UNKNOWN",
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "CURRENT",
+        "current_action_order": 2,
+        "retained_work_ids": [
+          "F12_MEMBERSHIP"
+        ],
+        "reason": "完整含保护局部图有净值；生产跨rank/跨步传播未知，条件前列。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F12-01",
+          "title": "先选定 TopK 发布或 membership 表示子方案",
+          "description": "查 K05/K06；位置 TopK512 与候选块2048分开，保留排序/tie/sentinel、读者和代际；不把缺边当独立。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F12-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ],
+      "implementation_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_scope": "NATIVE_LOCAL",
+      "correctness_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ]
     },
     {
       "id": "F13",
@@ -1193,7 +1336,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "保留核内softmax状态续算可能；已有两段结果合并反例不泛化到全族。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F14",
@@ -1246,7 +1396,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "逆旋转+pack原型退出；OB直写等容量变体留档，不在当前11项内。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F15",
@@ -1299,7 +1456,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "当前全满T24无直接裁padding收益；其他形状有条件保留。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F16",
@@ -1307,8 +1471,8 @@
       "updated_at": "2026-11-06",
       "kind": "两级投影与 reduce-scatter 流水重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "用户认可长prefill OA前移至交换前，保留待验证；未新增实现或性能证据",
+      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
+      "review_status": "OA前移换窄通信保留长行条件；增加权重供给与常驻容量。",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -1320,16 +1484,10 @@
       "conditions": "保留两次GEMM和中间/每rankBF16舍入及归约次序。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
         {
-          "id": "F16-01",
-          "title": "复用长prefill OA前移的行序、权重与BF16合同",
-          "description": "复用已有171源/目的组与内存模型，固定OA之后BF16、原OB和ReduceScatter；保留padding、全部参与者与输出读者。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "F16-02",
-          "title": "若执行，冻结长prefill OA前移的完整段对照",
-          "description": "先验真实OA/OB数值，再比较原宽交换与新窄交换的完整端点，计新增权重读取、布局及峰值/KV容量。当前仅记录候选。",
-          "decision_rule": "正确性及通信/读者合同满足且新增成本后最晚输出有净推进才继续；不得以1.20%条件模型宣称实测收益。"
+          "id": "F16_OA_BEFORE_A2A",
+          "title": "OA前移后交换窄结果",
+          "description": "源rank先做OA，交换4096维改1024维；保留OA/OB BF16边界和ReduceScatter。 核真实TP8数值及完整段；计新增权重读取、约2.19GiB/卡常驻权重和KV容量代价。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -1352,13 +1510,41 @@
           "label": "F16长prefill OA前移的用户保留决定",
           "path": "evidence/F16-oa-before-exchange-user-decision-20261106.json",
           "scope": "2026-11-06用户要求先记录；固定已有方案和来源SHA，非新实现、原生验收或性能结果。"
+        },
+        {
+          "label": "当前优先级与适用条件",
+          "path": "../PRIORITY-PLAN.md",
+          "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
       "independent_review_code": "NOT_REQUESTED",
-      "details_markdown": "## 本轮记录：长prefill先做OA，再交换较窄结果\n\n用户在2026-11-06表示“这个好像可以试试 先记录吧”。本轮将 **F16-OA-BEFORE-A2A** 保留为值得尝试的条件候选；仅登记用户选择和已有方案，不启动实施或提升正确性、性能及独立复核状态。其他F16分块接力方案保留原合同。\n\n```text\n原来：逆RoPE/pack → 交换4096维分组数据 → OA压到1024维 → OB → ReduceScatter\n候选：源rank先按目的组做OA → 交换1024维结果 → 原OB → 原ReduceScatter\n```\n\nOA与OB的必要MAC不减少，OA之后的BF16舍入、原OB及ReduceScatter、TP行序、padding和所有参与者保留。每rank每层发送面的逻辑载荷可变为原来的四分之一；原pack只在OA直接产出发送布局时领取一次节省，与F14/F15去重。\n\n代价是每个源rank需覆盖全部八份OA权重：每层逻辑覆盖8→64 MiB，额外读取56 MiB。40层常驻、原分片引用完整bank对应部分时，每rank新增2.1875 GiB；另保留原分片时新增2.50 GiB。实际峰值、构造临时面和KV容量仍待验证。\n\n复用171 v168五次长行调用的旧模型：若窄交换尾部耗时为原来的25%，保持旧OA时长与参考间隙、尚未扣除新增成本，直接TTFT敏感度中位约1.20%（0.51%–1.44%）。**这是条件估算，非实测提速；载荷减少四倍不保证耗时减少四倍。** M3 decode保持后置。\n\n未来若执行，先比较真实BF16 OA中间值与原OB输出；通过后再对照同组完整pack→OB/ReduceScatter端点，计入权重供给、形状变化、布局、发布与内存/KV代价。合同不满足或新增成本抵消最终推进时，停止该变体。来源提交、文件SHA及登记边界见[本次用户决定](evidence/F16-oa-before-exchange-user-decision-20261106.json)。"
+      "details_markdown": "## 本轮记录：长prefill先做OA，再交换较窄结果\n\n用户在2026-11-06表示“这个好像可以试试 先记录吧”。本轮将 **F16-OA-BEFORE-A2A** 保留为值得尝试的条件候选；仅登记用户选择和已有方案，不启动实施或提升正确性、性能及独立复核状态。其他F16分块接力方案保留原合同。\n\n```text\n原来：逆RoPE/pack → 交换4096维分组数据 → OA压到1024维 → OB → ReduceScatter\n候选：源rank先按目的组做OA → 交换1024维结果 → 原OB → 原ReduceScatter\n```\n\nOA与OB的必要MAC不减少，OA之后的BF16舍入、原OB及ReduceScatter、TP行序、padding和所有参与者保留。每rank每层发送面的逻辑载荷可变为原来的四分之一；原pack只在OA直接产出发送布局时领取一次节省，与F14/F15去重。\n\n代价是每个源rank需覆盖全部八份OA权重：每层逻辑覆盖8→64 MiB，额外读取56 MiB。40层常驻、原分片引用完整bank对应部分时，每rank新增2.1875 GiB；另保留原分片时新增2.50 GiB。实际峰值、构造临时面和KV容量仍待验证。\n\n来源纠正（2026-11-06）：v168注入设备观测器和额外读者。此前1.20%仅保留历史诊断敏感度身份，撤销其生产收益预测或上限资格；不能据此为当前方案定价。载荷1/4和额外权重账本独立保留；真实长行净值UNKNOWN，M3 decode后置。\n\n未来若执行，先比较真实BF16 OA中间值与原OB输出；通过后再对照同组完整pack→OB/ReduceScatter端点，计入权重供给、形状变化、布局、发布与内存/KV代价。合同不满足或新增成本抵消最终推进时，停止该变体。来源提交、文件SHA及登记边界见[本次用户决定](evidence/F16-oa-before-exchange-user-decision-20261106.json)。",
+      "current_priority": {
+        "group": "LONG_OR_CAPACITY",
+        "current_action_order": null,
+        "retained_work_ids": [
+          "F16_OA_BEFORE_A2A"
+        ],
+        "reason": "OA前移换窄通信保留长行条件；增加权重供给与常驻容量。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F16-01",
+          "title": "复用长prefill OA前移的行序、权重与BF16合同",
+          "description": "复用已有171源/目的组与内存模型，固定OA之后BF16、原OB和ReduceScatter；保留padding、全部参与者与输出读者。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F16-02",
+          "title": "若执行，冻结长prefill OA前移的完整段对照",
+          "description": "先验真实OA/OB数值，再比较原宽交换与新窄交换的完整端点，计新增权重读取、布局及峰值/KV容量。当前仅记录候选。",
+          "decision_rule": "正确性及通信/读者合同满足且新增成本后最晚输出有净推进才继续；不得以1.20%条件模型宣称实测收益。"
+        }
+      ]
     },
     {
       "id": "F17",
@@ -1411,7 +1597,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "两路FP32投影的必要MAC/权重不减；朴素输出stride不兼容。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F18",
@@ -1464,7 +1657,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "池化+RMS可融合且需BF16边界；历史维护和其他已融合分支保留。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F19",
@@ -1517,7 +1717,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "latent分叉需保旋转前WK输入及ring行，与F11/F18/F34去重。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F20",
@@ -1619,18 +1826,25 @@
           "evidence": "evidence/F20-conditional-fusion-review-20261103.json",
           "kind": "USER_PROPOSED_CONDITIONAL_FUSION_NOT_IMPLEMENTATION"
         }
-      ]
+      ],
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "TopK已有融合不等于算法封闭；固定ID表捷径当前不命中，需具体大净值机制。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F21",
       "name": "MoE 内 dispatch、两次分组矩阵计算、激活、combine 的分块流水",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "已有 MoE 融合内部流水",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "g12流水变体已有C8结果：未建立加速，停止该变体",
+      "implemented": true,
+      "correctness_status": "11批响应/负载和16worker来源限定检查通过；非全tensor/全竞态证明",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史路径已有 dispatch/GMM1/激活量化/GMM2/combine 的融合；profile 有 DispatchFFNCombine。",
@@ -1640,16 +1854,10 @@
       "conditions": "保留接收量/credit/flag/clip协议；sender0不等于receiver0。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
         {
-          "id": "F21-01",
-          "title": "复用已有融合事实并选择一个竞争机制",
-          "description": "查 K01/K10/K14；小接收 tile、负载不均与 peer 协议分开；当前 sender=0 不意味着 receiver 无工作。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "F21-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "F21-G12-STOP",
+          "title": "保留g12负结果，停止同一变体",
+          "description": "不扫描g、不重复同一C8；新的更大机制另立合同。",
+          "decision_rule": "只在出现不同的实际可删工作和新净值依据时重开。"
         }
       ],
       "evidence": [
@@ -1667,12 +1875,48 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F21.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "2026-11-06已存在的限定证据与来源SHA",
+          "path": "evidence/priority-value-evidence-20261106.json",
+          "scope": "引入已有实验，不是本次新增NPU执行；具体变体、局部/推理和失败分别记录。"
         }
       ],
-      "correctness_code": "NOT_RUN",
-      "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "correctness_code": "PASS",
+      "performance_status": "MEASURED_NO_GAIN",
+      "performance_summary": "候选16.121s，前后15.944/16.143s，样本重叠，未建立服务收益",
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "g12实际C8未建立加速，停止该变体；空专家权重跳过为已有能力。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F21-01",
+          "title": "复用已有融合事实并选择一个竞争机制",
+          "description": "查 K01/K10/K14；小接收 tile、负载不均与 peer 协议分开；当前 sender=0 不意味着 receiver 无工作。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F21-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ],
+      "implementation_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_scope": "FROZEN_C8_NO_GAIN",
+      "correctness_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ]
     },
     {
       "id": "F22",
@@ -1725,18 +1969,25 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "必要GEMM/权重保留；FusedMC2会关闭现有overlap，资源排程净值未知。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F23",
       "name": "共享 expert 与 routed expert 汇合 → scaling/add，可延伸至 HC",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "expert 汇合与 HCPost 接合",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "M3汇合进HC局部更快但C8无已建立收益，停止该实现",
+      "implemented": true,
+      "correctness_status": "原生局部和实际worker值/捕获限定通过；非全模型逐位证明",
       "measured_speedup": false,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史语义链：shared down 输出 + routed 输出 → scaling/add → HCPost。",
@@ -1746,16 +1997,10 @@
       "conditions": "保留两路舍入、残差/系数及真实join依赖。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
         {
-          "id": "F23-01",
-          "title": "复用两路舍入和真实 join 条件",
-          "description": "保留 down BF16、merge BF16 后的 HC 运算；同一 Add 或中间接口不能与 F22/F03 重复算收益。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "F23-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "F23-M3-STOP",
+          "title": "停止已测M3汇合入口",
+          "description": "保留局部正结果与整批不定/无已建立收益，不重复试验。",
+          "decision_rule": "新形状或不同机制能改变净值判断才重开。"
         }
       ],
       "evidence": [
@@ -1773,12 +2018,48 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F23.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "2026-11-06已存在的限定证据与来源SHA",
+          "path": "evidence/priority-value-evidence-20261106.json",
+          "scope": "引入已有实验，不是本次新增NPU执行；具体变体、局部/推理和失败分别记录。"
         }
       ],
-      "correctness_code": "NOT_RUN",
-      "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "correctness_code": "PASS",
+      "performance_status": "MEASURED_NO_GAIN",
+      "performance_summary": "局部22.342→4.717us；C8候选15.968s未赢前后15.920/15.938s",
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "局部22.342→4.717us但C8未建立加速；停止已测M3入口。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F23-01",
+          "title": "复用两路舍入和真实 join 条件",
+          "description": "保留 down BF16、merge BF16 后的 HC 运算；同一 Add 或中间接口不能与 F22/F03 重复算收益。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F23-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ],
+      "implementation_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_scope": "FROZEN_C8_NO_GAIN",
+      "correctness_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ]
     },
     {
       "id": "F24",
@@ -1831,7 +2112,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "已测换流无推理收益；owner交付/容量条件留档，不在当前11项内。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F25",
@@ -1884,16 +2172,23 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "有有限gate局部证据；WKV分片容量条件留档，mask-false捷径有NaN反例。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F26",
       "name": "最终 HC collapse → norm 及 logits 边界",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "terminal collapse/norm/head 边界接合",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
+      "review_status": "无raw读者时owner collapse和单H gather，保留长行/容量条件。",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -1905,16 +2200,10 @@
       "conditions": "rawHC、DSpark、logprobs等读者和舍入都保留。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
         {
-          "id": "F26-01",
-          "title": "从全部读者反推真正必需行",
-          "description": "查 K12；保留 raw HC、DSpark/logprob 等读者；原已有 head 行选择不能重新计作优化。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "F26-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "F26_OWNER_COLLAPSE",
+          "title": "owner collapse后单H gather",
+          "description": "无raw读者分支先本卡collapse，再单H gather和原RMS，删raw快照。 证明raw无读者；真实TP8数值、最慢rank完成和容量回收通过才继续，有MTP/raw读者保留原路。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -1932,12 +2221,40 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F26.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "当前优先级与适用条件",
+          "path": "../PRIORITY-PLAN.md",
+          "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "LONG_OR_CAPACITY",
+        "current_action_order": null,
+        "retained_work_ids": [
+          "F26_OWNER_COLLAPSE"
+        ],
+        "reason": "无raw读者时owner collapse和单H gather，保留长行/容量条件。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F26-01",
+          "title": "从全部读者反推真正必需行",
+          "description": "查 K12；保留 raw HC、DSpark/logprob 等读者；原已有 head 行选择不能重新计作优化。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F26-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ]
     },
     {
       "id": "F27",
@@ -1990,7 +2307,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "Post+aux均值保留数值和checkpoint代际；当前不独立开发。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F28",
@@ -2043,16 +2367,23 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "draft可先切行再Tile；CPU用例不等于NPU或推理收益。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F29",
       "name": "DSpark 上下文 KV 投影 → norm/RoPE → 组装与缓存写入；按请求复用 SWA 索引",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "三路 context KV 多输出投影与缓存发布",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
+      "review_status": "仅保留组合后重复位置准备的前端增量；旧KV窗口裁行不成立。",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -2064,16 +2395,10 @@
       "conditions": "三层权重/cache/group/slot独立，共同输入不是共同KV结果。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
         {
-          "id": "F29-01",
-          "title": "复用三套参数/cache 独立事实",
-          "description": "查 K04；不能复用同一个 KV 结果；每路512维 norm、group/slot/位置和持久读者保留。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "F29-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "F29_POSITION_REUSE",
+          "title": "DSpark重复位置准备去重",
+          "description": "删无用层的准备，让需要层共享cos/sin和索引；原投影、旋转、cache读写保留。 只定价CP+Slot后的新增可删工作；没有足够增量则保持后置。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -2091,12 +2416,40 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F29.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "当前优先级与适用条件",
+          "path": "../PRIORITY-PLAN.md",
+          "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "FRONTEND_RESERVE",
+        "current_action_order": null,
+        "retained_work_ids": [
+          "F29_POSITION_REUSE"
+        ],
+        "reason": "仅保留组合后重复位置准备的前端增量；旧KV窗口裁行不成立。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F29-01",
+          "title": "复用三套参数/cache 独立事实",
+          "description": "查 K04；不能复用同一个 KV 结果；每路512维 norm、group/slot/位置和持久读者保留。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F29-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ]
     },
     {
       "id": "F30",
@@ -2149,37 +2502,50 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "全命中特化有限局部省19.841us；混合预分类重组更慢，停止后者。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F31",
       "name": "Attention/DSpark 相关 metadata 构造、共享与发布",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "metadata 多输出生产、共享与发布",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
-      "implemented": false,
-      "correctness_status": "未实施，未验收新实现",
-      "measured_speedup": false,
+      "review_code": "SCOPED_EXISTING_EVIDENCE_IMPORTED",
+      "review_status": "CP+Slot组合限定正确性/推理收益通过；正常入口尚未运行验收",
+      "implemented": true,
+      "correctness_status": "16批文本/负载、16worker读者及64完整bank比较限定通过",
+      "measured_speedup": true,
       "independent_review": "未启动；没有独立审查结果",
       "operator_binding": "历史语义链：坐标/长度/slot/group 等 metadata → 转换/稳定 bank → Indexer/Attention。",
-      "baseline_flow": "历史登记的原流程：Device metadata build → format conversion → indexer/attention consume。本页登记不等于对当前运行二进制完成重新绑定。",
-      "proposal": "共同坐标/长度/slot一次算多输出，直写最终metadata bank。",
-      "mechanism": "对同域共同字段一次生产多输出，直接写最终 bank；按首个消费者安排就绪。",
-      "conditions": "query/cache/group/阶段/空queryplan和就绪代际不能混用。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
+      "baseline_flow": "原CP命中前仍上传suffix和生成长度，命中后丢弃新结果；Slot用多步表达式写坐标bank。",
+      "proposal": "CP命中复用原长度；Slot用已编译writer直接写原bank和返回view，两者作为限定组合。",
+      "mechanism": "删除重复提交、小kernel、suffix上传/事件和坐标中间面；CPU_ONLY计划共享另列后备，收益不相加。",
+      "conditions": "保留首组、query offsets、local/global bank、6个ready键、原读者和冷miss-before-launch原producer；禁止服务内冷编译。正常入口实际dispatch仍待验收。",
       "next_steps": [
         {
-          "id": "F31-01",
-          "title": "按字段目的、query/cache 域及代际判重",
-          "description": "查 K05/K06/K07/K08；同地址或 BOOL shape 不证明同值；保留空 query plan 和范围读写退休。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+          "id": "CP_LENGTH",
+          "title": "CP长度去重",
+          "description": "首组按原路生成；后续命中直接复用原长度，删重复长度链和suffix上传。 核正常入口16worker真实命中、原bank/ready读者、首组和fallback；不重复已成立三臂。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         },
         {
-          "id": "F31-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "SLOT_WRITER",
+          "title": "Slot cache-only writer",
+          "description": "已有编译specialization直接写原coords/flat bank并返回原view。 与CP一起验正常入口dispatch；未准入/冷miss在启动前走原producer，不在服务内冷编译。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
+        },
+        {
+          "id": "F31_CPU_PLAN",
+          "title": "CPU公共几何计划共享",
+          "description": "一次生成可共享计划，各组保留差异字段、bank、qsl地址与必要H2D。 旧CPU替身约0.4ms/26组不是当前净值；14ms空白未归因，不据此新立kernel或服务试验。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -2197,21 +2563,61 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F31.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "2026-11-06已存在的限定证据与来源SHA",
+          "path": "evidence/priority-value-evidence-20261106.json",
+          "scope": "引入已有实验，不是本次新增NPU执行；具体变体、局部/推理和失败分别记录。"
         }
       ],
-      "correctness_code": "NOT_RUN",
-      "performance_status": "NOT_MEASURED",
-      "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "correctness_code": "PASS",
+      "performance_status": "MEASURED_GAIN",
+      "performance_summary": "同轮组合中位14.217s，对前后原版耗时下降11.198%/10.057%；CP增量5.434%",
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "CURRENT",
+        "current_action_order": 1,
+        "retained_work_ids": [
+          "CP_LENGTH",
+          "SLOT_WRITER",
+          "F31_CPU_PLAN"
+        ],
+        "reason": "首选CP+Slot组合，CPU计划共享单列后备；不相加历史单项百分比。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F31-01",
+          "title": "按字段目的、query/cache 域及代际判重",
+          "description": "查 K05/K06/K07/K08；同地址或 BOOL shape 不证明同值；保留空 query plan 和范围读写退休。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F31-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ],
+      "implementation_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_scope": "FROZEN_C8_INFERENCE",
+      "correctness_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ],
+      "performance_evidence": [
+        "evidence/priority-value-evidence-20261106.json"
+      ]
     },
     {
       "id": "F32",
       "name": "SP 输入 gather → Q_a/KV 投影，研究前移投影后按需通信",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "投影前移与通信载荷重组",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
+      "review_status": "删除跨TP重复KV，保留长行条件；真实形状数值尚未闭合。",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -2223,16 +2629,10 @@
       "conditions": "保留行映射/权重归属/数值/原hidden读者，不盲拼不同M。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
         {
-          "id": "F32-01",
-          "title": "确认哪些原 hidden 读者使 gather 仍必要",
-          "description": "比较原始数据和全部必需投影结果的载荷/权重成本；不能把逻辑宽度比直接当网络或端到端提速。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "F32-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "F32_OWNER_KV",
+          "title": "owner KV投影后窄通信",
+          "description": "各卡只算自己的KV行，再gather窄KV；QA按原owner行及提前交付合同执行。 先解决改变GEMM行数后的BF16差异；再测完整投影+通信+就绪；补零不删除计算，不能领取去重收益。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -2250,12 +2650,40 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/F32.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "当前优先级与适用条件",
+          "path": "../PRIORITY-PLAN.md",
+          "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "LONG_OR_CAPACITY",
+        "current_action_order": null,
+        "retained_work_ids": [
+          "F32_OWNER_KV"
+        ],
+        "reason": "删除跨TP重复KV，保留长行条件；真实形状数值尚未闭合。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "F32-01",
+          "title": "确认哪些原 hidden 读者使 gather 仍必要",
+          "description": "比较原始数据和全部必需投影结果的载荷/权重成本；不能把逻辑宽度比直接当网络或端到端提速。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "F32-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ]
     },
     {
       "id": "F33",
@@ -2308,7 +2736,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "两路512维投影权重不同，不能视为重复结果；与F32预算去重。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F34",
@@ -2361,7 +2796,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "当前共享页仅缩逻辑ring不回收物理容量；其他池布局条件留档。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "F35",
@@ -2414,7 +2856,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "BR01/02删死备份与大greedy协议分开；NumPy用例不是NPU正确性。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "H01",
@@ -2467,7 +2916,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "重复等待需保错误/取消/退休语义；当前无大请求收益依据。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "H02",
@@ -2520,7 +2976,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "小copy/常驻模板P3；保图地址/代际，不重复计F31已删工作。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "H03",
@@ -2573,7 +3036,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "prefix hash复用CPU成本未知；0.9前缀率不是哈希耗时占比。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "H04",
@@ -2626,7 +3096,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "tokenization同负载CPU成本/精确复用命中未知，保留前端条件。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "H05",
@@ -2679,7 +3156,14 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "分离sample-ready和资源退休可能有效；直接早完成future不成立。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "H06",
@@ -2732,16 +3216,23 @@
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "DEFERRED_CURRENT_LOAD",
+        "current_action_order": null,
+        "retained_work_ids": [],
+        "reason": "固定6×SP8最小正数公共桶24；零发送rank仍可能接收，不能删通信。",
+        "whole_family_closed": false
+      }
     },
     {
       "id": "H07",
       "name": "原始 token ID 图回放与图外 embedding 的单一生产路径",
-      "updated_at": "2026-11-03",
+      "updated_at": "2026-11-06",
       "kind": "图内外 embedding 单一生产路径",
       "historical_status": "v180 条件式候选族（CONDITIONAL）；原记录保留",
-      "review_code": "HISTORICAL_ANALYSIS_PENDING_CURRENT_REVIEW",
-      "review_status": "沿用历史分析；待本轮逐条复核",
+      "review_code": "CURRENT_VALUE_PLAN_RECORDED",
+      "review_status": "纯文本FULL图外死embedding可删；多模态分支保留，组合后增量未知。",
       "implemented": false,
       "correctness_status": "未实施，未验收新实现",
       "measured_speedup": false,
@@ -2753,16 +3244,10 @@
       "conditions": "绑定真实capture/replay入口，保留prompt/MM/eager和Engram原ID读者；方案互斥。 所有原有数值、状态、消费者和错误语义在未证明等价前保留。",
       "next_steps": [
         {
-          "id": "H07-01",
-          "title": "绑定实际 raw-ID capture/replay 分支和有效读者",
-          "description": "保留 prompt/MM/eager、原始 ID/Engram、clamp、padding 和持久 bank；不删除整个 preprocess。",
-          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
-        },
-        {
-          "id": "H07-02",
-          "title": "在子方案被选定后冻结最小验证",
-          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
-          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+          "id": "H07_TEXT_EMBEDDING",
+          "title": "纯文本FULL图外embedding去重",
+          "description": "保留图内token ID查表，删除已证明没有读者的图外embedding副本。 保留多模态等分支、原ID和图地址；只评价组合后增量。",
+          "decision_rule": "具体数值/读者合同成立且新增成本后存在可获得净值才继续；未知不当零，失败变体不重复。"
         }
       ],
       "evidence": [
@@ -2780,16 +3265,58 @@
           "label": "当前候选图",
           "path": "../records/latest/candidates/H07.json",
           "scope": "语义 footprint / 条件图，不证明整块可融合成一个 kernel。"
+        },
+        {
+          "label": "当前优先级与适用条件",
+          "path": "../PRIORITY-PLAN.md",
+          "scope": "后备方向，尚未取得新生产净值；排版顺序不表示严格收益大小。"
         }
       ],
       "correctness_code": "NOT_RUN",
       "performance_status": "NOT_MEASURED",
       "performance_summary": "未测量，未声称提速",
-      "independent_review_code": "NOT_REQUESTED"
+      "independent_review_code": "NOT_REQUESTED",
+      "current_priority": {
+        "group": "FRONTEND_RESERVE",
+        "current_action_order": null,
+        "retained_work_ids": [
+          "H07_TEXT_EMBEDDING"
+        ],
+        "reason": "纯文本FULL图外死embedding可删；多模态分支保留，组合后增量未知。",
+        "whole_family_closed": false
+      },
+      "historical_next_steps": [
+        {
+          "id": "H07-01",
+          "title": "绑定实际 raw-ID capture/replay 分支和有效读者",
+          "description": "保留 prompt/MM/eager、原始 ID/Engram、clamp、padding 和持久 bank；不删除整个 preprocess。",
+          "decision_rule": "旧证据已回答且相关输入未变则直接复用；只对改变本子方案结论的缺口补证。"
+        },
+        {
+          "id": "H07-02",
+          "title": "在子方案被选定后冻结最小验证",
+          "description": "先写清一个机制假设、固定 case、改动边界、正确性判据和完整计时边界；筛掉重复或已被反例排除的变体。",
+          "decision_rule": "仅在约束允许且剩余价值值得时实施；无有效对照只记有条件/证据不足，不承诺提速。"
+        }
+      ]
     }
   ],
   "current_focus": {
-    "candidate": "F16",
-    "variant": "长prefill OA前移至All-to-All之前（用户认可，记录待验证）"
+    "candidate": "F31",
+    "variant": "CP+Slot已验限定组合；F12与HC行平方和按行动顺序条件保留"
+  },
+  "priority_plan": {
+    "path": "../PRIORITY-PLAN.md",
+    "register": "priority-plan.json",
+    "evidence": "evidence/priority-value-evidence-20261106.json",
+    "counts": {
+      "original_families": 42,
+      "named_retained_work_items": 11,
+      "unique_retained_families": 9,
+      "current_directions": 3,
+      "current_changes": 4,
+      "frontend_reserves": 3,
+      "long_or_capacity_reserves": 4
+    }
   }
 }

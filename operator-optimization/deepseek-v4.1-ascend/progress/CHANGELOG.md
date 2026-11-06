@@ -2,6 +2,30 @@
 
 由 events.jsonl 生成；新的纠正通过追加事件记录。Git 提交保存每次记录变更，事件不替代技术证据。
 
+## 2026-11-06 · 20261106-V168-PROVENANCE-AND-F16-PRICING-CORRECTION
+
+涉及：[F01](F01.md)、[F12](F12.md)、[F16](F16.md)
+
+类型：APPEND_ONLY_PROVENANCE_CORRECTION；依据：后续确认v168注入设备观测器与额外读者；保留原事件不改，当前来源门槛见证据摘要。
+
+旧F16登记的1.20%只保留历史诊断敏感度身份，撤销生产预测/上限资格；同样不使用v168为F12/HC定价。F16通信与权重结构账本仍成立，生产收益UNKNOWN。
+
+## 2026-11-06 · 20261106-IMPORTED-SCOPED-NATIVE-AND-SERVICE-RESULTS
+
+涉及：[F01](F01.md)、[F12](F12.md)、[F21](F21.md)、[F23](F23.md)、[F31](F31.md)
+
+类型：SCOPED_RESULT_IMPORT_NOT_NEW_EXPERIMENT；依据：已存在的原生/服务结果及源码版本，逐项来源SHA见同日证据摘要。
+
+F31组合有10.057–11.198%限定耗时降低，正常入口未运行验收；F12完整局部图净省1.211/0.821ms但生产UNKNOWN；HC行范数完成0比较且L0C错误，旧重复collapse更慢；F21 g12及F23 M3无已建立服务收益，停止同一实现。不得把族内变体或局部结果升级为全族/模型证明。
+
+## 2026-11-06 · 20261106-VALUE-FIRST-CLOSED-PRIORITY-PLAN
+
+涉及：[F01](F01.md)、[F02](F02.md)、[F03](F03.md)、[F04](F04.md)、[F05](F05.md)、[F06](F06.md)、[F07](F07.md)、[F08](F08.md)、[F09](F09.md)、[F10](F10.md)、[F11](F11.md)、[F12](F12.md)、[F13](F13.md)、[F14](F14.md)、[F15](F15.md)、[F16](F16.md)、[F17](F17.md)、[F18](F18.md)、[F19](F19.md)、[F20](F20.md)、[F21](F21.md)、[F22](F22.md)、[F23](F23.md)、[F24](F24.md)、[F25](F25.md)、[F26](F26.md)、[F27](F27.md)、[F28](F28.md)、[F29](F29.md)、[F30](F30.md)、[F31](F31.md)、[F32](F32.md)、[F33](F33.md)、[F34](F34.md)、[F35](F35.md)、[H01](H01.md)、[H02](H02.md)、[H03](H03.md)、[H04](H04.md)、[H05](H05.md)、[H06](H06.md)、[H07](H07.md)
+
+类型：USER_REQUESTED_PRIORITY_PUBLICATION_EXISTING_EVIDENCE_IMPORT；依据：用户要求按优先级排序并提交GitHub；源工作区38639a03，公开小摘要及SHA见progress/evidence/priority-value-evidence-20261106.json。
+
+登记封闭的11项点名方案、9族：3当前方向/4改动、3前端后备、4长行或容量后备。当前行动CP+Slot→F12→HC行平方和；后备同组不强排收益。42族保留条件，不宣称分析穷尽；本次无新profile/NPU/服务操作。
+
 ## 2026-11-06 · 20261106-F16-OA-BEFORE-A2A-USER-RETAINED
 
 涉及：[F16](F16.md)
