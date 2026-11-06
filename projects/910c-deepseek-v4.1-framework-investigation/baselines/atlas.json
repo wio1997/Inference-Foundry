@@ -3,7 +3,7 @@
   "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
   "builder": {
     "path": "tools/build_global_cost_baseline.py",
-    "sha256": "4dac84d1fa5b72704eacb02b6f0a3f24cb9be1ead10cdd79776ad7b9f1fa7f4d"
+    "sha256": "0b2d2252e77ad52dabd12beb3ca9058d2a67d699a013bca4d06c8008f4461ca7"
   },
   "sources": {
     "CURRENT-MECHANISM-VALUE.json": {
@@ -45,6 +45,14 @@
     "DSPARK-SHARED-PREFIX-DECISION.json": {
       "path": "full-review/DSPARK-SHARED-PREFIX-DECISION.json",
       "sha256": "65ebd24c4d8953f222f6968c9171c81c06ae6b2d6babfae1444bb66204354257"
+    },
+    "DSPARK-PREFILL-FREQUENCY-VALUE.json": {
+      "path": "full-review/DSPARK-PREFILL-FREQUENCY-VALUE.json",
+      "sha256": "1027362f5cb95fd33466e384470748693fe5ff5e3f46dd5926421d2f7e951033"
+    },
+    "CURRENT-COMMUNICATION-COST-CATALOG.json": {
+      "path": "full-review/CURRENT-COMMUNICATION-COST-CATALOG.json",
+      "sha256": "f041512464deafbdbe29e4be5c06521c5deab3bf09089fd6cf59ef1f9aaa6aa8"
     },
     "TERMINAL-PREFILL-PRIORITY.json": {
       "path": "full-review/TERMINAL-PREFILL-PRIORITY.json",
@@ -2656,6 +2664,21 @@
       "use": "navigation only; use region bindings for a decision, never treat as per-call primitive latency"
     }
   ],
+  "observed_communication_catalog": {
+    "path": "baselines/communication.json",
+    "source": "CURRENT-COMMUNICATION-COST-CATALOG.json",
+    "coverage": {
+      "ranks": 16,
+      "periods": 112,
+      "communication_records": 16016,
+      "classes": 28,
+      "native_task_bound": 15792,
+      "native_task_unbound": 224,
+      "header_sha256": "e3452ce880c43482a050c91574e079912f5b198d845697a4f74327991b7f5021"
+    },
+    "query": "python3 tools/query_global_cost.py --comm allGather --count 15360 --dp 0",
+    "transfer_only_calibration_complete": false
+  },
   "region_tables": [
     {
       "id": "current_mechanisms",
@@ -4490,6 +4513,155 @@
           "min": 0.007809219549149833,
           "median": 0.010085037287381865,
           "max": 0.011007056672405462
+        }
+      },
+      "interpretation": "Region-specific observed work or explicitly conditional schedule screen; overlapping alternatives, not additive savings."
+    },
+    {
+      "id": "matched_dspark_prefill_frequency",
+      "cohort": "historical_v168_NPU_only",
+      "source": "DSPARK-PREFILL-FREQUENCY-VALUE.json",
+      "json_pointer": "/summary",
+      "metrics": {
+        "target_Post_to_next_bookkeeping_inclusive": {
+          "per_window_ms": {
+            "n": 64,
+            "min": 11.47264,
+            "median": 12.399276,
+            "max": 24.17008
+          },
+          "four_occurrence_sum_ms": {
+            "n": 16,
+            "min": 58.012961000000004,
+            "median": 58.30393,
+            "max": 60.39376
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.0057305999132592055,
+            "median": 0.005762585167116417,
+            "max": 0.005925641570400511
+          }
+        },
+        "target_Post_to_context_KV": {
+          "per_window_ms": {
+            "n": 64,
+            "min": 0.157297,
+            "median": 3.896571,
+            "max": 8.61272
+          },
+          "four_occurrence_sum_ms": {
+            "n": 16,
+            "min": 13.88634,
+            "median": 15.22348,
+            "max": 20.09104
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.001381595855052848,
+            "median": 0.0014925550870459672,
+            "max": 0.0019712682538159487
+          }
+        },
+        "context_KV_three_panels": {
+          "per_window_ms": {
+            "n": 64,
+            "min": 0.33786,
+            "median": 1.3582565,
+            "max": 2.83664
+          },
+          "four_occurrence_sum_ms": {
+            "n": 16,
+            "min": 4.497431,
+            "median": 4.90906,
+            "max": 6.44932
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.0004467030025452836,
+            "median": 0.000481360507343781,
+            "max": 0.0006327865443849733
+          }
+        },
+        "after_KV_to_draft_Pre": {
+          "per_window_ms": {
+            "n": 64,
+            "min": 0.157297,
+            "median": 0.21014,
+            "max": 7.0061
+          },
+          "four_occurrence_sum_ms": {
+            "n": 16,
+            "min": 1.27954,
+            "median": 7.43159,
+            "max": 7.65986
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.00012554435118777618,
+            "median": 0.000730799248407957,
+            "max": 0.0007621036807600208
+          }
+        },
+        "three_layer_decoder": {
+          "per_window_ms": {
+            "n": 64,
+            "min": 2.59006,
+            "median": 7.58953,
+            "max": 13.55326
+          },
+          "four_occurrence_sum_ms": {
+            "n": 16,
+            "min": 27.145139999999998,
+            "median": 27.85781,
+            "max": 28.767439999999997
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.002661732577623909,
+            "median": 0.0027505017831759094,
+            "max": 0.002858965816313018
+          }
+        },
+        "draft_Post_to_next_bookkeeping_inclusive": {
+          "per_window_ms": {
+            "n": 64,
+            "min": 0.57822,
+            "median": 0.89158,
+            "max": 2.92314
+          },
+          "four_occurrence_sum_ms": {
+            "n": 16,
+            "min": 3.2285000000000004,
+            "median": 3.5078299999999993,
+            "max": 5.3209
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.0003205622580786341,
+            "median": 0.00034604269262047136,
+            "max": 0.0005220696017592559
+          }
+        },
+        "five_Markov_typed_task_union": {
+          "per_window_ms": {
+            "n": 64,
+            "min": 0.269394,
+            "median": 0.44068,
+            "max": 0.478351
+          },
+          "four_occurrence_sum_ms": {
+            "n": 16,
+            "min": 1.44946,
+            "median": 1.5371599999999999,
+            "max": 1.6193600000000001
+          },
+          "fraction_of_selected_target_elapsed": {
+            "n": 16,
+            "min": 0.00014212750498060584,
+            "median": 0.0001517105037198402,
+            "max": 0.00016084501240759119
+          }
         }
       },
       "interpretation": "Region-specific observed work or explicitly conditional schedule screen; overlapping alternatives, not additive savings."
