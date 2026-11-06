@@ -37,10 +37,6 @@ from deepinfer.engine.stats_logger import StatsLogger, StepStats
 from deepinfer.environ import DEFAULT_PREFILL_MAX_SUM_SEQLEN_K
 from deepinfer.hugging_face import get_hf_tokenizer
 from deepinfer.logger import SpawnProcessWithCrashHeader, init_logger
-from deepinfer.model_executor.layers.mtp_info_pool import get_nextn_pad_token_ids
-from deepinfer.model_executor.model_loader import _get_model_architecture
-from deepinfer.model_executor.model_metadata_utils import ModelMetadata
-from deepinfer.model_executor.models.v4_modules.engram import CompressedTokenizer
 from deepinfer.model_executor.parallel_utils.parallel_state import PG
 from deepinfer.multimodal_tokens import ImageTokenOffset
 from deepinfer.sampling_params import SamplingParams
@@ -51,8 +47,6 @@ from deepinfer.utils import (
     get_distributed_init_method,
     get_idle_cpus,
 )
-from deepinfer.ve.multimodal_processor import MultimodalProcessor
-from deepinfer.ve.schema import free_deferred_pool_handles, free_multi_modal_pool_handles
 from deepinfer.worker.base import _bind_numa
 
 if TYPE_CHECKING:
@@ -76,11 +70,13 @@ class DeferredRelease:
         request_output_pool: RequestOutputPool,
         state_manager: BlockManager | None,
         block_manager: BlockManager,
+        enable_multimodal_cleanup: bool = True,
     ) -> None:
         self.sequence_metadata_pool = sequence_metadata_pool
         self.request_output_pool = request_output_pool
         self.state_manager = state_manager
         self.block_manager = block_manager
+        self.enable_multimodal_cleanup = enable_multimodal_cleanup
         self.sequence_metadata_to_release: list[SequenceMetadata] = []
         self.request_outputs_to_release: np.ndarray[np.uint64] = np.empty(0, dtype=np.uint64)
         self.clone_done_evt = torch.cuda.Event()
@@ -115,8 +111,11 @@ class DeferredRelease:
             if blocks_to_unpin.size > 0:
                 self.block_manager.unpin_blocks(blocks_to_unpin)
 
-        # 释放 multi modal handles
-        free_deferred_pool_handles()
+        # GLM's bounded text path does not create multimodal pool handles.
+        if self.enable_multimodal_cleanup:
+            from deepinfer.ve.schema import free_deferred_pool_handles
+
+            free_deferred_pool_handles()
 
 
 def _spawn_worker(*args: Any) -> None:
@@ -161,7 +160,13 @@ class LLMEngine:
         log_stats: bool,
         engine_type: EngineType = EngineType.NORMAL,
         offline_inference: bool = False,
+        *,
+        bounded_glm_worker: Any | None = None,
+        bounded_glm_logical_blocks: int | None = None,
     ) -> None:
+        if bounded_glm_worker is not None:
+            # Until construction completes, lifecycle remains with the caller.
+            self.closed = True
         logger.info(
             "Initializing an LLM engine with config: ("
             f"engine_type={engine_type.name}, "
@@ -185,6 +190,30 @@ class LLMEngine:
             f"seed={model_config.seed}"
         )
 
+        bounded_glm = bounded_glm_worker is not None
+        if bounded_glm:
+            from deepinfer.worker.worker import Worker
+
+            runtime = getattr(bounded_glm_worker, "_glm_worker_runtime", None)
+            if (not isinstance(bounded_glm_worker, Worker) or runtime is None
+                    or not getattr(bounded_glm_worker, "_bounded_glm_startup", False)
+                    or not bounded_glm_worker.is_driver_worker
+                    or model_config.architecture != "Glm5NextForConditionalGeneration"
+                    or bounded_glm_worker.model_config.model != model_config.model
+                    or engine_type != EngineType.NORMAL or not offline_inference or log_stats
+                    or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING or envs.DEEPINFER_PROFILE_HTTP_ENABLE
+                    or scheduler_config.max_num_seqs != 1 or parallel_config.context_parallel_size != 4
+                    or parallel_config.data_parallel_size != 1 or parallel_config.expert_parallel_size != 1
+                    or parallel_config.engram_parallel_size != 1 or cache_config.lookahead_tokens != 0
+                    or model_config.runtime_max_model_len > runtime.runner.max_context_tokens
+                    or scheduler_config.max_num_batched_tokens < cache_config.block_size
+                    or type(bounded_glm_logical_blocks) is not int
+                    or bounded_glm_logical_blocks < 2 + (model_config.runtime_max_model_len - 1) // cache_config.block_size):
+                raise ValueError("unsupported bounded GLM engine configuration")
+        elif bounded_glm_logical_blocks is not None:
+            raise ValueError("logical block count requires an explicit bounded GLM Worker")
+        self._bounded_glm_engine = bounded_glm
+        self._bounded_glm_max_step_tokens = runtime.runner.boundary.max_tokens if bounded_glm else None
         gpu_ids = list(map(int, os.environ["CUDA_VISIBLE_DEVICES"].split(",")))
         self.driver_gpu_id = gpu_ids[0]
 
@@ -195,20 +224,28 @@ class LLMEngine:
         self.offline_inference = offline_inference
         self.log_stats = log_stats
         self.engine_type = engine_type
-        self.closed = False
+        self.closed = bounded_glm
 
         self.tokenizer = get_hf_tokenizer(
             model_config.tokenizer,
             trust_remote_code=model_config.trust_remote_code,
             tokenizer_revision=model_config.tokenizer_revision,
             revision=model_config.revision,
+            tokenizer_compatibility="native" if bounded_glm else None,
         )
 
         full_cfg = model_config.model_cfg
 
-        model_class = _get_model_architecture(model_config)
-        mm_enabled = hasattr(model_class, "multi_modal_mapper") and engine_type != EngineType.COMPLETION
+        if bounded_glm:
+            mm_enabled = False
+        else:
+            from deepinfer.model_executor.model_loader import _get_model_architecture
+
+            model_class = _get_model_architecture(model_config)
+            mm_enabled = hasattr(model_class, "multi_modal_mapper") and engine_type != EngineType.COMPLETION
         if mm_enabled:
+            from deepinfer.ve.multimodal_processor import MultimodalProcessor
+
             _bind_numa(local_rank=0)
             self.multi_modal_processor = MultimodalProcessor(
                 model_config,
@@ -229,8 +266,16 @@ class LLMEngine:
 
         self.request_output_pool = RequestOutputPool()
 
-        # Create the parallel GPU workers.
-        self._init_workers()
+        # The bounded path adopts a caller-owned, already registered Worker group.
+        if bounded_glm:
+            self.driver_worker = bounded_glm_worker
+            from deepinfer.worker.worker import EngineCallbacks
+
+            self.driver_worker.engine_callbacks = EngineCallbacks(
+                post_process_fn=self.post_process, pre_sampler_sync_fn=self.pre_sampler_sync
+            )
+        else:
+            self._init_workers()
 
         # 运行时 profiling 的 HTTP 接口，见 profile_server.py。slave worker 不构造 LLMEngine，不会重复占端口。
         self.profile_manager: ProfileManager | None = None
@@ -238,10 +283,17 @@ class LLMEngine:
             self.profile_manager = ProfileManager(self.driver_gpu_id, self.driver_worker.global_rank)
             self.profile_manager.start_http_server()
 
-        self._run_workers("load_model", skip_load=self.model_config.load_format == "dummy")
-        logger.info("load_model done.")
-        # Profile the memory usage and initialize the cache.
-        self._init_cache()
+        if bounded_glm:
+            # Scheduler bookkeeping only: the adapter owns its unpaged state.
+            # These counts do not describe physical cache capacity or profiling.
+            cache_config.num_gpu_blocks = bounded_glm_logical_blocks
+            cache_config.num_state_seqs = 0
+            cache_config.bytes_of_state_per_seqs = 0
+            cache_config.bytes_per_block = 0
+        else:
+            self._run_workers("load_model", skip_load=self.model_config.load_format == "dummy")
+            logger.info("load_model done.")
+            self._init_cache()
         # After init_cache, cache_config will be updated with real params
         logger.info("init_cache done.")
 
@@ -253,7 +305,14 @@ class LLMEngine:
         scheduler_config.driver_gpu_id = self.driver_gpu_id
 
         model_cfg = full_cfg.gpt
-        model_metadata = ModelMetadata(model_cfg)
+        if model_config.architecture == "Glm5NextForConditionalGeneration":
+            from deepinfer.model_executor.models.glm5_next.engine_metadata import GLMEngineMetadata
+
+            model_metadata = GLMEngineMetadata(full_cfg.glm5_next_config)
+        else:
+            from deepinfer.model_executor.model_metadata_utils import ModelMetadata
+
+            model_metadata = ModelMetadata(model_cfg)
         self.model_metadata = model_metadata
         # ModelMetadata 已保证截断开启时模型存在 YoCo consumer 层，且 keep tokens 为正。
         self.yoco_prefill_truncation_mode = envs.DEEPINFER_YOCO_PREFILL_TRUNCATION_MODE
@@ -265,12 +324,13 @@ class LLMEngine:
         self.block_manager = BlockManager(cache_config.num_gpu_blocks)
         self.state_manager = BlockManager(cache_config.num_state_seqs) if cache_config.bytes_of_state_per_seqs > 0 else None
         self.scheduler = self._create_scheduler()
-        self.scheduler.decode_perf_curve = self.driver_worker.decode_perf_curve
+        self.scheduler.decode_perf_curve = None if bounded_glm else self.driver_worker.decode_perf_curve
         if self.multi_modal_processor is not None:
             self.multi_modal_processor.scheduler = self.scheduler
         self.sequence_metadata_pool = SequenceMetadataPool()
         self.deferred_release = DeferredRelease(
-            self.sequence_metadata_pool, self.request_output_pool, self.state_manager, self.block_manager
+            self.sequence_metadata_pool, self.request_output_pool, self.state_manager, self.block_manager,
+            enable_multimodal_cleanup=model_config.architecture != "Glm5NextForConditionalGeneration",
         )
         logger.info("init Scheduler done.")
 
@@ -295,7 +355,7 @@ class LLMEngine:
         self.last_step_interval: float = 0.0
 
         # Stats logger (owns sliding-window data, timing accumulators, logging state)
-        self.stats_logger = StatsLogger(
+        self.stats_logger = None if bounded_glm else StatsLogger(
             self,
             model_config=model_config,
             parallel_config=parallel_config,
@@ -303,9 +363,16 @@ class LLMEngine:
             engine_type=self.engine_type,
             tflops_limit=get_bf16_tflops_limit() * 2,  # FP8-equivalent peak: 2x BF16.
         )
+        self.closed = False
 
     def _create_scheduler(self) -> Scheduler:
-        return Scheduler(
+        if self.model_config.architecture == "Glm5NextForConditionalGeneration":
+            compressed_lookup = []
+        else:
+            from deepinfer.model_executor.models.v4_modules.engram import CompressedTokenizer
+
+            compressed_lookup = CompressedTokenizer.lookup_table
+        scheduler = Scheduler(
             self.cache_config.block_size,
             self.block_manager,
             self.state_manager,
@@ -315,16 +382,30 @@ class LLMEngine:
             self.yoco_truncate_len,
             self.cache_config.lookahead_tokens,
             envs.DEEPINFER_PREFILL_MAX_SUM_SEQLEN_K or DEFAULT_PREFILL_MAX_SUM_SEQLEN_K,
-            FlopsEstimator(
+            None if self.model_config.architecture == "Glm5NextForConditionalGeneration" else FlopsEstimator(
                 self.model_metadata,
                 yoco_mode=self.yoco_prefill_truncation_mode,
                 keep_tokens=envs.DEEPINFER_YOCO_PREFILL_KEEP_TOKENS,
             ),
-            CompressedTokenizer.lookup_table,
+            compressed_lookup,
             PG.context_parallel_group().size(),
             self.model_config.get_vocab_size(),
             self.log_stats,
         )
+        if self.model_config.architecture == "Glm5NextForConditionalGeneration":
+            import json
+            from pathlib import Path
+
+            from deepinfer.model_executor.models.glm5_next.scheduler_eos import configure_scheduler_eos
+
+            generation_config = json.loads((Path(self.model_config.model) / "generation_config.json").read_text())
+            configure_scheduler_eos(
+                scheduler,
+                generation_config,
+                tokenizer_eos_id=self.tokenizer.eos_token_id,
+                vocab_size=self.model_config.get_vocab_size(),
+            )
+        return scheduler
 
     @property
     def so_matcher_builder(self) -> SOMatcherBuilder:
@@ -518,12 +599,29 @@ class LLMEngine:
             >>> # continue the request processing
             >>> ...
         """
+        if self._bounded_glm_engine:
+            if (self.get_num_unfinished_requests() or multi_modal_data is not None
+                    or extra or not enqueue or chunk_checkpoints):
+                raise ValueError("bounded GLM engine accepts one plain text request at a time")
+            # The scheduler requires a logical batch >= block size. One plain
+            # request may still never submit more tokens than the actual runner
+            # step allocation, so reject longer prompts before scheduler state.
+            if not isinstance(prompt_token_ids, np.ndarray) or prompt_token_ids.ndim != 1 or prompt_token_ids.size > self._bounded_glm_max_step_tokens:
+                raise ValueError("bounded GLM prompt exceeds the runner step limit")
         if sampling_params is None:
             sampling_params = {}
         if extra is None:
             extra = {}
         if isinstance(sampling_params, dict):
             sampling_params = SamplingParams(**{k: v for k, v in sampling_params.items() if v is not None})
+        if self._bounded_glm_engine:
+            from deepinfer.model_executor.models.glm5_next.worker_dispatch import validate_bounded_glm_sampling_params
+
+            validate_bounded_glm_sampling_params(sampling_params)
+        if self.model_config.architecture == "Glm5NextForConditionalGeneration" and sampling_params.first_n_token_no_eos:
+            raise NotImplementedError(
+                "GLM first-token EOS suppression requires masking every checkpoint EOS ID"
+            )
         sampling_params.eos_id = self.eos_id
 
         if self.yoco_prefill_truncation_mode != "off" and sampling_params.prompt_logprobs:
@@ -562,6 +660,8 @@ class LLMEngine:
         golden_token_ids = sampling_params.golden_token_ids or []
 
         if self.model_config.use_compressed_tokenizer:
+            from deepinfer.model_executor.models.v4_modules.engram import CompressedTokenizer
+
             compressed_prompt_token_ids = CompressedTokenizer.encode(prompt_token_ids)
         else:
             compressed_prompt_token_ids = prompt_token_ids
@@ -645,12 +745,16 @@ class LLMEngine:
             >>> # abort the request
             >>> engine.abort_request(request_id)
         """
+        if self._bounded_glm_engine:
+            raise NotImplementedError("bounded GLM request abort is not yet coordinated across ranks")
         assert isinstance(request_id, (str, dict, set, list, tuple)), f"invalid request_id type: {type(request_id)}"
         request_id = [request_id] if isinstance(request_id, str) else list(request_id)
 
         seqs = self.scheduler.abort_sequence(request_id)
         if self.multi_modal_processor is not None:
             self.multi_modal_processor.abort(request_id)
+            from deepinfer.ve.schema import free_multi_modal_pool_handles
+
             for seq in seqs:  # 真正取消的 seq 归还未消费完的共享池块
                 free_multi_modal_pool_handles(seq.multi_modal_data)
         return len(seqs), sum(seq.get_len() for seq in seqs)
@@ -680,7 +784,13 @@ class LLMEngine:
 
     def get_nextn_pad_token_ids(self) -> torch.Tensor:
         if not hasattr(self, "pad_token_ids"):
-            self.pad_token_ids = torch.tensor(get_nextn_pad_token_ids(self.model_config.get_vocab_size()), dtype=torch.int32)
+            if envs.DEEPINFER_USE_NEXTN_DECODE:
+                from deepinfer.model_executor.layers.mtp_info_pool import get_nextn_pad_token_ids
+
+                values = get_nextn_pad_token_ids(self.model_config.get_vocab_size())
+            else:
+                values = []
+            self.pad_token_ids = torch.tensor(values, dtype=torch.int32)
         return self.pad_token_ids
 
     @cpu_timer.record("process_model_outputs")
@@ -869,6 +979,8 @@ class LLMEngine:
             If you need to retain them beyond the current step, you must call pool.clone(list[RequestOutput]) to obtain copies,
             and release them via pool.release(list[RequestOutput]).
         """
+        if self._bounded_glm_engine and not self.has_unfinished_requests():
+            raise RuntimeError("bounded GLM engine has no unfinished request")
         self.step_start = time.perf_counter()
         if self.prev_step_start is not None:
             self.last_step_interval = self.step_start - self.prev_step_start
@@ -947,6 +1059,24 @@ class LLMEngine:
         if not scheduler_outputs.is_empty() and self.engine_type == EngineType.PROMPT:
             assert scheduler_outputs.prompt_run, "Prompt engines should not perform decoding"
             assert seq_metadata_list[0].seqlen_q > 0, "seqlen_q should be > 0"
+
+        # A completed bounded request remains in the scheduler until the next
+        # scheduling pass. Reap it on the driver; the GLM adapter deliberately
+        # does not accept placeholder execution on the workers.
+        if self._bounded_glm_engine and scheduler_outputs.is_empty():
+            if len(scheduler_outputs.finished_seqs) != 1:
+                raise RuntimeError("bounded GLM scheduler produced an unsupported empty step")
+            from types import SimpleNamespace
+
+            self.pre_sampler_sync(scheduler_outputs)
+            request_outputs = self.post_process(SimpleNamespace(
+                seq_metadata_list=seq_metadata_list, scheduler_outputs=scheduler_outputs,
+                sampler_output=None, is_placeholder=True, forward_events=None,
+                sample_events=None, graph_size=0,
+            ))
+            self.deferred_release.collect_request_outputs(request_outputs)
+            self.generate_step += 1
+            return request_outputs
 
         # model execution
         request_outputs = self._execute_model_async_step(seq_metadata_list, scheduler_outputs)

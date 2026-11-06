@@ -1,7 +1,6 @@
 import functools
 from typing import Any
 
-import deep_ep
 import torch
 import torch.distributed as dist
 from einops import rearrange
@@ -129,9 +128,12 @@ class ParallelProcessGroup:
 
     @staticmethod
     def is_within_nvl_domain(group: ProcessGroup) -> bool:
-        if PLATFORM.is_npu:
+        if PLATFORM.is_npu or group.size() == 1:
             return True
-        return group.size() == 1 or group.size() <= deep_ep.get_physical_domain_size(group)[1]
+        # DeepEP is a GPU-only dependency for this domain query. Do not make
+        # Ascend CP communication depend on importing a CUDA extension.
+        import deep_ep
+        return group.size() <= deep_ep.get_physical_domain_size(group)[1]
 
     # --- Accessor methods ---
 

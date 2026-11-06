@@ -118,7 +118,7 @@ struct Scheduler {
         nextn = std::max(0, get_nextn_from_env());
 
         TORCH_CHECK(prefill_max_sum_seqlen_k >= prompt_limit,
-            std::format("prefill_max_sum_seqlen_k={} too small, prompt_limit={}", prefill_max_sum_seqlen_k, prompt_limit));
+            deepinfer::formatting::format("prefill_max_sum_seqlen_k={} too small, prompt_limit={}", prefill_max_sum_seqlen_k, prompt_limit));
 
         running.reserve(max_num_seqs);
         free_mtp_info_slots.reserve(max_num_seqs);
@@ -132,7 +132,18 @@ struct Scheduler {
         clone_blocks.reserve(block_manager->num_blocks * 2);
     }
 
+    // Additional model EOS IDs must be fixed before any request is scheduled.
+    // The existing tokenizer EOS remains active, and ignore_eos applies to all.
+    void set_additional_eos_token_ids(std::vector<int> ids) {
+        TORCH_CHECK(!eos_ids_locked, "EOS IDs must be configured before requests");
+        for (int id : ids) TORCH_CHECK_GE(id, 0);
+        std::sort(ids.begin(), ids.end());
+        ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+        additional_eos_token_ids = std::move(ids);
+    }
+
     void add_sequence(std::shared_ptr<Sequence> seq) {
+        eos_ids_locked = true;
         seq->request.arrival_time = get_timestamp_ms();
         if (engine_type == EngineType::NORMAL) {
             seq->reserve_output_tokens();
@@ -492,7 +503,7 @@ struct Scheduler {
                 seqlen_q = new_seqlen_q;
             }
             if (seqlen_q == 0) {
-                TORCH_CHECK(!scheduled.empty(), std::format("有请求正在排队，但是调度不上来，不应该 (post_adjust)"
+                TORCH_CHECK(!scheduled.empty(), deepinfer::formatting::format("有请求正在排队，但是调度不上来，不应该 (post_adjust)"
                                                             ", len={}, cached={}, seq_workload={}, new_workload={}"
                                                             ", num_batched_tokens={}, max_num_batched_tokens={}"
                                                             ", cp_align={}, branch_id={}",
@@ -699,7 +710,7 @@ struct Scheduler {
             // max_k），DFlash draft 再往后 nextn。RoPE cache 等按 position 索引的 buffer 都只有 runtime_max_model_len 行。
             int position_end = scheduler_outputs.prompt_run ? seqlen_k : seqlen_k - seqlen_q + max_seqlen_q + nextn;
             TORCH_CHECK(position_end <= runtime_max_model_len,
-                std::format("position_end={} exceeds runtime_max_model_len={}: request_id={} branch={} len={} num_tokens={} inflight={} "
+                deepinfer::formatting::format("position_end={} exceeds runtime_max_model_len={}: request_id={} branch={} len={} num_tokens={} inflight={} "
                             "seqlen_q={} prompt_run={}",
                     position_end, runtime_max_model_len, seq->request.request_id, seq->schedule.branch_id, seq->get_len(),
                     seq->cache.num_tokens, seq->schedule.total_inflight_tokens, seqlen_q, scheduler_outputs.prompt_run));
@@ -1035,7 +1046,8 @@ struct Scheduler {
     void _check_stop(Sequence &seq) {
         int token_id = seq.get_last_token_id();
 
-        if (!seq.generation.stopping.ignore_eos && token_id == eos_token_id) {
+        if (!seq.generation.stopping.ignore_eos &&
+            (token_id == eos_token_id || std::binary_search(additional_eos_token_ids.begin(), additional_eos_token_ids.end(), token_id))) {
             seq.schedule.status = SequenceStatus::FINISHED_STOPPED;
             return;
         }
@@ -1141,6 +1153,8 @@ struct Scheduler {
     int max_num_prompts;
     int prompt_limit;
     int eos_token_id;
+    bool eos_ids_locked = false;
+    std::vector<int> additional_eos_token_ids;
     bool stop_preempted_request;
     bool chunked_prefill;
     std::shared_ptr<c10d::ProcessGroup> dp_group;

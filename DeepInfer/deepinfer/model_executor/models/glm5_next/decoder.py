@@ -18,16 +18,21 @@ from .mhc import GlmMHC, rms_norm
 
 
 class GlmDenseMLP(nn.Module):
-    def __init__(self,gate_proj,up_proj,down_proj,*,hidden_size,intermediate_size,limit=10.0):
+    def __init__(self,gate_proj,up_proj,down_proj,*,hidden_size,intermediate_size,limit=10.0,activation_backend='torch_fp32'):
         super().__init__()
         if limit is not None and (not math.isfinite(limit) or limit<=0):
             raise ValueError('SwiGLU limit must be finite and positive')
+        if activation_backend not in ('torch_fp32','vllm_native') or activation_backend == 'vllm_native' and limit is None:
+            raise ValueError('reference activation requires an explicit clamp')
+        self.activation_backend=activation_backend
         self.gate_proj,self.up_proj,self.down_proj=gate_proj,up_proj,down_proj
         self.hidden_size,self.intermediate_size=hidden_size,intermediate_size
         self.limit=limit
 
     @classmethod
-    def from_checkpoint(cls,reader,layer_id,device,*,down_partitions=1):
+    def from_checkpoint(cls,reader,layer_id,device,*,down_partitions=1,activation_backend='torch_fp32'):
+        if activation_backend not in ('torch_fp32','vllm_native'):
+            raise ValueError('unknown dense activation backend')
         from deepinfer.hugging_face.glm5_next_config import Glm5NextConfig
         c=Glm5NextConfig.from_checkpoint(reader.root);text=c.hf_config['text_config']
         if not 0<=layer_id<c.num_hidden_layers or c.layers[layer_id].mlp!='dense':
@@ -61,20 +66,29 @@ class GlmDenseMLP(nn.Module):
             weight,scale=reader.linear_payload(f'{prefix}.down_proj')
             projections.append(AscendW8A8InputPartitionedLinear(weight.to(device),scale.to(device),partitions=down_partitions))
         return cls(*projections,hidden_size=c.hidden_size,intermediate_size=text['intermediate_size'],
-                   limit=text.get('swiglu_limit'))
+                   limit=text.get('swiglu_limit'),activation_backend=activation_backend)
 
     def forward(self,x):
         if x.ndim!=2 or x.shape[-1]!=self.hidden_size:
             raise ValueError('expected dense input [tokens,hidden]')
         if x.shape[0]==0:
             return torch.empty_like(x)
-        gate,up=self.gate_proj(x).float(),self.up_proj(x).float()
+        gate,up=self.gate_proj(x),self.up_proj(x)
         if gate.shape!=(x.shape[0],self.intermediate_size) or up.shape!=gate.shape:
             raise ValueError('invalid dense gate/up projection outputs')
-        if self.limit is not None:
-            gate=gate.clamp_max(self.limit)
-            up=up.clamp(-self.limit,self.limit)
-        activated=(F.silu(gate)*up).to(x.dtype)
+        if self.activation_backend == 'vllm_native':
+            # Explicit opt-in: reuse the installed reference entry point and
+            # its dtype/rounding semantics. This does not implement TP.
+            from types import SimpleNamespace
+            from vllm.model_executor.layers.activation import SiluAndMulWithClamp
+            params=SimpleNamespace(swiglu_limit=self.limit,alpha=1.0,beta=0.0)
+            activated=SiluAndMulWithClamp.forward_native(params,torch.cat((gate,up),dim=-1))
+        else:
+            gate,up=gate.float(),up.float()
+            if self.limit is not None:
+                gate=gate.clamp_max(self.limit)
+                up=up.clamp(-self.limit,self.limit)
+            activated=(F.silu(gate)*up).to(x.dtype)
         return self.down_proj(activated)
 
 

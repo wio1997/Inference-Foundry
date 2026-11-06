@@ -79,6 +79,7 @@ def get_hf_tokenizer(
     *args: Any,
     trust_remote_code: bool = False,
     tokenizer_revision: str | None = None,
+    tokenizer_compatibility: str | None = None,
     **kwargs: Any,
 ) -> PreTrainedTokenizer | PreTrainedTokenizerFast:
     """Load tokenizer files from an HF directory.
@@ -87,9 +88,11 @@ def get_hf_tokenizer(
     multimodal token policy. "native" uses the supplied tokenizer configuration.
     """
     model_config_path = Path(tokenizer_name) / "config.json"
-    compatibility = (
-        json.loads(model_config_path.read_text()).get("tokenizer_compatibility", "release") if model_config_path.is_file() else "release"
-    )
+    compatibility = tokenizer_compatibility
+    if compatibility is None:
+        compatibility = (
+            json.loads(model_config_path.read_text()).get("tokenizer_compatibility", "release") if model_config_path.is_file() else "release"
+        )
     if compatibility not in ("release", "native"):
         raise ValueError(f"Unsupported tokenizer_compatibility: {compatibility!r}")
 

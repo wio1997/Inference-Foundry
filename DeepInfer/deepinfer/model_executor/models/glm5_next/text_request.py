@@ -19,6 +19,7 @@ from .request_state import MixedRequestState
 from .text_boundary import GlmTextBoundary,GlmLogitsShard
 from .deferred_pages import capture_page_bindings
 from .paged_commit import commit_dsa_batches
+from .scheduler_contract import scheduled_text_span
 
 
 @dataclass(frozen=True)
@@ -173,7 +174,145 @@ class TextRequest:
             self._require_open();r=self._runner
             return MixedRequestState.capture(self.request_id,r.stack.config,r.stack.layout,self._state.layers)
 
-    def _rank_batch_step(self, token_ids, expected_tokens_seen):
+    def _scheduler_sequence_inputs(self, metadata, sequence):
+        """Copy one owned scheduler sequence's token span before rank agreement.
+
+        The caller must supply the paired live metadata/sequence from the same
+        scheduler step and keep both stable until this call returns. This does
+        not release metadata, allocate pages, or support speculative decode.
+        """
+        if metadata is None or sequence is None:raise ValueError('live scheduler metadata and sequence required')
+        seq_id=sequence.seq_id
+        if type(seq_id) is not int or not 0<=seq_id<2**63 or sequence.request_id!=self.request_id:
+            raise ValueError('scheduler sequence identity mismatch')
+        if sequence.multi_modal_data is not None:raise ValueError('multimodal scheduler input is not supported')
+        span=scheduled_text_span(metadata,request_id=self.request_id,seq_id=seq_id,
+                                 tokens_seen=self._state.tokens_seen,
+                                 max_context_tokens=self._runner.max_context_tokens)
+        ids=sequence.data.get_token_ids()
+        if len(ids)!=metadata.full_len:raise ValueError('scheduler metadata and sequence lengths differ')
+        return torch.tensor(ids[span.token_start:span.token_stop],dtype=torch.int64),seq_id
+
+    def _scheduled_preflight(self, metadata, seq_id, token_ids, required=False):
+        """Validate scheduler identity and span inside the existing rank vote."""
+        if metadata is None:
+            if required or seq_id is not None:raise ValueError('scheduler sequence requires metadata')
+            return [0,0,0]
+        if type(seq_id) is not int or not 0<=seq_id<2**63:
+            raise ValueError('scheduler sequence identity must fit signed int64')
+        span=scheduled_text_span(metadata,request_id=self.request_id,seq_id=seq_id,
+                                 tokens_seen=self._state.tokens_seen,
+                                 max_context_tokens=self._runner.max_context_tokens)
+        if len(token_ids)!=span.token_count:
+            raise ValueError('scheduler span and prepared token count differ')
+        return [1,seq_id,int(span.is_prompt)]
+
+    @torch.inference_mode()
+    def step_scheduled(self,metadata,token_ids,*,seq_id,expected_tokens_seen):
+        """Execute prepared scheduler tokens under the existing request transaction.
+
+        All ranks must call the same step in the same order. Metadata is checked
+        inside rank preflight; token preparation and scheduler/cache lifetime
+        remain the caller's responsibility. This is not a model factory.
+        """
+        return self.step(token_ids,expected_tokens_seen=expected_tokens_seen,
+                         _scheduler_metadata=metadata,_scheduler_seq_id=seq_id,_scheduler_required=True)
+
+    @torch.inference_mode()
+    def step_sequence(self,metadata,sequence,*,expected_tokens_seen):
+        """Execute a paired scheduler sequence; keep the scheduler objects live.
+
+        Only one text sequence and non-speculative decode are supported. All
+        ranks must enter the same step; extraction failures join rank preflight.
+        """
+        return self.step(None,expected_tokens_seen=expected_tokens_seen,
+                         _scheduler_metadata=metadata,_scheduler_required=True,
+                         _scheduler_sequence=sequence,_sequence_required=True)
+
+    @torch.inference_mode()
+    def step_driver_sequence(self,metadata,sequence,*,expected_tokens_seen):
+        """Broadcast one driver's live scheduler pair across the existing CP group.
+
+        Every member must call in the same order; CP and rank-commit groups must
+        contain the same ranks in the same order. Only CP rank zero supplies
+        the live scheduler pair. Caller owns their lifetime and serialization.
+        Process loss, communication failure and concurrent calls are not recovered.
+        """
+        import torch.distributed as dist
+        from types import SimpleNamespace
+        from deepinfer.model_executor.parallel_utils.parallel_state import PG
+        from deepinfer.model_executor.parallel_utils.communication_op import broadcast_tensor_dict
+        r=self._runner;cp=PG.context_parallel_group();commit=r._rank_commit_group or dist.group.WORLD
+        if not r._rank_commit_enabled or dist.get_process_group_ranks(cp)!=dist.get_process_group_ranks(commit):
+            raise ValueError('driver sequence requires matching CP and rank-commit groups')
+        failure=None;payload=None
+        if cp.rank()==0:
+            try:
+                with r._exclusive():
+                    self._require_open();r._validate_components()
+                    if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
+                        raise ValueError('stale or invalid expected request token position')
+                    ids,seq_id=self._scheduler_sequence_inputs(metadata,sequence)
+                    payload={'ok':True,'request_id':metadata.request_id,'seq_id':seq_id,
+                             'is_prompt':metadata.is_prompt,'seqlen_q':metadata.seqlen_q,
+                             'seqlen_k':metadata.seqlen_k,'full_len':metadata.full_len,'ids':ids.tolist()}
+            except Exception as exc:
+                failure=exc;payload={'ok':False}
+        payload=broadcast_tensor_dict(payload,src=0)
+        if not payload['ok']:raise ValueError('driver scheduler preparation failed') from failure
+        metadata_copy=SimpleNamespace(request_id=payload['request_id'],seq_id=payload['seq_id'],
+            is_prompt=payload['is_prompt'],is_placeholder=False,multi_modal_data=None,
+            seqlen_q=payload['seqlen_q'],seqlen_k=payload['seqlen_k'],full_len=payload['full_len'])
+        return self.step_scheduled(metadata_copy,torch.tensor(payload['ids'],dtype=torch.int64),
+                                   seq_id=payload['seq_id'],expected_tokens_seen=expected_tokens_seen)
+
+    @torch.inference_mode()
+    def step_driver_metadata(self, metadata, *, expected_tokens_seen):
+        """Execute one driver's live scheduler metadata on all CP ranks.
+
+        Metadata must remain live until the token span has been copied. Only
+        single-sequence text and ordinary decode are supported. CP and rank
+        commit groups must have identical membership and order; caller owns
+        scheduler lifetime, cache lifecycle and communication failure handling.
+        """
+        import torch.distributed as dist
+        from types import SimpleNamespace
+        from deepinfer.model_executor.parallel_utils.parallel_state import PG
+        from deepinfer.model_executor.parallel_utils.communication_op import broadcast_tensor_dict
+        r=self._runner;cp=PG.context_parallel_group();commit=r._rank_commit_group or dist.group.WORLD
+        if not r._rank_commit_enabled or dist.get_process_group_ranks(cp)!=dist.get_process_group_ranks(commit):
+            raise ValueError('driver metadata requires matching CP and rank-commit groups')
+        failure=None;payload=None
+        if cp.rank()==0:
+            try:
+                with r._exclusive():
+                    self._require_open();r._validate_components()
+                    if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
+                        raise ValueError('stale or invalid expected request token position')
+                    if metadata is None:raise ValueError('live scheduler metadata required')
+                    if metadata.last_next_n_token or metadata.last_accepted_token:
+                        raise ValueError('speculative scheduler metadata is not supported')
+                    seq_id=metadata.seq_id
+                    span=scheduled_text_span(metadata,request_id=self.request_id,seq_id=seq_id,
+                                             tokens_seen=self._state.tokens_seen,
+                                             max_context_tokens=r.max_context_tokens)
+                    ids=metadata.get_input_token_ids()
+                    if not isinstance(ids,list) or len(ids)!=span.token_count or any(type(i) is not int for i in ids):
+                        raise ValueError('invalid scheduler metadata token span')
+                    payload={'ok':True,'request_id':metadata.request_id,'seq_id':seq_id,
+                             'is_prompt':metadata.is_prompt,'seqlen_q':metadata.seqlen_q,
+                             'seqlen_k':metadata.seqlen_k,'full_len':metadata.full_len,'ids':ids}
+            except Exception as exc:
+                failure=exc;payload={'ok':False}
+        payload=broadcast_tensor_dict(payload,src=0)
+        if not payload['ok']:raise ValueError('driver metadata preparation failed') from failure
+        metadata_copy=SimpleNamespace(request_id=payload['request_id'],seq_id=payload['seq_id'],
+            is_prompt=payload['is_prompt'],is_placeholder=False,multi_modal_data=None,
+            seqlen_q=payload['seqlen_q'],seqlen_k=payload['seqlen_k'],full_len=payload['full_len'])
+        return self.step_scheduled(metadata_copy,torch.tensor(payload['ids'],dtype=torch.int64),
+                                   seq_id=payload['seq_id'],expected_tokens_seen=expected_tokens_seen)
+
+    def _rank_batch_step(self, token_ids, expected_tokens_seen, scheduler_metadata=None, scheduler_seq_id=None, scheduler_required=False, scheduler_sequence=None, sequence_required=False):
         """Execute under runner lock; publish only after all rank votes."""
         import hashlib
         import torch.distributed as dist
@@ -184,9 +323,12 @@ class TextRequest:
             if self._page_bindings is not None:raise ValueError('rank batch excludes page bindings')
             if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
                 raise ValueError('stale or invalid expected request token position')
+            if sequence_required:
+                token_ids,scheduler_seq_id=self._scheduler_sequence_inputs(scheduler_metadata,scheduler_sequence)
             if not isinstance(token_ids,torch.Tensor) or token_ids.ndim!=1 or token_ids.device.type!='cpu' or token_ids.dtype not in (torch.int32,torch.int64):
                 raise ValueError('rank batch requires CPU integer token vector')
             count=len(token_ids);start=self._state.tokens_seen
+            scheduled=self._scheduled_preflight(scheduler_metadata,scheduler_seq_id,token_ids,scheduler_required)
             if not 1<=count<=r._rank_batch_limit or count>min(r.boundary.max_tokens,r.head.max_tokens) or start+count>r.max_context_tokens:
                 raise ValueError('rank batch exceeds explicit token/context bound')
             if bool(((token_ids<0)|(token_ids>=r.boundary.manifest.vocab_size)).any()):raise ValueError('rank batch token out of vocabulary')
@@ -216,9 +358,9 @@ class TextRequest:
                 if single_mask and count!=1:raise ValueError('singleton prefill mode requires one token')
             elif any(getattr(layer.attention,'reference_sharded_projection',False) is not False for layer in r.stack.layers):
                 raise ValueError('reference projection requires layer-major rank preflight')
-            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask,single_mask,projection_mask,extended_mask]
+            metadata=[0,count,start,r._rank_batch_limit,request_hash,r.head.vocab_start,r.head.vocab_end,int(r._rank_batch_layer_major),layer_mask,single_mask,projection_mask,extended_mask,*scheduled]
         except Exception as exc:
-            failure=exc;metadata=[1,0,0,0,0,0,0,0,0,0,0,0];ids=[]
+            failure=exc;metadata=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0];ids=[]
         header=torch.tensor(metadata,dtype=torch.int64,device=device);headers=[torch.empty_like(header) for _ in range(size)]
         dist.all_gather(headers,header,group=group)
         if any(int(h[0].item()) for h in headers) or not all(torch.equal(headers[0],h) for h in headers[1:]):
@@ -263,18 +405,21 @@ class TextRequest:
         return result
 
     @torch.inference_mode()
-    def step(self,token_ids,*,expected_tokens_seen):
+    def step(self,token_ids,*,expected_tokens_seen,_scheduler_metadata=None,_scheduler_seq_id=None,_scheduler_required=False,_scheduler_sequence=None,_sequence_required=False):
         r=self._runner
         with r._exclusive():
-            if r._rank_batch_limit:return self._rank_batch_step(token_ids,expected_tokens_seen)
+            if r._rank_batch_limit:return self._rank_batch_step(token_ids,expected_tokens_seen,_scheduler_metadata,_scheduler_seq_id,_scheduler_required,_scheduler_sequence,_sequence_required)
             failure=None
             try:
                 self._require_open();r._validate_components()
                 if type(expected_tokens_seen) is not int or expected_tokens_seen!=self._state.tokens_seen:
                     raise ValueError('stale or invalid expected request token position')
+                if _sequence_required:
+                    token_ids,_scheduler_seq_id=self._scheduler_sequence_inputs(_scheduler_metadata,_scheduler_sequence)
                 if not isinstance(token_ids,torch.Tensor) or token_ids.ndim!=1:
                     raise ValueError('text step requires a one-dimensional token tensor')
                 count=len(token_ids);start=self._state.tokens_seen
+                scheduled=self._scheduled_preflight(_scheduler_metadata,_scheduler_seq_id,token_ids,_scheduler_required)
                 if r._rank_commit_enabled and (count!=1 or self._page_bindings is not None):
                     raise ValueError('rank commit agreement requires one token and no page bindings')
                 if r._rank_commit_enabled:
@@ -295,9 +440,9 @@ class TextRequest:
                 # before ranks enter any stack collective or publish state.
                 import torch.distributed as dist
                 if failure is None:
-                    metadata=[0,start,count,identity,int(token_ids[0].item())]
+                    metadata=[0,start,count,identity,int(token_ids[0].item()),*scheduled]
                 else:
-                    metadata=[1,0,0,0,0]
+                    metadata=[1,0,0,0,0,0,0,0]
                 header=torch.tensor(metadata,dtype=torch.int64,device=r.boundary.norm_weight.device)
                 headers=[torch.empty_like(header) for _ in range(dist.get_world_size(r._rank_commit_group))]
                 dist.all_gather(headers,header,group=r._rank_commit_group)

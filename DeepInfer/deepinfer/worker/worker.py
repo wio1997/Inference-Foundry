@@ -20,8 +20,6 @@ from deepinfer._C.engine import (
 from deepinfer.config import CacheConfig, ModelConfig, ParallelConfig, SchedulerConfig
 from deepinfer.engine.engine_type import EngineType
 from deepinfer.logger import init_logger
-from deepinfer.model_executor.layers.tilelang_ops.compute_seqlens_k_zos import compute_seqlens_k_zos
-from deepinfer.model_executor.layers.tilelang_ops.schedule_mtp_varlen import compute_seqlens_q_by_confidence_rates
 from deepinfer.model_executor.utils import Movable
 from deepinfer.sequence import SequenceMetadata
 from deepinfer.timer import cpu_timer, cuda_graph_timer, cuda_timer
@@ -66,6 +64,7 @@ class Worker(WorkerBase):
         distributed_init_method: str,
         is_driver_worker: bool = False,
         engine_callbacks: EngineCallbacks | None = None,
+        bounded_glm_startup: bool = False,
     ) -> None:
         # must set at beginning since slave worker will call loop in __init__
         logger.info("init Worker")
@@ -83,7 +82,29 @@ class Worker(WorkerBase):
             cp_rank,
             distributed_init_method,
             is_driver_worker,
+            bounded_glm_startup=bounded_glm_startup,
         )
+
+    def install_glm_single_request_adapter(self, adapter) -> None:
+        """Explicitly install an already prepared, bounded GLM step adapter."""
+        if getattr(self, "_glm_single_request_adapter", None) is not None or self.prev_step_state is not None:
+            raise RuntimeError("Worker already has an adapter or an in-flight step")
+        if not callable(getattr(adapter, "execute_model_step", None)):
+            raise TypeError("explicit GLM step adapter required")
+        self._glm_single_request_adapter = adapter
+
+    def initialize_bounded_glm_text(self, *, sfa_library, max_read_bytes,
+            max_expert_checkpoint_bytes, max_expert_resident_bytes, max_context_tokens, max_step_tokens,
+            rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows, hc_backend, kda_backend) -> None:
+        """Explicitly initialize the bounded installed-SFA text path on every rank."""
+        from deepinfer.model_executor.models.glm5_next.worker_bootstrap import bootstrap_native_sfa_glm_worker
+
+        self._glm_worker_runtime = bootstrap_native_sfa_glm_worker(self, self.device, sfa_library=sfa_library,
+            max_read_bytes=max_read_bytes, max_expert_checkpoint_bytes=max_expert_checkpoint_bytes,
+            max_expert_resident_bytes=max_expert_resident_bytes, max_context_tokens=max_context_tokens,
+            max_step_tokens=max_step_tokens, rank_cache_bytes=rank_cache_bytes, max_assembled_bytes=max_assembled_bytes,
+            max_intermediate_rows=max_intermediate_rows, max_packed_rows=max_packed_rows,
+            hc_backend=hc_backend, kda_backend=kda_backend)
 
     @torch.inference_mode()
     def execute_model_step(
@@ -110,6 +131,10 @@ class Worker(WorkerBase):
         Returns:
             Request outputs (serialized as uint64 pointers) ready to send back.
         """
+        glm_adapter = getattr(self, "_glm_single_request_adapter", None)
+        if glm_adapter is not None:
+            return glm_adapter.execute_model_step(self, is_prompt, is_placeholder, seq_metadata_list, scheduler_outputs)
+
         # 1. forward curr step
         total_q = None
         correction: _SeqlensCorrection | None = None
@@ -216,8 +241,12 @@ class Worker(WorkerBase):
         seqlens_k = seqlens_k_cpu.cuda(non_blocking=True)
 
         if envs.DEEPINFER_ENABLE_MTP_VARLEN:
+            from deepinfer.model_executor.layers.tilelang_ops.schedule_mtp_varlen import compute_seqlens_q_by_confidence_rates
+
             compute_seqlens_q_by_confidence_rates(total_q, remap[:n_seq], prev.sampler_output.confidence_rates_gpu, seqlens_q[:n_seq])
         if self.nextn > 0:
+            from deepinfer.model_executor.layers.tilelang_ops.compute_seqlens_k_zos import compute_seqlens_k_zos
+
             compute_seqlens_k_zos(
                 seqlens_k[:n_seq],
                 seqlens_q[:n_seq],

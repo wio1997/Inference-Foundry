@@ -1,0 +1,55 @@
+{
+  "scope": "单一 recall17 提示，第0层真实前8 token状态及后续32 token；四 die 整模型首 token logits；实验结果而非精度验收",
+  "oracle": {
+    "fixed_inputs": "NPU 导出的 q/k/v、beta、累计 gate，及真实8 token前缀状态",
+    "arithmetic": "目标机器 CPU FP64 逐 token 递推；独立表示的 FP64 三角方程交叉核对",
+    "oracle_max_abs_difference": {
+      "output": 8.674e-18,
+      "recurrent_state": 4.164e-17
+    },
+    "candidate_emitted_bf16_output_rmse_range": [
+      2.78595e-07,
+      7.51334e-07
+    ],
+    "installed_output_rmse_range": [
+      5.50926e-07,
+      1.98686e-06
+    ],
+    "candidate_state_rmse_range": [
+      1.02442e-07,
+      1.99989e-07
+    ],
+    "installed_state_rmse_range": [
+      1.11126e-06,
+      2.01723e-06
+    ],
+    "native_evidence_sha256": "4ea47ad2c6c2b011995e96bc38ac1fb744ac02d2faa36de6275ef92b9aa7805e"
+  },
+  "same_prompt_8_32_1_first_token": {
+    "reference_logits_sha256": "d4037162458612d4895b5f9dad06ee9aa674c478281fa9d50cc33c223707de8a",
+    "logit_count": 154880,
+    "installed": {
+      "rmse": 0.7657607794,
+      "reference_to_model_kl_nats": 0.1096933168,
+      "argmax": 785
+    },
+    "candidate_layer0_all_chunks": {
+      "rmse": 0.9056936502,
+      "reference_to_model_kl_nats": 0.2402942862,
+      "argmax": 1474
+    },
+    "candidate_layer0_32_only": {
+      "rmse": 0.8826481104,
+      "reference_to_model_kl_nats": 0.1425400055,
+      "argmax": 1474
+    },
+    "reference_argmax": 1474,
+    "native_evidence_sha256": [
+      "2828e8f5c395e7e358d1cb2d29e31738ec56db047fe26e32ad844e249a77fd9a",
+      "4d2408afb08cea0e939f121445b12a5deb061dfbca1d8a07a977748091a46e30",
+      "18004bf1cd23465ee7b34ff142e7fb0f890d061f15eb610c0fd7bbb2deb9184e"
+    ],
+    "limitations": "三者按同一提示和8+32+1拆分；参考捕获是相同提示的独立路径，并非声称使用相同内部拆分。仅首 token 分布，没有生成、多提示或整模型精度阈值。"
+  },
+  "decision": "实验候选的局部 FP64 误差更小，但该固定提示的整模型 logits RMSE 和 KL 均更差；未集成候选，也不能以 argmax 相同宣称精度修复。"
+}

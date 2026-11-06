@@ -6,6 +6,8 @@
 
 **当前状态：已冻结源码有下述硬件验证；便携请求、rank 入口和参数化运行器已做限定硬件验证；复现仍依赖操作者提供兼容的资源登记和预算策略。整体精度、性能及生产部署均未验收。**
 
+最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
+
 ## 目录导航
 
 | 目录或文件 | 内容 |
@@ -68,9 +70,15 @@ sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b
 
 可显式传入 `--kda-backend ascendc` 选择显式归一化的实验递推路径；默认仍为 `ascendc_installed_decode`，可通过同一选项明确回退。实际便携命令在四 rank 短多轮案例中验证了 `ascendc` 选项传播、首 token 后 archive-v2 恢复和自然停止，生成 45 个 token 与 round 373 一致；见 [结果](validation/portable-recurrent-round376.json)。这不是全模型质量或生产验收。
 
-先将 [operator-config.example.json](portable/operator-config.example.json) 复制到任务目录并填写自己的**真实**路径、锁、已运行隔离容器 ID、镜像本地 ID、授权 die/card/chip 对应关系、赋权和登记 JSON、源码清单及 SHA-256。示例中的零值、路径和设备号只是占位符，不表示授权或已验证配置。`pinned_files` 必须包含可信源码清单、权重索引、模型配置与模板哈希。运行器会在执行前要求源码清单路径恰有一个匹配的 SHA-256 pin；如旧配置未填写该项，须按可信清单更新配置。四 rank 固定案例回归见 [记录](validation/manifest-pin-round400.json)。容器内外的源码、运行目录和 launcher 路径必须分别映射到同一内容；模型权重应只读挂载。
+先将 [operator-config.example.json](portable/operator-config.example.json) 复制到任务目录并填写自己的**真实**路径、锁、已运行隔离容器 ID、镜像本地 ID、授权 die/card/chip 对应关系、赋权和登记 JSON、源码清单及 SHA-256。示例中的零值、路径和设备号只是占位符，不表示授权或已验证配置。 与当前源码匹配并在现场固定短例实测的 [源码清单](validation/source-only-base-manifest-round496.json) SHA-256 为 `9a8242ab768db1c608fbd29905937f3e3812a259d6ab0b4e59a3741f932bce64`；可将该文件复制到任务目录并在配置中固定该哈希。清单内 `cli:` 项由现有运行器跳过，运行器会另行记录实际便携文件的哈希；源码或便携文件变更后不得沿用旧的验证结论。`pinned_files` 必须包含可信源码清单、权重索引、模型配置与模板哈希。运行器会在执行前要求源码清单路径恰有一个匹配的 SHA-256 pin；如旧配置未填写该项，须按可信清单更新配置。四 rank 固定案例回归见 [记录](validation/manifest-pin-round400.json)。容器内外的源码、运行目录和 launcher 路径必须分别映射到同一内容；模型权重应只读挂载。
 
 运行器要求操作者提供可信的预算 helper 和策略文件；helper 必须实现 `reserve(root, lock, goal, source_sha256, attempt_id, workers, timeout_seconds)`，并在传入的同一共享锁下原子核对授权和持久化预算。公共仓不包含现场策略或现场控制器。分配与登记 schema、设备映射、容器环境、NPU 可用性和 helper 的正确性由操作者按现场资源协议核验；没有兼容策略时不能运行。公开代码不提供服务、部署或自动抢占。
+
+登记释放遵循保守检查：全部 Docker 执行客户端退出后，运行器还须确认每个已登记宿主工作进程已消失且任务容器只剩空闲进程，才释放本批登记；状态不明时保留登记并报告失败，由操作者依据现场协议核实处理。四 rank 正常归档恢复、双请求和仅终止本任务 Docker 客户端的受控检查见 [验证记录](validation/runner-lifecycle-round495.json)。这不覆盖设备丢失或自动故障恢复。
+
+若运行器因无法验证工作进程退出而保留本批登记，操作者可在相同配置和共享锁下使用 `python3 portable/recover_owned.py --config "$OPERATOR_CONFIG" --run-id 原运行ID`。工具只接受同任务、同代次、同主机、完整匹配的单批登记和相应失败记录；进程仍存在、卡进程列表不为空或不确定、容器未空闲、结果未完成时拒绝释放，不发送进程信号。工具会保留登记文件权限及已完成历史，并追加接管完成记录。使用前核对工具 SHA-256；四 rank 的受控客户端丢失与完成后释放范围见 [记录](validation/owned-recovery-round496.json)，不代表设备故障或任意失败均可自动恢复。
+
+普通文本模式的 `--restore-after-first-token` 将产生归档时的 SHA-256 保存在当前生产者进程内，恢复时先核对归档字节再反序列化；标准 worker 的源码清单也包含校验模块的哈希。四 rank 固定短例的45层状态及清理检查见 [验证记录](validation/archive-integrity-round496.json)。该摘要只在本次进程内保留，不认证外部提供的摘要，也不构成持久可信通道、跨版本恢复或独立模型精度验收；其他探针和双请求模式不因此自动获得该校验。 一项独立诊断在首个提示 token 后恢复、再执行40 token预填：缓存关闭与128MiB缓存的最终预填及续算完整 logits 哈希相同，恢复后各 rank 均发生缓存命中；该诊断改变了恢复时点，不等同于产品选项。[范围](validation/post-restore-cache-hit-round498.json) 与当前 checkout 的 `native_model.py` 组合也通过四 rank 相同范围的恢复回归；源码清单与 checkout 的代码文件一致；再以移除六个非运行时图片及相应清单项的源码副本执行四 rank 恢复，全部状态检查通过，465项适用文件哈希与 checkout 一致。该检查仍依赖现场容器、权重和操作者配置，不表示全新环境已复现。
 
 在已授权且配置完整的现场，参数化调用方式为：
 
@@ -282,4 +290,38 @@ KDA未来gate位置的干预对照见 [记录](validation/kda-gate-intervention-
 
 全部KDA层26 token算术提示验证见 [记录](validation/all-kda-short-round478.json)。
 
+全部34个KDA层的固定 recall17、128MiB 缓存运行补充了设备显存、进程RSS和框架分配的分口径采样。旧构建器缺少实验参数会在预留设备前失败，须使用记录中固定哈希的新版构建器；各数值不能相加或视为设备连续峰值。[实测范围及源码组合](validation/all-kda-memory-round504.json)。 请求构建失败时，runner 现显示退出码和有界 stderr；真实目标容器的构建器负向检查确认错误可见且未预留设备，正常四rank命令已回归。[修复与范围](validation/request-builder-diagnostics-round504.json)。 新版 runner 与当前 source-only 发布树的461个文件及四个 portable 文件已逐字节核对，并完成四rank固定算术命令及同源码验证恢复：各rank的45层状态、生成ID和提示argmax一致，未比较恢复后完整logits；独立质量和其他规模不由此验收。[源码清单及结果](validation/release-aligned-round504.json)。 同一新版 runner 的既有双请求路径也完成固定两请求四rank回归，461个源码及五个 portable 文件与实测清单一致；请求交替串行执行，不代表真实并行调度。[实测范围](validation/two-request-diagnostics-round505.json)。
+
 全部KDA层首token完整logits与独立参考的差异见 [记录](validation/all-kda-logits-round478.json)。
+
+实验性 `load_native_text_runner(..., max_requests=2)` 允许两个存活请求所有者；默认仍为1，执行仍由现有锁串行化。固定输入下的四rank交错、另一请求存活时归档恢复、默认CLI回归和进程分配器采样，以及受控故障测试的管理器校验限制，见 [记录](validation/two-owner-round483-486.json)。这不证明并行服务吞吐或整体模型精度。
+
+便携 runner 可使用以下固定双 owner 探针；输入和结果是同运行时固定案例，调用者仍须提供已授权的四 rank 配置、互斥、登记与设备映射。该模式固定输入，不接受消息或文本参数，步骤串行；默认文本模式不变。[实测范围](validation/two-owner-portable-round488.json)。
+
+```bash
+python3 portable/runner.py --config "$OPERATOR_CONFIG" --run-id two-owner-check --goal reproducible-release --experimental-fp32-dsa --two-owner-generation-probe --kda-backend ascendc
+```
+
+实验性便携 runner 也支持 `--two-owner-messages`：消息文件必须是两个请求对象的 JSON 数组，每个对象包含交替的 `messages`，可选 `expected_final`。此模式需要四 rank、`--kda-backend ascendc` 和 `--experimental-all-kda`，上下文最多64 token、每请求生成最多16 token、关闭复用缓存；两个请求持有者的步骤串行，默认单请求模式不变。两条固定输入的实际生成及普通模式回归已在授权四 die 上验证，未比较完整 logits，也未证明并行吞吐或独立模型精度。
+
+消息文件示例（`$TWO_REQUESTS_JSON` 需位于配置允许的工作目录内）：
+
+```json
+[
+  {"messages": [{"role": "user", "content": "What is 8 plus 5? Reply only with the number."}], "expected_final": "13"},
+  {"messages": [{"role": "user", "content": "Reply with the number 17."}], "expected_final": "17"}
+]
+```
+
+```bash
+python3 portable/runner.py --config "$OPERATOR_CONFIG" --run-id two-owner-chat --goal bounded-input-cli \
+  --world-size 4 --messages "$TWO_REQUESTS_JSON" --two-owner-messages \
+  --experimental-fp32-dsa --kda-backend ascendc --experimental-layer-major-kda \
+  --experimental-kda-prefill40 --experimental-all-kda --context-tokens 64 --max-new-tokens 16
+```
+
+消息文件中的每个请求必须满足上下文和生成长度之和不超过64；`expected_final` 可省略。上述示例仅说明参数，样例的第二条消息未单独验证；实际运行仍需调用者提供已授权设备、任务登记与互斥配置。
+
+固定 recall17 输入的第0层真实前缀状态与 FP64 数学递推比较中，实验性逐行参考候选的输出及状态误差小于现有内核；但在同一提示的 8+32+1 整模型首 token logits 比较中，将候选用于第0层全部块或仅用于32 token块，均使相对保留参考的 RMSE 和 KL 增大。该候选未集成；argmax 相同不构成精度通过。[数据、对照范围与限制](validation/kda-real-prefix-round500.json)。
+
+针对 recall17 首次生成分歧，两条实际路径共享相同提示及前6个自然生成 token 后，在第7 token位置比较全部 logits：参考选择807，适配路径选择13；两者相对这两个 token 的 logit 差分别为 +0.375 和 -0.375。完整分布 RMSE、KL 及范围见[记录](validation/shared-prefix-divergence-round501.json)。此结果限定单个位置，不是整模型精度验收或误差根因。

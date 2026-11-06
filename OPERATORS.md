@@ -13,7 +13,7 @@
 | W8A8 动态量化 Linear | 按量化检查点读取 INT8 权重、通道 scale；处理 `[N,K]` 到计算布局及 NZ 格式；输入动态量化后调用 `npu_quant_matmul`，保留 per-token scale | [w8a8.py](DeepInfer/deepinfer/npu_ops/w8a8.py)、[modelslim910c.py](DeepInfer/deepinfer/hugging_face/modelslim910c.py) | 已接入实测短请求路径；不是把 INT8 权重转成 BF16 作为替代实现 |
 | 分组 INT8 GEMM、SwiGLU 专家 FFN | 专家权重按组组织，适配 `npu_grouped_matmul`、中间激活和再量化；提供已有 `grouped_matmul_swiglu_quant_weight_nz` 融合接口的显式选项 | [w8a8.py](DeepInfer/deepinfer/npu_ops/w8a8.py)、[expert_bank.py](DeepInfer/deepinfer/model_executor/models/glm5_next/expert_bank.py) | 专家和整模型路径有实测；融合选项与普通组合路径分别保留，不代表任意配置等价 |
 | KDA 投影与投影合并 | 对齐 GLM 检查点中的 Q/K/V、beta、遗忘门及输出投影；满足权重类型条件时，将 Q/K/V/beta/f_a/g_a 合并为一次 FLOAT 投影后再拆分 | [kda.py](DeepInfer/deepinfer/model_executor/models/glm5_next/kda.py) | 当前模型路径已运行；投影合并不代表新写 GEMM kernel |
-| KDA 单 chunk 预填入口 | 对已投影、已卷积的一条序列提供 1–64 token 的显式 chunk 调用，输入 FP32 状态不变 | [chunk_prefill.py](DeepInfer/deepinfer/model_executor/models/glm5_next/chunk_prefill.py) | 四 die 单层实测，与安装版算子及分段状态交接对照；新增 dense KDA 解码层显式实验分派（最多 8 行）；默认逐 token 整模型短例回归通过，未接入完整文本 runner、未验收整模型质量或性能 |
+| KDA 单 chunk 预填入口 | 对已投影、已卷积的一条序列提供 1–64 token 的显式 chunk 调用，输入 FP32 状态不变 | [chunk_prefill.py](DeepInfer/deepinfer/model_executor/models/glm5_next/chunk_prefill.py) | 单层及实验性 layer-major CLI 均已有受控短例；当前实验选项可对全部 KDA 层执行 40+1 预填，默认仍为逐 token。整模型精度和性能尚未验收 |
 | KDA 因果卷积 | 适配 Q/K/V 的短因果卷积、SiLU、历史窗口顺序及分段续算；原生接口调用 `fla_npu.ops.ascendc.causal_conv1d_fn`，保留 Torch 参考路径 | [kda.py](DeepInfer/deepinfer/model_executor/models/glm5_next/kda.py) | 与 KDA 状态共同进入短请求验证；不代表任意卷积宽度、批次或长序列已验收 |
 | KDA 递推、门控和 Q/K 归一化 | 对齐 FP32 recurrent 状态、门控参数和布局；保留显式 Q/K 归一化的 AscendC 路径，以及 `vllm_ascend.ops.kda.run_recurrent_kda` 的单 token 解码适配 | [kda.py](DeepInfer/deepinfer/model_executor/models/glm5_next/kda.py) | 便携 worker 默认选择 `ascendc_installed_decode`，可显式选择 `ascendc`；两者均为逐 token 路径，不能据此宣布 chunk-prefill 已解决 |
 | mHC 前处理与残差后处理 | 适配多流残差、门控、Sinkhorn 混合及权重精度；接入已有 `npu_hc_pre_v2` / `npu_hc_post`，保留 Torch 参考组合 | [mhc.py](DeepInfer/deepinfer/model_executor/models/glm5_next/mhc.py) | 整模型配置选择 `ascend_installed`；独立参考生成仍有差异，不能把整个数值链宣布完全对齐 |
@@ -167,3 +167,24 @@ KDA 分块长度对所测第0位置核心输出有影响；这是单输入受控
 KDA 前8 token 补零至41的候选未复现实际41 token前缀，补零状态也不同；不得作为已验证修复。[记录](validation/chunk-padding-round457.json)。
 
 稀疏KDA 40+1预填的恢复与未恢复续算对比见 [记录](validation/sparsearchive40-round460.json)。
+
+实验性原生请求工厂可显式选择两个存活 owner，默认保持一个；跨请求步骤仍串行。四 rank 隔离、另一 owner 存活时的归档恢复、默认 CLI 和分配器观测范围见 [记录](validation/two-owner-round483-486.json)，不代表并发服务或设备故障恢复。
+
+双 owner 固定生成探针已接入便携 runner 的显式模式，实际四 rank 结果和正常 CLI 回归见 [记录](validation/two-owner-portable-round488.json)；仅串行交错，不代表生产批处理或吞吐结论。
+
+
+## 安装算子与状态契约（round 508）
+
+当前镜像观察到 CANN OPP 9.2.0、`torch-npu 2.10.0.post7`、`vllm-ascend 0.30.0rc2`、`flash-linear-attention-npu-a3 26.9.1+deva4a7958` 和 `cann-ops-transformer 1.0.0`。已安装的 KDA 与通用 GatedDeltaRule 是不同接口；文件存在不代表后者满足 GLM 的门控与状态契约。
+
+| 环节 | 当前调用与契约 | 范围与差异 |
+|---|---|---|
+| KDA 预填 | 适配层和参考实现均调用 `vllm_ascend.ops.kda.run_chunk_kda`，由已安装 FLA `chunk_kda_fwd` 执行。 | Q/K 使用安装版归一化；beta 在调用前转 FP32 并 sigmoid；BSND、chunk64、FP32 value-first 状态。适配层复制私有状态并按头分片；参考路径按索引 gather/scatter。 |
+| KDA 解码 | 逐 token 安装版路径调用 `run_recurrent_kda`；实验分块后端的单 token 路径使用显式归一化的 FLA 调用。 | 安装版在 kernel 内做 Q/K 归一化和 beta sigmoid；私有槽复制与参考缓存槽的行为只在受控例子下对照。 |
+| DSA | 可选短上下文路径使用 `npu_sparse_flash_attention`；当前固定请求还使用显式 FP32 展开实验路径。 | 私有页、索引与零 RoPE 的短上下文适配不等于参考引擎的完整分页/稀疏选择；参考代码还可按 metadata 分派 `sparse_flash_mla`，保留参考运行的实际分支尚未采集。这也不意味着其他原生算子不可用。 |
+| W8A8 / GMM | 使用 `npu_dynamic_quant`、`npu_quant_matmul` 和 `npu_grouped_matmul`。 | 令牌量化尺度、权重布局和专家路由由调用层管理；TP/EP 的完整组合未验收。 |
+| mHC | `ascend_installed` 使用 `npu_hc_pre_v2` 与 `npu_hc_post`。 | 调用层负责多流布局、混合系数及形状转换；保留 Torch 对照路径。 |
+
+单 die、单头分片的原生状态调用对照见 [记录](validation/operator-contract-round508.json)：复用真实短提示输入，预填 gather/scatter 与私有状态、解码缓存槽与私有状态的受控比较均通过。参考解码输出可在固定位置复现；独立参考终态、跨 rank 任意分页、多序列产品接口与整模型精度均不在该结论范围内。
+
+同一真实提示的第 3 层第 40 位置，原生短上下文 SFA 与 FP32 展开实验路径使用相同输入及进入状态时，返回状态一致，但 16384 个 BF16 注意力值中有 8312 个不同，RMSE 约 0.000273。仅切换原生 SFA 路径的整模型短例首 token 与现有参考不同；该单例不能判断哪一实现更准确，也不能据此认定 kernel 缺陷。

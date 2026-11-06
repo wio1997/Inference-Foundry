@@ -6,7 +6,6 @@ from dataclasses import dataclass, fields
 from typing import Any
 
 import torch
-from flash_mla.flash_mla_interface import FlashMLASchedMeta
 
 from deepinfer.model_executor.input_metadata.dflash import DFlashMetadataMixin
 from deepinfer.model_executor.input_metadata.yoco import YocoMetadataMixin
@@ -386,6 +385,7 @@ class InputMetadataV4(YocoMetadataMixin, DFlashMetadataMixin, InputMetadata):
             if self.mlp_relu_schedule_metadata is None:
                 self.mlp_relu_schedule_metadata = {}
             if self.flash_mla_sched_meta_dict is None:
+                from flash_mla.flash_mla_interface import FlashMLASchedMeta
                 self.flash_mla_sched_meta_dict = defaultdict(FlashMLASchedMeta)
 
     def to_flatten_dict(self) -> dict:

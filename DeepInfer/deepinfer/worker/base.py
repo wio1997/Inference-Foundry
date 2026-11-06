@@ -24,14 +24,11 @@ from deepinfer.config import CacheConfig, ModelConfig, ParallelConfig, Scheduler
 from deepinfer.engine.engine_type import EngineType
 from deepinfer.logger import init_logger
 from deepinfer.model_executor.parallel_utils.parallel_state import PG, cp_broadcast_object, init_parallel_groups
-from deepinfer.model_executor.parallel_utils.userbuffer import userbuffer
 from deepinfer.model_executor.utils import set_random_seed
 from deepinfer.timer import cpu_timer, cuda_timer
 from deepinfer.utils import (
     bind_cpu,
 )
-from deepinfer.worker.cache_engine import CacheEngine
-from deepinfer.worker.model_runner import ModelRunner
 from deepinfer.worker.runtime_config import configure_worker_environment, configure_worker_kernels
 
 logger = init_logger(__name__)
@@ -66,6 +63,7 @@ class WorkerBase:
         cp_rank: int,
         distributed_init_method: str,
         is_driver_worker: bool = False,
+        bounded_glm_startup: bool = False,
     ) -> None:
         self.engine_type = engine_type
         self.model_config = model_config
@@ -86,6 +84,13 @@ class WorkerBase:
 
             # Spawned workers do not share tqdm's process lock, and os._exit() skips its semaphore finalizer.
             tqdm.set_lock(RLock())
+
+        self._bounded_glm_startup = bounded_glm_startup
+        if bounded_glm_startup:
+            self._init_bounded_glm_process()
+            return
+
+        from deepinfer.worker.model_runner import ModelRunner
 
         self.model_runner = ModelRunner(
             model_config,
@@ -122,6 +127,37 @@ class WorkerBase:
             gc.freeze()
             self.start_slave_worker_loop()
 
+    def _init_bounded_glm_process(self) -> None:
+        """Start only the explicit four-rank, single-request GLM NPU process.
+
+        This intentionally does not allocate a V4 cache, load weights, or make
+        the engine production-ready. The driver must call the explicit GLM
+        initialization RPC after all ranks have entered the worker loop.
+        """
+        from deepinfer import PLATFORM
+
+        pc = self.parallel_config
+        if (not PLATFORM.is_npu or self.engine_type != EngineType.NORMAL
+                or self.model_config.architecture != "Glm5NextForConditionalGeneration"
+                or pc.world_size != 4 or pc.context_parallel_size != 4
+                or pc.data_parallel_size != 1 or pc.expert_parallel_size != 1
+                or pc.engram_parallel_size != 1 or pc.engine_rank != 0
+                or not 0 <= self.cp_rank < 4 or self.local_rank < 0
+                or bool(self.is_driver_worker) != (self.cp_rank == 0)
+                or self.nextn != 0 or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING):
+            raise ValueError("unsupported bounded GLM Worker configuration")
+        self.model_runner = None
+        self.cache_engine = None
+        self.gpu_cache = None
+        self.step = 0
+        self.gc_interval_step = envs.DEEPINFER_GC_INTERVAL_STEP
+        torch.set_num_threads(2)
+        self.device = torch.device(f"npu:{self.local_rank}")
+        torch.npu.set_device(self.device)
+        self.init_dist()
+        if not self.is_driver_worker:
+            self.start_slave_worker_loop()
+
     @functools.cached_property
     def gpu_id(self) -> int:
         return int(os.environ["CUDA_VISIBLE_DEVICES"].split(",")[self.local_rank])
@@ -133,9 +169,22 @@ class WorkerBase:
             getattr(self, method)(**kwargs)
 
     def stop(self) -> None:
+        if self._bounded_glm_startup:
+            adapter = getattr(self, "_glm_single_request_adapter", None)
+            if adapter is not None:
+                adapter.bridge.close()
+            dist.barrier()
+            PG.cleanup_shm_broadcast()
+            dist.barrier()
+            dist.destroy_process_group()
+            if not self.is_driver_worker:
+                os._exit(0)
+            return
         # `os._exit(0)` below skips destructors, which would leave the driver worker's UB
         # stuck at its destructor barrier, so close userbuffer explicitly between barriers.
         dist.barrier()
+        from deepinfer.model_executor.parallel_utils.userbuffer import userbuffer
+
         userbuffer.close()
         dist.barrier()
 
@@ -234,6 +283,8 @@ class WorkerBase:
         peak_allocated_memory = peak_torch_allocated_memory + max(non_torch_allocated_memory, 0)
         available_kv_cache_memory = total_gpu_memory * self.cache_config.gpu_memory_utilization - peak_allocated_memory
 
+        from deepinfer.worker.cache_engine import CacheEngine
+
         cache_block_size = CacheEngine.get_cache_block_size(
             self.cache_config.block_size,
             self.model_runner.model.cfg,
@@ -268,6 +319,8 @@ class WorkerBase:
         return num_gpu_blocks
 
     def init_cache_engine(self) -> None:
+        from deepinfer.worker.cache_engine import CacheEngine
+
         self.cache_engine = CacheEngine(self.cache_config, self.model_runner.model.cfg, self.model_config.max_num_seqs)
         self.gpu_cache = self.cache_engine.gpu_cache
 

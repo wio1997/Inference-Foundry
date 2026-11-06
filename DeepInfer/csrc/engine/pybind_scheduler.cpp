@@ -90,6 +90,7 @@ void pybind_engine_scheduler(pybind11::module &engine) {
                 return guard.try_allocate_seq(seq);
             },
             py::arg("seq"))
+        .def("set_additional_eos_token_ids", &Scheduler::set_additional_eos_token_ids, py::arg("token_ids"))
         .def("add_sequence", &Scheduler::add_sequence, py::arg("seq"))
         .def("abort_sequence", &Scheduler::abort_sequence, py::arg("request_ids"))
         .def("has_unfinished_seqs", &Scheduler::has_unfinished_seqs)

@@ -29,6 +29,17 @@ model=pathlib.Path(os.environ['GLM_MODEL_DIR']);source=pathlib.Path(os.environ['
 report={'rank':rank,'die':die,'world_size':world_size,'architecture':platform.machine(),'device':torch_npu.npu.get_device_name(0),'weight_index_sha256':sha(model/'quant_model_weights.safetensors.index.json'),'config_sha256':sha(model/'config.json'),'template_sha256':sha(model/'chat_template.jinja'),'install_sha256':sha(source/'rank_text_install.py'),'probe_sha256':sha(__file__),'library_sha256':sha(lib),'versions':{n:importlib.metadata.version(n) for n in ('torch','torch-npu','flash-linear-attention-npu-a3')},'status':'running','phase':'setup','scope':'distributed 45-layer one recall chat; replicated attention/router/embedding/head, sharded dense gate/up and selected experts; same-runtime baseline, not independent quality or production EP','started_at':datetime.datetime.now(datetime.timezone.utc).isoformat()}
 def save():
  p=out/'result.json';q=p.with_suffix('.tmp');q.write_text(json.dumps(report,indent=2,allow_nan=False)+'\n');q.replace(p)
+# The expected digest is retained separately in the live producer's memory.
+# This experimental path does not authenticate externally supplied digests.
+import importlib.util
+# Pin the separate candidate bytes before importing it; the same digest is
+# included in native evidence and the file is independent of the snapshot.
+_candidate_file=pathlib.Path(__file__).with_name('verified_state_archive.py')
+_candidate_source=_candidate_file.read_bytes()
+if hashlib.sha256(_candidate_source).hexdigest()!='72f558666681d86a7e7c0eef2a0c320da4080bebd6d1fe9b227323eefb82e9f7':raise ValueError('verified archive module SHA256 mismatch')
+_spec=importlib.util.spec_from_file_location('deepinfer.model_executor.models.glm5_next._round493_archive',_candidate_file)
+_candidate=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(_candidate)
+report['candidate_archive_sha256']=hashlib.sha256(_candidate_source).hexdigest()
 def archive_state_equal(a,b,config):
  checks={}
  for i,spec in enumerate(config.layers):
@@ -115,14 +126,14 @@ try:
      prepare_status=torch.zeros((1,),dtype=torch.int32,device='npu');failure=None;snapshot=None;blob=None
      try:
       snapshot=q.snapshot();blob=serialize_snapshot(snapshot,config,runner.stack.layout,max_tokens=context,max_archive_bytes=512*1024**2)
-      report['archive_sha256']=hashlib.sha256(blob).hexdigest();report['archive_bytes']=len(blob);report['archive_tokens_seen']=pos;report['archive_schema_version']=torch.load(__import__('io').BytesIO(blob),map_location='cpu',weights_only=True)['version'];assert report['archive_schema_version']==2
+      trusted_snapshot_digest=hashlib.sha256(blob).hexdigest();report['archive_sha256']=trusted_snapshot_digest;report['archive_bytes']=len(blob);report['archive_tokens_seen']=pos;report['archive_schema_version']=torch.load(__import__('io').BytesIO(blob),map_location='cpu',weights_only=True)['version'];assert report['archive_schema_version']==2
       q.close()
      except Exception as exc:failure=exc
      prepare_status.fill_(int(failure is not None));dist.all_reduce(prepare_status,op=dist.ReduceOp.MAX)
      if int(prepare_status.item()):raise RuntimeError('rank archive preparation failed') from failure
      failure=None;restored=None
      try:
-      restored=deserialize_snapshot(blob,config,runner.stack.layout,expected_request_id=request['run_id'],expected_tokens_seen=pos,device='npu',max_tokens=context,max_archive_bytes=512*1024**2)
+      restored=_candidate.deserialize_snapshot_verified(blob,config,runner.stack.layout,expected_sha256=trusted_snapshot_digest,expected_request_id=request['run_id'],expected_tokens_seen=pos,device='npu',max_tokens=context,max_archive_bytes=512*1024**2)
       report['archive_state_equal']=archive_state_equal(snapshot,restored,config)
       if snapshot.request_id!=restored.request_id or snapshot.tokens_seen!=restored.tokens_seen or len(report['archive_state_equal'])!=45 or not all(report['archive_state_equal'].values()):raise ValueError('restored archive state mismatch')
      except Exception as exc:failure=exc
@@ -135,7 +146,7 @@ try:
      except Exception as exc:failure=exc
      open_status.fill_(int(failure is not None));dist.all_reduce(open_status,op=dist.ReduceOp.MAX)
      if int(open_status.item()):raise RuntimeError('rank archive request open failed') from failure
-     report['archive_state_rank_agreement']=True
+     report['archive_digest_verified']=True;report['archive_state_rank_agreement']=True
      report['restore_after_first_token_completed']=True;save()
    report['stop_set_reached']=generated[-1] in stops;report['stop_token_id']=generated[-1] if report['stop_set_reached'] else None;report['stop_marker']=tok.decode([generated[-1]],skip_special_tokens=False) if report['stop_set_reached'] else None;report['tokenizer_eos_reached']=generated[-1]==tok.eos_token_id;report['cap_reached']=len(generated)==cap and not report['stop_set_reached'];report['generated_text']=tok.decode(generated,skip_special_tokens=False)
    body=generated[:-1] if report['stop_set_reached'] else generated

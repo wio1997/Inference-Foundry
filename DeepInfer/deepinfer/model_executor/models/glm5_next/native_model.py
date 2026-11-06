@@ -34,7 +34,7 @@ def _dsa_binding(operation):
 
 def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
                         max_expert_checkpoint_bytes,max_expert_resident_bytes,
-                        logical_block_size=128,config=None,tokenwise=True,expert_policy='all',dense_down_partitions=1,shared_down_partitions=1,fused_guard=False,fused_reference=False,hc_backend='torch',kda_backend='ascendc',chunk_prefill=False):
+                        logical_block_size=128,config=None,tokenwise=True,expert_policy='all',dense_down_partitions=1,dense_activation_backend='torch_fp32',shared_down_partitions=1,fused_guard=False,fused_reference=False,hc_backend='torch',kda_backend='ascendc',chunk_prefill=False):
     """Actual component loaders for one KDA/DSA and dense/all-expert layer.
 
     DSA operation must implement (DSAStep,DSAState)->(BF16[T,64,256],
@@ -43,6 +43,7 @@ def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
     Full global expert coverage prevents a selected bank missing routed IDs.
     """
     _native_device(device)
+    if dense_activation_backend not in ('torch_fp32','vllm_native'):raise ValueError('unknown dense activation backend')
     if hc_backend not in ('torch','ascend_installed'):raise ValueError('unknown mHC backend')
     if kda_backend not in ('ascendc','ascendc_installed_decode','ascendc_chunk_prefill'):raise ValueError('unknown native KDA backend')
     if type(chunk_prefill) is not bool or chunk_prefill != (kda_backend=='ascendc_chunk_prefill'):raise ValueError('chunk backend requires explicit chunk_prefill opt-in')
@@ -73,7 +74,9 @@ def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
         if isinstance(dsa_operation,NativeShortDSA):dsa_operation.bind(mla,indexer)
         attention=PreparedDSAAttention(mla,indexer,dsa_operation)
     if spec.mlp=='dense':
-        mlp=GlmDenseMLP.from_checkpoint(reader,layer_id,device) if dense_down_partitions==1 else GlmDenseMLP.from_checkpoint(reader,layer_id,device,down_partitions=dense_down_partitions)
+        dense_kwargs={} if dense_down_partitions==1 else {'down_partitions':dense_down_partitions}
+        if dense_activation_backend!='torch_fp32':dense_kwargs['activation_backend']=dense_activation_backend
+        mlp=GlmDenseMLP.from_checkpoint(reader,layer_id,device,**dense_kwargs)
     else:
         total=c.hf_config['text_config']['n_routed_experts']
         if expert_policy=='all':
@@ -100,7 +103,7 @@ def load_native_decoder(reader,layer_id,device,*,dsa_operation=None,
 def load_native_text_runner(reader,device,*,dsa_operations,
                             max_expert_checkpoint_bytes,max_expert_resident_bytes,
                             vocab_start,vocab_stop,max_head_rows=32,max_tokens=8,
-                            max_context_tokens=128,logical_block_size=128,expert_policy='all',dense_down_partitions=1,shared_down_partitions=1,fused_guard=False,fused_reference=False,hc_backend='torch',kda_backend='ascendc'):
+                            max_context_tokens=128,logical_block_size=128,expert_policy='all',dense_down_partitions=1,dense_activation_backend='torch_fp32',shared_down_partitions=1,fused_guard=False,fused_reference=False,hc_backend='torch',kda_backend='ascendc',max_requests=1):
     """Wire actual checkpoint factories through existing plan/stack/text runner.
 
     Missing DSA operations fail before any tensor payload read. Expert budgets
@@ -110,6 +113,8 @@ def load_native_text_runner(reader,device,*,dsa_operations,
     A selected vocabulary shard is diagnostic, not full-vocabulary generation.
     Native numerical/ABI correctness and capacity remain unverified.
     """
+    if type(max_requests) is not int or max_requests not in (1,2):raise ValueError('native request ownership bound must be 1 or 2')
+    if dense_activation_backend not in ('torch_fp32','vllm_native'):raise ValueError('unknown dense activation backend')
     _native_device(device)
     if expert_policy not in ('all','selected_per_token'):raise ValueError('explicit expert residency policy required')
     c=Glm5NextConfig.from_checkpoint(reader.root)
@@ -136,7 +141,7 @@ def load_native_text_runner(reader,device,*,dsa_operations,
         if fused_reference: kwargs['fused_reference']=True
         layer=load_native_decoder(reader,spec.layer_id,device,dsa_operation=dsa_operations.get(spec.layer_id),
             max_expert_checkpoint_bytes=max_expert_checkpoint_bytes,max_expert_resident_bytes=max_expert_resident_bytes,
-            logical_block_size=logical_block_size,config=c,expert_policy=expert_policy,dense_down_partitions=dense_down_partitions,hc_backend=hc_backend,kda_backend=kda_backend,**kwargs)
+            logical_block_size=logical_block_size,config=c,expert_policy=expert_policy,dense_down_partitions=dense_down_partitions,dense_activation_backend=dense_activation_backend,hc_backend=hc_backend,kda_backend=kda_backend,**kwargs)
         prepared[spec.layer_id]=layer
         return layer.attention
     def ffn(spec):return prepared[spec.layer_id].mlp
@@ -147,4 +152,4 @@ def load_native_text_runner(reader,device,*,dsa_operations,
     stack=PreparedDecoderStack(c,layout,layers)
     boundary=GlmTextBoundary.from_checkpoint(reader,device,max_unique_tokens=max_tokens,max_tokens=max_tokens)
     head=boundary.head_shard(vocab_start,vocab_stop,max_rows=max_head_rows)
-    return PreparedTextRunner(stack,boundary,head,max_context_tokens=max_context_tokens,max_requests=1,native_tokenwise=True).eval()
+    return PreparedTextRunner(stack,boundary,head,max_context_tokens=max_context_tokens,max_requests=max_requests,native_tokenwise=True).eval()

@@ -15,9 +15,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import torch
-from flash_mla.flash_mla_interface import FlashMLASchedMeta
-
-from deepinfer.model_executor.layers.tilelang_ops.get_kv_index import get_fused_dflash_get_input
 
 if TYPE_CHECKING:
     from deepinfer.model_executor.input_metadata.input_metadata import InputMetadataV4
@@ -50,6 +47,10 @@ class DFlashMetadataMixin:
             dflash_block_size: Draft tokens per request in the fixed-stride layout.
             window_size: SWA window size.
         """
+        from flash_mla.flash_mla_interface import FlashMLASchedMeta
+
+        from deepinfer.model_executor.layers.tilelang_ops.get_kv_index import get_fused_dflash_get_input
+
         assert not self.is_prompt
         assert self.block_tables is not None
 

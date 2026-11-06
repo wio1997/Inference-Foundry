@@ -160,6 +160,13 @@ void pybind_engine_sequence(pybind11::module &engine) {
         .def_readonly("seqlen_k", &SequenceMetadata::seqlen_k)
         .def_property_readonly("is_last_prompt_chunk", &SequenceMetadata::is_last_prompt_chunk)
         .def_property_readonly("full_len", [](const SequenceMetadata &self) { return self.seq_data->get_len(); })
+        .def("get_input_token_ids", [](const SequenceMetadata &self) {
+            TORCH_CHECK(self.seq_data != nullptr, "metadata has no sequence data");
+            const auto &ids = self.seq_data->get_token_ids();
+            TORCH_CHECK(self.seqlen_q > 0 && self.seqlen_k >= self.seqlen_q &&
+                static_cast<size_t>(self.seqlen_k) <= ids.size(), "invalid metadata token span");
+            return std::vector<int>(ids.begin() + (self.seqlen_k - self.seqlen_q), ids.begin() + self.seqlen_k);
+        }, "Copy the scheduled input span while its metadata is live.")
         .def_readonly("multi_modal_data", &SequenceMetadata::multi_modal_data)
         .def_readonly("last_output_token", &SequenceMetadata::last_output_token)
         .def_property_readonly("last_accepted_token", [](const SequenceMetadata &self) { return self.mtp.accepted_tokens; })

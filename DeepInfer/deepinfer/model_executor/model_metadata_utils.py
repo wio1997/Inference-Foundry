@@ -41,6 +41,10 @@ def derive_main_kv_cache_num_per_channels(cfg: AttrDict, is_swa: bool) -> int:
 
 class ModelMetadata:
     def __init__(self, cfg: AttrDict) -> None:
+        if cfg.get("model_type") == "glm5_next_text":
+            raise NotImplementedError(
+                "GLM hybrid KDA/DSA metadata and state are not implemented by the V4 metadata path"
+            )
         self.hc_enabled: bool = getattr(cfg, "hc_enabled", False)
         """有没有 hc 模块，如果有 hc 模块则一定是 muon 优化器"""
         self.hc_mult = getattr(cfg, "hc_mult", 1)
