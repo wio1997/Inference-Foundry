@@ -3,7 +3,7 @@
   "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
   "builder": {
     "path": "tools/build_global_cost_baseline.py",
-    "sha256": "04aaf24f014d37cd8851728f4eeac7157deb28fdc04dae3f8c7a71af80b095b0"
+    "sha256": "7e9dbff05d8e9579d81f3877f7279a3ed83b4e34777ef468aad542c3e755699e"
   },
   "sources": {
     "CURRENT-MECHANISM-VALUE.json": {
@@ -57,6 +57,14 @@
     "ORDERED-ITERATION-VALUE.json": {
       "path": "full-review/ORDERED-ITERATION-VALUE.json",
       "sha256": "ed32bb9053763ef0ab56a75ad385dc1e94a5b421fea723a1d43bb56e57269337"
+    },
+    "BATCHED-SLOT-PROFILE-COST.json": {
+      "path": "full-review/BATCHED-SLOT-PROFILE-COST.json",
+      "sha256": "45981e07b6df955f835d632371ee5e8efd1df9f6d61a4432d97d786515185697"
+    },
+    "BATCHED-SLOT-RESULT.json": {
+      "path": "full-review/BATCHED-SLOT-RESULT.json",
+      "sha256": "8e202f48b3d84a21694afbbb095ce133bf88fdf037fe8f0e333bd93f4024ba29"
     },
     "TERMINAL-PREFILL-PRIORITY.json": {
       "path": "full-review/TERMINAL-PREFILL-PRIORITY.json",
@@ -4806,6 +4814,84 @@
         }
       },
       "interpretation": "Region-specific observed work or explicitly conditional schedule screen; overlapping alternatives, not additive savings."
+    },
+    {
+      "id": "current_slot_node_API",
+      "cohort": "current_cp_slot_cpuplan",
+      "source": "BATCHED-SLOT-PROFILE-COST.json",
+      "json_pointer": "/summary",
+      "metrics": {
+        "native_union_ms": {
+          "n": 112,
+          "min": 0.120377,
+          "median": 0.12124,
+          "max": 0.12272
+        },
+        "node_API_union_ms": {
+          "n": 112,
+          "min": 0.14909,
+          "median": 0.161195,
+          "max": 0.18645
+        },
+        "combined_union_ms": {
+          "n": 112,
+          "min": 0.260855,
+          "median": 0.2795725,
+          "max": 0.30829
+        },
+        "generous_sum_ms": {
+          "n": 112,
+          "min": 0.26987,
+          "median": 0.282455,
+          "max": 0.30829
+        },
+        "generous_sum_fraction": {
+          "n": 112,
+          "min": 0.004002735702675827,
+          "median": 0.0051028224333648,
+          "max": 0.005427367053029375
+        }
+      },
+      "interpretation": "Region-specific observed work or explicitly conditional schedule screen; overlapping alternatives, not additive savings."
+    },
+    {
+      "id": "fixed_slot_caller_batch",
+      "cohort": "isolated_logical15_fixed26jobs",
+      "source": "BATCHED-SLOT-RESULT.json",
+      "json_pointer": "/summary",
+      "metrics": {
+        "serial_wall_ms": {
+          "n": 12,
+          "min": 1.102008375,
+          "median": 1.2034851875,
+          "max": 1.889518875
+        },
+        "batch_wall_ms": {
+          "n": 12,
+          "min": 0.23544975,
+          "median": 0.2411919375,
+          "max": 0.283665625
+        },
+        "paired_saved_ms": {
+          "n": 12,
+          "min": 0.866558625,
+          "median": 0.9608375625000001,
+          "max": 1.6494876250000001
+        },
+        "serial_caller_CPU_ms": {
+          "n": 12,
+          "min": 1.094675,
+          "median": 1.195113125,
+          "max": 1.84867125
+        },
+        "batch_caller_CPU_ms": {
+          "n": 12,
+          "min": 0.22943,
+          "median": 0.2358875,
+          "max": 0.27791875
+        }
+      },
+      "interpretation": "Region-specific observed work or explicitly conditional schedule screen; overlapping alternatives, not additive savings."
     }
   ],
   "communication_readiness_example": {
@@ -4877,6 +4963,31 @@
       "Native shared weights are created as logical2D tensors with npu_format_cast29; the current service profile uses4D NZ descriptors. Descriptor representations and synthetic weights/routes are not a loaded-model equivalence proof."
     ],
     "reopen_unchanged_experiment": false
+  },
+  "native_caller_batch_example": {
+    "source": "BATCHED-SLOT-RESULT.json",
+    "coverage": {
+      "input_generations": 3,
+      "output_banks_per_generation": 52,
+      "whole_bank_exact": true,
+      "stable_addresses": true,
+      "paired_samples": 12,
+      "repetitions_per_sample": 8,
+      "warmup_groups_per_arm": 5
+    },
+    "gate": {
+      "frozen_saved_ms": 0.5557371,
+      "median_paired_saved_ms": 0.9608375625000001,
+      "all_pairs_positive": true,
+      "passed": true
+    },
+    "limits": [
+      "Not a production integration, graph replay or C8 result; no service speedup is claimed.",
+      "First compressed pair/page64 and12 uncompressed pairs/page128 are declared representative constants,not a complete live argument census.",
+      "Whole-bank sentinels and finite input generations do not prove every alias,reader,lifetime or branch.",
+      "No outlier filtering; the large serial sample remains in all12paired samples. Unmeasured physical capacities remain unknown."
+    ],
+    "meaning": "One fixed eager caller comparison,not a universal launch-cost curve or C8 gain."
   },
   "unmeasured_capacities": {
     "communication_latency_bandwidth_curves": null,
