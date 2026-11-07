@@ -6,6 +6,7 @@
 
 | 入口 | 内容 |
 |---|---|
+| [普通负载在 171 的实测](baselines/workloads.md#171-的普通请求已实测) | 逐卡 guard 命中、首文本前的图回放、跨 DP 缓存和对照输出 |
 | [常见推理场景与候选适用范围](baselines/workloads.md) | 真实对话、短代码回复、多轮前缀复用，以及本机还需要哪些证据 |
 | [EP16 加到批量 slot 的实际增量](baselines/ep16-batched-slot-c8.json) | 各指标的独立裁决、同一代服务上的九轮计时和恢复 |
 | [DSpark 三层非专家工作的整组收益](baselines/draft-fixed-expert.json) | 保留专家耗时，比较具名计算与全部剩余时间，识别决定判断的请求 |
