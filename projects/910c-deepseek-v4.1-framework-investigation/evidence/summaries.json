@@ -1,4 +1,98 @@
 {
+  "SHARED-COLLECTIVE-CALIBRATION.json": {
+    "source_sha256": "ab8c7fb91ecaef0be95343e14123adddb96c20734ae456d54a36e713929fda16",
+    "data": {
+      "status": "SCOPED_TP8_COLLECTIVE_CALIBRATION_ACCEPTED",
+      "run_id": "shared-collective-calibration-5d29ceef3318",
+      "code_commit": "5d29ceef331851f51a96360af529ced82ddc42e6",
+      "pilot_output_checks": 544,
+      "protocol": {
+        "calls_per_replay": 16,
+        "rounds": 9,
+        "warmup_replays": 3,
+        "order": "Each round rotates TP0,TP1,both,with host-wide Gloo barriers. Each active rank replays16 consecutive collectives.",
+        "statistic": "Within each mode/round/group take max of eight per-rank elapsed times,then median of nine rounds. Retain all samples and group-specific results. Check same-host invocation overlap across groups.",
+        "scope": "Graph replay amortized latency in idle-service environment,with ranks admitted together. Distinct statistic from single collective task duration in model profile."
+      },
+      "count_convention": {
+        "allGather": "input elements per rank",
+        "allReduce": "elements per rank",
+        "reduceScatter": "output elements per rank",
+        "alltoall": "elements per peer in an equal-split exchange"
+      },
+      "previous_run_dispositions": {
+        "shared-collective-calibration-84705e5e479c": "Its pilot established count semantics. The controller could not attribute three exiting PIDs. Its timings were excluded before analysis.",
+        "shared-collective-calibration-6d345186c6ef": "Default backend timing reference. The model uses AIV and the service buffer setting."
+      },
+      "service": {
+        "identity_unchanged": true,
+        "workers_unchanged": true,
+        "health_http": 200,
+        "short_generation_tokens": 2,
+        "container_started_at": "2026-11-07T00:58:20.436708445Z",
+        "finished_utc": "2026-11-07T01:48:07.457674+00:00"
+      },
+      "limits": [
+        "Scope is captured equal-shape standalone PyTorch/HCCL collectives on two currentTP8 groups with an idle resident service. The AIV pilot records eager and captured dispatch on one leader of each group.",
+        "Device-event time per call amortizes sixteen operations in one replay. Values may include local readiness, scheduling and protocol work. Host interval intersection establishes co-issued windows only.",
+        "Placement, concurrency, forwarding, layout and graph or eager mode constrain reuse. F21 internal EP16 phases, physical wire bandwidth, whole-model critical path and C8 gains require their own evidence."
+      ],
+      "overall_complete": false,
+      "numeric_model_ceiling": null,
+      "terminal_HC": {
+        "old_two_gather_union_us": {
+          "n": 112,
+          "min": 26.24,
+          "median": 32.85,
+          "max": 40.119
+        },
+        "old_two_gather_fraction": {
+          "n": 112,
+          "min": 0.00040859084861490325,
+          "median": 0.0005751350039765208,
+          "max": 0.0007384780458635892
+        },
+        "operand_reduction_bytes_per_rank": 92208,
+        "charges": [
+          {
+            "dp": 0,
+            "mode": "tp0",
+            "old_two_serial_reference_us": 58.58500115573406,
+            "new_one_reference_us": 23.85750040411949,
+            "conditional_reference_delta_us": 34.72750075161457
+          },
+          {
+            "dp": 0,
+            "mode": "both",
+            "old_two_serial_reference_us": 57.55625106394291,
+            "new_one_reference_us": 23.753749206662178,
+            "conditional_reference_delta_us": 33.80250185728073
+          },
+          {
+            "dp": 1,
+            "mode": "tp1",
+            "old_two_serial_reference_us": 53.52749861776829,
+            "new_one_reference_us": 24.46874976158142,
+            "conditional_reference_delta_us": 29.058748856186867
+          },
+          {
+            "dp": 1,
+            "mode": "both",
+            "old_two_serial_reference_us": 55.91374821960926,
+            "new_one_reference_us": 25.35500004887581,
+            "conditional_reference_delta_us": 30.558748170733452
+          }
+        ],
+        "decision": "Defer a standalone terminal transport experiment for this decode scope. Keep wider compute, readiness and row-ownership changes in their existing branch contracts.",
+        "assumptions": [
+          "The narrow route requires all raw-plane and coefficient readers to accept the changed publication. If either raw output remains required, this replacement charge does not apply.",
+          "The old rank trace binds both gather tasks by task row in each actual terminal window. The reference charge sums separately calibrated medians under a serial fixed-outside-work assumption.",
+          "The graph benchmark measures repeated identical calls. A single mixed sequence can have different launch, cache, scheduling and readiness costs."
+        ]
+      },
+      "table": "baselines/collective-calibration.json"
+    }
+  },
   "CURRENT-COMMUNICATION-TOPOLOGY.json": {
     "source_sha256": "10ac3fc339f2f906051b9eee14c9c636779f6facc3f99b480f4e2d016599cdfe",
     "data": {
@@ -1237,13 +1331,13 @@
     }
   },
   "GLOBAL-MATERIAL-GAPS.json": {
-    "source_sha256": "d70ae763b9902ec0b170d421d55fe381e87d6c5380cde85e22b8ab37ac9f348a",
+    "source_sha256": "480110bb380c4f66a8980aa4a92ee00768ac3f4e9477ae4b0b8c9534800ee9ac",
     "data": {
       "status": "SHARED_DEPENDENCY_GAPS_PRIORITIZED_WITH_TOPOLOGY_EVIDENCE",
-      "updated_utc": "2026-11-07T01:23:51.355158+00:00",
+      "updated_utc": "2026-11-07T01:50:29.849527+00:00",
       "ordering": "Reuse established facts first;resolve sharedcost applicability and output before timings;only then a new material candidate. This is not a new all-pairs research program.",
       "previous_goal_turn": "PROGRESS",
-      "current_goal_turn": "PROGRESS:16rank physicalbindings,TP8 topology and nominalfield units established from immutableprofileDB metadata,driverquery and officialdoc.",
+      "current_goal_turn": "PROGRESS. Completed model-mode AIV calibration for ten operand tuples, bound28observed classes, and priced the M08 raw-to-collapsed transport branch in112windows.",
       "gaps": [
         {
           "id": "G01",
@@ -1286,7 +1380,7 @@
             "M08",
             "M10"
           ],
-          "status": "NEXT_SHARED_CALIBRATION_ADMISSION",
+          "status": "TEN_TP8_OPERAND_TUPLES_CALIBRATED_AIV_GRAPH",
           "evidence": [
             {
               "path": "full-review/CURRENT-COMMUNICATION-COST-CATALOG.json",
@@ -1303,6 +1397,10 @@
             {
               "path": "full-review/F21-PHYSICAL-ROUTE-DELIVERY.json",
               "sha256": "34293c6b9d596e1ce2f98d8c5a2f08176f499630161b7c8f93092103be77e51f"
+            },
+            {
+              "path": "full-review/SHARED-COLLECTIVE-CALIBRATION.json",
+              "sha256": "ab8c7fb91ecaef0be95343e14123adddb96c20734ae456d54a36e713929fda16"
             }
           ],
           "dependent_decisions": [
@@ -1310,10 +1408,11 @@
             "Per-rank versus per-device-unit quantized-row delivery for F21.",
             "Whether standalone collective costs can support a wider shared mechanism."
           ],
-          "existing_scope": "16016records,28phase/group classes;10unique operator/rankSize/count/dtype tuples. Timing includes readiness;reported bytes are not wire bytes.",
-          "next": "Prepare one bounded shared calibration using installed framework/HCCL and actual payload tuples. An excluded profile admission binds known API input/output sizes to reported count before any timings. Price isolatedTP8 and simultaneousDP2 separately;do not substitute standalone collectives for internalMC2.",
+          "existing_scope": "16workers,544pilot output checks,10 graph-replay cases,9fixed rounds in each mode. All28 workload classes join by tuple,group and algorithm label. Current-model native bindings exist for24classes. Four large-gather classes retain224unbound model records.",
+          "next": "Reuse baselines/collective-calibration.json for matching API payload and concurrency. Return to the stage and rank-readiness decisions in G03.",
           "stop": "Do not reopen closed candidates merely because a rate is now available. Verify actual parameters/selection and output first. Freeze cases and repetitions before result;one environment window,then restore original.",
-          "gain_prediction": "No service gain predicted by calibration alone. It supplies common replacement-cost evidence;candidate-specific reader and critical-path gates still apply."
+          "gain_prediction": "No service gain predicted by calibration alone. It supplies common replacement-cost evidence;candidate-specific reader and critical-path gates still apply.",
+          "remaining": "Physical per-link traffic, solitary eager latency, actual model peer readiness and F21 internal EP16 costs."
         },
         {
           "id": "G03",
@@ -1344,7 +1443,7 @@
             "CompleteHC early-output scheduling"
           ],
           "existing_scope": "Target idealized router-gated shared schedule median2.20584ms,withF21-exclusive constraint0.5938425ms;these alternatives are not additive. DraftF21 median0.561894ms includingwait,role differs fromtarget.",
-          "next": "Reuse saved stage/role profiles;select a distinguishing readiness or resource observation only for a changed material mechanism. G02 cannot by itself identify readiness in the original trace.",
+          "next": "Start with target versus DSpark draft F21. Reuse current per-rank, per-layer, role and window traces to bound the contribution of localized long F21 calls. Price a phase-level or route-specific observation only if it changes selection of a distinct schedule.",
           "stop": "No repeat of unchanged sharedF21/flag-only/QA-only variants or unrelated concurrency-pair matrix."
         },
         {
@@ -1445,7 +1544,7 @@
           "stop": "Do not sum overlaps,nominalports,perlogicalcachepools or historicalpercentagegains into a modelceiling."
         }
       ],
-      "new_NPU_work": false,
+      "new_NPU_work": true,
       "service_actions": [],
       "overall_complete": false,
       "numeric_model_ceiling": null

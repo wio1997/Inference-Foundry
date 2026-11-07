@@ -14,7 +14,7 @@
 |---|---|---|
 | 实际成本与频次 | 112 个本地周期的算子频次/区间并集，17组区域或历史频次表 | 新候选只做自己的任务集合绑定，避免重复导出与全量扫描；历史尾部比值不是周期或服务收益 |
 | 设备与拓扑 | 16逻辑设备、24Cube/48Vector及每设备报告192MiB L2；[已绑定双芯片/SIO/HCCS拓扑](topology.json)，含限制 | 物理池共享、可达速率与硬上界未定；容量不能代替带宽 |
-| 通信 | [16016条当前记录、28类消息/阶段成本](communication.json)，15792条绑定native、224条保留；历史TP就绪差异与EP对照 | 纯传输/等待拆分、线缆流量口径、实际路由和并发曲线；现有TP8表不代表MC2内部EP流量 |
+| 通信 | [16016条当前记录、28类消息/阶段成本](communication.json)，15792条绑定native、224条保留。[10种参数的AIV图回放校准](collective-calibration.json)记录两组TP8的单组与并发耗时 | 纯传输/等待拆分、物理线路流量和其他并发条件；现有TP8表不代表MC2内部EP流量 |
 | 内存与数据搬运 | 逻辑字节、布局与驻留合同 | HBM/L2/host-UVA 的工作集与并发条件曲线；支撑消除物化、缓存和直接交付 |
 | 计算与小算子 | 已选路径的 shape、频次和真实区间 | 只对仍有价值的矩阵形状、归约/量化族补吞吐；不对每个 Cast 单独测 |
 | 调度与竞争 | 图内实际序列、F21/shared 原生失败对照及短 profile | 新机制需要的 event/launch/资源竞争；区间相交不能当成等量算力重叠 |
@@ -40,9 +40,9 @@
 
 ## 查询与失效规则
 
-分析库中运行 `python3 tools/query_global_cost.py --op hcom_` 查询通信导航，或 `--region current_ffn_post` 查询区域表。查询校验原文件 SHA256；条目过期则重建受影响视图。重建命令为 `python3 tools/build_global_cost_baseline.py`，不访问服务器。
+分析库中运行 `python3 tools/query_global_cost.py --op hcom_` 查询通信导航，或 `--region current_ffn_post` 查询区域表。查询校验原文件 SHA256，条目过期则重建受影响视图。重建命令为 `python3 tools/build_global_cost_baseline.py`，不访问服务器。
 
-具体通信成本可运行 `python3 tools/query_global_cost.py --comm allGather --count 15360 --dp 0 --phase target_graph`，加 `--details` 查看逐rank分布。返回实际count、dtype、组、阶段、次数与耗时；`reported_count_bytes`只是count乘元素字节数，尚未校准成各类collective的发送/接收或链路流量口径。带宽保持未知。dtype按安装头文件的HcclDataType枚举解码，不能查同编号的字符串表。重建该表运行 `python3 tools/build_communication_cost_catalog.py`，复用本地缓存，不访问服务器。
+具体通信成本可运行 `python3 tools/query_global_cost.py --comm allGather --count 15360 --dp 0 --phase target_graph`，加 `--details` 查看逐rank分布。返回实际count、dtype、组、阶段、次数与耗时；`reported_count_bytes`仅表示count乘以元素字节数。校准项另列每rank的逻辑输入和输出字节，等分AllToAll的count按每个对端解释。物理链路流量和纯传输带宽仍未知。dtype按安装头文件的HcclDataType枚举解码，不能查同编号的字符串表。重建该表运行 `python3 tools/build_communication_cost_catalog.py`，复用本地缓存，不访问服务器。
 
 复用键包括硬件/拓扑、软件及内核版本、phase、shape/dtype/布局、通信组、消息字节口径、图/流、缓存与权重代际、并发条件。变更只使相关条目失效；迁移服务器或改变 CANN 后不能直接继承性能数字。
 
@@ -98,4 +98,4 @@ M09 直接复用 16 份本地缓存、112 个已绑定窗口与旧 seed 数值�
 
 批量slot冻结C8通过：候选中位12.639457秒，比前后基线降低3.392000%/2.215879%；12case文本及2496银行比较一致。该结果独立于上文原生对照，不叠加历史收益。
 
-当前已完成16rank物理绑定及TP8拓扑核对，见[拓扑表](topology.json)。[六组公共缺口](material-gaps.json)给出共享依赖及下一动作。通信的10种实际operand元组将共用一次参数口径验收与校准准备，尚未启动性能测量。设备标准链路速率不等于HCCL有效带宽。
+当前已完成16rank物理绑定及TP8拓扑核对，见[拓扑表](topology.json)。[六组公共缺口](material-gaps.json)给出共享依赖及下一动作。10种实际通信参数已完成AIV图回放校准，共覆盖28类模型记录。表中列出每rank输入输出字节、两个TP8各自运行及双组并发的耗时。[校准数据](collective-calibration.json)。设备标准链路速率不等于HCCL有效带宽。
