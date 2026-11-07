@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T22:28:13.321216+00:00",
-  "source_analysis_commit": "06e840bb58c9653fc52bdf34ba3ebc10c6d76569",
+  "updated_at_utc": "2026-11-07T22:40:00.903216+00:00",
+  "source_analysis_commit": "cd956be7ef1e44c614c444daa21998059f8cb15c",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M09 常规随机采样、截断和分数返回的融合估算",
+  "active_module": "按模块核对仍可能改变请求收益排序的融合分支",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "固定 greedy 数据中的零命中已有记录。常见非 greedy 路径按相同消费者一次分组，先用已存 910C 的 B4×129280 top-k/top-p 原生时间、六个请求的生成步数和测到的形状，估算不同返回合同下的融合价值与达到 1% 所需的命中次数。只有能改变排序的形状或随机状态约束才再取证。",
-    "decision": "在计数事件保持原就绪时刻、主线程按原顺序读取、独立提交线程的 CANN 空档可吸收提前量的模型中，context KV 的主机提交可传到冻结 C8 整批的预算为 10.07–12.94 ms（0.05%–0.07%）。加上兑现一半的设备工作，并允许两笔收益完全串行，整批约省 38.56–43.70 ms（0.21%–0.24%）。若两部分各取每轮最有利的卡，设备端连三次必要投影也免费，整批预算为 156.47 ms（0.84%），首 token P90 为 21.06 ms（1.41%）。冻结负载下这条融合降级。profile 未导出事件句柄及提交队列深度，普通请求未套用这组等待比例。",
+    "work": "按 M00–M11 的执行顺序，将仍有可能达到请求收益门槛的未决分支，对应到生产者、实际读者、可省工作和已有成本。相同读者与机制一次处理。优先核对 M04/M05 的工作区写读能否由相邻计算共同消去，以及普通请求是否改变排序。",
+    "decision": "专家放置、冷热分布、权重复制和前缀路由归历史记录。采样双掩码在 B4 每次节省 18.72 µs；已有 greedy 负载零命中。沿用六个普通请求的轮数，两种随机采样外推均低于 0.06%，该机制降级。",
     "source": {
-      "path": "full-review/C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
-      "sha256": "4f9c6055536f67c7bf50515ff9268005bdc9c1579f355a8fe52fe7cd3a833d00"
+      "path": "full-review/RANDOM-SAMPLING-FUSION-ESTIMATES.json",
+      "sha256": "919218e94945f8f988b749aebdb6365df26736160bee19ede6afa7946dbc9f48"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 125,
+    "region_tables": 126,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Cross-iteration CPU count gate on frozen C8, seed epilogue on six ordinary request histories and per-rank runtime type dictionary reconciliation.",
+    "performance_scope": "Reused isolated 910C filter timing, greedy C8 geometry and six ordinary request histories. Only the merged mask update receives fusion credit.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -249,7 +249,8 @@
         ],
         "passes_frozen_gate": true
       }
-    }
+    },
+    "fusion_scope": "historical_layout_or_routing"
   },
   "shared_material_gaps": {
     "source": "baselines/material-gaps.json",
@@ -279,20 +280,16 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M09/M10/M11; graph runtime type reconciliation",
+    "scope": "M09 joint cutoff mask",
     "sources": [
-      "baselines/draft-submit-waits.json",
-      "baselines/target-family-filter.json"
+      "baselines/random-sampling-fusion.json"
     ],
     "observations": [
-      "227 个真实批次共 3,624 条逐卡调用，目标选词后的有效 token 数在侧流回传。该事件的主机提交比三层草稿 context KV 的首次提交中位早 5.03 ms。3,552 条连续图调用满足定价的请求延续条件，其中 3,528 条能对应到原始 slot 提交前的主线程等待。用各自波次的 host/device 时钟约束，3,518 条的全部相容等待都在计数就绪前进入。没有相容记录或不满足分支条件时，仍计整段主机预算。",
-      "在计数事件保持原就绪时刻、主线程按原顺序读取、独立提交线程的 CANN 空档可吸收提前量的模型中，context KV 的主机提交可传到冻结 C8 整批的预算为 10.07–12.94 ms（0.05%–0.07%）。加上兑现一半的设备工作，并允许两笔收益完全串行，整批约省 38.56–43.70 ms（0.21%–0.24%）。若两部分各取每轮最有利的卡，设备端连三次必要投影也免费，整批预算为 156.47 ms（0.84%），首 token P90 为 21.06 ms（1.41%）。冻结负载下这条融合降级。profile 未导出事件句柄及提交队列深度，普通请求未套用这组等待比例。",
-      "目标选词直接输出下一 token 和有效计数，需保留完整采样 ID、discard、备选 token 和原位置语义。3,624 条记录从目标选词结束到侧流事件完成的中位为 43.10 µs。把这段连同拷贝全部免去，每轮任选最有利的卡，整批也只省 10.14 ms，首 token P90 省 0.22 ms。六个普通请求按各自校验次数估算 0.16–2.80 ms，最高约 0.065%。这项附带融合降级。",
-      "原筛查中的 69 个数字编号来自 16 份数据库各自的字符串表，其中 25 个编号在不同数据库中有多种含义。用每卡自己的表逐条还原全部 3,632 次图回放后，共有 10 种运行时任务，包括事件、等待、模型执行和异步拷贝。关联到具体生产者和读者时再计入其融合收益。已命名的 60 类计算或通信任务及其筛查数值保留。"
+      "在 910C 的 4 行 × 129,280 词 FP32 隔离计时里，top-k 与 top-p 依原始概率各算阈值，合成一次 logits 掩码写回，过滤阶段中位从 596.37 降到 577.65 µs。只开 top-k 时另有 126.95 µs 差额来自用有界 top-k 替换全排序，单独归入算法改写。",
+      "冻结 C8 的 453 次 TP8 目标选词全走 greedy。假设每个请求改走同一 Ascend 双截断路径，维持原组批和校验轮数，按每次固定成本、按行线性缩放两种外推，整批分别省 8.48、24.83 ms（0.046%、0.134%）。同法用于六个普通对话和代码请求，预计响应耗时降幅均低于 0.06%。两种外推用于排序，实测随机请求可能改变接受率和轮数。",
+      "无截断、仅一个阈值、两阈值及 batch-invariant 回退分别处理。双阈值合并保留滤前概率、比较同分规则和 logits 原位别名。普通或 bonus 的概率除以随机数后选词，以及校验使用概率和恢复 token，属于不同的生产者与读者。返回完整或指定分数时还要保留对应 raw/processed 张量。那些下游融合尚缺同条件计时。"
     ],
-    "new_performance_measurements": 0,
-    "real_batch_waves": 227,
-    "live_TP8_calls": 453
+    "new_performance_measurements": 0
   },
   "request_region_screen": {
     "record": "baselines/request-region-screen.json",
@@ -312,19 +309,18 @@
     "run_id": "prefix-routing-838dd76c9571",
     "record": "baselines/prefix-routing.json",
     "result": "在原服务上让相同后续请求分别到已缓存和另一组 DP，两个输入长度各交换两次目的地和顺序。四对比较共查询 4,966 个后续输入 token，同组多命中 4,608.0 个。四对中 1 对输出文本相同。在固定 32K C8 上，允许任意借用两组种子和所有其它输入时最多能命中 235,904 个 token，比原有实测多 0 个。",
-    "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。"
+    "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。",
+    "fusion_scope": "historical_layout_or_routing"
   },
   "current_value_priority": {
     "method": "先在现有 profile 中按模块、分支和实际出现次数汇总可能改变的整段工作。对必须提前的请求，用可变工作全部免费估算上限。在固定排程下，端到端上限低于该指标参考的改写连同其子集一起暂缓。局部占比只用于排序；若小算子会改变大计算、通信、同步或后续迭代，将这些工作一并估价。对过线范围扣除必须保留的工作、替代成本和已经重叠的时间，再比较端到端收益与基线波动。已有通信和搬运数据按大小、拓扑、并发和布局复用。仅在未知量可能改变取舍时补证，未覆盖的分支留在台账。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "run_id": "prefix-routing-838dd76c9571",
-      "record": "baselines/prefix-routing.json",
-      "result": "在原服务上让相同后续请求分别到已缓存和另一组 DP，两个输入长度各交换两次目的地和顺序。四对比较共查询 4,966 个后续输入 token，同组多命中 4,608.0 个。四对中 1 对输出文本相同。在固定 32K C8 上，允许任意借用两组种子和所有其它输入时最多能命中 235,904 个 token，比原有实测多 0 个。",
-      "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。"
+      "record": "baselines/random-sampling-fusion.json",
+      "result": "冻结 C8 的 453 次 TP8 目标选词全走 greedy。假设每个请求改走同一 Ascend 双截断路径，维持原组批和校验轮数，按每次固定成本、按行线性缩放两种外推，整批分别省 8.48、24.83 ms（0.046%、0.134%）。同法用于六个普通对话和代码请求，预计响应耗时降幅均低于 0.06%。两种外推用于排序，实测随机请求可能改变接受率和轮数。"
     },
-    "next": "固定 greedy 数据中的零命中已有记录。常见非 greedy 路径按相同消费者一次分组，先用已存 910C 的 B4×129280 top-k/top-p 原生时间、六个请求的生成步数和测到的形状，估算不同返回合同下的融合价值与达到 1% 所需的命中次数。只有能改变排序的形状或随机状态约束才再取证。",
-    "decision": "在计数事件保持原就绪时刻、主线程按原顺序读取、独立提交线程的 CANN 空档可吸收提前量的模型中，context KV 的主机提交可传到冻结 C8 整批的预算为 10.07–12.94 ms（0.05%–0.07%）。加上兑现一半的设备工作，并允许两笔收益完全串行，整批约省 38.56–43.70 ms（0.21%–0.24%）。若两部分各取每轮最有利的卡，设备端连三次必要投影也免费，整批预算为 156.47 ms（0.84%），首 token P90 为 21.06 ms（1.41%）。冻结负载下这条融合降级。profile 未导出事件句柄及提交队列深度，普通请求未套用这组等待比例。",
+    "next": "按 M00–M11 的执行顺序，将仍有可能达到请求收益门槛的未决分支，对应到生产者、实际读者、可省工作和已有成本。相同读者与机制一次处理。优先核对 M04/M05 的工作区写读能否由相邻计算共同消去，以及普通请求是否改变排序。",
+    "decision": "专家放置、冷热分布、权重复制和前缀路由归历史记录。采样双掩码在 B4 每次节省 18.72 µs；已有 greedy 负载零命中。沿用六个普通请求的轮数，两种随机采样外推均低于 0.06%，该机制降级。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
@@ -343,7 +339,8 @@
     "run_id": "ffn-service-c8-88638cf0d6aa",
     "record": "baselines/ep16-batched-slot-c8.json",
     "result": "三组均启用 CP、CPU plan 和 26→1 slot。只在候选组启用 800–834 行的 EP16 专家布局。首 token P90 相对前参照延长1.11%，相对后参照缩短2.07%，未通过预设门槛，整批耗时相对前参照缩短2.47%，相对后参照缩短1.63%，通过预设门槛。9 轮计时的 41 个 prefill 批中有 13 个命中条件；11 轮的 88 份输出文本全等。",
-    "decision": "当前批量 slot 配置上，可确认的增量为整批耗时。"
+    "decision": "当前批量 slot 配置上，可确认的增量为整批耗时。",
+    "fusion_scope": "historical_layout_or_routing"
   },
   "ordinary_serving_observation": {
     "run": "ordinary-load-9144f2d04ace",
