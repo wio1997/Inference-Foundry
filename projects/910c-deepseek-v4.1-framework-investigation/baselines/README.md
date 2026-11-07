@@ -29,6 +29,8 @@ jq -r '.rows[] | [.module, .region, .screen, (.P90_upper_ms_by_scenario | tojson
 jq '.entries[] | select(.M == 416 and .DP == 0 and .operator == "hcom_allGather_") | {count, calls, per_rank_input_bytes, per_rank_output_bytes, max_rank_us, logical_payload_GB_s_at_median}' baselines/eager-tp8.json
 ```
 
+单独提前发布当前首 token 时，要从每个请求可变的时间里扣除它此前迭代的全部工作。即使将当前最终 FFNPost 到草稿末端 Fill 都视为可隐藏，历史 P90 的上界仍为 12.807 ms。另一侧，最终 FFN 的按需行只有与末端读出一起改写才在分阶段估算中过线。两种判断都复用了上述八请求及同一套跨卡时钟约束。[最终层与当前输出的逐请求证据](terminal-sparsity.json)
+
 ## 本次反思
 
 此前把“落盘”当成了“可复用”：许多频次、区间、拓扑与失败结果已经保存，但每个候选还要重新寻找、解释和判断适用范围。另一方面，先做接口/局部正确性再估算完整收益，使一些成本过小的候选进入了实验；M06 的接入失败也暴露出环境准备没有充分复用。这些是流程问题，不应归因于代码量大。

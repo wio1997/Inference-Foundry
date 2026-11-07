@@ -8,6 +8,7 @@
 |---|---|
 | [完整排查报告](REPORT.md) | 固定范围、执行顺序、价值筛查、实验裁决、理论边界和重要缺口 |
 | [模块分析](modules/README.md) | M00–M11 的分支、改写空间、证据、处置和下一步 |
+| [最终 FFN 与词表行需求](baselines/terminal-sparsity.json) | 171 功能对照、按原行归属的紧凑投递、替代成本上限 |
 | [八请求批量价值筛查](baselines/request-region-screen.json) | 16 种改写范围、各自的首 token P90 上界、会改变裁决的假设 |
 | [共享单位成本速查](baselines/unit-costs.md) | 真实消息尺寸在两组 TP8 的单组和并发延迟、跨模块复用和集中补测条件 |
 | [统一成本基线](baselines/README.md) | 已有频次/成本统一查询、通信等公共缺口、集中补测与停止规则 |
