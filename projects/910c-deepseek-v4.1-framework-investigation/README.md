@@ -6,6 +6,7 @@
 
 | 入口 | 内容 |
 |---|---|
+| [常见推理场景与候选适用范围](baselines/workloads.md) | 真实对话、短代码回复、多轮前缀复用，以及本机还需要哪些证据 |
 | [EP16 加到批量 slot 的实际增量](baselines/ep16-batched-slot-c8.json) | 各指标的独立裁决、同一代服务上的九轮计时和恢复 |
 | [DSpark 三层非专家工作的整组收益](baselines/draft-fixed-expert.json) | 保留专家耗时，比较具名计算与全部剩余时间，识别决定判断的请求 |
 | [mHC 循环提前退出的价值筛查](baselines/mhc-iteration-cost.json) | 真实调用次数、两侧的合计收益、提前退出的最晚时点与开销 |
