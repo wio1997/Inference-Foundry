@@ -1,25 +1,29 @@
 {
-  "updated_at_utc": "2026-11-07T12:54:58.482197+00:00",
-  "source_analysis_commit": "017f6f72439e29d4b96f0ba22cb272ccedd2a43d",
+  "updated_at_utc": "2026-11-07T13:45:31.138305+00:00",
+  "source_analysis_commit": "e4343d8da075449d4b2194f8561cbf961cf56822",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M07 FFNPost → M02/M03 next Attention, unchanged TP8 gather",
+  "active_module": "M08 最终 FFN 到 head 的行需求 → M09/M10 输出释放与草稿入场",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "优先在真实模型中验证普通 FFNPost 联合生成 BF16 残差和 Y、保持原 TP8 通信与 Q/KV 路径的排程。先验证自然输入、残差、Y、延后系数的首个消费者和请求输出，再进行冻结 C8。单独隐藏 Q 计算暂停，含其它提交或争用变化的联合设计继续保留。",
-    "decision": "385,100 条既有记录形成 1,698 组条件成本。固定其它工作，本地 Q 计算与 TP8 通信完全重叠只可缩短历史首 token P90 至多 9.011 ms。16 rank 原生对照中只有两种联合生成残差和 Y 的排程通过两种缓存条件的预定门槛，未实测服务收益。",
+    "work": "按顺序处理 M08 最终 FFN 至 head 的按需行。先复用已有 v1/v2、prompt logprobs、aux、raw hidden 与 EP/EPLB 合约，找出在冻结 C8 当前运行配置中真正缺少的读者、行和跨卡依赖。仅在它们会改变是否能省掉最终 FFN 的判断时合并取证。M09/M10 的后续重点是目标输出到 DSpark 首个消费者的释放顺序及早到/晚到各组形成的原因。",
+    "decision": "相同八个历史请求一次定价 16 种 TTFT 区域，7 种在给定全部场景均低于 1% 排查参考。末端双收集至多 6.047 ms，草稿 EP16 最后一张卡入场后至多 3.437 ms。联合残差与 Y 的两次冻结 C8 分别有 96 份完整输出一致，运行时行数版本所有正式调用均命中已准备内核，两个服务指标仍未通过。",
     "source": {
-      "path": "full-review/ATTENTION-HANDOFF-NATIVE.json",
-      "sha256": "834a2e5322ea9f94f31a2d7682eeef1939add5441ab9a12ade9baada12dd35c5"
+      "path": "full-review/REQUEST-REGION-VALUE-SCREEN.json",
+      "sha256": "fee1681ec38ee0d217bc58ea9ded47269a4e372b17ff8f275b72cef3d90b3019"
     },
     "reuse": {
       "path": "full-review/PROFILE-UNIT-COSTS.json",
       "sha256": "45bc8b3124683ff73a88e7b370c363f39094230da2b165fbbad8ef095e8795c4"
     },
-    "isolated_scope": {
-      "path": "full-review/ATTENTION-LOCAL-Q-OVERLAP-BOUND.json",
-      "sha256": "ca094f8f58c41fc8b53fd1d1a6e32d8369882910094ec45608ef33d06ee103fe"
+    "latest_service": {
+      "path": "full-review/ATTENTION-HANDOFF-DYNAMIC-SERVICE-C8.json",
+      "sha256": "384a95751d6986662fbb197c7b566c909b5ee49bddf3c2e46c7a93aedbacbd0a"
+    },
+    "next_semantic_contract": {
+      "path": "full-review/TERMINAL-FFN-ROW-DEMAND.json",
+      "sha256": "1622da2703b660ef9c0ff701d8a24c22b262cea17324d3447c1ae956f1bfd60f"
     }
   },
   "module_statuses": [
@@ -127,11 +131,11 @@
     "directory": "projects/910c-deepseek-v4.1-framework-investigation"
   },
   "service_observation": {
-    "finished_utc": "2026-11-07T12:37:17.129962+00:00",
-    "service_identity_unchanged": true,
-    "original_NPU_processes_unchanged": true,
+    "verified_utc": "2026-11-07T13:40:48.892676+00:00",
+    "started": "2026-11-07T13:29:54.13831674Z",
     "health_http": 200,
     "post_generation_tokens": 2,
+    "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
     "host_asset": "171",
     "not_a_live_status_assertion": true
   },
@@ -141,29 +145,32 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 77,
+    "region_tables": 84,
     "new_NPU_work_this_update": true,
-    "new_native_performance_comparisons": 1,
+    "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
-    "service_operations_this_update": [],
+    "service_operations_this_update": [
+      "ffn-service-c8-59608da8daf0",
+      "ffn-service-c8-7ca7e6f99d16"
+    ],
     "does_not_replace_ordered_module_review": true,
-    "new_performance_admissions": 0,
+    "new_performance_admissions": 2,
     "new_native_cache_verifications": 0,
-    "timed_C8_samples": 0,
+    "timed_C8_samples": 18,
     "topology_rank_bindings": 16,
     "scoped_AIV_calibrated_tuples": 10,
     "new_profile_exports": 0,
     "F21_calls_reused": 4816,
     "unit_cost_reference": "baselines/unit-costs.md",
     "excluded_witness_attempts": 0,
-    "new_model_loads": 0,
+    "new_model_loads": 4,
     "archived_eager_F21_calls_bound": 2560,
     "archived_same_layer_indexer_chains": 368,
     "archived_request_slots_bound": 8,
     "archived_post_first_smla_readers": 1380,
     "archived_engine_metric_snapshots": 2,
     "regrouped_expert_layers": 40,
-    "diagnostic_C8_cases": 0,
+    "diagnostic_C8_cases": 6,
     "CPU_tokenizer_arms": 0,
     "native_rows_reused": 135592,
     "priced_matrix_or_FFN_calls": 22248,
@@ -171,7 +178,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Simultaneous TP8 native; 16 ranks; stock serving processes unchanged. All per-call unit costs and isolated Q bound use archived data.",
+    "performance_scope": "Two separate frozen C8 campaigns, three timed samples per arm, separate original CLI generation and stock restoration per campaign.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -180,39 +187,39 @@
     "reused_FFN_entry_rank_layer_chains": 2560,
     "FFN_native_startup_only_attempts": 1,
     "attention_rank_layer_chains": 2560,
-    "attempted_model_service_comparisons": 0
+    "attempted_model_service_comparisons": 2
   },
   "latest_service_admission": {
-    "run_id": "ffn-service-c8-22416bcf39f9",
-    "status": "RESTORED_COMPLETE",
-    "decision": "在 171 的同一服务进程内，两轮诊断对自然输入检查了 10,390,732,800 个 BF16 字，每个字均一致。三轮候选计时中，在 256–1024 行的记录范围命中 600/600 次卡组层调用，系数任务均在真实路由分数就绪后提交。P90 首 token前参照、候选、后参照的中位数依次为 1.285、1.251、1.220 秒，相对前后参照分别快 2.65%、慢 2.57%。8 请求整轮前参照、候选、后参照的中位数依次为 15.808、15.766、15.804 秒，相对前后参照分别快 0.27%、快 0.24%。两项均未通过冻结门槛。11 轮共 88 个输出文本和负载计数吻合。原服务已恢复并通过生成验证。",
+    "record": "baselines/attention-handoff-c8.json",
+    "run_id": "ffn-service-c8-7ca7e6f99d16",
+    "decision": "首 token P90 相对前、后参照的降幅为 +0.27% / -5.53%，未通过预定门槛。整批耗时 相对前、后参照的降幅为 -0.66% / -1.77%，未通过预定门槛。",
     "gates": {
-      "TTFT_ms": {
+      "p90_TTFT_ms": {
         "three_case_values_ms": {
           "baseline": [
-            1285.204452,
-            1317.019291,
-            1244.029592
+            1330.161209,
+            1229.330566,
+            1279.782314
           ],
           "candidate": [
-            1242.602662,
-            1251.123518,
-            1252.622341
+            1258.026385,
+            1276.364601,
+            1322.546942
           ],
           "post-reference": [
-            1276.686256,
-            1219.79839,
-            1216.243082
+            1209.445254,
+            1205.328192,
+            1213.267414
           ]
         },
         "arm_medians_ms": {
-          "baseline": 1285.204452,
-          "candidate": 1251.123518,
-          "post-reference": 1219.79839
+          "baseline": 1279.782314,
+          "candidate": 1276.364601,
+          "post-reference": 1209.445254
         },
         "candidate_reduction_percent_vs_before_after": [
-          2.651790845181405,
-          -2.5680578247033248
+          0.26705424528941013,
+          -5.5330612757111215
         ],
         "all_candidates_below_all_before_after": [
           false,
@@ -223,29 +230,29 @@
       "makespan_ms": {
         "three_case_values_ms": {
           "baseline": [
-            15807.786648,
-            15752.246568,
-            15824.987287
+            15762.55085,
+            15864.481045,
+            15649.745248
           ],
           "candidate": [
-            15761.025632,
-            15782.52147,
-            15765.708869
+            15880.013902,
+            15713.353697,
+            15865.909213
           ],
           "post-reference": [
-            15775.919935,
-            15804.080211,
-            15881.911302
+            15745.797253,
+            15529.352117,
+            15589.868827
           ]
         },
         "arm_medians_ms": {
-          "baseline": 15807.786648,
-          "candidate": 15765.708869,
-          "post-reference": 15804.080211
+          "baseline": 15762.55085,
+          "candidate": 15865.909213,
+          "post-reference": 15589.868827
         },
         "candidate_reduction_percent_vs_before_after": [
-          0.26618387467497207,
-          0.24279389554915723
+          -0.6557210440339433,
+          -1.7706395676782598
         ],
         "all_candidates_below_all_before_after": [
           false,
@@ -253,8 +260,7 @@
         ],
         "passes_frozen_gate": false
       }
-    },
-    "record": "baselines/ffn-schedules.json"
+    }
   },
   "shared_material_gaps": {
     "source": "baselines/material-gaps.json",
@@ -283,13 +289,18 @@
     ],
     "service_speedup": null
   },
-  "latest_profile_analysis": {
-    "record": "baselines/profile-units.json",
-    "records": {
-      "decode": 249508,
-      "eager": 135592
+  "request_region_screen": {
+    "record": "baselines/request-region-screen.json",
+    "counts": {
+      "below_in_all_listed_scenarios": 7,
+      "depends_on_scenario": 5,
+      "room_in_all_listed_scenarios": 4
     },
-    "condition_groups": 1698,
-    "pure_Q_overlap": "若只让本地 Q 投影与 AllGather 重叠，固定实际通信时间、发射空隙与其它工作，即使每层都隐藏最慢的 Q 投影，八个请求的首 token P90 最多减少 9.011 ms，低于本轮 14.919 ms 的准入线。跳过这一项的独立 C8。"
+    "one_percent_ms": 14.918548390000002
+  },
+  "latest_profile_analysis": {
+    "record": "baselines/terminal-draft-request-costs.json",
+    "terminal": "历史八请求的 1% 门槛为 14.919 ms。末端两次 TP8 收集即使连同间隙全部消除，按 16 rank 时钟包络计也至多减少 6.047 ms。在两个 TP 组独立、只在末尾汇合的条件下，最终 FFNPost 交付后到 norm 结束至多减少 14.585 ms。包含最后一层 FFN 和已绑定 head 时，相同口径给出 24.429 ms。是否能缩减最后一层 FFN 的行，取决于原始四路状态、prompt 分数及其它读者。",
+    "draft": "416 行批次的 DP1 没有立即执行目标词表投影。八个 rank 的同规格投影都出现在 DSpark 第三个草稿层之后、Markov 首步之前。四次已匹配草稿解码的时钟包络，在 TP 末端汇合的假设下，把先前批次计入时历史首 token P90 的上界为 33.509 ms，连同当前批次为 39.900 ms。复核 64 个匹配区间及另外 32 个三层区间后，只计有类型的计算与 HCCL 时间并集、固定原来的到达和提交空隙，对应的最大单 rank 敏感性为 32.040 / 37.912 ms。 固定各卡原入场时刻，只消除最后一张卡进入后至最后一张退出之间的专家工作，首 token P90 上界降至 2.647 / 3.437 ms。跳过单独优化这个区间；提前上游输入或跨阶段重排保留。"
   }
 }

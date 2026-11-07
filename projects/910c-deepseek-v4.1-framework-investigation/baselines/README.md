@@ -16,7 +16,18 @@
 
 [八请求的跨层预算](attention-service-budget.json)给出另一个可直接使用的筛查条件。普通 FFNPost→下层 Attention HcPre 在固定历史排程下，即使替代计算免费，也要将至少约 61% 的原 HcPre 耗时移出首 token 路径，才能缩短 P90 约 14.92 毫秒。其它独立小分支可沿用相同测量。
 
-现在可以按阶段、kernel、shape/dtype、DP 与批次行数直接复用单次设备任务的中位、P95、最大耗时。385,100 条记录按这些条件合成 1,698 组。仅靠 Q 投影与 AllGather 重叠的版本，用这些时间即可算出历史八请求 P90 最多能省 9.011 ms，低于本轮 14.919 ms 的实验门槛。联合生成残差与 Y 将改变更多工作，另有原生对照。[每次调用成本](profile-units.json) · [逐请求预算](attention-service-budget.json)
+现在可以按阶段、kernel、shape/dtype、DP 与批次行数直接复用单次设备任务的中位、P95、最大耗时。385,100 条记录按这些条件合成 1,698 组。仅靠 Q 投影与 AllGather 重叠的版本，用这些时间即可算出历史八请求 P90 最多能省 9.011 ms，低于本轮 14.919 ms 的实验门槛。联合生成残差与 Y 的两次冻结服务对照均未通过性能门槛。[模型对照](attention-handoff-c8.json)[每次调用成本](profile-units.json) · [逐请求预算](attention-service-budget.json)
+
+## 一个请求集合可以回答哪些问题
+
+对同样八个请求重新计算每种替代后的 P90。16 项中，7 项在各自全部已列场景低于 14.919 ms，5 项要先分清同步或释放条件，4 项仍有继续核验的空间。例如，两次末端 TP8 收集取 16 rank 的宽松包络也只有 6.047 ms。扩大到最终 FFN 与实际输出投影时，两种跨卡假设分别有 24.429 和 35.169 ms 空间。下一次只需查哪些行仍有读者，就能决定值不值得改最终 FFN。相邻和嵌套范围分别算，跨阶段移动一旦改变到达时间，就重新选择适用范围。[全部分项与假设](request-region-screen.json) · [逐卡与逐请求证据](terminal-draft-request-costs.json)
+
+在本报告目录里，以下命令直接读取已经发布的 JSON。第一条列出各项预算，第二条取 416 行 prefill 中 DP0 的 TP8 AllGather，保留字节、调用数和最慢 rank 的统计量。
+
+```sh
+jq -r '.rows[] | [.module, .region, .screen, (.P90_upper_ms_by_scenario | tojson)] | @tsv' baselines/request-region-screen.json
+jq '.entries[] | select(.M == 416 and .DP == 0 and .operator == "hcom_allGather_") | {count, calls, per_rank_input_bytes, per_rank_output_bytes, max_rank_us, logical_payload_GB_s_at_median}' baselines/eager-tp8.json
+```
 
 ## 本次反思
 
@@ -40,7 +51,7 @@
 
 | 共享基础项 | 当前可复用证据 | 仍缺什么；用于什么决策 |
 |---|---|---|
-| 实际成本与频次 | 112 个本地周期的算子频次/区间并集，77 组区域或历史频次表 | 新候选只做自己的任务集合绑定，避免重复导出与全量扫描；历史尾部比值不是周期或服务收益 |
+| 实际成本与频次 | 112 个本地周期的算子频次/区间并集，按范围索引的成本与历史频次表 | 新候选只做自己的任务集合绑定，避免重复导出与全量扫描；历史尾部比值不是周期或服务收益 |
 | 设备与拓扑 | 16逻辑设备、24Cube/48Vector及每设备报告192MiB L2；[已绑定双芯片/SIO/HCCS拓扑](topology.json)，含限制 | 物理池共享、可达速率与硬上界未定；容量不能代替带宽 |
 | 通信 | [16016条当前记录、28类消息/阶段成本](communication.json)，15792条绑定native、224条保留。[10种参数的AIV图回放校准](collective-calibration.json)记录两组TP8的单组与并发耗时 | 纯传输/等待拆分、物理线路流量和其他并发条件；现有TP8表不代表MC2内部EP流量 |
 | 内存与数据搬运 | 逻辑字节、布局与驻留合同 | HBM/L2/host-UVA 的工作集与并发条件曲线；支撑消除物化、缓存和直接交付 |
