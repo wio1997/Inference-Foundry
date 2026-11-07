@@ -1,18 +1,22 @@
 {
-  "updated_at_utc": "2026-11-07T11:27:42.819760+00:00",
-  "source_analysis_commit": "56ea71c95496bce68f4f7a37ca9e3c0cf8611403",
+  "updated_at_utc": "2026-11-07T12:25:44.671117+00:00",
+  "source_analysis_commit": "fb8e158c0a3e687b093e607db4fd73c4080ec2dc",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M06 routed expert return and M07 source-shard merge",
+  "active_module": "M07 FFNPost → M02 next Attention HcPre; request-level exposure",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "先按 CombineV1/V2 在完整 MoE 中隔离真实跨卡 BF16 回写成本，复用 171 已归档路由与真实 NZ 格式，保持 GMM2、BF16 舍入、计数和原生同步；同时核算最终返回与共享专家并行时的完成通知、本地暂存或直接交付。只有净暴露时间足以改变优先级才实现双段远端归约。",
-    "decision": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。",
-    "stop": "同一布局的一次跨卡前缀不单列设备实验；若保序合同、最早读者或关键卡负载改变，再纳入联合筛查。避免重复采路由。",
+    "work": "按执行顺序推进普通 FFNPost 到下一层 Attention HcPre 的交付。历史八个请求要求至少 61.04% 的原阶段耗时移出关键路径。复用已验证的 BF16 残差和 FP32 系数合同，按实际行数对照到 Y、RMSNorm、TP8 首读者的净时间，以及延后系数的完成期限。仅在该区域可跨过 14.919 ms 请求门槛时进入服务。",
+    "decision": "直接三路并行回写，120 次自然 V1 原生层调用合计中位比前、后参照快 2.64% / 2.17%。冻结 C8 的 96 份文本一致。首 token P90中位相对前/后参照降低 +6.48% / +5.09%，未通过预定门槛。整批耗时中位相对前/后参照降低 +0.47% / +0.03%，未通过预定门槛。 原版启动脚本和五个内核/描述文件恢复，独立健康检查 200、生成 2 个 token。",
+    "stop": "同一三路回写配置不重复 C8。单独消除小型 TensorMove、Cast 的候选先用价值表排查，改变共同读写、所有权或布局的联合变换按整段计价。首层、Engram 调整、辅助均值及空侧单独重排均低于本次请求门槛。",
     "source": {
-      "path": "full-review/PREFILL-EXPERT-RETURN-READERS.json",
-      "sha256": "bee1140a36c049aea31c335096ed66f8e94a0f1c75199d41e0e4776977e6ee36"
+      "path": "full-review/PREFILL-EXPERT-RETURN-LANES-C8.json",
+      "sha256": "95941b55f2beadc9d368f445b06515f69b61f99414039f5ee093800b7b7d375e"
+    },
+    "next_evidence": {
+      "path": "full-review/PREFILL-ATTENTION-SERVICE-THRESHOLD.json",
+      "sha256": "251440d512e5a55f2319678a7956fb4192e01ec5b88f6afc6c658372eff64182"
     }
   },
   "module_statuses": [
@@ -120,10 +124,10 @@
     "directory": "projects/910c-deepseek-v4.1-framework-investigation"
   },
   "service_observation": {
-    "verified_utc": "2026-11-07T11:06:50.325484+00:00",
+    "verified_utc": "2026-11-07T12:25:23.846145+00:00",
     "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
     "health_http": 200,
-    "restored_start": "2026-11-07T11:01:06.342841448Z",
+    "restored_start": "2026-11-07T12:19:17.053057548Z",
     "post_generation_tokens": 2,
     "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
     "host_asset": "171",
@@ -135,29 +139,33 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 67,
-    "new_NPU_work_this_update": false,
-    "new_native_performance_comparisons": 0,
+    "region_tables": 74,
+    "new_NPU_work_this_update": true,
+    "new_native_performance_comparisons": 2,
     "new_native_cache_preparations": 0,
-    "service_operations_this_update": [],
+    "service_operations_this_update": [
+      "expert-native-8c70ee49be4a",
+      "expert-native-82fdae4adcc2",
+      "f21-pipeline-c8-f58ad9bf562f"
+    ],
     "does_not_replace_ordered_module_review": true,
-    "new_performance_admissions": 0,
+    "new_performance_admissions": 1,
     "new_native_cache_verifications": 0,
-    "timed_C8_samples": 0,
+    "timed_C8_samples": 9,
     "topology_rank_bindings": 16,
     "scoped_AIV_calibrated_tuples": 10,
     "new_profile_exports": 0,
     "F21_calls_reused": 4816,
     "unit_cost_reference": "baselines/unit-costs.md",
     "excluded_witness_attempts": 0,
-    "new_model_loads": 0,
+    "new_model_loads": 6,
     "archived_eager_F21_calls_bound": 2560,
     "archived_same_layer_indexer_chains": 368,
     "archived_request_slots_bound": 8,
     "archived_post_first_smla_readers": 1380,
     "archived_engine_metric_snapshots": 2,
     "regrouped_expert_layers": 40,
-    "diagnostic_C8_cases": 0,
+    "diagnostic_C8_cases": 3,
     "CPU_tokenizer_arms": 0,
     "native_rows_reused": 135592,
     "priced_matrix_or_FFN_calls": 22248,
@@ -165,7 +173,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Reuse physical route archive and historical trace; conditional transfer requirements only",
+    "performance_scope": "Two synthetic-weight native comparisons with original route geometry, followed by a real-weight O/C/O C8. Three excluded first cases, nine timed. Stock restored.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -174,7 +182,7 @@
     "reused_FFN_entry_rank_layer_chains": 2560,
     "FFN_native_startup_only_attempts": 1,
     "attention_rank_layer_chains": 2560,
-    "attempted_model_service_comparisons": 0
+    "attempted_model_service_comparisons": 1
   },
   "latest_service_admission": {
     "run_id": "ffn-service-c8-22416bcf39f9",
@@ -277,10 +285,77 @@
     "timing_scope": "stock and separate or joint producer with immediate vs after-score coefficient launch"
   },
   "latest_profile_analysis": {
-    "record": "baselines/expert-ordered-return.json",
-    "layer_calls_reused": 160,
-    "historical_reader_chains": 2560,
-    "complete_model": false,
-    "result": "在 160 次真实 MoE 层调用上，把六路结果按原顺序放到指定芯片归约，可以保持每芯片、每卡的峰值归约行数，跨卡少传 6.491 GB，同卡两芯片之间多传 2.203 GB。其中 590,291 行形成两段有先后依赖的跨卡传输。"
+    "record": "baselines/expert-return-native.json",
+    "global_screen": "baselines/operator-value-screen.json",
+    "outcomes": {
+      "p90_TTFT_ms": {
+        "three_case_values_ms": {
+          "baseline": [
+            1314.182728,
+            1224.495071,
+            1295.258507
+          ],
+          "candidate": [
+            1276.585248,
+            1206.877786,
+            1211.321082
+          ],
+          "post-reference": [
+            1307.964268,
+            1276.273054,
+            1250.688835
+          ]
+        },
+        "arm_medians_ms": {
+          "baseline": 1295.258507,
+          "candidate": 1211.321082,
+          "post-reference": 1276.273054
+        },
+        "candidate_reduction_percent_vs_before_after": [
+          6.480360835028283,
+          5.089190890337489
+        ],
+        "all_candidates_below_all_before_after": [
+          false,
+          false
+        ],
+        "passes_frozen_gate": false
+      },
+      "makespan_ms": {
+        "three_case_values_ms": {
+          "baseline": [
+            16084.305713,
+            16020.06803,
+            15975.620003
+          ],
+          "candidate": [
+            16002.499426,
+            15944.857729,
+            15825.369548
+          ],
+          "post-reference": [
+            16070.504896,
+            15880.087462,
+            15948.957569
+          ]
+        },
+        "arm_medians_ms": {
+          "baseline": 16020.06803,
+          "candidate": 15944.857729,
+          "post-reference": 15948.957569
+        },
+        "candidate_reduction_percent_vs_before_after": [
+          0.4694755406728506,
+          0.025706006065058632
+        ],
+        "all_candidates_below_all_before_after": [
+          false,
+          false
+        ],
+        "passes_frozen_gate": false
+      }
+    },
+    "native_cases": 160,
+    "complete_model": false
   }
 }
