@@ -6,6 +6,8 @@
 
 | 入口 | 内容 |
 |---|---|
+| [融合方案怎样快速筛选](baselines/decision-workflow.md) | 按可消除的整份工作归并，只补可能改变取舍的证据 |
+| [逐请求的时间预算](baselines/graph-request-prefixes.json) | 58 类目标图任务在每个客户端截止时点前的总量，可直接查询联合范围 |
 | [请求终点与融合筛选](baselines/c8-endpoint-screen.json) | 两个服务指标、必须提前的请求、实际命中次数和整组可省时间 |
 | [共用测量目录](baselines/shared-measurements.json) | 通信、计算、搬运和调度的可复用实测条件与集中补证条件 |
 | [完整排查报告](REPORT.md) | 固定范围、执行顺序、价值筛查、实验裁决、理论边界和重要缺口 |
