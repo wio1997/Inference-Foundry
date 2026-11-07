@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T21:11:31.347848+00:00",
-  "source_analysis_commit": "68ddc575308509b0beeb4b6477f474a846872d7b",
+  "updated_at_utc": "2026-11-07T21:25:48.448553+00:00",
+  "source_analysis_commit": "8c6f2cc91518c09daea7eca13bcd4d89890b903f",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M07 FFN Post 与下一层 Attention Pre 的融合边界",
+  "active_module": "M08–M09 词表投影与 greedy/校验的算子融合",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "沿 M07 FFN HcPost → 下一层 Attention HcPre，复用 M02 的 2,176 条直连记录与已有对照，一次区分普通直连、Engram 改写和 DSpark 旁路读者。先计可省残差写读与重复归约的净请求预算；仅在分支会改变排序时补依赖。",
-    "decision": "专家分布、权重副本及同卡分块归档到布局，不计入融合候选。M06 共享专家的 Gate/Up 投影 → DequantSwigluQuant → Down 投影在 2,560 条逐卡 prefill 链上出现。前一边界每行可少写读 36,864 B，后一边界 4,616 B。两处联合按归档搬运速率估算，C8 首 token P90 省 0.31–3.97 ms。即使把激活完全隐藏并消除它两侧的间隔，有利估算也只有 8.83 ms（0.59%）；同情景整批 62.10 ms（0.33%）。六个普通请求仅按搬运估算，响应耗时降幅均低于 0.06%。本形状单独降级。",
+    "work": "按执行顺序进入 M08→M09。固定词表分片和投影计算，复用已绑定的目标 head、TP8 收集、ArgMax 和拒绝校验链，给投影同时输出本地最佳分数/全局 ID、跨卡完成选择的算子融合计价。先分 greedy、需要完整 logits/logprobs、随机采样和草稿校验的读者；同一请求的临界收益按已有记录一次汇总。",
+    "decision": "分离了融合与提前排程的收益，普通层保留为依赖缓存和调度的候选，两个旁路单项退出深查。34 个普通直连层中，固定 Y 提前交付与 TP8 排程后，将 FFN HcPost 与下一层的加权归约合成一个算子。九轮原生配对投到历史八请求，原 AllGather 顺序下首 token P90 中位估算省 10.53 ms（热缓存）/ 14.02 ms（缓存受压）；本地 Q 提前时为 11.67 / 15.58 ms。四组中一组中位超过 14.92 ms，每组均有退化轮次。实际服务的动态行版本相对前后参照为快 0.27% / 慢 5.53%，尚无稳定端到端收益。",
     "source": {
-      "path": "full-review/SHARED-MLP-FUSION-ESTIMATES.json",
-      "sha256": "0a1621ab14a339f41cb96de2de6e56ddb6cf499ce81578119d11051d09fa8916"
+      "path": "full-review/CROSS-LAYER-HC-FUSION-ESTIMATES.json",
+      "sha256": "f22c58dcec8588ed007c65c907b0436dd6aa6fd26202c11228087b0196c62e91"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 117,
+    "region_tables": 119,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Archived W8A8 shared expert fusion only; scope correction for placement, scheduling and residency.",
+    "performance_scope": "Matched native early-Y producer comparisons under identical schedules; W8A8 cross-layer residual and branch traffic using archived requests.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -279,13 +279,13 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M06/M07",
+    "scope": "M01/M02/M07",
     "sources": [
-      "baselines/shared-mlp-fusion.json",
-      "baselines/shared-mlp-fusion-service.json"
+      "baselines/cross-layer-hc-fusion.json"
     ],
     "observations": [
-      "M06 共享专家的 Gate/Up 投影 → DequantSwigluQuant → Down 投影在 2,560 条逐卡 prefill 链上出现。前一边界每行可少写读 36,864 B，后一边界 4,616 B。两处联合按归档搬运速率估算，C8 首 token P90 省 0.31–3.97 ms。即使把激活完全隐藏并消除它两侧的间隔，有利估算也只有 8.83 ms（0.59%）；同情景整批 62.10 ms（0.33%）。六个普通请求仅按搬运估算，响应耗时降幅均低于 0.06%。本形状单独降级。"
+      "34 个普通直连层中，固定 Y 提前交付与 TP8 排程后，将 FFN HcPost 与下一层的加权归约合成一个算子。九轮原生配对投到历史八请求，原 AllGather 顺序下首 token P90 中位估算省 10.53 ms（热缓存）/ 14.02 ms（缓存受压）；本地 Q 提前时为 11.67 / 15.58 ms。四组中一组中位超过 14.92 ms，每组均有退化轮次。实际服务的动态行版本相对前后参照为快 0.27% / 慢 5.53%，尚无稳定端到端收益。",
+      "64 个首层入口没有上层 FFN Post；2,176 条直连可用上一层已交付的 premix；192 条 DSpark 分支需保留进入该层的残差均值与 gather；128 条 Engram 分支须先更新残差。两种搬运计价下，把直连两次残差读取与 Y 写读一起省掉，历史首 token P90 约省 4.21–8.42 ms。再按分支融合均值读取与 Engram 尾部，联合为 6.27–12.00 ms；六个普通请求约省 0.42–1.46 ms，最高占自身响应的 0.184%。即使两层 Engram 尾处理和三次均值全省，固定其他工作时也仅为 3.27 ms 首 token 与 32.93 ms 整批。"
     ],
     "new_performance_measurements": 0,
     "archived_prefill_layer_waves": 160
@@ -319,8 +319,8 @@
       "result": "在原服务上让相同后续请求分别到已缓存和另一组 DP，两个输入长度各交换两次目的地和顺序。四对比较共查询 4,966 个后续输入 token，同组多命中 4,608.0 个。四对中 1 对输出文本相同。在固定 32K C8 上，允许任意借用两组种子和所有其它输入时最多能命中 235,904 个 token，比原有实测多 0 个。",
       "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。"
     },
-    "next": "沿 M07 FFN HcPost → 下一层 Attention HcPre，复用 M02 的 2,176 条直连记录与已有对照，一次区分普通直连、Engram 改写和 DSpark 旁路读者。先计可省残差写读与重复归约的净请求预算；仅在分支会改变排序时补依赖。",
-    "decision": "专家分布、权重副本及同卡分块归档到布局，不计入融合候选。M06 共享专家的 Gate/Up 投影 → DequantSwigluQuant → Down 投影在 2,560 条逐卡 prefill 链上出现。前一边界每行可少写读 36,864 B，后一边界 4,616 B。两处联合按归档搬运速率估算，C8 首 token P90 省 0.31–3.97 ms。即使把激活完全隐藏并消除它两侧的间隔，有利估算也只有 8.83 ms（0.59%）；同情景整批 62.10 ms（0.33%）。六个普通请求仅按搬运估算，响应耗时降幅均低于 0.06%。本形状单独降级。",
+    "next": "按执行顺序进入 M08→M09。固定词表分片和投影计算，复用已绑定的目标 head、TP8 收集、ArgMax 和拒绝校验链，给投影同时输出本地最佳分数/全局 ID、跨卡完成选择的算子融合计价。先分 greedy、需要完整 logits/logprobs、随机采样和草稿校验的读者；同一请求的临界收益按已有记录一次汇总。",
+    "decision": "分离了融合与提前排程的收益，普通层保留为依赖缓存和调度的候选，两个旁路单项退出深查。34 个普通直连层中，固定 Y 提前交付与 TP8 排程后，将 FFN HcPost 与下一层的加权归约合成一个算子。九轮原生配对投到历史八请求，原 AllGather 顺序下首 token P90 中位估算省 10.53 ms（热缓存）/ 14.02 ms（缓存受压）；本地 Q 提前时为 11.67 / 15.58 ms。四组中一组中位超过 14.92 ms，每组均有退化轮次。实际服务的动态行版本相对前后参照为快 0.27% / 慢 5.53%，尚无稳定端到端收益。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
