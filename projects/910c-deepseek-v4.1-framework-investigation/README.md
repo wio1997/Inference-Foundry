@@ -6,6 +6,8 @@
 
 | 入口 | 内容 |
 |---|---|
+| [EP16 专家布局的冻结 C8 对照](baselines/ep16-interval-c8.json) | 首 token、整批、自然命中、数值检查和原服务恢复 |
+| [按专家布局重算矩阵计算下限](baselines/ep16-compute-floors.json) | 原布局、每层调入两个专家和自由分配在相同矩阵工作下的下限 |
 | [QLI 在批量 slot 基线上的增量](baselines/qli-batched-slot-c8.json) | 171 同基线前后参照，输出一致性、首 token、整批耗时和恢复 |
 | [EP16 专家布局的实际命中与所需收益](baselines/ep16-layer-guard.json) | 两轮参照的传递门槛、一次零命中的批次差额、诊断轮的覆盖 |
 | [单算子与联合范围的价值初筛](baselines/fusion-priority.json) | 局部占比、请求级上界、无需单独深查的范围和重新打开条件 |

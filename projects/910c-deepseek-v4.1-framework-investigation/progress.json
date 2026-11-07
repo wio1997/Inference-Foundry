@@ -1,25 +1,25 @@
 {
-  "updated_at_utc": "2026-11-07T17:25:10.374033+00:00",
-  "source_analysis_commit": "9741b27ddcf3f30f2243a98d6530f9b85e46f4ee",
+  "updated_at_utc": "2026-11-07T17:46:55.096271+00:00",
+  "source_analysis_commit": "fe638e447a14060ef22857836fe3d9db895f28ed",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M06 专家布局命中和 EP16 关键边界",
+  "active_module": "M06 大批专家布局的首 token 收益与优化基线适用范围",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "M06 先核对 818 与 832 行两批的合计净节省是否有望填补 12.150 ms，并看两轮已定价参照的局部节省能否有 56.3%–56.8% 传到首 token。833 行仅在诊断轮出现，合并记录覆盖，暂缓单独测速。11 层固定布局留作低内存备选。",
-    "decision": "三组均启用已验收的 CP、CPU plan 和 26→1 批量 slot 写入。只在中间组开启四层 QLI 共享转换，全部 16 个 worker 在同一进程中有两项优化的正式使用记录。按前置参照 / 组合 / 后置参照顺序，整批耗时中位数 12.8009 / 12.6386 / 12.8389 秒，改善 +1.27% / +1.56%，未通过预设门槛。首 token P90 中位数 1.2074 / 1.2114 / 1.2015 秒，未通过门槛。12 轮的 96 份输出文本均与归档一致。 暂缓该基线上的 QLI 整批增益主张。首 token 的增量价值未证实。最慢候选与最快参照相比多用 108.712 ms。该组合退出当前深查队列。只有新的命中范围、读者或排程证据能改变端到端预算时才重新评估。",
+    "work": "在已接受的 CP、CPU plan 和批量 slot 配置上，已按两组归档参照重算首 token 的判断条件：复现两组原始波动时，逐轮等量提前须分别超过 82.80 或 26.32 ms 才能与参照完全分离。优先核对 prefill 载体、两侧 KV 池和每卡可用显存。若该配置仍能容纳每卡 2,837,381,120 字节的专家权重与尺度，再在同配置核对 EP16 的增量。只有新增读者或排程能改变已测收益时才重开其它布局。",
+    "decision": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。",
     "source": {
-      "path": "full-review/QLI-ON-BATCHED-SLOT-C8.json",
-      "sha256": "85686cc9724d6b36225cdeccb153397d06cde949dd47f333c720560933226349"
+      "path": "full-review/EP16-INTERVAL-SERVICE-C8.json",
+      "sha256": "193998a2c72fe9756a6af0219fd55fee2de3c5e356cc410153bd878dcb0a412e"
+    },
+    "direct_arithmetic_floors": {
+      "path": "full-review/EP16-PLACEMENT-COMPUTE-FLOORS.json",
+      "sha256": "69d1aba65382f7f6d43ffc9027aed3af1f235bfa03e2beba719d3807cfc7ac74"
     },
     "handle": {
-      "path": "full-review/runs/qli-membership-scoped-slot-1bda46217b27-launch.json",
-      "sha256": "ccadf8ef10335018e3ab60ea3ed1aa191272747eb465616bf93180eebf7ddedf"
-    },
-    "EP16_guard_transfer": {
-      "path": "full-review/EP16-LAYER-GUARD-TRANSFER.json",
-      "sha256": "deb6b274c6ab3a2bd07034a7d8004cb884623b81d50bd795a3a8e714343e0cd5"
+      "path": "full-review/runs/ffn-service-c8-6684e1c3f390-launch.json",
+      "sha256": "3a0ed3e5468e192318feabcba40a45d3e0abf946c36740c9fbef687f896e846e"
     }
   },
   "module_statuses": [
@@ -127,13 +127,12 @@
     "directory": "projects/910c-deepseek-v4.1-framework-investigation"
   },
   "service_observation": {
-    "utc_observed": "2026-11-07T17:24:52.328408+00:00",
-    "started_at": "2026-11-07T17:19:24.129542027Z",
+    "verified_utc": "2026-11-07T17:46:07.747615+00:00",
+    "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
     "health_http": 200,
-    "validated_generation_tokens": 2,
-    "original_script_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
-    "original_kernel_sha256": "f1dd0d93d703c252a51c517fac851c055d0a09ba373c22dbbd92d1b042daaa23",
-    "private_environment_absent": true,
+    "restored_start": "2026-11-07T17:40:52.368707924Z",
+    "post_generation_tokens": 2,
+    "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
     "host_asset": "171",
     "not_a_live_status_assertion": true
   },
@@ -143,12 +142,12 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 107,
+    "region_tables": 109,
     "new_NPU_work_this_update": true,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
     "service_operations_this_update": [
-      "qli-membership-scoped-slot-1bda46217b27"
+      "ffn-service-c8-6684e1c3f390"
     ],
     "does_not_replace_ordered_module_review": true,
     "new_performance_admissions": 1,
@@ -160,14 +159,14 @@
     "F21_calls_reused": 4816,
     "unit_cost_reference": "baselines/unit-costs.md",
     "excluded_witness_attempts": 0,
-    "new_model_loads": 4,
+    "new_model_loads": 2,
     "archived_eager_F21_calls_bound": 2560,
     "archived_same_layer_indexer_chains": 368,
     "archived_request_slots_bound": 8,
     "archived_post_first_smla_readers": 1380,
     "archived_engine_metric_snapshots": 2,
     "regrouped_expert_layers": 40,
-    "diagnostic_C8_cases": 3,
+    "diagnostic_C8_cases": 2,
     "CPU_tokenizer_arms": 0,
     "native_rows_reused": 135592,
     "priced_matrix_or_FFN_calls": 22248,
@@ -175,7 +174,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Fixed C8 on three service starts with batched slot in every arm, plus stock restoration. EP16 uses archived native and service samples.",
+    "performance_scope": "One service generation with shared original and candidate weights, two diagnostics and nine fixed timing cases, followed by original service restoration. Frequency rows came from 32 existing profiles.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -187,78 +186,76 @@
     "attempted_model_service_comparisons": 1
   },
   "latest_service_admission": {
-    "run_id": "qli-membership-scoped-slot-1bda46217b27",
-    "record": "baselines/qli-batched-slot-c8.json",
-    "result": "三组均启用已验收的 CP、CPU plan 和 26→1 批量 slot 写入。只在中间组开启四层 QLI 共享转换，全部 16 个 worker 在同一进程中有两项优化的正式使用记录。按前置参照 / 组合 / 后置参照顺序，整批耗时中位数 12.8009 / 12.6386 / 12.8389 秒，改善 +1.27% / +1.56%，未通过预设门槛。首 token P90 中位数 1.2074 / 1.2114 / 1.2015 秒，未通过门槛。12 轮的 96 份输出文本均与归档一致。",
-    "decision": "暂缓该基线上的 QLI 整批增益主张。首 token 的增量价值未证实。最慢候选与最快参照相比多用 108.712 ms。该组合退出当前深查队列。只有新的命中范围、读者或排程证据能改变端到端预算时才重新评估。",
+    "run_id": "ffn-service-c8-6684e1c3f390",
+    "record": "baselines/ep16-interval-c8.json",
+    "result": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。",
+    "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。",
     "gates": {
-      "TTFT_P90_ms": {
+      "TTFT_ms": {
         "three_case_values_ms": {
           "baseline": [
-            1275.152136,
-            1207.389589,
-            1192.351991
+            1226.092338,
+            1230.573975,
+            1211.924856
           ],
           "candidate": [
-            1242.978454,
-            1211.446438,
-            1199.26789
+            1172.710529,
+            1168.863407,
+            1182.842511
           ],
           "post-reference": [
-            1197.502136,
-            1218.670819,
-            1201.528514
+            1229.130894,
+            1209.373869,
+            1206.2847
           ]
         },
         "arm_medians_ms": {
-          "baseline": 1207.389589,
-          "candidate": 1211.446438,
-          "post-reference": 1201.528514
+          "baseline": 1226.092338,
+          "candidate": 1172.710529,
+          "post-reference": 1209.373869
         },
         "candidate_reduction_percent_vs_before_after": [
-          -0.33600165488921213,
-          -0.8254422499705951
+          4.353816376267085,
+          3.031596840298528
         ],
         "all_candidates_below_all_before_after": [
-          false,
-          false
+          true,
+          true
         ],
-        "passes_frozen_gate": false,
-        "fastest_reference_minus_slowest_candidate_ms": -50.62646300000006
+        "passes_frozen_gate": true
       },
       "makespan_ms": {
         "three_case_values_ms": {
           "baseline": [
-            12800.868406,
-            12789.668219,
-            13106.165998
+            15833.398067,
+            15754.791305,
+            15655.066211
           ],
           "candidate": [
-            12596.45332,
-            12638.556238,
-            12811.041528
+            15799.555245,
+            15576.710479,
+            15608.34389
           ],
           "post-reference": [
-            12838.935102,
-            13044.956411,
-            12702.329119
+            15846.933543,
+            15631.895664,
+            15660.047199
           ]
         },
         "arm_medians_ms": {
-          "baseline": 12800.868406,
-          "candidate": 12638.556238,
-          "post-reference": 12838.935102
+          "baseline": 15754.791305,
+          "candidate": 15608.34389,
+          "post-reference": 15660.047199
         },
         "candidate_reduction_percent_vs_before_after": [
-          1.2679777875376153,
-          1.560712492181583
+          0.9295420812938565,
+          0.33016062048205097
         ],
         "all_candidates_below_all_before_after": [
           false,
           false
         ],
-        "passes_frozen_gate": false,
-        "fastest_reference_minus_slowest_candidate_ms": -108.71240899999975
+        "passes_frozen_gate": false
       }
     }
   },
@@ -309,21 +306,21 @@
     "result": "171 原系数与路由权重对照完成 4 个 EP16 批次，共 64 次 rank 调用。有效发送行 86 个，所选路由专家输出有 0 个元素不同，共享与路由专家合并后有 1 个元素不同，HcPost 有 1 个元素不同。最终归一化读出按 TP 去重有 0 个元素不同。直接代回原专家结果后 HcPost 有 0 个元素不同，直接代回原 HcPost 后读出按 TP 去重有 0 个元素不同。服务始终返回原路径的结果，8 份输出文本与归档一致，已恢复原服务。"
   },
   "latest_service_comparison": {
-    "run_id": "qli-membership-scoped-slot-1bda46217b27",
-    "record": "baselines/qli-batched-slot-c8.json",
-    "result": "三组均启用已验收的 CP、CPU plan 和 26→1 批量 slot 写入。只在中间组开启四层 QLI 共享转换，全部 16 个 worker 在同一进程中有两项优化的正式使用记录。按前置参照 / 组合 / 后置参照顺序，整批耗时中位数 12.8009 / 12.6386 / 12.8389 秒，改善 +1.27% / +1.56%，未通过预设门槛。首 token P90 中位数 1.2074 / 1.2114 / 1.2015 秒，未通过门槛。12 轮的 96 份输出文本均与归档一致。",
-    "decision": "暂缓该基线上的 QLI 整批增益主张。首 token 的增量价值未证实。最慢候选与最快参照相比多用 108.712 ms。该组合退出当前深查队列。只有新的命中范围、读者或排程证据能改变端到端预算时才重新评估。"
+    "run_id": "ffn-service-c8-6684e1c3f390",
+    "record": "baselines/ep16-interval-c8.json",
+    "result": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。",
+    "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。"
   },
   "current_value_priority": {
     "method": "先在现有 profile 中按模块、分支和实际出现次数汇总可能改变的整段工作。对必须提前的请求，用可变工作全部免费估算上限。在固定排程下，端到端上限低于该指标参考的改写连同其子集一起暂缓。局部占比只用于排序；若小算子会改变大计算、通信、同步或后续迭代，将这些工作一并估价。对过线范围扣除必须保留的工作、替代成本和已经重叠的时间，再比较端到端收益与基线波动。已有通信和搬运数据按大小、拓扑、并发和布局复用。仅在未知量可能改变取舍时补证，未覆盖的分支留在台账。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "run_id": "qli-membership-scoped-slot-1bda46217b27",
-      "record": "baselines/qli-batched-slot-c8.json",
-      "result": "三组均启用已验收的 CP、CPU plan 和 26→1 批量 slot 写入。只在中间组开启四层 QLI 共享转换，全部 16 个 worker 在同一进程中有两项优化的正式使用记录。按前置参照 / 组合 / 后置参照顺序，整批耗时中位数 12.8009 / 12.6386 / 12.8389 秒，改善 +1.27% / +1.56%，未通过预设门槛。首 token P90 中位数 1.2074 / 1.2114 / 1.2015 秒，未通过门槛。12 轮的 96 份输出文本均与归档一致。",
-      "decision": "暂缓该基线上的 QLI 整批增益主张。首 token 的增量价值未证实。最慢候选与最快参照相比多用 108.712 ms。该组合退出当前深查队列。只有新的命中范围、读者或排程证据能改变端到端预算时才重新评估。"
+      "run_id": "ffn-service-c8-6684e1c3f390",
+      "record": "baselines/ep16-interval-c8.json",
+      "result": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。",
+      "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。"
     },
-    "next": "baselines/ep16-layer-guard.json",
-    "decision": "EP16 大批专家布局在五个归档 C8 中原来只命中 7/20 批。按 800–834 行筛选可覆盖 11/20 批。两轮通过准入的原版参照已有原生对照，要改善首 token 1%，需把其已测局部节省的 56.3%–56.8% 传到请求。第三轮原版请求正常完成，但原规则零命中。若要在该轮补足 1%，818 与 832 行两批在完全传递时合计须省 12.150 ms。833 行只出现在带数值比对的诊断轮，保留覆盖记录，暂缓单独测速。"
+    "next": "在已接受的 CP、CPU plan 和批量 slot 配置上，已按两组归档参照重算首 token 的判断条件：复现两组原始波动时，逐轮等量提前须分别超过 82.80 或 26.32 ms 才能与参照完全分离。优先核对 prefill 载体、两侧 KV 池和每卡可用显存。若该配置仍能容纳每卡 2,837,381,120 字节的专家权重与尺度，再在同配置核对 EP16 的增量。只有新增读者或排程能改变已测收益时才重开其它布局。",
+    "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。"
   }
 }
