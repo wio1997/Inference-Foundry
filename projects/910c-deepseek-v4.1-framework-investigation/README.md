@@ -8,6 +8,7 @@
 |---|---|
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
+| [三层草稿 context KV 与跨模块联合收益](baselines/draft-context-fusion.json) | 共享位置和地址、旋转与缓存直写，逐卡主机提交和设备执行的重叠 |
 | [目标与草稿的词表选词](baselines/vocab-selection-fusion.json) | 真实形状、普通请求与八请求整批的融合估算 |
 | [普通负载在 171 的实测](baselines/workloads.md#171-的普通请求已实测) | 逐卡 guard 命中、首文本前的图回放、跨 DP 缓存和对照输出 |
 | [常见推理场景与候选适用范围](baselines/workloads.md) | 真实对话、短代码回复、多轮前缀复用，以及本机还需要哪些证据 |

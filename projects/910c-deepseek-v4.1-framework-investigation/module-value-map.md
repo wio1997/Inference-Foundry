@@ -14,8 +14,8 @@
 | [M07 FFN 后置与跨层状态](modules/M07.md) | 4,480 次 Post 已绑定。独立直连 Post 边界即使全省，最高占本地周期 0.538%。普通跨层、Engram 与辅助状态分支的读者不同。 | ForeachAddList 合入 HcPost 时需先保留 BF16 加法舍入。旧 M3 实现的整批时间比前后参照多 0.31% / 0.19%，这一实现降级。到下一层的联合 Y 在 M02 统一计价，两个特殊分支只贡献各自的附加读写；末层按行裁剪统一在 M08 计价。 |
 | [M08 末层读出](modules/M08.md) | 四批实际有 26,318 个有效专家发送行，当前目标词表投影只选 62 行。其它 rank 的专家服务、raw 四路状态和 prompt 分数可能仍需这些行。 | 按行裁剪属于历史联合改写，下面的整段金额包含工作量变化。 在保留原前处理与共享计算时，净消除 25% / 50% 的所计时间，P90 约省 5.24 / 10.48 ms，整段免费为 20.95 ms。可归给算子融合的边界为 Cast → Mul → ReduceSum → Cast → RMSNorm，省一半仅 2.78–3.89 ms。出现过中间值差异，需保留系数及归约顺序。[逐请求成本](baselines/profile-fusion-estimates.json)  六个普通请求中，首轮仅裁剪末层归约与 RMS，估算每请求约省 0.26–0.61 ms。单请求校验时六个连续行在八卡原分片中仍需 24 个等长通信槽；路由、raw 状态及 prompt logprobs 分支单列。[普通请求与分片](baselines/ordinary-terminal-rows.json) 词表投影后，在同一 reader 内融合转置、选行和 ArgMax，整批约省 31.11–32.64 ms。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) |
 | [M09 校验、采样与发布](modules/M09.md) | 目标 greedy 路径中，seed、计数与 padded 准备整段全省，最高占本地周期 0.083%。 | 将比较、计数和下步掩码直接交给 padded 输入只作附带机会。固定前序迭代，仅把当前批结果移到草稿三层前发布，历史 P90 最多约省 6.40 ms。随机/混合采样仍保留 RNG 和 raw logits 读者，当前数据不能给这些分支定价。[请求发布约束](baselines/terminal-sparsity.json) 只消费 greedy ID 时，分片选词联合 TP8 小包交换，按一次或两次通信分别估算整批省 27.48–47.78 或 8.96–41.46 ms。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) |
-| [M10 DSpark 草稿](modules/M10.md) | decode 草稿整段中位 4.00 ms，约占本地周期 7.31%。这包括必须保留的专家、投影和注意力。 | 三路辅助状态 Index → ConcatD → 草稿输入投影可少写中间张量。64 个逐卡窗口仅 40 个有三次取行，16 个仅拼接，8 个两者均无。净省一半，P90 约改善 0.54–0.88 ms。三层专家保留时，单独免除已识别计算也仅约 6.66 ms。该打包链降级。[估算](baselines/profile-fusion-estimates.json) · [跨卡边界](baselines/draft-arrival-budget.json) 五个有依赖的 W2 逐步保留，合并各步内部的切片、校正与选词，整批约省 28.10–29.75 ms。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) |
-| [M11 下一迭代交付](modules/M11.md) | 相邻迭代的长间隙含重叠 CPU、设备工作和等待。实际反复执行的 slot 坐标与扁平映射写入能直接定位。 | **先把同一输入的二维坐标和一维 slot 合成双输出，再把符合条件的 26 项写入批量提交。** 在同轮 CP 单项基线上，双输出增加 5.43% 整批耗时降幅。更后面的 CP＋双输出 slot＋CPU 计划基线上，26→1 增量为 3.39% / 2.22%。大形状、压缩比、无效行和未匹配的图缓冲区须单列。[双输出](baselines/module-fusion-estimates.json) · [批量调用](modules/M11.md) |
+| [M10 DSpark 草稿](modules/M10.md) | decode 草稿整段中位 4.00 ms，约占本地周期 7.31%。这包括必须保留的专家、投影和注意力。 | 三路辅助状态 Index → ConcatD → 草稿输入投影可少写中间张量。64 个逐卡窗口仅 40 个有三次取行，16 个仅拼接，8 个两者均无。净省一半，P90 约改善 0.54–0.88 ms。三层专家保留时，单独免除已识别计算也仅约 6.66 ms。该打包链降级。[估算](baselines/profile-fusion-estimates.json) · [跨卡边界](baselines/draft-arrival-budget.json) 五个有依赖的 W2 逐步保留，合并各步内部的切片、校正与选词，整批约省 28.10–29.75 ms。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) 三层 context 归一化、旋转与写缓存按一半可省设备工作计，整批约省 27.94–30.82 ms。[逐形状、请求与提交时间](baselines/draft-context-fusion.json) |
+| [M11 下一迭代交付](modules/M11.md) | 相邻迭代的长间隙含重叠 CPU、设备工作和等待。实际反复执行的 slot 坐标与扁平映射写入能直接定位。 | **先把同一输入的二维坐标和一维 slot 合成双输出，再把符合条件的 26 项写入批量提交。** 在同轮 CP 单项基线上，双输出增加 5.43% 整批耗时降幅。更后面的 CP＋双输出 slot＋CPU 计划基线上，26→1 增量为 3.39% / 2.22%。大形状、压缩比、无效行和未匹配的图缓冲区须单列。[双输出](baselines/module-fusion-estimates.json) · [批量调用](modules/M11.md) M10 已计的提交只在确实提前下一轮设备入口时再计主机增量。[逐形状、请求与提交时间](baselines/draft-context-fusion.json) |
 
 ## 这轮调整了什么
 
@@ -31,4 +31,4 @@
 
 slot 双输出、26 项批写有同轮实测。四层 QLI 共享转换须注明已有批写基线上的增量不稳定。末层的行裁剪、专家负载均衡和 CPU 计划属于历史比较；其中的组合收益仅在拆出相同调度下的融合增量后计入候选。
 
-12 个执行模块已有首轮价值判断。词表选词两处在保留投影时的联合收益已估算，下一项为 M10 context KV 的 decode 预算。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) · [完整覆盖台账](coverage.json)
+12 个执行模块已有首轮价值判断。三层 context KV 的设备侧与选词联合范围已定价，M11 核对主机提交是否改变下一轮到达。[完整覆盖台账](coverage.json)

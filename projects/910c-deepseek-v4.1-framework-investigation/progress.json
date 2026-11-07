@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T21:48:15.918620+00:00",
-  "source_analysis_commit": "3b1417237f318a6b01fe561ea27e97a8321f6325",
+  "updated_at_utc": "2026-11-07T22:06:39.327940+00:00",
+  "source_analysis_commit": "8c6f79b9cba73bd884a98139c7dcc8eebaa07cda",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M10 三层 context KV 的共享查表、旋转与缓存写入",
+  "active_module": "M10→M11 融合减少主机提交后，下一轮实际设备入口可提前多少",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "M10 三层 context KV 已有首 token 筛查。四个 prefill 批次连投影和间隙整段免去，首 token P90 只省 6.67–8.58 ms。直接查已有 decode 调用在整批和普通请求中的频次与成本，先判断共享 RoPE 表、slot 索引和合并归一化、旋转、缓存写入的总量是否值得深入。已定价的输入打包和五步选词仅引用。",
-    "decision": "目标与草稿两处都融合时，按一次小包交换，18.591 秒的 C8 整批估算省 56.07–77.12 ms（0.30%–0.42%），首 token P90 省 0.55–1.06 ms。按两次交换，整批省 37.57–70.82 ms。六个普通请求用实际校验次数计价，一次交换时单请求响应的估算降幅最高约 0.15%，一行 prompt 仅有一个匹配样本。在冻结调用次数和投影成本的宽松筛查里，按每轮目标和草稿各自最耗时的 rank，把两个投影后区间除五次 W2 外全部免去，整批也只省 179.92 ms（0.97%）。本组退出独立深查。",
+    "work": "进入 M11 的跨迭代算子交付。先从已有 profile 对齐最后一个草稿 ID、同一 worker 的阻塞或结果可用事件、下一次元数据算子及目标图首个实际读者。给 M10 三层 context KV 减少主机提交单独定价，并扣除已被后续等待吸收的部分；同时检验其它同代共享生产者是否能合并。已测 26 项 slot 写入按原基线引用。",
+    "decision": "在同一轮、同一卡上核对目标选词、context KV 与五步草稿选词的真实顺序后再联合计价。按一次小包交换与 KV 可省设备工作兑现一半，C8 整批合计约省 84.77–107.34 ms（0.46%–0.58%）。让所列可省设备任务和目标原通信都免费，再让目标选词、缓存写入、草稿选词在每轮各取最有利的 rank，合计 181.40 ms（0.98%）。该范围的设备融合退出独立深查。改变其它计算、主机阻塞或调度时，需要另计新消除的工作。 24 行占 428 次 TP8 调用。3,424 条逐卡记录中，90 个 context 任务全部提交后，距离首个设备任务开跑中位仍有 36.99 ms；3,422 条连最后一个草稿 ID 的任务也已提交。若只计可省任务的主机 launch API，假设全部传递，整批估算省 63.45–73.52 ms。把首末 launch 之间的全部时间都算作可省，可得 330.84–368.59 ms，含必要提交、间隙和可能与设备重叠的工作。此金额只用来定位 M11 后续消费者，不能直接计入融合收益。",
     "source": {
-      "path": "full-review/VOCAB-SELECTION-FUSION-ESTIMATES.json",
-      "sha256": "674db8db41de46062a8c3c8c8f7a1fb3c4dbf4da38b5f0a3ee4bb6281ca75529"
+      "path": "full-review/DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+      "sha256": "7a3fed29f31a7f866879c724475ea5992c03df37303aff3e210bb58506ff02fe"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 121,
+    "region_tables": 123,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Fixed-projection target and draft score fusion on pinned W8A8 trace and six ordinary request histories.",
+    "performance_scope": "Three-layer RMS/rotary/cache fusion, host launch overlap and score-region union on the frozen C8 trace and six ordinary request histories.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -279,18 +279,18 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M08/M09/M10",
+    "scope": "M08/M09/M10/M11",
     "sources": [
-      "baselines/vocab-selection-fusion.json"
+      "baselines/draft-context-fusion.json"
     ],
     "observations": [
-      "目标词表投影后的选词在两组 TP8 中实际执行 453 次，428 次为 24 行（4 个 bonus、20 个待校验行）。保持原有全词表收集，融合转置、选行、类型转换和 ArgMax，C8 整批估算省 31.11–32.64 ms。若各分片保留同分时的全局 token ID，只交换局部分数和 ID，一次小包交换时整批约省 27.48–47.78 ms。依赖原有状态而需两次交换时约省 8.96–41.46 ms。两种通信成本取自本机历史小包校准，完整分数、额外读者和随机采样分支另需合同。",
-      "453 次真实草稿调用含 2,265 个依次执行的 W2。多请求时可在校正分数加法与 ArgMax 中直接读基础分数，省去截取和写回整个词表的中间结果。单请求没有这些宽拷贝。保留每步矩阵乘、两次 BF16 舍入、ID 发布、原 ArgMax 成本及一半 Add 成本，C8 整批估算省 28.10–29.75 ms。",
-      "目标与草稿两处都融合时，按一次小包交换，18.591 秒的 C8 整批估算省 56.07–77.12 ms（0.30%–0.42%），首 token P90 省 0.55–1.06 ms。按两次交换，整批省 37.57–70.82 ms。六个普通请求用实际校验次数计价，一次交换时单请求响应的估算降幅最高约 0.15%，一行 prompt 仅有一个匹配样本。在冻结调用次数和投影成本的宽松筛查里，按每轮目标和草稿各自最耗时的 rank，把两个投影后区间除五次 W2 外全部免去，整批也只省 179.92 ms（0.97%）。本组退出独立深查。"
+      "453 次实际 TP8 草稿调用分布在 227 个批次，16 个 rank 上合计 10,872 段逐层 context KV。保留三个 WKV、RMS、RoPE 和每层缓存写入，同一位置与配置只查一次 cos/sin，同一 slot 只算一次页号和偏移。再把 448 通道原值和 64 通道旋转结果直接交给对应缓存。按可省设备任务兑现一半，18.591 秒的 C8 整批估算省 27.94–30.82 ms（0.15%–0.17%），首 token P90 省 1.06–1.22 ms。六个普通请求估算省 0.54–7.02 ms，最高约 0.16%。兑现全部可省任务时 C8 整批约省 55.96–61.56 ms。",
+      "在同一轮、同一卡上核对目标选词、context KV 与五步草稿选词的真实顺序后再联合计价。按一次小包交换与 KV 可省设备工作兑现一半，C8 整批合计约省 84.77–107.34 ms（0.46%–0.58%）。让所列可省设备任务和目标原通信都免费，再让目标选词、缓存写入、草稿选词在每轮各取最有利的 rank，合计 181.40 ms（0.98%）。该范围的设备融合退出独立深查。改变其它计算、主机阻塞或调度时，需要另计新消除的工作。",
+      "24 行占 428 次 TP8 调用。3,424 条逐卡记录中，90 个 context 任务全部提交后，距离首个设备任务开跑中位仍有 36.99 ms；3,422 条连最后一个草稿 ID 的任务也已提交。若只计可省任务的主机 launch API，假设全部传递，整批估算省 63.45–73.52 ms。把首末 launch 之间的全部时间都算作可省，可得 330.84–368.59 ms，含必要提交、间隙和可能与设备重叠的工作。此金额只用来定位 M11 后续消费者，不能直接计入融合收益。"
     ],
     "new_performance_measurements": 0,
     "real_batch_waves": 227,
-    "real_TP8_target_calls": 453
+    "live_TP8_calls": 453
   },
   "request_region_screen": {
     "record": "baselines/request-region-screen.json",
@@ -321,8 +321,8 @@
       "result": "在原服务上让相同后续请求分别到已缓存和另一组 DP，两个输入长度各交换两次目的地和顺序。四对比较共查询 4,966 个后续输入 token，同组多命中 4,608.0 个。四对中 1 对输出文本相同。在固定 32K C8 上，允许任意借用两组种子和所有其它输入时最多能命中 235,904 个 token，比原有实测多 0 个。",
       "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。"
     },
-    "next": "M10 三层 context KV 已有首 token 筛查。四个 prefill 批次连投影和间隙整段免去，首 token P90 只省 6.67–8.58 ms。直接查已有 decode 调用在整批和普通请求中的频次与成本，先判断共享 RoPE 表、slot 索引和合并归一化、旋转、缓存写入的总量是否值得深入。已定价的输入打包和五步选词仅引用。",
-    "decision": "目标与草稿两处都融合时，按一次小包交换，18.591 秒的 C8 整批估算省 56.07–77.12 ms（0.30%–0.42%），首 token P90 省 0.55–1.06 ms。按两次交换，整批省 37.57–70.82 ms。六个普通请求用实际校验次数计价，一次交换时单请求响应的估算降幅最高约 0.15%，一行 prompt 仅有一个匹配样本。在冻结调用次数和投影成本的宽松筛查里，按每轮目标和草稿各自最耗时的 rank，把两个投影后区间除五次 W2 外全部免去，整批也只省 179.92 ms（0.97%）。本组退出独立深查。",
+    "next": "进入 M11 的跨迭代算子交付。先从已有 profile 对齐最后一个草稿 ID、同一 worker 的阻塞或结果可用事件、下一次元数据算子及目标图首个实际读者。给 M10 三层 context KV 减少主机提交单独定价，并扣除已被后续等待吸收的部分；同时检验其它同代共享生产者是否能合并。已测 26 项 slot 写入按原基线引用。",
+    "decision": "在同一轮、同一卡上核对目标选词、context KV 与五步草稿选词的真实顺序后再联合计价。按一次小包交换与 KV 可省设备工作兑现一半，C8 整批合计约省 84.77–107.34 ms（0.46%–0.58%）。让所列可省设备任务和目标原通信都免费，再让目标选词、缓存写入、草稿选词在每轮各取最有利的 rank，合计 181.40 ms（0.98%）。该范围的设备融合退出独立深查。改变其它计算、主机阻塞或调度时，需要另计新消除的工作。 24 行占 428 次 TP8 调用。3,424 条逐卡记录中，90 个 context 任务全部提交后，距离首个设备任务开跑中位仍有 36.99 ms；3,422 条连最后一个草稿 ID 的任务也已提交。若只计可省任务的主机 launch API，假设全部传递，整批估算省 63.45–73.52 ms。把首末 launch 之间的全部时间都算作可省，可得 330.84–368.59 ms，含必要提交、间隙和可能与设备重叠的工作。此金额只用来定位 M11 后续消费者，不能直接计入融合收益。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
