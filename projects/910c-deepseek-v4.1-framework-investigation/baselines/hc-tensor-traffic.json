@@ -1,0 +1,175 @@
+{
+  "matched_rank_layer_paths": 2560,
+  "reference_row_bytes": 40960,
+  "historical_P90_ms": 1491.854839,
+  "scenarios": {
+    "forward_one_residual_read_and_Y": {
+      "logical_bytes_forwarded_per_row": 61440,
+      "removed_bytes_per_row_by_old_task": {
+        "HcPre": 51200,
+        "RmsNormCast": 10240,
+        "router_gemm": 0
+      },
+      "P90_saved_ms": {
+        "copy_read_plus_write": {
+          "q3_zero": 2.949420375000045,
+          "q3_free_affected_tasks": 2.949420375000045
+        },
+        "one_payload_per_copy": {
+          "q3_zero": 5.89884075000009,
+          "q3_free_affected_tasks": 5.89884075000009
+        }
+      }
+    },
+    "forward_both_residual_reads_and_Y": {
+      "logical_bytes_forwarded_per_row": 102400,
+      "removed_bytes_per_row_by_old_task": {
+        "HcPre": 92160,
+        "RmsNormCast": 10240,
+        "router_gemm": 0
+      },
+      "P90_saved_ms": {
+        "copy_read_plus_write": {
+          "q3_zero": 4.9157006249999995,
+          "q3_free_affected_tasks": 4.9157006249999995
+        },
+        "one_payload_per_copy": {
+          "q3_zero": 9.831401249999999,
+          "q3_free_affected_tasks": 9.831401249999999
+        }
+      }
+    },
+    "both_and_router_widens_expert_BF16": {
+      "logical_bytes_forwarded_per_row": 133120,
+      "removed_bytes_per_row_by_old_task": {
+        "HcPre": 92160,
+        "RmsNormCast": 30720,
+        "router_gemm": 10240
+      },
+      "P90_saved_ms": {
+        "copy_read_plus_write": {
+          "q3_zero": 6.390410812500022,
+          "q3_free_affected_tasks": 6.390410812500022
+        },
+        "one_payload_per_copy": {
+          "q3_zero": 12.780821625000044,
+          "q3_free_affected_tasks": 12.780821625000044
+        }
+      }
+    },
+    "both_and_router_consumes_wide_tile": {
+      "logical_bytes_forwarded_per_row": 143360,
+      "removed_bytes_per_row_by_old_task": {
+        "HcPre": 92160,
+        "RmsNormCast": 30720,
+        "router_gemm": 20480
+      },
+      "P90_saved_ms": {
+        "copy_read_plus_write": {
+          "q3_zero": 6.881980874999954,
+          "q3_free_affected_tasks": 6.881980874999954
+        },
+        "one_payload_per_copy": {
+          "q3_zero": 13.763961749999908,
+          "q3_free_affected_tasks": 13.763961749999908
+        }
+      }
+    },
+    "remove_FP32_workspace_only": {
+      "logical_bytes_forwarded_per_row": 163840,
+      "removed_bytes_per_row_by_old_task": {
+        "HcPre": 163840,
+        "RmsNormCast": 0,
+        "router_gemm": 0
+      },
+      "P90_saved_ms": {
+        "copy_read_plus_write": {
+          "q3_zero": 7.865121000000045,
+          "q3_free_affected_tasks": 7.865121000000045
+        },
+        "one_payload_per_copy": {
+          "q3_zero": 15.73024200000009,
+          "q3_free_affected_tasks": 15.73024200000009
+        }
+      }
+    },
+    "both_Y_and_internal_workspace": {
+      "logical_bytes_forwarded_per_row": 266240,
+      "removed_bytes_per_row_by_old_task": {
+        "HcPre": 256000,
+        "RmsNormCast": 10240,
+        "router_gemm": 0
+      },
+      "P90_saved_ms": {
+        "copy_read_plus_write": {
+          "q3_zero": 12.780821625000044,
+          "q3_free_affected_tasks": 12.780821625000044
+        },
+        "one_payload_per_copy": {
+          "q3_zero": 25.56164325000009,
+          "q3_free_affected_tasks": 25.56164325000009
+        }
+      }
+    }
+  },
+  "workspace_fraction_needed_after_both_reads_and_Y_for_one_percent": {
+    "copy_read_plus_write": null,
+    "one_payload_per_copy": 0.32339954376220703
+  },
+  "installed_source": {
+    "hc_pre.cpp": {
+      "sha256": "6f251e256d523b8a54b4a04d3d0684b5191472801b2191b1970c0780564222c0",
+      "lines": {
+        "TILING_KEY_IS(0)": 92,
+        "HcPreMembaseKSplitCorePart1": 95,
+        "HcPreMembaseKSplitCorePart2": 102
+      }
+    },
+    "hc_pre_m_k_split_core.h": {
+      "sha256": "4d697b15e541216722369284cbd8c9bd5f4154cd0d2251cdb06a6cd46f42fc14",
+      "lines": {
+        "CopyIn(xGm[curGlobalxOffset]": 148,
+        "CastTwoDim(xCastLocal, xLocal": 152,
+        "CopyOut(xCastLocal, xCastFp32WsGm": 159,
+        "ComputeDecode(xCastFp32WsGm": 126,
+        "CopyIn(xGm[xGmBlockBaseOffsetPart2": 422,
+        "ProcessY(yLocal, xLocal": 429,
+        "CopyOut(yLocal,": 435
+      }
+    },
+    "hc_pre_cube_compute.h": {
+      "sha256": "9056b512f88569025bd3cec598a66d5461b5fd4c14bf6a7eb6c963ff6537ed69",
+      "lines": {
+        "CopyInA1(curKL1Size, xGm": 275,
+        "DataCopy(al1Local, aGlobal, nd2nzParams)": 191
+      }
+    }
+  },
+  "transport_evidence": {
+    "current_path": "Pinned install source casts to a global workspace and the Cube reads it. No equivalent GM-free route is bound to this configuration.",
+    "vendor_reference": "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/ascendcopapi/docs/en/api/SIMD-API/basic_api/cube_compute_ISASI/cube_compute_load/DataCopyPad_UBToL1.md",
+    "scope": "CANN 9.1.X UB-to-L1 API documents software transfer via GM on this product family. This reference alone cannot settle all CANN 9.2 alternatives."
+  },
+  "limits": [
+    "Source describes A3 key 0. Archived native names and operand types do not identify an executing binary hash per task.",
+    "Fully exposed traffic at empirical same-size BF16 TensorMove rates. Count either both read and write bytes or one logical payload per copy; these are alternative transfer assumptions, not bounds on actual bandwidth. Clamp each credit to the old task, credit no changes to compute or launch costs. Original EP16 timing and all subsequent work fixed.",
+    "Keep BF16 residual memory for FFNPost, three FP32 coefficient outputs, the expert BF16 plane, and original RMS/Gram HF32 rounding and accumulation. Removing both residual reads requires co-tiling with the producer. The wide router tile has only one known FP32 gate reader; a separate router widening the BF16 expert plane pays an extra BF16 read.",
+    "The internal FP32 workspace occupies 81920 payload bytes per real row. Eliminating both write and reread needs an equivalent vector-to-cube transport or operand path, handoff synchronization and capacity. Merely moving the cast earlier retains both transfers. Cache hits, cross-core contention, new partial reductions or spills can consume the modeled gain. No general hardware ceiling."
+  ],
+  "sources": {
+    "full-review/runs/first-token-v168-protocol-bodies.json": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de",
+    "full-review/PREFILL-OA-JOINT-ARRIVAL.json": "5c7b01aefd7603c2957b6cbb439e7f005471ccd5e4b3a5d505a1925bd2f7b550",
+    "full-review/runs/hc-pre-native-source-pin.json": "f1be06d5a4959d46e950e64da8689756f8f8440ed56f2bf74acb2e7abbfb0165",
+    "full-review/runs/hc-pre-build-dependencies.json": "5af920ba75b37100deb0a69744d8064d856d165b61e6a060ce63e1ea1da7fdf7",
+    "full-review/PREFILL-FFN-ENTRY-EXPOSURE.json": "88acd71f32506372d48bf634d1be2b092023be76a39fed50abb797f98588b9b6",
+    "full-review/ORDERED-POST-FFN-DISPOSITIONS.json": "38cff0c8ecdb75005e90a126b81a27977ead87d2c68406787c1d3a0720f0efaf",
+    "full-review/MOE-FORWARD-CONTRACTS.json": "25df7632a0633a916188866c0c4b304c5abbd86a8a62a1c376c321e30b3656e2",
+    "full-review/PREFILL-FFN-ENTRY-WEIGHTS.json": "b455377afb708f82e99af0b2ee8de1133e25a33171c035ea47ef6f9929a655c8",
+    "tools/price_hc_tensor_traffic.py": "ee060977a4360dcd3db2203687d8be9a46699f12ce1a15a6a18b55145a302e41",
+    "tools/price_eager_ffn_entry.py": "b43cc83fc34e9faf2c44d1cfbe394a1dd25aba13a5119e5670d513a4182b57c4",
+    "tools/price_draft_movable_arrivals.py": "c29bfb4bc983f4c833cc2ff481167236517b1624893a17eff9abd714c706f83a",
+    "tools/price_module_fusion_map.py": "ff8f13142c30814a87d13bb5f092293973e26ebd79f9d632f89f0196a693f6a7"
+  },
+  "new_measurements": 0,
+  "overall_complete": false
+}
