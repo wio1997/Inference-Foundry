@@ -1,22 +1,25 @@
 {
-  "updated_at_utc": "2026-11-07T12:25:44.671117+00:00",
-  "source_analysis_commit": "fb8e158c0a3e687b093e607db4fd73c4080ec2dc",
+  "updated_at_utc": "2026-11-07T12:54:58.482197+00:00",
+  "source_analysis_commit": "017f6f72439e29d4b96f0ba22cb272ccedd2a43d",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M07 FFNPost → M02 next Attention HcPre; request-level exposure",
+  "active_module": "M07 FFNPost → M02/M03 next Attention, unchanged TP8 gather",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "按执行顺序推进普通 FFNPost 到下一层 Attention HcPre 的交付。历史八个请求要求至少 61.04% 的原阶段耗时移出关键路径。复用已验证的 BF16 残差和 FP32 系数合同，按实际行数对照到 Y、RMSNorm、TP8 首读者的净时间，以及延后系数的完成期限。仅在该区域可跨过 14.919 ms 请求门槛时进入服务。",
-    "decision": "直接三路并行回写，120 次自然 V1 原生层调用合计中位比前、后参照快 2.64% / 2.17%。冻结 C8 的 96 份文本一致。首 token P90中位相对前/后参照降低 +6.48% / +5.09%，未通过预定门槛。整批耗时中位相对前/后参照降低 +0.47% / +0.03%，未通过预定门槛。 原版启动脚本和五个内核/描述文件恢复，独立健康检查 200、生成 2 个 token。",
-    "stop": "同一三路回写配置不重复 C8。单独消除小型 TensorMove、Cast 的候选先用价值表排查，改变共同读写、所有权或布局的联合变换按整段计价。首层、Engram 调整、辅助均值及空侧单独重排均低于本次请求门槛。",
+    "work": "优先在真实模型中验证普通 FFNPost 联合生成 BF16 残差和 Y、保持原 TP8 通信与 Q/KV 路径的排程。先验证自然输入、残差、Y、延后系数的首个消费者和请求输出，再进行冻结 C8。单独隐藏 Q 计算暂停，含其它提交或争用变化的联合设计继续保留。",
+    "decision": "385,100 条既有记录形成 1,698 组条件成本。固定其它工作，本地 Q 计算与 TP8 通信完全重叠只可缩短历史首 token P90 至多 9.011 ms。16 rank 原生对照中只有两种联合生成残差和 Y 的排程通过两种缓存条件的预定门槛，未实测服务收益。",
     "source": {
-      "path": "full-review/PREFILL-EXPERT-RETURN-LANES-C8.json",
-      "sha256": "95941b55f2beadc9d368f445b06515f69b61f99414039f5ee093800b7b7d375e"
+      "path": "full-review/ATTENTION-HANDOFF-NATIVE.json",
+      "sha256": "834a2e5322ea9f94f31a2d7682eeef1939add5441ab9a12ade9baada12dd35c5"
     },
-    "next_evidence": {
-      "path": "full-review/PREFILL-ATTENTION-SERVICE-THRESHOLD.json",
-      "sha256": "251440d512e5a55f2319678a7956fb4192e01ec5b88f6afc6c658372eff64182"
+    "reuse": {
+      "path": "full-review/PROFILE-UNIT-COSTS.json",
+      "sha256": "45bc8b3124683ff73a88e7b370c363f39094230da2b165fbbad8ef095e8795c4"
+    },
+    "isolated_scope": {
+      "path": "full-review/ATTENTION-LOCAL-Q-OVERLAP-BOUND.json",
+      "sha256": "ca094f8f58c41fc8b53fd1d1a6e32d8369882910094ec45608ef33d06ee103fe"
     }
   },
   "module_statuses": [
@@ -124,12 +127,11 @@
     "directory": "projects/910c-deepseek-v4.1-framework-investigation"
   },
   "service_observation": {
-    "verified_utc": "2026-11-07T12:25:23.846145+00:00",
-    "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
+    "finished_utc": "2026-11-07T12:37:17.129962+00:00",
+    "service_identity_unchanged": true,
+    "original_NPU_processes_unchanged": true,
     "health_http": 200,
-    "restored_start": "2026-11-07T12:19:17.053057548Z",
     "post_generation_tokens": 2,
-    "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
     "host_asset": "171",
     "not_a_live_status_assertion": true
   },
@@ -139,33 +141,29 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 74,
+    "region_tables": 77,
     "new_NPU_work_this_update": true,
-    "new_native_performance_comparisons": 2,
+    "new_native_performance_comparisons": 1,
     "new_native_cache_preparations": 0,
-    "service_operations_this_update": [
-      "expert-native-8c70ee49be4a",
-      "expert-native-82fdae4adcc2",
-      "f21-pipeline-c8-f58ad9bf562f"
-    ],
+    "service_operations_this_update": [],
     "does_not_replace_ordered_module_review": true,
-    "new_performance_admissions": 1,
+    "new_performance_admissions": 0,
     "new_native_cache_verifications": 0,
-    "timed_C8_samples": 9,
+    "timed_C8_samples": 0,
     "topology_rank_bindings": 16,
     "scoped_AIV_calibrated_tuples": 10,
     "new_profile_exports": 0,
     "F21_calls_reused": 4816,
     "unit_cost_reference": "baselines/unit-costs.md",
     "excluded_witness_attempts": 0,
-    "new_model_loads": 6,
+    "new_model_loads": 0,
     "archived_eager_F21_calls_bound": 2560,
     "archived_same_layer_indexer_chains": 368,
     "archived_request_slots_bound": 8,
     "archived_post_first_smla_readers": 1380,
     "archived_engine_metric_snapshots": 2,
     "regrouped_expert_layers": 40,
-    "diagnostic_C8_cases": 3,
+    "diagnostic_C8_cases": 0,
     "CPU_tokenizer_arms": 0,
     "native_rows_reused": 135592,
     "priced_matrix_or_FFN_calls": 22248,
@@ -173,7 +171,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Two synthetic-weight native comparisons with original route geometry, followed by a real-weight O/C/O C8. Three excluded first cases, nine timed. Stock restored.",
+    "performance_scope": "Simultaneous TP8 native; 16 ranks; stock serving processes unchanged. All per-call unit costs and isolated Q bound use archived data.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -182,7 +180,7 @@
     "reused_FFN_entry_rank_layer_chains": 2560,
     "FFN_native_startup_only_attempts": 1,
     "attention_rank_layer_chains": 2560,
-    "attempted_model_service_comparisons": 1
+    "attempted_model_service_comparisons": 0
   },
   "latest_service_admission": {
     "run_id": "ffn-service-c8-22416bcf39f9",
@@ -277,85 +275,21 @@
     "guarded_prefix_service": "baselines/prefix-service.json"
   },
   "latest_native_comparison": {
-    "record": "baselines/ffn-schedules.json",
-    "completed_schedules": 2,
-    "row_counts": 6,
-    "panels_per_shape": 2,
-    "timed_pairs": 9,
-    "timing_scope": "stock and separate or joint producer with immediate vs after-score coefficient launch"
+    "record": "baselines/attention-service-budget.json",
+    "run_id": "attention-handoff-e175ad6c046a",
+    "admitted_schedules": [
+      "joint/gather",
+      "joint/local"
+    ],
+    "service_speedup": null
   },
   "latest_profile_analysis": {
-    "record": "baselines/expert-return-native.json",
-    "global_screen": "baselines/operator-value-screen.json",
-    "outcomes": {
-      "p90_TTFT_ms": {
-        "three_case_values_ms": {
-          "baseline": [
-            1314.182728,
-            1224.495071,
-            1295.258507
-          ],
-          "candidate": [
-            1276.585248,
-            1206.877786,
-            1211.321082
-          ],
-          "post-reference": [
-            1307.964268,
-            1276.273054,
-            1250.688835
-          ]
-        },
-        "arm_medians_ms": {
-          "baseline": 1295.258507,
-          "candidate": 1211.321082,
-          "post-reference": 1276.273054
-        },
-        "candidate_reduction_percent_vs_before_after": [
-          6.480360835028283,
-          5.089190890337489
-        ],
-        "all_candidates_below_all_before_after": [
-          false,
-          false
-        ],
-        "passes_frozen_gate": false
-      },
-      "makespan_ms": {
-        "three_case_values_ms": {
-          "baseline": [
-            16084.305713,
-            16020.06803,
-            15975.620003
-          ],
-          "candidate": [
-            16002.499426,
-            15944.857729,
-            15825.369548
-          ],
-          "post-reference": [
-            16070.504896,
-            15880.087462,
-            15948.957569
-          ]
-        },
-        "arm_medians_ms": {
-          "baseline": 16020.06803,
-          "candidate": 15944.857729,
-          "post-reference": 15948.957569
-        },
-        "candidate_reduction_percent_vs_before_after": [
-          0.4694755406728506,
-          0.025706006065058632
-        ],
-        "all_candidates_below_all_before_after": [
-          false,
-          false
-        ],
-        "passes_frozen_gate": false
-      }
+    "record": "baselines/profile-units.json",
+    "records": {
+      "decode": 249508,
+      "eager": 135592
     },
-    "native_cases": 160,
-    "complete_model": false
+    "condition_groups": 1698,
+    "pure_Q_overlap": "若只让本地 Q 投影与 AllGather 重叠，固定实际通信时间、发射空隙与其它工作，即使每层都隐藏最慢的 Q 投影，八个请求的首 token P90 最多减少 9.011 ms，低于本轮 14.919 ms 的准入线。跳过这一项的独立 C8。"
   }
 }

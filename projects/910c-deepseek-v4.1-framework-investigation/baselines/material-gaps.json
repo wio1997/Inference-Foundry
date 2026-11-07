@@ -1,9 +1,9 @@
 {
   "status": "SHARED_DEPENDENCY_GAPS_PRIORITIZED_WITH_TOPOLOGY_EVIDENCE",
-  "updated_utc": "2026-11-07T12:25:25.037235+00:00",
+  "updated_utc": "2026-11-07T12:54:44.675294+00:00",
   "ordering": "Reuse established facts first;resolve sharedcost applicability and output before timings;only then a new material candidate. This is not a new all-pairs research program.",
-  "previous_goal_turn": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。",
-  "current_goal_turn": "直接三路并行回写，120 次自然 V1 原生层调用合计中位比前、后参照快 2.64% / 2.17%。冻结 C8 的 96 份文本一致。首 token P90中位相对前/后参照降低 +6.48% / +5.09%，未通过预定门槛。整批耗时中位相对前/后参照降低 +0.47% / +0.03%，未通过预定门槛。 原版启动脚本和五个内核/描述文件恢复，独立健康检查 200、生成 2 个 token。",
+  "previous_goal_turn": "直接三路并行回写，120 次自然 V1 原生层调用合计中位比前、后参照快 2.64% / 2.17%。冻结 C8 的 96 份文本一致。首 token P90中位相对前/后参照降低 +6.48% / +5.09%，未通过预定门槛。整批耗时中位相对前/后参照降低 +0.47% / +0.03%，未通过预定门槛。 原版启动脚本和五个内核/描述文件恢复，独立健康检查 200、生成 2 个 token。",
+  "current_goal_turn": "385,100 条既有记录形成 1,698 组条件成本。固定其它工作，本地 Q 计算与 TP8 通信完全重叠只可缩短历史首 token P90 至多 9.011 ms。16 rank 原生对照中只有两种联合生成残差和 Y 的排程通过两种缓存条件的预定门槛，未实测服务收益。",
   "gaps": [
     {
       "id": "G01",
@@ -127,6 +127,10 @@
         {
           "path": "full-review/PREFILL-EXPERT-RETURN-LANES-C8.json",
           "sha256": "95941b55f2beadc9d368f445b06515f69b61f99414039f5ee093800b7b7d375e"
+        },
+        {
+          "path": "full-review/PROFILE-UNIT-COSTS.json",
+          "sha256": "45bc8b3124683ff73a88e7b370c363f39094230da2b165fbbad8ef095e8795c4"
         }
       ],
       "dependent_decisions": [
@@ -163,7 +167,7 @@
         "M10",
         "M11"
       ],
-      "status": "NATURAL_RETURN_SERVICE_GATE_CLOSED_OTHER_READER_PATHS_OPEN",
+      "status": "CROSS_LAYER_NATIVE_SCREEN_COMPLETE_REAL_SERVICE_OPEN",
       "evidence": [
         {
           "path": "full-review/CURRENT-MOE-SCHEDULE-VALUE.json",
@@ -348,6 +352,22 @@
         {
           "path": "full-review/CURRENT-OPERATOR-VALUE-SCREEN.json",
           "sha256": "d96966a41a549c20a665b61bbf27bb85d9407cbc7a29639eb3fc3ca710d0a01b"
+        },
+        {
+          "path": "full-review/PROFILE-UNIT-COSTS.json",
+          "sha256": "45bc8b3124683ff73a88e7b370c363f39094230da2b165fbbad8ef095e8795c4"
+        },
+        {
+          "path": "full-review/ATTENTION-HANDOFF-OPERANDS.json",
+          "sha256": "e7c9751d8c14adf64fd1f1e7fcf889934adc2e07ed3c201bdd1d4de345fba836"
+        },
+        {
+          "path": "full-review/ATTENTION-LOCAL-Q-OVERLAP-BOUND.json",
+          "sha256": "ca094f8f58c41fc8b53fd1d1a6e32d8369882910094ec45608ef33d06ee103fe"
+        },
+        {
+          "path": "full-review/ATTENTION-HANDOFF-NATIVE.json",
+          "sha256": "834a2e5322ea9f94f31a2d7682eeef1939add5441ab9a12ade9baada12dd35c5"
         }
       ],
       "dependent_decisions": [
@@ -356,7 +376,7 @@
         "CompleteHC early-output scheduling"
       ],
       "existing_scope": "Target idealized router-gated shared schedule median2.20584ms,withF21-exclusive constraint0.5938425ms;these alternatives are not additive. DraftF21 median0.561894ms includingwait,role differs fromtarget. 301 current EP16 ordinal/layer brackets overlap on all ranks. In six groups with a call >=1ms the last-entrant-fixed completion slack is at most 4.292us in exported time. Target body F21 occupies median22.610% inclusive. The historical target body receiver population has 76.701% empty expert slots. Paired native sparse-credit protocol retained both epilogue boundaries and failed the 14.25us value gate on both sparse layouts with exact outputs. Positive-row packing changes a different input stage.",
-      "next": "按执行顺序推进普通 FFNPost 到下一层 Attention HcPre 的交付。历史八个请求要求至少 61.04% 的原阶段耗时移出关键路径。复用已验证的 BF16 残差和 FP32 系数合同，按实际行数对照到 Y、RMSNorm、TP8 首读者的净时间，以及延后系数的完成期限。仅在该区域可跨过 14.919 ms 请求门槛时进入服务。",
+      "next": "优先在真实模型中验证普通 FFNPost 联合生成 BF16 残差和 Y、保持原 TP8 通信与 Q/KV 路径的排程。先验证自然输入、残差、Y、延后系数的首个消费者和请求输出，再进行冻结 C8。单独隐藏 Q 计算暂停，含其它提交或争用变化的联合设计继续保留。",
       "stop": "Stop the scored FFN variant and standalone low-value first-layer / empty-group Attention shortcuts. Preserve branch prerequisites: sequential BF16 collapse, immutable external premix, both norm planes, coefficient lifetime, Engram update, auxiliary mean, and all rank collective obligations. Reopen a rejected implementation only for a distinct mechanism with material additional scope.",
       "eager_expert_input_frontier": "For four archived prefills, all 160 EP16 generations bound by source/receiver counts and local native tasks. Within each carrier the DP-crossing count interval width divided by its floor is 2.875%, 0.371%, 0.731%, 430.205%. A one-arrival-per-source-token per opposite DP path can remove at least 1.371, 2.638, 2.697, 0.730 GB of logical duplicate input from this partition, before any intra-DP fanout. The archived clock bounds cannot identify the latest-exiting DP in any generation. The next Attention starts later on DP1 in every M816 transition and DP0 in every M817 transition. Checked all volumes and DP dedup bounds against 454 M3 full-route groups with 128376 assignments. No physical latency or service gain established.",
       "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
@@ -448,6 +468,22 @@
         {
           "path": "full-review/PREFILL-ATTENTION-SERVICE-THRESHOLD.json",
           "sha256": "251440d512e5a55f2319678a7956fb4192e01ec5b88f6afc6c658372eff64182"
+        },
+        {
+          "path": "full-review/PROFILE-UNIT-COSTS.json",
+          "sha256": "45bc8b3124683ff73a88e7b370c363f39094230da2b165fbbad8ef095e8795c4"
+        },
+        {
+          "path": "full-review/ATTENTION-HANDOFF-OPERANDS.json",
+          "sha256": "e7c9751d8c14adf64fd1f1e7fcf889934adc2e07ed3c201bdd1d4de345fba836"
+        },
+        {
+          "path": "full-review/ATTENTION-LOCAL-Q-OVERLAP-BOUND.json",
+          "sha256": "ca094f8f58c41fc8b53fd1d1a6e32d8369882910094ec45608ef33d06ee103fe"
+        },
+        {
+          "path": "full-review/ATTENTION-HANDOFF-NATIVE.json",
+          "sha256": "834a2e5322ea9f94f31a2d7682eeef1939add5441ab9a12ade9baada12dd35c5"
         }
       ],
       "dependent_decisions": [
@@ -707,6 +743,10 @@
         {
           "path": "full-review/PREFILL-TP8-COMMUNICATION-UNITS.json",
           "sha256": "64cbceb4a7a90ea156d158ad37fab49deb72e270beb5713b6ba05917a5a79b25"
+        },
+        {
+          "path": "full-review/PROFILE-UNIT-COSTS.json",
+          "sha256": "45bc8b3124683ff73a88e7b370c363f39094230da2b165fbbad8ef095e8795c4"
         }
       ],
       "dependent_decisions": [
@@ -727,37 +767,12 @@
   "new_NPU_work": true,
   "service_actions": [
     {
-      "run_id": "expert-native-8c70ee49be4a",
-      "restoration": {
-        "verified_utc": "2026-11-07T11:45:48.621147+00:00",
-        "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
-        "health_http": 200,
-        "restored_start": "2026-11-07T11:40:30.468019921Z",
-        "post_generation_tokens": 2,
-        "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba"
-      }
-    },
-    {
-      "run_id": "expert-native-82fdae4adcc2",
-      "restoration": {
-        "verified_utc": "2026-11-07T11:57:45.070350+00:00",
-        "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
-        "health_http": 200,
-        "restored_start": "2026-11-07T11:52:02.558177309Z",
-        "post_generation_tokens": 2,
-        "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba"
-      }
-    },
-    {
-      "run_id": "f21-pipeline-c8-f58ad9bf562f",
-      "restoration": {
-        "verified_utc": "2026-11-07T12:25:23.846145+00:00",
-        "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
-        "health_http": 200,
-        "restored_start": "2026-11-07T12:19:17.053057548Z",
-        "post_generation_tokens": 2,
-        "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba"
-      }
+      "run_id": "attention-handoff-e175ad6c046a",
+      "finished_utc": "2026-11-07T12:37:17.129962+00:00",
+      "service_identity_unchanged": true,
+      "original_NPU_processes_unchanged": true,
+      "health_http": 200,
+      "post_generation_tokens": 2
     }
   ],
   "overall_complete": false,
