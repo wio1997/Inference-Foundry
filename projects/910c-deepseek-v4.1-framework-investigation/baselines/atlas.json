@@ -3,7 +3,7 @@
   "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
   "builder": {
     "path": "tools/build_global_cost_baseline.py",
-    "sha256": "4e551b38afa2d20476066ecbb88e9fad0f6aceecdcc08750428003d2124c2360"
+    "sha256": "d5e9cbcdfe70debc46683e72576595adf4870b961d013ad6d44c35ad5ebb1ab7"
   },
   "sources": {
     "CURRENT-MECHANISM-VALUE.json": {
@@ -88,7 +88,7 @@
     },
     "GLOBAL-MATERIAL-GAPS.json": {
       "path": "full-review/GLOBAL-MATERIAL-GAPS.json",
-      "sha256": "510b228df66262719baf15fc273bd55f8a4ae528cb8381e1206234090a30448e"
+      "sha256": "da18d29f702dff541c7960496fa5ca9c5e8dd7a8ae4148fa3803d2eaa0d81496"
     },
     "SHARED-COLLECTIVE-CALIBRATION.json": {
       "path": "full-review/SHARED-COLLECTIVE-CALIBRATION.json",
@@ -177,6 +177,10 @@
     "PREFILL-SELECTED-KV-NATIVE.json": {
       "path": "full-review/PREFILL-SELECTED-KV-NATIVE.json",
       "sha256": "8b2c44a4b1f11f27e437a85b398c3298d285c14e116f8d1b562ee37737670741"
+    },
+    "PREFILL-ADMISSION-AND-EXPERT-WORK.json": {
+      "path": "full-review/PREFILL-ADMISSION-AND-EXPERT-WORK.json",
+      "sha256": "a73340b578a7861ecfdaa5886885f7f9cf197320de6c06e25b9f01728cce6628"
     }
   },
   "scope": {
@@ -2768,6 +2772,77 @@
     "transfer_only_calibration_complete": false
   },
   "region_tables": [
+    {
+      "id": "prefill_engine_admission",
+      "cohort": "joint168_frozen_C8_8_requests_2_engines",
+      "source": "PREFILL-ADMISSION-AND-EXPERT-WORK.json",
+      "json_pointer": "/engine_metrics",
+      "metrics": [
+        {
+          "DP": 0,
+          "client_slots": [
+            0,
+            5,
+            6,
+            7
+          ],
+          "n": 4,
+          "preemptions": 0,
+          "queue_sum_ms": 0.15889760106801987,
+          "server_TTFT_sum_ms": 3943.357229232788,
+          "scheduled_to_core_first_token_sum_ms": 2318.159317597747,
+          "TTFT_minus_queue_and_prefill_sum_ms": 1625.0390140339732
+        },
+        {
+          "DP": 1,
+          "client_slots": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "n": 4,
+          "preemptions": 0,
+          "queue_sum_ms": 0.15511643141508102,
+          "server_TTFT_sum_ms": 4330.176830291748,
+          "scheduled_to_core_first_token_sum_ms": 2111.4314757287502,
+          "TTFT_minus_queue_and_prefill_sum_ms": 2218.5902381315827
+        }
+      ],
+      "interpretation": "Region-specific observed work or explicitly conditional schedule screen; overlapping alternatives, not additive savings."
+    },
+    {
+      "id": "prefill_regrouped_expert_work",
+      "cohort": "joint168_adjacent_M816_M817_conditional_membership",
+      "source": "PREFILL-ADMISSION-AND-EXPERT-WORK.json",
+      "json_pointer": "/price",
+      "metrics": {
+        "old_two_step_valid_tokens_per_layer": 13080,
+        "second_step_retained_tokens": 18,
+        "second_step_retained_assignments": 108,
+        "old_and_regrouped_direct_MAC_per_layer": 2777363251200,
+        "fewer_active_expert_calls_over_40_layers_bounds": [
+          5030,
+          9350
+        ],
+        "combined_peak_receiver_rows_over_layers": {
+          "n": 40,
+          "min": 7191,
+          "median": 13067.5,
+          "max": 24738
+        },
+        "old_sum_of_two_peak_receiver_rows_over_layers": {
+          "n": 40,
+          "min": 7191,
+          "median": 13067.5,
+          "max": 24738
+        },
+        "sum_of_39_original_pair_gaps_ms": 398.344245,
+        "sum_of_39_invariant_regrouped_pair_gaps_ms": 240.50686599999995,
+        "conditional_gap_difference_ms": 157.83737900000006
+      },
+      "interpretation": "Region-specific observed work or explicitly conditional schedule screen; overlapping alternatives, not additive savings."
+    },
     {
       "id": "prefill_selected_kv_consumers",
       "cohort": "v168_eager_4_bodies_8_requests",
@@ -6898,15 +6973,17 @@
         "priority": 2,
         "family": "rank readiness,useful stage time,and shared resources",
         "modules": [
+          "M00",
           "M01",
           "M02",
           "M03",
           "M05",
           "M06",
-          "M10"
+          "M10",
+          "M11"
         ],
-        "status": "Q416_COMPACTION_DEFERRED_ADJACENT_DP_EAGER_ALIGNMENT_OPEN",
-        "next": "Check saved request ingress/tokenization/engine-ready events against DP0 step 3, and rank-local time and resource costs for the two steps. Price the larger simultaneous EP receiver demand and the second decode step, including eligibility for existing graphs, masks, output return, CP state and all changed readers."
+        "status": "ENGINE_QUEUE_BOUNDED_TWO_STEP_EXPERT_WORK_PRICED_DECISION_TIMESTAMPS_OPEN",
+        "next": "One shared CPU timeline with API ingress, tokenizer done, queued, schedule decision/send, first core output, worker-step identity and first client output for all eight requests. Reuse it for M00/M03/M06/M11; separate naturally ready requests from a changed upstream delivery mechanism. Only compare native combined expert time or C8 after joint eligibility and useful exposure."
       },
       {
         "id": "G04",
