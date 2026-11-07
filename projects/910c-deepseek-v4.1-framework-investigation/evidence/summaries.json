@@ -1,4 +1,171 @@
 {
+  "CURRENT-F21-RANK-READINESS.json": {
+    "source_sha256": "0393f5ef2d161fdffc261782e296d517f0e648443c5b9ad80cb25b9afd376863",
+    "data": {
+      "status": "CURRENT_DECODE_F21_ENTRY_SKEW_AND_UPSTREAM_DRAFT_COLLECTIVES_BOUND",
+      "coverage": {
+        "ranks": 16,
+        "local_periods": 112,
+        "ordered_16rank_groups": 301,
+        "target_layers": 40,
+        "draft_layers": 3,
+        "period_ordinals_per_rank": 7,
+        "call_columns": [
+          "TASK_ROW",
+          "start_ns",
+          "end_ns"
+        ],
+        "input_shapes": {
+          "target": [
+            "\"3,5120;24,5120,4608;24,2304,5120;3,6;110592;122880;3,6;3\""
+          ],
+          "draft": [
+            "\"3,5120;8,5120,4608;8,2304,5120;3,3;36864;40960;3,3;3\""
+          ]
+        },
+        "max_minus_min_profiler_end_wall_minus_monotonic_ns": 2061
+      },
+      "summary": {
+        "target": {
+          "layers": 40,
+          "groups": 280,
+          "rank_calls": 4480,
+          "local_period_inclusive_fraction": {
+            "n": 112,
+            "min": 0.18721017011115262,
+            "median": 0.24078358639592773,
+            "max": 0.2686704386717919
+          },
+          "groups_with_1ms_call": 5,
+          "rank_calls_at_least_1ms": 40,
+          "all_groups": {
+            "entry_spread_us": {
+              "n": 280,
+              "min": 8.664,
+              "median": 18.4925,
+              "max": 2768.555
+            },
+            "exit_spread_us": {
+              "n": 280,
+              "min": 5.72,
+              "median": 10.288,
+              "max": 15.492
+            },
+            "post_latest_entry_to_last_exit_us": {
+              "n": 280,
+              "min": 229.46,
+              "median": 320.575,
+              "max": 407.13
+            },
+            "fixed_last_entrant_finish_slack_us": {
+              "n": 280,
+              "min": 0.0,
+              "median": 2.3049999999999997,
+              "max": 7.825
+            },
+            "max_local_call_us": {
+              "n": 280,
+              "min": 238.38,
+              "median": 330.3935,
+              "max": 3135.82
+            }
+          }
+        },
+        "draft": {
+          "layers": 3,
+          "groups": 21,
+          "rank_calls": 336,
+          "local_period_inclusive_fraction": {
+            "n": 112,
+            "min": 0.0080982660684216,
+            "median": 0.010329992117713939,
+            "max": 0.0488607497132452
+          },
+          "groups_with_1ms_call": 1,
+          "rank_calls_at_least_1ms": 15,
+          "all_groups": {
+            "entry_spread_us": {
+              "n": 21,
+              "min": 11.117,
+              "median": 20.767,
+              "max": 2825.66
+            },
+            "exit_spread_us": {
+              "n": 21,
+              "min": 7.259,
+              "median": 11.326,
+              "max": 15.889
+            },
+            "post_latest_entry_to_last_exit_us": {
+              "n": 21,
+              "min": 153.64,
+              "median": 169.4,
+              "max": 246.55
+            },
+            "fixed_last_entrant_finish_slack_us": {
+              "n": 21,
+              "min": 0.0,
+              "median": 2.81,
+              "max": 6.42
+            },
+            "max_local_call_us": {
+              "n": 21,
+              "min": 172.157,
+              "median": 182.26,
+              "max": 2970.581
+            }
+          }
+        },
+        "screen": {
+          "one_off_draft_bracket_fraction_by_rank": {
+            "n": 16,
+            "min": 0.008684336725472884,
+            "median": 0.008700280872711338,
+            "max": 0.008745147278758315
+          },
+          "target_layers_1_39_local_period_inclusive_fraction": {
+            "n": 112,
+            "min": 0.18124306693286524,
+            "median": 0.2261001753841025,
+            "max": 0.23590547811519855
+          },
+          "uniform_net_us_per_target_body_call_for_1pct_local_period": {
+            "n": 112,
+            "min": 13.75711794871795,
+            "median": 14.249669230769232,
+            "max": 17.703061538461537
+          },
+          "definition": "Each rank counts every observed period once. The draft charge covers all tasks and gaps from the prior F21 exit through the final F21 exit in periods with a final draft call of at least 1ms on any rank. Suppose this entire bracket is free and outside work fixed. The target screen is the inclusive occupied time of the 39 target F21 calls. Uniform net savings is a break-even target and makes no stage overlap assumption."
+        }
+      },
+      "decisions": [
+        "Defer an implementation that only shortens early-rank F21 waits while preserving the last entrant finish. In the long groups the exported all-rank release already follows that finish closely.",
+        "Do not instrument the isolated draft ordinal 4 delay first. Making its entire predecessor-to-final-release bracket free is below the 1% ordering reference across the observed seven periods per rank. Reopen for higher frequency, a wider rewrite sharing other steps, or an independent tail-latency objective.",
+        "Prioritize the recurring target layers 1..39. Assess useful dispatch, local expert computation, routed row sharing and combine publication together. Old wait-only, g12 split and unchanged shared-F21 fork keep their individual dispositions."
+      ],
+      "limits": [
+        "Same-role ordinal matching has 16 overlapping native intervals and strict inter-group ordering throughout. No native EP generation field or externally certified cross-device timestamp error bound is available.",
+        "The last-entrant-fixed slack is the difference between the latest exported finish and the finish of a latest entrant. It bounds the all-rank completion change only when that finish is held fixed. Earlier useful work, downstream criticality and the service performance effect are unknown.",
+        "Whole-call durations include computation, communication and waiting. Covered native/DMA union includes communication waits. Gaps without represented native/DMA can include host submission, runtime waits or unexported work. CPU activity was disabled.",
+        "Seven decode periods per rank do not estimate the incidence in the full C8 run. Other shapes, prefill, arithmetic/stage changes and alternative ownership remain open."
+      ],
+      "overall_complete": false,
+      "numeric_model_ceiling": null
+    }
+  },
+  "F21-EMPTY-EXPERT-PUBLICATION.json": {
+    "source_sha256": "8fb5deab511d3d62a6825bed684edf475e10d3f0e3282d234c00e86c29199f5c",
+    "data": {
+      "status": "SPARSE_RECEIVER_EXPERT_PUBLICATION_CANDIDATE_RETAINED_FOR_NATIVE_VALUE",
+      "decision": "First price the empty-expert publication change on the recurring target body. Check paired flag counts and data/scale/order on empty, mixed and dense controls before a matched max-rank comparison. The current uniform 1% prioritization screen needs a median 14.25us net per call across all 39 layers. A change limited to fewer layers must use their actual repetition and period. Preserve broader partial delivery and return ordering candidates.",
+      "limits": [
+        "Receiver-count frequencies come from historical v168. They do not establish the frequency in the current 112 windows or the share of wall time spent in empty credits.",
+        "A flag issue, wait or barrier is not a fixed-duration unit. Earlier work or following positive-expert copies may hide it. No per-expert time was inferred from the inclusive F21 duration.",
+        "No native implementation, service gain, or numerical-equivalence claim is admitted."
+      ],
+      "overall_complete": false
+    }
+  },
   "SHARED-COLLECTIVE-CALIBRATION.json": {
     "source_sha256": "ab8c7fb91ecaef0be95343e14123adddb96c20734ae456d54a36e713929fda16",
     "data": {
@@ -1331,13 +1498,13 @@
     }
   },
   "GLOBAL-MATERIAL-GAPS.json": {
-    "source_sha256": "480110bb380c4f66a8980aa4a92ee00768ac3f4e9477ae4b0b8c9534800ee9ac",
+    "source_sha256": "d8a4137f8d8c2cc6df2e2eb57b97d2d2fb5c10587966f2828d3c9edb80bf70e0",
     "data": {
       "status": "SHARED_DEPENDENCY_GAPS_PRIORITIZED_WITH_TOPOLOGY_EVIDENCE",
-      "updated_utc": "2026-11-07T01:50:29.849527+00:00",
+      "updated_utc": "2026-11-07T02:14:51.895434+00:00",
       "ordering": "Reuse established facts first;resolve sharedcost applicability and output before timings;only then a new material candidate. This is not a new all-pairs research program.",
       "previous_goal_turn": "PROGRESS",
-      "current_goal_turn": "PROGRESS. Completed model-mode AIV calibration for ten operand tuples, bound28observed classes, and priced the M08 raw-to-collapsed transport branch in112windows.",
+      "current_goal_turn": "PROGRESS. Aligned all 4816 current target/draft F21 rank calls, priced the isolated draft outlier at observed frequency, and selected the distinct sparse receiver-publication branch from attested source and historical expert counts.",
       "gaps": [
         {
           "id": "G01",
@@ -1426,7 +1593,7 @@
             "M06",
             "M10"
           ],
-          "status": "MATERIAL_BUT_STAGE_SPECIFIC_EVIDENCE_REQUIRED",
+          "status": "F21_ENTRY_AND_EXIT_BOUND_EMPTY_EXPERT_PUBLICATION_NATIVE_VALUE_OPEN",
           "evidence": [
             {
               "path": "full-review/CURRENT-MOE-SCHEDULE-VALUE.json",
@@ -1435,6 +1602,14 @@
             {
               "path": "full-review/ORDERED-DSPARK-VALUE.json",
               "sha256": "ac5489e92ef1ba9580d2f059a2accb2162a11a89f5f950ee8ca0c3ec027ce9b5"
+            },
+            {
+              "path": "full-review/CURRENT-F21-RANK-READINESS.json",
+              "sha256": "0393f5ef2d161fdffc261782e296d517f0e648443c5b9ad80cb25b9afd376863"
+            },
+            {
+              "path": "full-review/F21-EMPTY-EXPERT-PUBLICATION.json",
+              "sha256": "8fb5deab511d3d62a6825bed684edf475e10d3f0e3282d234c00e86c29199f5c"
             }
           ],
           "dependent_decisions": [
@@ -1442,9 +1617,9 @@
             "WiderF21 scheduling and draftE8/K3 path",
             "CompleteHC early-output scheduling"
           ],
-          "existing_scope": "Target idealized router-gated shared schedule median2.20584ms,withF21-exclusive constraint0.5938425ms;these alternatives are not additive. DraftF21 median0.561894ms includingwait,role differs fromtarget.",
-          "next": "Start with target versus DSpark draft F21. Reuse current per-rank, per-layer, role and window traces to bound the contribution of localized long F21 calls. Price a phase-level or route-specific observation only if it changes selection of a distinct schedule.",
-          "stop": "No repeat of unchanged sharedF21/flag-only/QA-only variants or unrelated concurrency-pair matrix."
+          "existing_scope": "Target idealized router-gated shared schedule median2.20584ms,withF21-exclusive constraint0.5938425ms;these alternatives are not additive. DraftF21 median0.561894ms includingwait,role differs fromtarget. 301 current EP16 ordinal/layer brackets overlap on all ranks. In six groups with a call >=1ms the last-entrant-fixed completion slack is at most 4.292us in exported time. Target body F21 occupies median22.610% inclusive. The historical target body receiver population has 76.701% empty expert slots.",
+          "next": "Test the rank-uniform post-capacity active-expert predicate on the pinned E24/K6 path. Model AIV publication and AIC consumption including idle cores, all-empty and epilogue crossings. If the predicate and original boundary retirement hold, use a paired, fixed-route native comparison with dense and sparse controls before considering C8.",
+          "stop": "Preserve numerical/return order, cumsum visibility, initial/final credits and both epilogue segments. Price net cost at actual repetition; the 39-layer uniform screen needs median14.25us/call for 1% of a local period. Preserve the old g12 and unchanged shared fork verdicts. Keep positive-row sharing, earlier group readiness, all legal branches and full-model limits open."
         },
         {
           "id": "G04",
@@ -1463,7 +1638,8 @@
           "evidence": [
             {
               "path": "full-review/ORDERED-MODULE-VALUE-LEDGER.json",
-              "sha256": "f32d7707da51d7285cde5782ebdcc32f155f50b14e707d684b39cc71830c049f"
+              "sha256": "f32d7707da51d7285cde5782ebdcc32f155f50b14e707d684b39cc71830c049f",
+              "source_commit": "985bc4a07ec1b652c34cdfa49d7038a6f5ada96d"
             },
             {
               "path": "full-review/BATCHED-SLOT-C8.json",
@@ -1500,7 +1676,8 @@
           "evidence": [
             {
               "path": "full-review/ORDERED-MODULE-VALUE-LEDGER.json",
-              "sha256": "f32d7707da51d7285cde5782ebdcc32f155f50b14e707d684b39cc71830c049f"
+              "sha256": "f32d7707da51d7285cde5782ebdcc32f155f50b14e707d684b39cc71830c049f",
+              "source_commit": "985bc4a07ec1b652c34cdfa49d7038a6f5ada96d"
             },
             {
               "path": "full-review/BATCHED-SLOT-SEMANTIC-BRANCHES.json",
@@ -1544,7 +1721,7 @@
           "stop": "Do not sum overlaps,nominalports,perlogicalcachepools or historicalpercentagegains into a modelceiling."
         }
       ],
-      "new_NPU_work": true,
+      "new_NPU_work": false,
       "service_actions": [],
       "overall_complete": false,
       "numeric_model_ceiling": null
