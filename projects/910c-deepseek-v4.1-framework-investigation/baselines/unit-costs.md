@@ -6,7 +6,7 @@
 
 | 需要回答的问题 | 可直接复用的数值 | 什么时候值得补测 |
 |---|---|---|
-| 区域全省能否改变优先级 | 83 类算子导航、54 张区域表，保留 cohort 和分母。[区域和频次](atlas.json) | 未命中的合法分支保留条件。仅在联合变换扩大可改范围、实际命中或频率变化时重新筛查 |
+| 区域全省能否改变优先级 | 83 类算子导航、55 张区域表，保留 cohort 和分母。[区域和频次](atlas.json) | 未命中的合法分支保留条件。仅在联合变换扩大可改范围、实际命中或频率变化时重新筛查 |
 | TP 通信和 rank 等待 | 16,016 条模型记录、28 类。224 条缺 native 绑定。下表给出同配置独立回放参考。[模型区间](communication.json) · [拓扑](topology.json) | 新消息尺寸、拓扑、后端或并发状态会改变决策时，合并同组需求。EP16 的 MC2 内部收发单列 |
 | 存储和数据交付 | 每逻辑设备报告 L2 192 MiB；实际输入行布局、字节和专家复用可查。[容量和驻留](atlas.json) · [专家输入](f21-peer-input-value.json) | HBM、L2、host-UVA 的持续读写速率仍待测。先算必须搬的字节和最晚交付时间，只批测会影响判断的冷热工作集、布局和并发 |
 | 矩阵与量化 | 当前直接算法的 BF16 / INT8 分别按 98,304 / 196,608 MAC/设备等效周期计。历史 16,062 个任务中 13,614 个有对应模式。[证据索引](../evidence-index.json) | 物理时钟上界、实际 shape 吞吐与无定价模式仍有缺口。跨 dtype、tile、量化分支的结果要单独绑定 |
@@ -76,6 +76,8 @@ AllGather 的 count 为每 rank 输入元素数，ReduceScatter 为每 rank 输�
 
 查 `--region prefill_expert_traffic_and_exits` 可复用 160 组 EP16 调用的跨 rank、物理卡和 DP 分派量边界，以及最晚退出和下一层就绪的时间差。416、816、817 行的跨 DP 输入分派总量区间宽度分别为下界的 2.87%、0.37%、0.73%。818 行的范围是 373,329–1,979,409 次；需要精确流量时优先补这一档。已用另外 454 组实际路由 ID 检查计算公式。真实带宽与应用层分派计数采用不同分母。[逐载体数据和推导](expert-traffic.json)
 
+同负载的新诊断给出了 416、816、817、834 行的实际物理路由。用 `--region prefill_expert_natural_delivery` 查每种行数按 rank、卡和 DP 发布一次的输入量、五种跨专家驻留窗口和原负载上限下的有序返回字节。原始路由可在服务器重放。历史 818 行仍保留原区间。[实测输入与返回](expert-natural-delivery.json)
+
 ## 按执行模块查询
 
 所有模块共享区域价值筛查与语义核验。下表列出原集中补测计划中具名的成本族；已有结论可以直接复用。联合候选仍可申请涉及的新资源条件。[补测条件](calibration-plan.json) · [未完成的公共证据](material-gaps.json)
@@ -88,7 +90,7 @@ AllGather 的 count 为每 rank 输入元素数，ReduceScatter 为每 rank 输�
 | [M03 Attention](../modules/M03.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 24 |
 | [M04 SP 输出交付与 mHC Attention 后置](../modules/M04.md) | TP/EP 通信 | 19 |
 | [M05 mHC FFN 前置与 RMS/cast](../modules/M05.md) | 存储与交付、计算 | 5 |
-| [M06 Router、路由/共享专家、EP 收发](../modules/M06.md) | TP/EP 通信、计算、调度与争用 | 24 |
+| [M06 Router、路由/共享专家、EP 收发](../modules/M06.md) | TP/EP 通信、计算、调度与争用 | 25 |
 | [M07 mHC FFN 后置与下一层状态](../modules/M07.md) | TP/EP 通信、存储与交付 | 5 |
 | [M08 终端 collapse、norm、词表 head](../modules/M08.md) | TP/EP 通信、存储与交付、计算 | 5 |
 | [M09 采样、校验与输出状态](../modules/M09.md) | 目前仅使用模块价值与频次记录 | 1 |
