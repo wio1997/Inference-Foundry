@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T22:56:05.285680+00:00",
-  "source_analysis_commit": "d1a89ce214bb1b3e3f57feea926bef1b10bc8bf6",
+  "updated_at_utc": "2026-11-07T23:16:18.276714+00:00",
+  "source_analysis_commit": "4f170a1af3439c4489b69512b8f53984c242b91c",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 同一分片内 OA 与 OB 输出投影的算子融合归因",
+  "active_module": "M03 输入投影与旋转、缓存写入的联合价值",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "按执行顺序回到 M03 输出投影。已有 OA→OB→ReduceScatter 的大区间曾过 1%，先在固定分片、固定权重和中间 BF16 舍入下，用已有 profile 核算能由算子联算实际消除的中间写读与调用。把必要矩阵工作及卡间重分配剔除，随后归并其余模块尚未定价的融合分支。",
-    "decision": "标准 UB→L1 路径的工作区收益归零。40+34 处双侧接口联合仅在扩宽写入低额外成本和有利搬运计价下保留首 token 条件价值，普通请求与冻结整批均降级。已有延后系数的 FFN 双输出实现相对同排程分开生成 Y，九组投影全部更慢。",
+    "work": "按 12 个执行模块归并已有分支族，优先筛 Attention 的 QA/index-W 同源投影、QB→RoPE 与 KV→归一化/旋转/cache 写入。先复用既有投影、量化和写缓存预算，扣掉已经计价的共同工作；仅当新组合能改变请求时间排序时点查依赖。",
+    "decision": "固定分片 OA→OB 的独立搬运与输出直写降级；分块流水仅保留为长提示首 token 条件候选。已把专家放置和纯排程从模块的当前融合待办移至历史资料。",
     "source": {
-      "path": "full-review/HC-PAIRED-BOUNDARY-REQUESTS.json",
-      "sha256": "f25158211efe9c36af2e4aec01bd26526bc2e257c18801e51793fa2148901fa1"
+      "path": "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json",
+      "sha256": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 127,
+    "region_tables": 128,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Same-schedule FFN Y generation, both HC boundary traffic estimates and installed 171 SDK header inspection. No NPU workloads.",
+    "performance_scope": "Fixed-shard BF16 output projection: eager and graph profile attribution, six ordinary request estimates and tile overlap sensitivity.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,14 +280,13 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M02/M04/M05/M07",
+    "scope": "M03/M04",
     "sources": [
-      "baselines/hc-paired-boundaries.json"
+      "baselines/oa-ob-fusion.json"
     ],
     "observations": [
-      "在 171 实际安装的 CANN 9.2 头文件中，架构 2201 选入 dav_c220 实现。连续 DataCopy、ND2NZ 和两种 DataCopyPad 把 UB 数据写到 GM，接收端再从 GM 读入 L1。因此，使用这些接口时 HcPre 的每行 163,840 B 工作区逻辑写读仍要保留。",
-      "归档中有 2,560 处 AttentionPost→FFNPre 以及 2,176 处直接相邻的 FFNPost→下一层 AttentionPre。两处均可考虑由 Post 同时交付原 BF16 残差、供 Cube 使用的扩宽值和按外部系数归约的 Y，并保留 Y 的 BF16 舍入及后续归一化读者。每次完整目标模型前向按 40 处 FFN 和 34 处 Attention 计价。若仅省一次残差读取及 Y 的写读，C8 首 token P90 估算省 5.47–10.94 ms。若两次残差读取均省、扩宽写入等成本，估算省 9.12–18.23 ms。按有利搬运速率给扩宽写增加 25% 成本后只省 14.59 ms，已低于 14.92 ms 门槛。六个普通请求在等成本的有利估算下，首 token 最高 0.635%，响应完成最高 0.260%。",
-      "把两组老实验的 joint 与 separate 在同一轮、同一系数提交时点配对，比较 Post 直接生成 Y 的增量。原历史最慢首 token 请求上，系数立即启动时，九组形状配对投影的中位省 1.52 ms；系数等到路由分数后启动时，中位慢 10.35 ms，九组全部变慢。计时保留完整系数计算和单独归一化，联合归一化仍是估算。"
+      "OA 和 OB 是同一分片上的两次输出投影。2,240 个非空逐卡层中有 1,600 次 OB 输出拷贝；另有 320 个空侧直接填零后归约。24 行图上 2,560 条链的 OA→OB 间隙中位为 0.02 µs。保留两次矩阵乘、BF16 中间舍入和 ReduceScatter，按同机连续搬运速率折算，省中间写读及间隙只值约 0.99 ms 首 token P90；若能直接写通信输入，则为 5.70–6.51 ms（0.38%–0.44%），整批 6.13–6.95 ms，六个普通请求响应最高约 0.13%。单独搬运融合降级。",
+      "分块流水只有在已舍入的 OA 结果可按块交给 OB、维持各自归约顺序，并且硬件有未占用资源时才可能另有收益。按相同搬运估价，若能隐藏两次投影剩余时间中较短者的 25%，冻结首 token P90 估算省 13.88–14.63 ms；隐藏 50% 时省 21.56–22.61 ms（1.45%–1.52%），整批省 0.48%，六个普通请求响应最高 0.65%。这只是敏感性估算。按另一个更有利的独立拷贝代理且完全重叠，整批才约省 194–197 ms。是否能做到这些重叠仍缺证据。"
     ],
     "new_performance_measurements": 0
   },
@@ -313,14 +312,14 @@
     "fusion_scope": "historical_layout_or_routing"
   },
   "current_value_priority": {
-    "method": "先在现有 profile 中按模块、分支和实际出现次数汇总可能改变的整段工作。对必须提前的请求，用可变工作全部免费估算上限。在固定排程下，端到端上限低于该指标参考的改写连同其子集一起暂缓。局部占比只用于排序；若小算子会改变大计算、通信、同步或后续迭代，将这些工作一并估价。对过线范围扣除必须保留的工作、替代成本和已经重叠的时间，再比较端到端收益与基线波动。已有通信和搬运数据按大小、拓扑、并发和布局复用。仅在未知量可能改变取舍时补证，未覆盖的分支留在台账。",
+    "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/hc-paired-boundaries.json",
-      "result": "把两组老实验的 joint 与 separate 在同一轮、同一系数提交时点配对，比较 Post 直接生成 Y 的增量。原历史最慢首 token 请求上，系数立即启动时，九组形状配对投影的中位省 1.52 ms；系数等到路由分数后启动时，中位慢 10.35 ms，九组全部变慢。计时保留完整系数计算和单独归一化，联合归一化仍是估算。"
+      "record": "baselines/oa-ob-fusion.json",
+      "result": "OA 和 OB 是同一分片上的两次输出投影。2,240 个非空逐卡层中有 1,600 次 OB 输出拷贝；另有 320 个空侧直接填零后归约。24 行图上 2,560 条链的 OA→OB 间隙中位为 0.02 µs。保留两次矩阵乘、BF16 中间舍入和 ReduceScatter，按同机连续搬运速率折算，省中间写读及间隙只值约 0.99 ms 首 token P90；若能直接写通信输入，则为 5.70–6.51 ms（0.38%–0.44%），整批 6.13–6.95 ms，六个普通请求响应最高约 0.13%。单独搬运融合降级。"
     },
-    "next": "按执行顺序回到 M03 输出投影。已有 OA→OB→ReduceScatter 的大区间曾过 1%，先在固定分片、固定权重和中间 BF16 舍入下，用已有 profile 核算能由算子联算实际消除的中间写读与调用。把必要矩阵工作及卡间重分配剔除，随后归并其余模块尚未定价的融合分支。",
-    "decision": "标准 UB→L1 路径的工作区收益归零。40+34 处双侧接口联合仅在扩宽写入低额外成本和有利搬运计价下保留首 token 条件价值，普通请求与冻结整批均降级。已有延后系数的 FFN 双输出实现相对同排程分开生成 Y，九组投影全部更慢。",
+    "next": "按 12 个执行模块归并已有分支族，优先筛 Attention 的 QA/index-W 同源投影、QB→RoPE 与 KV→归一化/旋转/cache 写入。先复用既有投影、量化和写缓存预算，扣掉已经计价的共同工作；仅当新组合能改变请求时间排序时点查依赖。",
+    "decision": "固定分片 OA→OB 的独立搬运与输出直写降级；分块流水仅保留为长提示首 token 条件候选。已把专家放置和纯排程从模块的当前融合待办移至历史资料。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
@@ -349,7 +348,7 @@
     "routing": "baselines/prefix-routing.json",
     "C8_ceiling": "baselines/c8-prefix-ceiling.json"
   },
-  "fusion_admission": "先指明实际算子、输入输出或公共输入，以及合并后能消除的中间读写、重复计算、提交或依赖。单纯调度、冷热专家分布、复制或迁移权重、缓存驻留均归历史背景。组合改写在相同布局与调度下单独归因融合的增量；缺乏可归因增量时不计入融合集。",
+  "fusion_admission": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。",
   "module_value_map": "module-value-map.md",
   "delivery_mode": "profile_based_candidate_discovery",
   "candidate_list": "fusion-candidates.md"

@@ -8,6 +8,7 @@
 |---|---|
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
+| [OA 与 OB 的逐请求估算](baselines/oa-ob-fusion.json) | 固定权重分片和归约的搬运收益、流水敏感性和普通请求 |
 | [mHC 两处融合与同排程对照](baselines/hc-paired-boundaries.json) | 171 SDK 的实际数据通路、两处残差共用的请求收益与扩宽写入成本 |
 | [采样形状、返回分数和请求估算](baselines/random-sampling-fusion.json) | Ascend 双阈值掩码、普通与投机采样、冻结和普通请求的条件收益 |
 | [上一步有效 token 数与下一轮输入等待](baselines/draft-submit-waits.json) | context KV 的主机收益、选词直接产出种子与计数、未绑定事件的保守计价 |
