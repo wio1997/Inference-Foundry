@@ -23,6 +23,8 @@
 
 | 候选和适用分支 | 能省什么 | 请求侧量级与判断 |
 |---|---|---|
+| M08/M09，TP8 词表输出 → 选行、转换、ArgMax，分别交付 bonus 与校验 ID | 保留词表投影与 BF16 舍入，直接读 TP 排列。只需确定性选词时可改为每个分片交付候选分数与全局 ID，保留同分规则与必要读者 | 固定全收集，C8 整批约省 31.11–32.64 ms。改成分片选词并付一次小包交换约省 27.48–47.78 ms，两次交换约省 8.96–41.46 ms。单独降级。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) |
+| M10，草稿 W2 的分数校正 Add → ArgMax | 保留五步 W2 和 ID 依赖，融合每步内部的切片、校正与选词。单请求无宽拷贝。完整分数另有读者时须保留对应输出 | 草稿端整批估算省 28.10–29.75 ms。与上一行联合，一次交换 C8 约省 0.30%–0.42%，六个普通请求最高约 0.15%。升入 GEMM 尾部单靠进一步省写读的整批增量约 0.95 ms。联合降级。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) |
 | M06，共享专家 Gate/Up 投影 → DequantSwigluQuant → Down 投影 | 前后两处中间结果分别为每行 4,608 个 INT32、2,304 个 INT8 加一份 FP32 scale。同一分支中可吸收一边或两边，需保留逐行量化和两次原矩阵乘 | 两处一起省去写读，历史 C8 首 token P90 估算省 0.31–3.97 ms。激活完全隐藏、两侧间隔全省时，有利估算也仅 8.83 ms（0.59%）；整批 62.10 ms（0.33%）。普通六请求的搬运收益均低于 0.06%。这条链降级。[逐分支估算](baselines/shared-mlp-fusion.json) |
 | M06/M07，ForeachAddList → HcPost | 在 HcPost 内先把共享与路由结果相加并舍入 BF16，再按原 mHC 系数合并残差，消去合并张量的一次写读 | M3 已有冻结 C8。候选整批中位 15.968 秒，比前后参照慢 0.31% / 0.19%，64 次文本比较和 640 次前缀张量比较通过。此形状降级。[对照摘要](baselines/shared-mlp-fusion-service.json) |
 | M08，末层 Cast → Mul → ReduceSum → Cast → RMSNorm 联合计算 | 合并四路残差的加权归约和归一化，减少中间张量往返。保留 raw 复制、系数、归约顺序和舍入边界 | 64 个 rank/批窗口均出现该链。净省 50% 时，历史首 token P90 估算缩短 2.78–3.89 ms（0.19%–0.26%）。即使全省也仅 5.56–7.79 ms。六个普通请求首轮只裁剪这段估算省 0.26–0.61 ms，占各自两轮原服务首 token 的 0.006%–0.224%。独立降级，与末层按需方案重叠。[普通请求估算](baselines/ordinary-terminal-rows.json) [逐批成本](baselines/profile-fusion-estimates.json) |
@@ -40,7 +42,7 @@
 
 12 个模型执行模块都有首轮价值判断。既有统计中，decode 的 405 个阶段/形状签名有 381 个在每个已测本地周期都低于 1%，prefill 的 663 个签名有 591 个在每个已测主体区间都低于 1%。这两组数据用于过滤孤立小改。共同生产者能消掉多次写回或改变通信交付时，以整个组合重新计价。历史末层 FFN 及读出有 7 段，128 个可变范围中已有 94 个即使全省也达不到历史首 token P90 的 1%。这 94 个范围可一次排除，无需逐对补测。[按阶段筛查](baselines/fusion-priority.json) · [128 个组合](baselines/terminal-stage-screen.json)
 
-按输入、Engram、Attention、FFN/MoE、读出/采样、DSpark 和下一轮交付顺序推进。M07→M02 的跨层融合已合并计价；下一项为 M08→M09 词表投影与选择或校验。[按模块的读者和口径](module-value-map.md)
+按输入、Engram、Attention、FFN/MoE、读出/采样、DSpark 和下一轮交付顺序推进。M08–M10 的词表选词在同一批次中已联合计价。M10 三层 context KV 已有首 token 筛查，接下来只核对 decode 路径的请求预算。[按模块的读者和口径](module-value-map.md)
 
 ## 估算口径
 

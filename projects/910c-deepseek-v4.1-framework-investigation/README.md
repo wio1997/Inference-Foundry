@@ -8,15 +8,12 @@
 |---|---|
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
+| [目标与草稿的词表选词](baselines/vocab-selection-fusion.json) | 真实形状、普通请求与八请求整批的融合估算 |
 | [普通负载在 171 的实测](baselines/workloads.md#171-的普通请求已实测) | 逐卡 guard 命中、首文本前的图回放、跨 DP 缓存和对照输出 |
 | [常见推理场景与候选适用范围](baselines/workloads.md) | 真实对话、短代码回复、多轮前缀复用，以及本机还需要哪些证据 |
-| [EP16 加到批量 slot 的实际增量](baselines/ep16-batched-slot-c8.json) | 各指标的独立裁决、同一代服务上的九轮计时和恢复 |
 | [DSpark 三层非专家工作的整组收益](baselines/draft-fixed-expert.json) | 保留专家耗时，比较具名计算与全部剩余时间，识别决定判断的请求 |
 | [mHC 循环提前退出的价值筛查](baselines/mhc-iteration-cost.json) | 真实调用次数、两侧的合计收益、提前退出的最晚时点与开销 |
-| [EP16 专家布局的冻结 C8 对照](baselines/ep16-interval-c8.json) | 首 token、整批、自然命中、数值检查和原服务恢复 |
-| [按专家布局重算矩阵计算下限](baselines/ep16-compute-floors.json) | 原布局、每层调入两个专家和自由分配在相同矩阵工作下的下限 |
 | [QLI 在批量 slot 基线上的增量](baselines/qli-batched-slot-c8.json) | 171 同基线前后参照，输出一致性、首 token、整批耗时和恢复 |
-| [EP16 专家布局的实际命中与所需收益](baselines/ep16-layer-guard.json) | 两轮参照的传递门槛、一次零命中的批次差额、诊断轮的覆盖 |
 | [单算子与联合范围的价值初筛](baselines/fusion-priority.json) | 局部占比、请求级上界、无需单独深查的范围和重新打开条件 |
 | [末层 FFN 原系数数值对照](baselines/terminal-dense-coefficients.json) | 保持真实路由权重后，逐段核对专家、mHC 和读出 |
 | [末层 FFN 分支收益预算](baselines/terminal-guard-budgets.json) | 哪些 DP 分支必须同时覆盖、不同批次替代成本怎样分摊 |
@@ -39,3 +36,14 @@
 | [维护约定](MAINTENANCE.md) | 更新顺序、状态口径、发布方法和完成标准 |
 
 原始 profile、模型、编译缓存和完整日志留在现有服务器/分析库，不重复上传。这里保存可阅读报告、小型结构化摘要和精确证据引用，不保存凭证。
+
+## 历史对照
+
+以下记录涉及专家放置与负载均衡，保存用于复核旧结论。当前融合候选见[融合候选与预计收益](fusion-candidates.md)。
+
+| 历史记录 | 内容 |
+|---|---|
+| [EP16 加到批量 slot 的实际增量](baselines/ep16-batched-slot-c8.json) | 各指标的独立裁决、同一代服务上的九轮计时和恢复 |
+| [EP16 专家布局的冻结 C8 对照](baselines/ep16-interval-c8.json) | 首 token、整批、自然命中、数值检查和原服务恢复 |
+| [按专家布局重算矩阵计算下限](baselines/ep16-compute-floors.json) | 原布局、每层调入两个专家和自由分配在相同矩阵工作下的下限 |
+| [EP16 专家布局的实际命中与所需收益](baselines/ep16-layer-guard.json) | 两轮参照的传递门槛、一次零命中的批次差额、诊断轮的覆盖 |
