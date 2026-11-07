@@ -1,22 +1,22 @@
 {
-  "updated_at_utc": "2026-11-07T19:41:37.357963+00:00",
-  "source_analysis_commit": "4a942080fe1fa6f2d6f217b675f87b427f32d885",
+  "updated_at_utc": "2026-11-07T19:57:35.803407+00:00",
+  "source_analysis_commit": "19e8966464e07a82751e1dde05f7485c73f775ea",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 稀疏注意力的共享页读者与请求成本",
+  "active_module": "M03、M05–M06 的重复激活量化与共享读者",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "在 M03 汇总现有稀疏注意力数据，按共用 KV 页的真实层、页版本、读者和两组 DP 到达，把 SMLA 中必须保留的打分/归约与可能减少的 KV 读流量分开，给不同上下文的请求预算。Q416 的全量预打包及四层 QLI 转换沿用既有结论。",
-    "decision": "M04–M05 残差两次读取及 Y 写读按现有搬运计价，C8 首 token P90 估计省 4.92–9.83 ms；再含路由宽输出最多约 13.76 ms（所用两种速率）。M08 普通六请求首次 prefill 的末层归约和归一化仅约 0.26–0.61 ms。六行单请求校验保持原 SP 连续分片和等长通信时仍须 24 个槽。三种窄范围降级。",
-    "scope": "复用已有 profile 与单位成本，以用户可见请求指标排序",
+    "work": "按模型顺序比较 Attention 的普通 Q 与索引 Q 投影、FFN 路由和共享专家的激活量化。复用已绑定的重复量化、舍入反例与通信分支，先定价可共用的 INT8 输出和比例因子，再扣除既有重叠；相同名字但输入、平滑或行所有权不同的分支分别计价。",
+    "decision": "M03 的跨层 KV 保存按每个后续读者最多少取一次不同 KV 行估算，C8 首 token P90 约省 4.02–5.77 ms。达到 1% 需要有效消除速率约 465 GB/s 以下，或在现有连续拷贝参考速率下能消除约 2.59 遍不同数据的等量流量。M06 两层实际路由显示，只提前交付整专家的首行对第 0 层比第 20 层更有价值；保留按行消费条件。",
+    "scope": "归档 profile、源层归属、已测单位成本和请求终点",
     "source": {
-      "path": "full-review/HC-TENSOR-TRAFFIC-ESTIMATES.json",
-      "sha256": "605b70c0b5314bb423313b8930cfc4c5cf777b8926ca53ad9d9fec4197210a85"
+      "path": "full-review/SPARSE-KV-RETENTION-REQUEST-ESTIMATES.json",
+      "sha256": "510f823cf81791e7a12a413f4739ee74ddcf43c47c830eeb982d3c64cfece004"
     },
-    "ordinary": {
-      "path": "full-review/ORDINARY-TERMINAL-ROW-ESTIMATES.json",
-      "sha256": "42f9504b4b447bf5ea13e67615fabe05888fff44410e386e1a5d3cd0a826f542"
+    "expert_row_release": {
+      "path": "full-review/EXPERT-ROW-RELEASE-SCREEN.json",
+      "sha256": "3e1c22a054b4aa7b62b6041f8790101c99eb1fc4b7bc001a538ab4d5e8b8e1d0"
     }
   },
   "module_statuses": [
@@ -169,7 +169,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Offline estimates using existing C8 rank-layer chains and six archived ordinary requests. No new service runs.",
+    "performance_scope": "Offline reconstruction of prefill and decode compressed KV reuse and expert row-release order. No new model runs.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,14 +284,14 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M04/M05/M06/M08",
+    "scope": "M03/M06/M07",
     "sources": [
-      "baselines/hc-tensor-traffic.json",
-      "baselines/ordinary-terminal-rows.json"
+      "baselines/sparse-kv-retention.json",
+      "baselines/expert-row-release.json"
     ],
     "observations": [
-      "2,560 条归档逐卡链上，若片上同时接住 HcPre 对四路残差的两次读取以及 Y 的写读，按同尺寸 TensorMove 的两种字节计价，C8 首 token P90 约省 4.92–9.83 ms。即使路由直接接住宽输出，也约为 6.88–13.76 ms。内部 FP32 工作区写读每行另有 163,840 B，若也能消除，联合情景为 12.78–25.56 ms。安装源码确实经 GM，保持数值的替代传递方式仍缺依据。",
-      "六个普通对话和代码请求首轮的实际 eager 卡上行数为 128、183 或 274。按同算子既有设备时间插值，保留小形状成本，单独裁剪末层加权归约和 RMS 每请求约省 0.26–0.61 ms。单请求校验需六个连续行；遍历全部 19 种起点后，原连续八卡分片所需的等长包仍是 24 槽。这排除了单靠删行缩小等长包的方案。改变归属、保留原始状态和请求 prompt logprobs 各自改变可省范围。"
+      "压缩 KV 有四个来源层、八组索引。1,380 次后续读沿用同组索引，另 184 次仍读相同 KV 来源但有新索引。假设每个后续读者最多省一次不同 KV 行的读取，按 1.20 TB/s 连续搬运参考计，C8 首 token P90 约省 4.02–5.77 ms。若含当前批、稀疏有效速率低至 465 GB/s，或按参考速率确能省掉约 2.59 遍不同数据的等量读取，可触及 1%。在六个普通请求里，同口径首轮各约 0.023–0.049 ms。实际稀疏读取带宽和跨层缓存命中仍缺观测。",
+      "第 0、20 层各 227 次真实小批路由中，将两组 DP 每个活跃分片的首行同时列为优先项。在接收卡同时开始、每槽成本相同且整专家发布的排程中，整专家重排使两层首行分别少等最重卡总槽工作量的 17.65%、1.23%（逐批差的中位）。按最重卡 F21 实测耗时的 25%–50% 为这部分工作的假设，约相当于首行分别提前 27–55 µs、0.8–1.6 µs。三个原行都需要时，重排不减少总槽数。逐行共享专家结果、原六槽归约顺序和后续接受分块是兑现条件。"
     ],
     "new_measurements": 0
   },
@@ -324,8 +324,8 @@
       "result": "在原服务上让相同后续请求分别到已缓存和另一组 DP，两个输入长度各交换两次目的地和顺序。四对比较共查询 4,966 个后续输入 token，同组多命中 4,608.0 个。四对中 1 对输出文本相同。在固定 32K C8 上，允许任意借用两组种子和所有其它输入时最多能命中 235,904 个 token，比原有实测多 0 个。",
       "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。"
     },
-    "next": "在 M03 汇总现有稀疏注意力数据，按共用 KV 页的真实层、页版本、读者和两组 DP 到达，把 SMLA 中必须保留的打分/归约与可能减少的 KV 读流量分开，给不同上下文的请求预算。Q416 的全量预打包及四层 QLI 转换沿用既有结论。",
-    "decision": "M04–M05 残差两次读取及 Y 写读按现有搬运计价，C8 首 token P90 估计省 4.92–9.83 ms；再含路由宽输出最多约 13.76 ms（所用两种速率）。M08 普通六请求首次 prefill 的末层归约和归一化仅约 0.26–0.61 ms。六行单请求校验保持原 SP 连续分片和等长通信时仍须 24 个槽。三种窄范围降级。",
+    "next": "按模型顺序比较 Attention 的普通 Q 与索引 Q 投影、FFN 路由和共享专家的激活量化。复用已绑定的重复量化、舍入反例与通信分支，先定价可共用的 INT8 输出和比例因子，再扣除既有重叠；相同名字但输入、平滑或行所有权不同的分支分别计价。",
+    "decision": "M03 的跨层 KV 保存按每个后续读者最多少取一次不同 KV 行估算，C8 首 token P90 约省 4.02–5.77 ms。达到 1% 需要有效消除速率约 465 GB/s 以下，或在现有连续拷贝参考速率下能消除约 2.59 遍不同数据的等量流量。M06 两层实际路由显示，只提前交付整专家的首行对第 0 层比第 20 层更有价值；保留按行消费条件。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
