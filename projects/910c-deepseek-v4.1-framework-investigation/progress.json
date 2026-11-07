@@ -1,20 +1,21 @@
 {
-  "updated_at_utc": "2026-11-07T04:13:17.182267+00:00",
-  "source_analysis_commit": "4892f34bbe501d654f7cc738684f69439ef92276",
+  "updated_at_utc": "2026-11-07T04:43:08.947504+00:00",
+  "source_analysis_commit": "3596c15d4f51cf72dd0cb94b5814b43f16e82aa5",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M00/M03/M06/M11 shared request ingress, engine admission and first-token delivery",
+  "active_module": "M00/M06/M11 frozen C8 renderer concurrency and conditional prefix delivery",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "decision": "Were both independent prefills ready by the actual earlier scheduler decision, and where could their inputs be delivered sooner without delaying another request?",
-    "work": "One shared CPU timeline with API ingress, tokenizer done, queued, schedule decision/send, first core output, worker-step identity and first client output for all eight requests. Reuse it for M00/M03/M06/M11; separate naturally ready requests from a changed upstream delivery mechanism. Only compare native combined expert time or C8 after joint eligibility and useful exposure.",
+    "decision": "Does native four-worker request tokenization improve client first-token latency or full C8 makespan at identical outputs and cache counters?",
+    "work": "Existing --renderer-num-workers 4 versus original 1 with no prefix-token reuse. Preserve original text requests, tokenizer mode deepseek_v41, weights and launch environment. Keep a post reference. Inspect actual selected pool width before using timing. One admission check per arm, then three frozen timed cases in each of reference/candidate/post-reference. Independently restore/reset prefix cache before each seed (or a fresh equivalent server); preserve exact address/DP seed routing, counters and outputs. Use identical low-cost instrumentation in all arms if enabled. No retrying samples to select a favorable outcome.",
     "existing_evidence": [
-      "full-review/PREFILL-ADMISSION-AND-EXPERT-WORK.json",
-      "full-review/runs/prefill-admission-metrics.json",
-      "full-review/PREFILL-EP16-CO-SCHEDULING.json"
+      "full-review/PREFILL-RENDERER-C8-CONTRACT.json",
+      "full-review/PREFILL-TOKENIZER-VALUE.json",
+      "full-review/PREFILL-REQUEST-TIMELINE.json",
+      "full-review/runs/admission-c8-73a5ea4d92b3-tokenizer.json"
     ],
-    "stop_rule": "Direct queue wait is immaterial here. Do not time a candidate while schedule admission, unchanged outputs and net expert service are unresolved. Do not infer readiness from worker entry, or count all server TTFT residual as tokenizer time."
+    "stop_rule": "Keep TTFT and whole-request decisions separate. For a positive P90-TTFT result require the candidate three-case median to beat both flanking reference medians by at least 1%, and the slowest candidate case P90-TTFT to beat the fastest case in each reference. For full-service makespan apply the same gate independently. Report regressions, median deltas and all outputs regardless. Threshold chosen for this next experiment before service timings; CPU-stage samples do not satisfy it."
   },
   "module_statuses": [
     {
@@ -121,13 +122,13 @@
     "directory": "projects/910c-deepseek-v4.1-framework-investigation"
   },
   "service_observation": {
-    "start_utc": "2026-11-07T03:47:25.863171+00:00",
-    "elapsed_seconds": 15.12173639331013,
-    "container_started_at": "2026-11-07T00:58:20.436708445Z",
+    "phase": "RESTORED_AFTER_FAILURE",
     "health_http": 200,
-    "identity_unchanged": true,
-    "service_actions": [],
-    "worker_pid_set_rechecked": false,
+    "post_generation_tokens": 2,
+    "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
+    "restored_start": "2026-11-07T04:33:34.160360149Z",
+    "time_utc": "2026-11-07T04:39:35.749637+00:00",
+    "kind": "verified after diagnostic postprocessing recovery",
     "host_asset": "171",
     "not_a_live_status_assertion": true
   },
@@ -137,11 +138,14 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 29,
-    "new_NPU_work_this_update": false,
+    "region_tables": 31,
+    "new_NPU_work_this_update": true,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
-    "service_operations_this_update": [],
+    "service_operations_this_update": [
+      "start temporary CPU-observed original model service",
+      "restore original launcher and service"
+    ],
     "does_not_replace_ordered_module_review": true,
     "new_performance_admissions": 0,
     "new_native_cache_verifications": 0,
@@ -154,13 +158,15 @@
     "F21_calls_reused": 4816,
     "unit_cost_reference": "baselines/unit-costs.md",
     "excluded_witness_attempts": 0,
-    "new_model_loads": 0,
+    "new_model_loads": 2,
     "archived_eager_F21_calls_bound": 2560,
     "archived_same_layer_indexer_chains": 368,
     "archived_request_slots_bound": 8,
     "archived_post_first_smla_readers": 1380,
     "archived_engine_metric_snapshots": 2,
-    "regrouped_expert_layers": 40
+    "regrouped_expert_layers": 40,
+    "diagnostic_C8_cases": 1,
+    "CPU_tokenizer_arms": 4
   },
   "latest_service_admission": {
     "run_id": "projected-owner-c8-batched-slot-c6802de09ed3",
@@ -241,6 +247,7 @@
     "positive_expert_native": "baselines/f21-peer-input-value.json",
     "prefill_expert_and_index_delivery": "baselines/prefill-f21-attention.json",
     "selected_KV_native_and_adjacent_iterations": "baselines/prefill-selected-kv.json",
-    "request_delivery_and_combined_experts": "baselines/prefill-admission.json"
+    "request_delivery_and_combined_experts": "baselines/prefill-admission.json",
+    "observed_request_delivery": "baselines/prefill-request-delivery.json"
   }
 }
