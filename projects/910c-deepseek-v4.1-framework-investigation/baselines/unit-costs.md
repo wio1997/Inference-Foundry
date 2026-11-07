@@ -6,7 +6,7 @@
 
 | 需要回答的问题 | 可直接复用的数值 | 什么时候值得补测 |
 |---|---|---|
-| 区域全省能否改变优先级 | 83 类算子导航、59 张区域表，保留 cohort 和分母。[区域和频次](atlas.json) | 未命中的合法分支保留条件。仅在联合变换扩大可改范围、实际命中或频率变化时重新筛查 |
+| 区域全省能否改变优先级 | 83 类算子导航、64 张区域表，保留 cohort 和分母。[区域和频次](atlas.json) | 未命中的合法分支保留条件。仅在联合变换扩大可改范围、实际命中或频率变化时重新筛查 |
 | TP 通信和 rank 等待 | 16,016 条模型记录、28 类。224 条缺 native 绑定。下表给出同配置独立回放参考。[模型区间](communication.json) · [拓扑](topology.json) | 新消息尺寸、拓扑、后端或并发状态会改变决策时，合并同组需求。EP16 的 MC2 内部收发单列 |
 | 存储和数据交付 | 每逻辑设备报告 L2 192 MiB；实际输入行布局、字节和专家复用可查。[容量和驻留](atlas.json) · [专家输入](f21-peer-input-value.json) | HBM、L2、host-UVA 的持续读写速率仍待测。先算必须搬的字节和最晚交付时间，只批测会影响判断的冷热工作集、布局和并发 |
 | 矩阵与量化 | 当前直接算法的 BF16 / INT8 分别按 98,304 / 196,608 MAC/设备等效周期计。历史 16,062 个任务中 13,614 个有对应模式。[证据索引](../evidence-index.json) | 物理时钟上界、实际 shape 吞吐与无定价模式仍有缺口。跨 dtype、tile、量化分支的结果要单独绑定 |
@@ -80,6 +80,8 @@ AllGather 的 count 为每 rank 输入元素数，ReduceScatter 为每 rank 输�
 
 三张原生表共用相同的五组大尺寸专家路由。用 `--region expert_cross_card_input` 查输入已就位时可省的整算子时间，用 `--region expert_repeat_row_cache` 查计入首次写入和后续解包的真实重复行缓存，用 `--region expert_weight_placement` 查同卡双芯片或跨卡重排在 prefill 与 decode 上的配对耗时。两种重排均加速了五组 prefill，五组 decode 的延迟比中位数分别上升 4.09% 和 11.73%。用 `--region expert_dual_layout_capacity` 查原服务可用显存及按层容量筛查。[完整算子与显存对照](expert-native-and-placement.json)
 
+同样的 cast 请求在原探针环境返回 ND（格式 2），而模型执行器开启内部格式。比较共享权重时须记录参与运算的实体格式、步长、槽位指针、权重及 scale 的所属专家。修正对照已逐 rank 核验 FRACTAL_NZ（格式 29）和 96 个地址偏移。用 `--region expert_NZ_conditional_latency` 查不同输入的实际整算子耗时，用 `--region expert_partial_weight_placement` 查每芯片每层移动 1、2、3 个专家的容量和负载，用 `--region expert_placement_model_service` 查询冻结服务结果。用 `--region expert_shape_guard_coverage` 查每轮所有真实行数和零命中轮，先决定精确形状守卫能覆盖多少次调用。用 `--region expert_sparse_joint_traffic` 可在同一组真实输入上同时查布局变化后的去重空间、有序返回字节和跨卡分派量，避免重复采集及重复计算收益。[专家权重共享和分支对照](expert-sparse-placement.json)
+
 ## 按执行模块查询
 
 所有模块共享区域价值筛查与语义核验。下表列出原集中补测计划中具名的成本族；已有结论可以直接复用。联合候选仍可申请涉及的新资源条件。[补测条件](calibration-plan.json) · [未完成的公共证据](material-gaps.json)
@@ -92,12 +94,12 @@ AllGather 的 count 为每 rank 输入元素数，ReduceScatter 为每 rank 输�
 | [M03 Attention](../modules/M03.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 24 |
 | [M04 SP 输出交付与 mHC Attention 后置](../modules/M04.md) | TP/EP 通信 | 19 |
 | [M05 mHC FFN 前置与 RMS/cast](../modules/M05.md) | 存储与交付、计算 | 5 |
-| [M06 Router、路由/共享专家、EP 收发](../modules/M06.md) | TP/EP 通信、计算、调度与争用 | 30 |
+| [M06 Router、路由/共享专家、EP 收发](../modules/M06.md) | TP/EP 通信、计算、调度与争用 | 35 |
 | [M07 mHC FFN 后置与下一层状态](../modules/M07.md) | TP/EP 通信、存储与交付 | 5 |
 | [M08 终端 collapse、norm、词表 head](../modules/M08.md) | TP/EP 通信、存储与交付、计算 | 5 |
 | [M09 采样、校验与输出状态](../modules/M09.md) | 目前仅使用模块价值与频次记录 | 1 |
 | [M10 DSpark context、decoder、draft head/Markov](../modules/M10.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 6 |
-| [M11 下一迭代输入与状态交接](../modules/M11.md) | 存储与交付、调度与争用 | 11 |
+| [M11 下一迭代输入与状态交接](../modules/M11.md) | 存储与交付、调度与争用 | 16 |
 
 表内数量按模块与区域表共同引用的证据文件统计，同一张表可供多个模块使用。运行 `python3 tools/query_global_cost.py --module M04` 可取得对应表名、采样范围和适用于所有模块的缺口。
 
