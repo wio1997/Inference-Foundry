@@ -1,18 +1,18 @@
 {
-  "updated_at_utc": "2026-11-07T11:07:34.358856+00:00",
-  "source_analysis_commit": "d78ff2ffe932f8a46658537e17b1394b34b3f770",
+  "updated_at_utc": "2026-11-07T11:27:42.819760+00:00",
+  "source_analysis_commit": "56ea71c95496bce68f4f7a37ca9e3c0cf8611403",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M06 guarded placement service disposition and ordered return frontier",
+  "active_module": "M06 routed expert return and M07 source-shard merge",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "停止复跑同一精确尺寸方案。对新的按形状专门化先查询各轮完整输入尺寸及零命中轮，端到端测试预先区分自然流量收益与命中分支本身收益；每轮的回退工作计入自然流量。沿用原服务布局的 6.491 GB 有序返回逻辑节省量，先查最早读者、必须本地搬运和保序归约，决定是否值得一次共同校准。",
-    "decision": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
-    "stop": "不重复已经测过的路由。保存原框架的单张量 decode 与 416 路径，按实际实体 format 和指针绑定筛选，不把分散计时之和折算成端到端收益。",
+    "work": "先按 CombineV1/V2 在完整 MoE 中隔离真实跨卡 BF16 回写成本，复用 171 已归档路由与真实 NZ 格式，保持 GMM2、BF16 舍入、计数和原生同步；同时核算最终返回与共享专家并行时的完成通知、本地暂存或直接交付。只有净暴露时间足以改变优先级才实现双段远端归约。",
+    "decision": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。",
+    "stop": "同一布局的一次跨卡前缀不单列设备实验；若保序合同、最早读者或关键卡负载改变，再纳入联合筛查。避免重复采路由。",
     "source": {
-      "path": "full-review/PREFILL-EXPERT-SPARSE-DECISION.json",
-      "sha256": "0a038238098d4be9e0cbe0313a970b0d3bc509b88f2643e73ced811af6a9fc01"
+      "path": "full-review/PREFILL-EXPERT-RETURN-READERS.json",
+      "sha256": "bee1140a36c049aea31c335096ed66f8e94a0f1c75199d41e0e4776977e6ee36"
     }
   },
   "module_statuses": [
@@ -135,31 +135,29 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 64,
-    "new_NPU_work_this_update": true,
-    "new_native_performance_comparisons": 2,
+    "region_tables": 67,
+    "new_NPU_work_this_update": false,
+    "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
-    "service_operations_this_update": [
-      "Two sparse-layout native campaigns with stock restoration; single-chip storage check; model campaign results in model_service"
-    ],
+    "service_operations_this_update": [],
     "does_not_replace_ordered_module_review": true,
     "new_performance_admissions": 0,
     "new_native_cache_verifications": 0,
-    "timed_C8_samples": 2,
+    "timed_C8_samples": 0,
     "topology_rank_bindings": 16,
     "scoped_AIV_calibrated_tuples": 10,
     "new_profile_exports": 0,
     "F21_calls_reused": 4816,
     "unit_cost_reference": "baselines/unit-costs.md",
     "excluded_witness_attempts": 0,
-    "new_model_loads": 6,
+    "new_model_loads": 0,
     "archived_eager_F21_calls_bound": 2560,
     "archived_same_layer_indexer_chains": 368,
     "archived_request_slots_bound": 8,
     "archived_post_first_smla_readers": 1380,
     "archived_engine_metric_snapshots": 2,
     "regrouped_expert_layers": 40,
-    "diagnostic_C8_cases": 2,
+    "diagnostic_C8_cases": 0,
     "CPU_tokenizer_arms": 0,
     "native_rows_reused": 135592,
     "priced_matrix_or_FFN_calls": 22248,
@@ -167,7 +165,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Default-format discrepancy, explicit NZ with all 160 natural prefill routes, and guarded same-generation whole-model C8",
+    "performance_scope": "Reuse physical route archive and historical trace; conditional transfer requirements only",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -176,7 +174,7 @@
     "reused_FFN_entry_rank_layer_chains": 2560,
     "FFN_native_startup_only_attempts": 1,
     "attention_rank_layer_chains": 2560,
-    "attempted_model_service_comparisons": 2
+    "attempted_model_service_comparisons": 0
   },
   "latest_service_admission": {
     "run_id": "ffn-service-c8-22416bcf39f9",
@@ -279,10 +277,10 @@
     "timing_scope": "stock and separate or joint producer with immediate vs after-score coefficient launch"
   },
   "latest_profile_analysis": {
-    "record": "baselines/expert-sparse-placement.json",
-    "native_run": "expert-native-9deba69be346",
-    "real_format": 29,
-    "tested_prefill_layer_calls": 160,
-    "frozen_model_results": "真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。"
+    "record": "baselines/expert-ordered-return.json",
+    "layer_calls_reused": 160,
+    "historical_reader_chains": 2560,
+    "complete_model": false,
+    "result": "在 160 次真实 MoE 层调用上，把六路结果按原顺序放到指定芯片归约，可以保持每芯片、每卡的峰值归约行数，跨卡少传 6.491 GB，同卡两芯片之间多传 2.203 GB。其中 590,291 行形成两段有先后依赖的跨卡传输。"
   }
 }

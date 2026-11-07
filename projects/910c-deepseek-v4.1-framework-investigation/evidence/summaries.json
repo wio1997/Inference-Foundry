@@ -1520,13 +1520,13 @@
     }
   },
   "GLOBAL-MATERIAL-GAPS.json": {
-    "source_sha256": "76a7b69f3adde81289c2c08ab0c6341276092479b31180e34212adf9fb3a0ec9",
+    "source_sha256": "010652da544760dcaa6c0d4ed81ec817c339e79f1b14ed84744c460d34a77bad",
     "data": {
       "status": "SHARED_DEPENDENCY_GAPS_PRIORITIZED_WITH_TOPOLOGY_EVIDENCE",
-      "updated_utc": "2026-11-07T11:07:34.024961+00:00",
+      "updated_utc": "2026-11-07T11:27:42.476262+00:00",
       "ordering": "Reuse established facts first;resolve sharedcost applicability and output before timings;only then a new material candidate. This is not a new all-pairs research program.",
-      "previous_goal_turn": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 已通过三种指定大 M 的原生准入。真实模型 C8 对照正在执行；等待控制器、数值和恢复回执。",
-      "current_goal_turn": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
+      "previous_goal_turn": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
+      "current_goal_turn": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。",
       "gaps": [
         {
           "id": "G01",
@@ -1626,6 +1626,14 @@
             {
               "path": "full-review/PREFILL-EXPERT-SPARSE-DECISION.json",
               "sha256": "0a038238098d4be9e0cbe0313a970b0d3bc509b88f2643e73ced811af6a9fc01"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-ORDERED-REDUCERS.json",
+              "sha256": "6e5a75f6ede4b00f1209a16a4d59c8a8972ce87e6c77dcb166943e007efbaf48"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-RETURN-READERS.json",
+              "sha256": "bee1140a36c049aea31c335096ed66f8e94a0f1c75199d41e0e4776977e6ee36"
             }
           ],
           "dependent_decisions": [
@@ -1634,7 +1642,7 @@
             "Whether standalone collective costs can support a wider shared mechanism."
           ],
           "existing_scope": "16workers,544pilot output checks,10 graph-replay cases,9fixed rounds in each mode. All28 workload classes join by tuple,group and algorithm label. Current-model native bindings exist for24classes. Four large-gather classes retain224unbound model records.",
-          "next": "停止复跑同一精确尺寸方案。对新的按形状专门化先查询各轮完整输入尺寸及零命中轮，端到端测试预先区分自然流量收益与命中分支本身收益；每轮的回退工作计入自然流量。沿用原服务布局的 6.491 GB 有序返回逻辑节省量，先查最早读者、必须本地搬运和保序归约，决定是否值得一次共同校准。",
+          "next": "先按 CombineV1/V2 在完整 MoE 中隔离真实跨卡 BF16 回写成本，复用 171 已归档路由与真实 NZ 格式，保持 GMM2、BF16 舍入、计数和原生同步；同时核算最终返回与共享专家并行时的完成通知、本地暂存或直接交付。只有净暴露时间足以改变优先级才实现双段远端归约。",
           "stop": "Do not reopen closed candidates merely because a rate is now available. Verify actual parameters/selection and output first. Freeze cases and repetitions before result;one environment window,then restore original.",
           "gain_prediction": "No service gain predicted by calibration alone. It supplies common replacement-cost evidence;candidate-specific reader and critical-path gates still apply.",
           "remaining": "Physical per-link traffic, solitary eager latency, actual model peer readiness and F21 internal EP16 costs.",
@@ -1642,7 +1650,8 @@
           "eager_expert_input_frontier": "For four archived prefills, all 160 EP16 generations bound by source/receiver counts and local native tasks. Within each carrier the DP-crossing count interval width divided by its floor is 2.875%, 0.371%, 0.731%, 430.205%. A one-arrival-per-source-token per opposite DP path can remove at least 1.371, 2.638, 2.697, 0.730 GB of logical duplicate input from this partition, before any intra-DP fanout. The archived clock bounds cannot identify the latest-exiting DP in any generation. The next Attention starts later on DP1 in every M816 transition and DP0 in every M817 transition. Checked all volumes and DP dedup bounds against 454 M3 full-route groups with 128376 assignments. No physical latency or service gain established.",
           "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
           "expert_native_transport_and_placement": "停止当前逐重复行缓存。两种固定专家布局均通过五个 prefill 用例，均触发小 M 退化门槛，暂缓全层、全阶段替换与整场 C8。保留分层或分阶段使用布局的机会。 原生跨卡重排在五组 prefill 中节省 10.25%–35.56%，五组 decode 的延迟比中位数上升 11.73%。全层双布局的权重驻留需求已超过原服务记录的可用显存。",
-          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。"
+          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
+          "ordered_return_constraints": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。"
         },
         {
           "id": "G03",
@@ -1825,6 +1834,14 @@
             {
               "path": "full-review/PREFILL-EXPERT-SPARSE-DECISION.json",
               "sha256": "0a038238098d4be9e0cbe0313a970b0d3bc509b88f2643e73ced811af6a9fc01"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-ORDERED-REDUCERS.json",
+              "sha256": "6e5a75f6ede4b00f1209a16a4d59c8a8972ce87e6c77dcb166943e007efbaf48"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-RETURN-READERS.json",
+              "sha256": "bee1140a36c049aea31c335096ed66f8e94a0f1c75199d41e0e4776977e6ee36"
             }
           ],
           "dependent_decisions": [
@@ -1833,12 +1850,13 @@
             "CompleteHC early-output scheduling"
           ],
           "existing_scope": "Target idealized router-gated shared schedule median2.20584ms,withF21-exclusive constraint0.5938425ms;these alternatives are not additive. DraftF21 median0.561894ms includingwait,role differs fromtarget. 301 current EP16 ordinal/layer brackets overlap on all ranks. In six groups with a call >=1ms the last-entrant-fixed completion slack is at most 4.292us in exported time. Target body F21 occupies median22.610% inclusive. The historical target body receiver population has 76.701% empty expert slots. Paired native sparse-credit protocol retained both epilogue boundaries and failed the 14.25us value gate on both sparse layouts with exact outputs. Positive-row packing changes a different input stage.",
-          "next": "停止复跑同一精确尺寸方案。对新的按形状专门化先查询各轮完整输入尺寸及零命中轮，端到端测试预先区分自然流量收益与命中分支本身收益；每轮的回退工作计入自然流量。沿用原服务布局的 6.491 GB 有序返回逻辑节省量，先查最早读者、必须本地搬运和保序归约，决定是否值得一次共同校准。",
+          "next": "先按 CombineV1/V2 在完整 MoE 中隔离真实跨卡 BF16 回写成本，复用 171 已归档路由与真实 NZ 格式，保持 GMM2、BF16 舍入、计数和原生同步；同时核算最终返回与共享专家并行时的完成通知、本地暂存或直接交付。只有净暴露时间足以改变优先级才实现双段远端归约。",
           "stop": "Stop the scored FFN variant and standalone low-value first-layer / empty-group Attention shortcuts. Preserve branch prerequisites: sequential BF16 collapse, immutable external premix, both norm planes, coefficient lifetime, Engram update, auxiliary mean, and all rank collective obligations. Reopen a rejected implementation only for a distinct mechanism with material additional scope.",
           "eager_expert_input_frontier": "For four archived prefills, all 160 EP16 generations bound by source/receiver counts and local native tasks. Within each carrier the DP-crossing count interval width divided by its floor is 2.875%, 0.371%, 0.731%, 430.205%. A one-arrival-per-source-token per opposite DP path can remove at least 1.371, 2.638, 2.697, 0.730 GB of logical duplicate input from this partition, before any intra-DP fanout. The archived clock bounds cannot identify the latest-exiting DP in any generation. The next Attention starts later on DP1 in every M816 transition and DP0 in every M817 transition. Checked all volumes and DP dedup bounds against 454 M3 full-route groups with 128376 assignments. No physical latency or service gain established.",
           "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
           "expert_native_transport_and_placement": "停止当前逐重复行缓存。两种固定专家布局均通过五个 prefill 用例，均触发小 M 退化门槛，暂缓全层、全阶段替换与整场 C8。保留分层或分阶段使用布局的机会。 原生跨卡重排在五组 prefill 中节省 10.25%–35.56%，五组 decode 的延迟比中位数上升 11.73%。全层双布局的权重驻留需求已超过原服务记录的可用显存。",
-          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。"
+          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
+          "ordered_return_constraints": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。"
         },
         {
           "id": "G04",
@@ -1911,6 +1929,14 @@
             {
               "path": "full-review/PREFILL-EXPERT-SPARSE-DECISION.json",
               "sha256": "0a038238098d4be9e0cbe0313a970b0d3bc509b88f2643e73ced811af6a9fc01"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-ORDERED-REDUCERS.json",
+              "sha256": "6e5a75f6ede4b00f1209a16a4d59c8a8972ce87e6c77dcb166943e007efbaf48"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-RETURN-READERS.json",
+              "sha256": "bee1140a36c049aea31c335096ed66f8e94a0f1c75199d41e0e4776977e6ee36"
             }
           ],
           "dependent_decisions": [
@@ -1924,7 +1950,8 @@
           "cross_layer_reader_disposition": "2560 prefill Attention HcPre entries with external premix and verified TP8 gather/late coefficient readers. Fixed-peer, free-HcPre slow-request upper ms: layer0 0.659, Engram layers 1.492, aux 2.090, direct predecessor FFNPost 24.442; receiver-only empty DP at M416 0.0.",
           "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
           "expert_native_transport_and_placement": "停止当前逐重复行缓存。两种固定专家布局均通过五个 prefill 用例，均触发小 M 退化门槛，暂缓全层、全阶段替换与整场 C8。保留分层或分阶段使用布局的机会。 原生跨卡重排在五组 prefill 中节省 10.25%–35.56%，五组 decode 的延迟比中位数上升 11.73%。全层双布局的权重驻留需求已超过原服务记录的可用显存。",
-          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。"
+          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
+          "ordered_return_constraints": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。"
         },
         {
           "id": "G05",
@@ -2030,6 +2057,14 @@
             {
               "path": "full-review/PREFILL-EXPERT-SPARSE-DECISION.json",
               "sha256": "0a038238098d4be9e0cbe0313a970b0d3bc509b88f2643e73ced811af6a9fc01"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-ORDERED-REDUCERS.json",
+              "sha256": "6e5a75f6ede4b00f1209a16a4d59c8a8972ce87e6c77dcb166943e007efbaf48"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-RETURN-READERS.json",
+              "sha256": "bee1140a36c049aea31c335096ed66f8e94a0f1c75199d41e0e4776977e6ee36"
             }
           ],
           "dependent_decisions": [
@@ -2042,7 +2077,8 @@
           "external_premix_FFN_disposition": "Deferred full HcPre after router score in real eager FFN. 600/600 group-layer entries hit in three timed candidates, 10390732800 natural Y words matched across two diagnostic cases, 88/88 archived texts with fixed counters. Neither TTFT nor makespan passed its frozen bracketed C8 gate. Do not repeat the same schedule.",
           "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
           "expert_native_transport_and_placement": "停止当前逐重复行缓存。两种固定专家布局均通过五个 prefill 用例，均触发小 M 退化门槛，暂缓全层、全阶段替换与整场 C8。保留分层或分阶段使用布局的机会。 原生跨卡重排在五组 prefill 中节省 10.25%–35.56%，五组 decode 的延迟比中位数上升 11.73%。全层双布局的权重驻留需求已超过原服务记录的可用显存。",
-          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。"
+          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
+          "ordered_return_constraints": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。"
         },
         {
           "id": "G06",
@@ -2136,6 +2172,14 @@
             {
               "path": "full-review/PREFILL-EXPERT-SPARSE-DECISION.json",
               "sha256": "0a038238098d4be9e0cbe0313a970b0d3bc509b88f2643e73ced811af6a9fc01"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-ORDERED-REDUCERS.json",
+              "sha256": "6e5a75f6ede4b00f1209a16a4d59c8a8972ce87e6c77dcb166943e007efbaf48"
+            },
+            {
+              "path": "full-review/PREFILL-EXPERT-RETURN-READERS.json",
+              "sha256": "bee1140a36c049aea31c335096ed66f8e94a0f1c75199d41e0e4776977e6ee36"
             }
           ],
           "dependent_decisions": [
@@ -2149,45 +2193,12 @@
           "eager_expert_input_frontier": "For four archived prefills, all 160 EP16 generations bound by source/receiver counts and local native tasks. Within each carrier the DP-crossing count interval width divided by its floor is 2.875%, 0.371%, 0.731%, 430.205%. A one-arrival-per-source-token per opposite DP path can remove at least 1.371, 2.638, 2.697, 0.730 GB of logical duplicate input from this partition, before any intra-DP fanout. The archived clock bounds cannot identify the latest-exiting DP in any generation. The next Attention starts later on DP1 in every M816 transition and DP0 in every M817 transition. Checked all volumes and DP dedup bounds against 454 M3 full-route groups with 128376 assignments. No physical latency or service gain established.",
           "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
           "expert_native_transport_and_placement": "停止当前逐重复行缓存。两种固定专家布局均通过五个 prefill 用例，均触发小 M 退化门槛，暂缓全层、全阶段替换与整场 C8。保留分层或分阶段使用布局的机会。 原生跨卡重排在五组 prefill 中节省 10.25%–35.56%，五组 decode 的延迟比中位数上升 11.73%。全层双布局的权重驻留需求已超过原服务记录的可用显存。",
-          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。"
+          "sparse_expert_weights": "各芯片每层保留原布局的 22 个专家、额外调入 2 个专家，两套布局共用原权重。全 40 层额外权重和 scale 为每芯片 2,705.94 MiB。在逐 rank 核对格式 29 后，816、817、834 行的 120 个原生调用计入设备 ID 重排，按轮相加的配对中位节省 29.18 ms，12/12 轮均节省。416 行只赢 5/12 轮，保持原路径。M3 用逐专家列表传原权重时，五个用例的延迟比中位数上升 2.25%，因此保留原单张量 decode 图。 真实权重的两轮诊断共核对 8,080,588,800 个 BF16 输出和 46,080 个逻辑专家计数，均一致。已完成的 5 轮 C8 有 40 份输出与归档一致。实际 20 次跨 40 层的 prefill 中有 7 次命中。baseline-3 的 4 次均未命中，触发每轮至少命中一次的预定停止条件。未形成三组计时，首 token 与整轮收益均未知。",
+          "ordered_return_constraints": "160次大M层调用已构造满足原芯片/卡容量的具体保序归约位置，跨卡少6.491GB、同卡芯片间多2.203GB；590291行产生两段依赖传输。单次跨卡约束的精确可省量为134.16MB。2560组历史调用绑定源端归约输出的合并读者。"
         }
       ],
-      "new_NPU_work": true,
-      "service_actions": [
-        {
-          "run_id": "expert-native-9deba69be346",
-          "restoration": {
-            "verified_utc": "2026-11-07T10:39:11.279087+00:00",
-            "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
-            "health_http": 200,
-            "restored_start": "2026-11-07T10:33:05.548498735Z",
-            "post_generation_tokens": 2,
-            "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba"
-          }
-        },
-        {
-          "run_id": "ffn-service-c8-1325b8487541",
-          "restoration": {
-            "verified_utc": "2026-11-07T10:52:52.979404+00:00",
-            "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
-            "health_http": 200,
-            "restored_start": "2026-11-07T10:47:32.618287843Z",
-            "post_generation_tokens": 2,
-            "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba"
-          }
-        },
-        {
-          "run_id": "ffn-service-c8-5d2482d4f22c",
-          "restoration": {
-            "verified_utc": "2026-11-07T11:06:50.325484+00:00",
-            "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
-            "health_http": 200,
-            "restored_start": "2026-11-07T11:01:06.342841448Z",
-            "post_generation_tokens": 2,
-            "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba"
-          }
-        }
-      ],
+      "new_NPU_work": false,
+      "service_actions": [],
       "overall_complete": false,
       "numeric_model_ceiling": null,
       "active_service": null
