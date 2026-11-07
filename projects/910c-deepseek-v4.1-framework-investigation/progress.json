@@ -1,21 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T20:44:37.217601+00:00",
-  "source_analysis_commit": "66e0439cb8f2d88ba45f29b6116e2a55d5c4e809",
+  "updated_at_utc": "2026-11-07T21:11:31.347848+00:00",
+  "source_analysis_commit": "68ddc575308509b0beeb4b6477f474a846872d7b",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M06 大批 MoE 最慢接收卡的专家工作与返回等待",
+  "active_module": "M07 FFN Post 与下一层 Attention Pre 的融合边界",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "进入 M06 大批 MoE。在已有两轮原生计数里，每轮五条相同路由都是接收最多行的卡在返回同步处等待最短。用实际每专家行数、分块尾部、GMM1/GMM2 与两段返回就绪给最慢接收卡定价；比较只减同步写入与能减少关键卡计算或提前交付的分组。先把所需的关键卡净缩短量换成请求收益，不重复旧的拆流水线实验。",
-    "decision": "M03–M04 的真实 BF16 发送布局在 2,240 条链上绑定。保留逆旋转并用原转置时间的 25% 估算新增布局写入，C8 首 token P90 约省 5.62–9.55 ms，整批约省 91.61–95.54 ms。M05 同时写回 BF16 和扩宽 FP32 残差仅净省 40,960 B/行，即便同速也约省 0.36–3.93 ms 首 token P90。固定权重的 80 个 mHC 系数矩阵均有单 BF16 不可表示的投影系数。",
+    "work": "沿 M07 FFN HcPost → 下一层 Attention HcPre，复用 M02 的 2,176 条直连记录与已有对照，一次区分普通直连、Engram 改写和 DSpark 旁路读者。先计可省残差写读与重复归约的净请求预算；仅在分支会改变排序时补依赖。",
+    "decision": "专家分布、权重副本及同卡分块归档到布局，不计入融合候选。M06 共享专家的 Gate/Up 投影 → DequantSwigluQuant → Down 投影在 2,560 条逐卡 prefill 链上出现。前一边界每行可少写读 36,864 B，后一边界 4,616 B。两处联合按归档搬运速率估算，C8 首 token P90 省 0.31–3.97 ms。即使把激活完全隐藏并消除它两侧的间隔，有利估算也只有 8.83 ms（0.59%）；同情景整批 62.10 ms（0.33%）。六个普通请求仅按搬运估算，响应耗时降幅均低于 0.06%。本形状单独降级。",
     "source": {
-      "path": "full-review/ATTENTION-SEND-REQUEST-ESTIMATES.json",
-      "sha256": "d57e07174aa90cd42fb2fc4326a5c9b43373b6ca643475dbc6af91cc8aa380d5"
-    },
-    "HC_workspace": {
-      "path": "full-review/HC-WORKSPACE-DELIVERY-VALUE.json",
-      "sha256": "25128488714f3f6764edaa80741e9fc3b3efeb300c2b6f6c5b067a88e42a54d7"
+      "path": "full-review/SHARED-MLP-FUSION-ESTIMATES.json",
+      "sha256": "0a1621ab14a339f41cb96de2de6e56ddb6cf499ce81578119d11051d09fa8916"
     }
   },
   "module_statuses": [
@@ -168,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Archived eager/graph and request schedules; CPU-only read of 80 checkpoint coefficient matrices on 171.",
+    "performance_scope": "Archived W8A8 shared expert fusion only; scope correction for placement, scheduling and residency.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -283,18 +279,16 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M02–M05",
+    "scope": "M06/M07",
     "sources": [
-      "baselines/attention-send.json",
-      "baselines/hc-workspace-delivery.json",
-      "baselines/hc-weight-precision.json"
+      "baselines/shared-mlp-fusion.json",
+      "baselines/shared-mlp-fusion-service.json"
     ],
     "observations": [
-      "4 批共 2,240 条真实 Attention 发送链。保留逆旋转、按旧转置时间的 25% 计入直接布局写入，首 token P90 估算省 5.62–9.55 ms，整批省 91.61–95.54 ms。六个普通请求各省 1.66–26.68 ms。只给 400 条空发送预置零缓冲区，原 EP16 到达模型给首 token P90 的收益为零。",
-      "Attention Post 额外交付扩宽的 FP32 残差时，每行少读一份 BF16，Cube 仍需读 FP32。历史 eager 首 token P90 在两种同速计价下省 0.36–3.93 ms。只存 FP32 则另有两个读者需要读取宽残差，净省字节为零。只读核对固定 checkpoint 中 40 个 Attention 和 40 个 FFN 投影矩阵，每个矩阵都有单 BF16 权重无法保留原投影操作数精度的系数。"
+      "M06 共享专家的 Gate/Up 投影 → DequantSwigluQuant → Down 投影在 2,560 条逐卡 prefill 链上出现。前一边界每行可少写读 36,864 B，后一边界 4,616 B。两处联合按归档搬运速率估算，C8 首 token P90 省 0.31–3.97 ms。即使把激活完全隐藏并消除它两侧的间隔，有利估算也只有 8.83 ms（0.59%）；同情景整批 62.10 ms（0.33%）。六个普通请求仅按搬运估算，响应耗时降幅均低于 0.06%。本形状单独降级。"
     ],
     "new_performance_measurements": 0,
-    "checkpoint_weight_matrices_read": 80
+    "archived_prefill_layer_waves": 160
   },
   "request_region_screen": {
     "record": "baselines/request-region-screen.json",
@@ -325,8 +319,8 @@
       "result": "在原服务上让相同后续请求分别到已缓存和另一组 DP，两个输入长度各交换两次目的地和顺序。四对比较共查询 4,966 个后续输入 token，同组多命中 4,608.0 个。四对中 1 对输出文本相同。在固定 32K C8 上，允许任意借用两组种子和所有其它输入时最多能命中 235,904 个 token，比原有实测多 0 个。",
       "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。"
     },
-    "next": "进入 M06 大批 MoE。在已有两轮原生计数里，每轮五条相同路由都是接收最多行的卡在返回同步处等待最短。用实际每专家行数、分块尾部、GMM1/GMM2 与两段返回就绪给最慢接收卡定价；比较只减同步写入与能减少关键卡计算或提前交付的分组。先把所需的关键卡净缩短量换成请求收益，不重复旧的拆流水线实验。",
-    "decision": "M03–M04 的真实 BF16 发送布局在 2,240 条链上绑定。保留逆旋转并用原转置时间的 25% 估算新增布局写入，C8 首 token P90 约省 5.62–9.55 ms，整批约省 91.61–95.54 ms。M05 同时写回 BF16 和扩宽 FP32 残差仅净省 40,960 B/行，即便同速也约省 0.36–3.93 ms 首 token P90。固定权重的 80 个 mHC 系数矩阵均有单 BF16 不可表示的投影系数。",
+    "next": "沿 M07 FFN HcPost → 下一层 Attention HcPre，复用 M02 的 2,176 条直连记录与已有对照，一次区分普通直连、Engram 改写和 DSpark 旁路读者。先计可省残差写读与重复归约的净请求预算；仅在分支会改变排序时补依赖。",
+    "decision": "专家分布、权重副本及同卡分块归档到布局，不计入融合候选。M06 共享专家的 Gate/Up 投影 → DequantSwigluQuant → Down 投影在 2,560 条逐卡 prefill 链上出现。前一边界每行可少写读 36,864 B，后一边界 4,616 B。两处联合按归档搬运速率估算，C8 首 token P90 省 0.31–3.97 ms。即使把激活完全隐藏并消除它两侧的间隔，有利估算也只有 8.83 ms（0.59%）；同情景整批 62.10 ms（0.33%）。六个普通请求仅按搬运估算，响应耗时降幅均低于 0.06%。本形状单独降级。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
@@ -354,6 +348,7 @@
     "routing": "baselines/prefix-routing.json",
     "C8_ceiling": "baselines/c8-prefix-ceiling.json"
   },
+  "fusion_admission": "先指明实际算子、输入输出或公共输入，以及合并后能消除的中间读写、重复计算、提交或依赖。单纯调度、冷热专家分布、复制或迁移权重、缓存驻留均归历史背景。组合改写在相同布局与调度下单独归因融合的增量；缺乏可归因增量时不计入融合集。",
   "module_value_map": "module-value-map.md",
   "delivery_mode": "profile_based_candidate_discovery",
   "candidate_list": "fusion-candidates.md"
