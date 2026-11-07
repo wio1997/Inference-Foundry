@@ -1,25 +1,29 @@
 {
-  "updated_at_utc": "2026-11-07T17:46:55.096271+00:00",
-  "source_analysis_commit": "fe638e447a14060ef22857836fe3d9db895f28ed",
+  "updated_at_utc": "2026-11-07T18:10:05.927756+00:00",
+  "source_analysis_commit": "f6e74a470d40587cf5c095cb6d9dbe79983ed7ad",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M06 大批专家布局的首 token 收益与优化基线适用范围",
+  "active_module": "M10 三层草稿的跨卡专家到达与上游工作的联合价值",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "在已接受的 CP、CPU plan 和批量 slot 配置上，已按两组归档参照重算首 token 的判断条件：复现两组原始波动时，逐轮等量提前须分别超过 82.80 或 26.32 ms 才能与参照完全分离。优先核对 prefill 载体、两侧 KV 池和每卡可用显存。若该配置仍能容纳每卡 2,837,381,120 字节的专家权重与尺度，再在同配置核对 EP16 的增量。只有新增读者或排程能改变已测收益时才重开其它布局。",
-    "decision": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。",
+    "work": "优先看 M10 三层草稿中，提前最晚到达专家的 rank 能否改善首 token。复用已绑定的 12 组跨卡专家调用与前驱，在每层区分晚到卡的实际先行计算、与其它卡的等待重合、以及能提前的最终请求。先给联合改写算一个请求级乐观预算，过线才查依赖或补测。固定专家耗时的非专家计算整组暂缓，mHC 单侧提前退出暂缓。",
+    "decision": "三组均启用 CP、CPU plan 和 26→1 slot。只在候选组启用 800–834 行的 EP16 专家布局。首 token P90 相对前参照延长1.11%，相对后参照缩短2.07%，未通过预设门槛，整批耗时相对前参照缩短2.47%，相对后参照缩短1.63%，通过预设门槛。9 轮计时的 41 个 prefill 批中有 13 个命中条件；11 轮的 88 份输出文本全等。当前批量 slot 配置上，可确认的增量为整批耗时。",
     "source": {
-      "path": "full-review/EP16-INTERVAL-SERVICE-C8.json",
-      "sha256": "193998a2c72fe9756a6af0219fd55fee2de3c5e356cc410153bd878dcb0a412e"
+      "path": "full-review/EP16-ON-BATCHED-SLOT-C8.json",
+      "sha256": "a6239679bad7cb190cb56a303962d8e01af6c9eae908f3102ed3501d3cc91d4a"
     },
-    "direct_arithmetic_floors": {
-      "path": "full-review/EP16-PLACEMENT-COMPUTE-FLOORS.json",
-      "sha256": "69d1aba65382f7f6d43ffc9027aed3af1f235bfa03e2beba719d3807cfc7ac74"
+    "grouped_DSpark_screen": {
+      "path": "full-review/DSPARK-FIXED-EXPERT-BUDGET.json",
+      "sha256": "6b52c3b5f5d76f92d8a77a3278fe67a5a7d406727a67e9947e353c07fe3369fd"
     },
-    "handle": {
-      "path": "full-review/runs/ffn-service-c8-6684e1c3f390-launch.json",
-      "sha256": "3a0ed3e5468e192318feabcba40a45d3e0abf946c36740c9fbef687f896e846e"
+    "mHC_branch_screen": {
+      "path": "full-review/MHC-ITERATION-BREAK-EVEN.json",
+      "sha256": "4c1fb906209e27e64f56ae80af3b13378d614ce62d4eb369c6952aad8e8e0b61"
+    },
+    "capacity": {
+      "path": "full-review/EP16-SLOT-CAPACITY.json",
+      "sha256": "da607deb0c30e9f710c201aab6f7197c341b5978e83ff966182ece660876224c"
     }
   },
   "module_statuses": [
@@ -127,10 +131,10 @@
     "directory": "projects/910c-deepseek-v4.1-framework-investigation"
   },
   "service_observation": {
-    "verified_utc": "2026-11-07T17:46:07.747615+00:00",
+    "verified_utc": "2026-11-07T18:09:02.590999+00:00",
     "container": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
     "health_http": 200,
-    "restored_start": "2026-11-07T17:40:52.368707924Z",
+    "restored_start": "2026-11-07T18:02:20.713026256Z",
     "post_generation_tokens": 2,
     "serve_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
     "host_asset": "171",
@@ -142,12 +146,12 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 109,
+    "region_tables": 113,
     "new_NPU_work_this_update": true,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
     "service_operations_this_update": [
-      "ffn-service-c8-6684e1c3f390"
+      "ffn-service-c8-88638cf0d6aa"
     ],
     "does_not_replace_ordered_module_review": true,
     "new_performance_admissions": 1,
@@ -174,7 +178,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "One service generation with shared original and candidate weights, two diagnostics and nine fixed timing cases, followed by original service restoration. Frequency rows came from 32 existing profiles.",
+    "performance_scope": "One joint service generation with the same batched slot and resident banks in all arms; two diagnostics and nine timing cases, then restoration. Both group screens reused existing data.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -186,76 +190,76 @@
     "attempted_model_service_comparisons": 1
   },
   "latest_service_admission": {
-    "run_id": "ffn-service-c8-6684e1c3f390",
-    "record": "baselines/ep16-interval-c8.json",
-    "result": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。",
-    "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。",
+    "run_id": "ffn-service-c8-88638cf0d6aa",
+    "record": "baselines/ep16-batched-slot-c8.json",
+    "result": "三组均启用 CP、CPU plan 和 26→1 slot。只在候选组启用 800–834 行的 EP16 专家布局。首 token P90 相对前参照延长1.11%，相对后参照缩短2.07%，未通过预设门槛，整批耗时相对前参照缩短2.47%，相对后参照缩短1.63%，通过预设门槛。9 轮计时的 41 个 prefill 批中有 13 个命中条件；11 轮的 88 份输出文本全等。",
+    "decision": "当前批量 slot 配置上，可确认的增量为整批耗时。",
     "gates": {
       "TTFT_ms": {
         "three_case_values_ms": {
           "baseline": [
-            1226.092338,
-            1230.573975,
-            1211.924856
+            1167.907416,
+            1162.167407,
+            1185.997721
           ],
           "candidate": [
-            1172.710529,
-            1168.863407,
-            1182.842511
+            1187.078616,
+            1160.830991,
+            1180.907039
           ],
           "post-reference": [
-            1229.130894,
-            1209.373869,
-            1206.2847
+            1206.592531,
+            1199.031625,
+            1205.871451
           ]
         },
         "arm_medians_ms": {
-          "baseline": 1226.092338,
-          "candidate": 1172.710529,
-          "post-reference": 1209.373869
+          "baseline": 1167.907416,
+          "candidate": 1180.907039,
+          "post-reference": 1205.871451
         },
         "candidate_reduction_percent_vs_before_after": [
-          4.353816376267085,
-          3.031596840298528
+          -1.1130696510621292,
+          2.070238247973916
+        ],
+        "all_candidates_below_all_before_after": [
+          false,
+          true
+        ],
+        "passes_frozen_gate": false
+      },
+      "makespan_ms": {
+        "three_case_values_ms": {
+          "baseline": [
+            12850.057868,
+            12823.059572,
+            12660.672593
+          ],
+          "candidate": [
+            12587.854095,
+            12488.123622,
+            12506.858683
+          ],
+          "post-reference": [
+            12659.068927,
+            12714.468209,
+            12746.646902
+          ]
+        },
+        "arm_medians_ms": {
+          "baseline": 12823.059572,
+          "candidate": 12506.858683,
+          "post-reference": 12714.468209
+        },
+        "candidate_reduction_percent_vs_before_after": [
+          2.4658770960593936,
+          1.6328604750692028
         ],
         "all_candidates_below_all_before_after": [
           true,
           true
         ],
         "passes_frozen_gate": true
-      },
-      "makespan_ms": {
-        "three_case_values_ms": {
-          "baseline": [
-            15833.398067,
-            15754.791305,
-            15655.066211
-          ],
-          "candidate": [
-            15799.555245,
-            15576.710479,
-            15608.34389
-          ],
-          "post-reference": [
-            15846.933543,
-            15631.895664,
-            15660.047199
-          ]
-        },
-        "arm_medians_ms": {
-          "baseline": 15754.791305,
-          "candidate": 15608.34389,
-          "post-reference": 15660.047199
-        },
-        "candidate_reduction_percent_vs_before_after": [
-          0.9295420812938565,
-          0.33016062048205097
-        ],
-        "all_candidates_below_all_before_after": [
-          false,
-          false
-        ],
-        "passes_frozen_gate": false
       }
     }
   },
@@ -306,21 +310,25 @@
     "result": "171 原系数与路由权重对照完成 4 个 EP16 批次，共 64 次 rank 调用。有效发送行 86 个，所选路由专家输出有 0 个元素不同，共享与路由专家合并后有 1 个元素不同，HcPost 有 1 个元素不同。最终归一化读出按 TP 去重有 0 个元素不同。直接代回原专家结果后 HcPost 有 0 个元素不同，直接代回原 HcPost 后读出按 TP 去重有 0 个元素不同。服务始终返回原路径的结果，8 份输出文本与归档一致，已恢复原服务。"
   },
   "latest_service_comparison": {
-    "run_id": "ffn-service-c8-6684e1c3f390",
-    "record": "baselines/ep16-interval-c8.json",
-    "result": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。",
-    "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。"
+    "run_id": "ffn-service-c8-88638cf0d6aa",
+    "record": "baselines/ep16-batched-slot-c8.json",
+    "result": "三组均启用 CP、CPU plan 和 26→1 slot。只在候选组启用 800–834 行的 EP16 专家布局。首 token P90 相对前参照延长1.11%，相对后参照缩短2.07%，未通过预设门槛，整批耗时相对前参照缩短2.47%，相对后参照缩短1.63%，通过预设门槛。9 轮计时的 41 个 prefill 批中有 13 个命中条件；11 轮的 88 份输出文本全等。",
+    "decision": "当前批量 slot 配置上，可确认的增量为整批耗时。"
   },
   "current_value_priority": {
     "method": "先在现有 profile 中按模块、分支和实际出现次数汇总可能改变的整段工作。对必须提前的请求，用可变工作全部免费估算上限。在固定排程下，端到端上限低于该指标参考的改写连同其子集一起暂缓。局部占比只用于排序；若小算子会改变大计算、通信、同步或后续迭代，将这些工作一并估价。对过线范围扣除必须保留的工作、替代成本和已经重叠的时间，再比较端到端收益与基线波动。已有通信和搬运数据按大小、拓扑、并发和布局复用。仅在未知量可能改变取舍时补证，未覆盖的分支留在台账。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "run_id": "ffn-service-c8-6684e1c3f390",
-      "record": "baselines/ep16-interval-c8.json",
-      "result": "171 同一代服务完成 2 轮数值准入和 9 轮计时。正式计时的 36 个自然 prefill 批次中，18 个落在 800–834 行。11 轮的 88 份完整输出文本与归档一致。首 token P90 相对前、后参照分别改善 +4.35% / +3.03%，通过预设门槛；整批完成时间相对前、后参照分别改善 +0.93% / +0.33%，未通过预设门槛。",
-      "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。"
+      "run_id": "ffn-service-c8-88638cf0d6aa",
+      "record": "baselines/ep16-batched-slot-c8.json",
+      "result": "三组均启用 CP、CPU plan 和 26→1 slot。只在候选组启用 800–834 行的 EP16 专家布局。首 token P90 相对前参照延长1.11%，相对后参照缩短2.07%，未通过预设门槛，整批耗时相对前参照缩短2.47%，相对后参照缩短1.63%，通过预设门槛。9 轮计时的 41 个 prefill 批中有 13 个命中条件；11 轮的 88 份输出文本全等。",
+      "decision": "当前批量 slot 配置上，可确认的增量为整批耗时。"
     },
-    "next": "在已接受的 CP、CPU plan 和批量 slot 配置上，已按两组归档参照重算首 token 的判断条件：复现两组原始波动时，逐轮等量提前须分别超过 82.80 或 26.32 ms 才能与参照完全分离。优先核对 prefill 载体、两侧 KV 池和每卡可用显存。若该配置仍能容纳每卡 2,837,381,120 字节的专家权重与尺度，再在同配置核对 EP16 的增量。只有新增读者或排程能改变已测收益时才重开其它布局。",
-    "decision": "保留通过门槛的指标，下一步按优化基线的实际命中检查增量；其它指标保留原裁决。"
+    "next": "优先看 M10 三层草稿中，提前最晚到达专家的 rank 能否改善首 token。复用已绑定的 12 组跨卡专家调用与前驱，在每层区分晚到卡的实际先行计算、与其它卡的等待重合、以及能提前的最终请求。先给联合改写算一个请求级乐观预算，过线才查依赖或补测。固定专家耗时的非专家计算整组暂缓，mHC 单侧提前退出暂缓。",
+    "decision": "当前批量 slot 配置上，可确认的增量为整批耗时。",
+    "grouped_screens": [
+      "baselines/draft-fixed-expert.json",
+      "baselines/mhc-iteration-cost.json"
+    ]
   }
 }
