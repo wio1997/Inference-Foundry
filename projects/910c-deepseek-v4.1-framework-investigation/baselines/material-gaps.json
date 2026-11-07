@@ -1,9 +1,9 @@
 {
   "status": "SHARED_DEPENDENCY_GAPS_PRIORITIZED_WITH_TOPOLOGY_EVIDENCE",
-  "updated_utc": "2026-11-07T14:20:00.500244+00:00",
+  "updated_utc": "2026-11-07T14:44:29.459548+00:00",
   "ordering": "Reuse established facts first;resolve sharedcost applicability and output before timings;only then a new material candidate. This is not a new all-pairs research program.",
-  "previous_goal_turn": "相同八个历史请求一次定价 16 种 TTFT 区域，7 种在给定全部场景均低于 1% 排查参考。末端双收集至多 6.047 ms，草稿 EP16 最后一张卡入场后至多 3.437 ms。联合残差与 Y 的两次冻结 C8 分别有 96 份完整输出一致，运行时行数版本所有正式调用均命中已准备内核，两个服务指标仍未通过。",
-  "current_goal_turn": "171 两组冻结 C8 共 16 份输出与归档一致。5 个候选大批次把整个原始状态和 26,244 个未选归一化行填入 NaN，实际 head 收到的 44 个 BF16 向量逐位一致。末层 FFN 与读出联合，历史分阶段预算 22.992 ms。只提前当前草稿阶段的发布，宽松上界 12.807 ms。",
+  "previous_goal_turn": "171 两组冻结 C8 共 16 份输出与归档一致。5 个候选大批次把整个原始状态和 26,244 个未选归一化行填入 NaN，实际 head 收到的 44 个 BF16 向量逐位一致。末层 FFN 与读出联合，历史分阶段预算 22.992 ms。只提前当前草稿阶段的发布，宽松上界 12.807 ms。",
+  "current_goal_turn": "复用 385,100 条设备记录。历史 TP8 prefill 的 23 个条件合并为 18 组消息与算法，其中 3 组有同载荷图回放。末层 128 个阶段范围含零改动，94 个在历史固定排程内达不到 1% 首 token P90 参考。171 实际紧凑 FFN 的四批专家收发守恒，选中专家 ID 一致，mHC 系数和路由权重有差异。最终归一化输出按 TP 去重有 26 个元素不同，未进入计时。",
   "gaps": [
     {
       "id": "G01",
@@ -151,6 +151,14 @@
         {
           "path": "full-review/TERMINAL-COMPACT-MC2-PREPARATION.json",
           "sha256": "8888116d8d1d322692aab1ddde714c27a21796fb27a5812ea454a6c443087757"
+        },
+        {
+          "path": "full-review/SHARED-MEASUREMENT-INVENTORY.json",
+          "sha256": "97ae41f9a4f282f7794ae80fedf0dda09f572510a87b6d44d2205c9ac03ec9a1"
+        },
+        {
+          "path": "full-review/TERMINAL-COMPACT-FFN-SHADOW.json",
+          "sha256": "33286b9e18564e92e599b99bd4cd84c93bbb9e2315ff4b5ac474c463abac2f17"
         }
       ],
       "dependent_decisions": [
@@ -187,7 +195,7 @@
         "M10",
         "M11"
       ],
-      "status": "FINAL_FFN_JOINT_VALUE_OPEN_CURRENT_DRAFT_PUBLICATION_PRICED",
+      "status": "COMPACT_EXPERT_COUNTS_VERIFIED_ARITHMETIC_MISMATCH_LOCATED",
       "evidence": [
         {
           "path": "full-review/CURRENT-MOE-SCHEDULE-VALUE.json",
@@ -424,6 +432,14 @@
         {
           "path": "full-review/DSPARK-CURRENT-OUTPUT-PUBLICATION.json",
           "sha256": "e5fc0b4b262436a4d3f580d2459c304f68e0fd07e38389019906a69226f32e33"
+        },
+        {
+          "path": "full-review/TERMINAL-STAGE-SCOPE-SCREEN.json",
+          "sha256": "f9a04811b4d4871a0a78f5859e26a32feb4e487e56ba2f25c0550787c889077e"
+        },
+        {
+          "path": "full-review/TERMINAL-COMPACT-FFN-SHADOW.json",
+          "sha256": "33286b9e18564e92e599b99bd4cd84c93bbb9e2315ff4b5ac474c463abac2f17"
         }
       ],
       "dependent_decisions": [
@@ -432,7 +448,7 @@
         "CompleteHC early-output scheduling"
       ],
       "existing_scope": "Target idealized router-gated shared schedule median2.20584ms,withF21-exclusive constraint0.5938425ms;these alternatives are not additive. DraftF21 median0.561894ms includingwait,role differs fromtarget. 301 current EP16 ordinal/layer brackets overlap on all ranks. In six groups with a call >=1ms the last-entrant-fixed completion slack is at most 4.292us in exported time. Target body F21 occupies median22.610% inclusive. The historical target body receiver population has 76.701% empty expert slots. Paired native sparse-credit protocol retained both epilogue boundaries and failed the 14.25us value gate on both sparse layouts with exact outputs. Positive-row packing changes a different input stage.",
-      "next": "M08 继续做最终 FFN 与末端读出的联合按需行原型。优先复用原行归属，定量对照重分布的额外输入流量。必须先把 16 个 rank 的统一 carrier、有效位、相同行的 token ID 和恢复顺序一起接通，包含空侧接收远端专家。先核对真实选中行的路由、量化、归约、输出和实际 F21 的小 M，再按每个受影响批次约 2.018 ms 的条件预算筛查；通过才做冻结服务计时。M09/M10 的跨迭代提前提交、Fill 后交付和新共享资源效应仍开放。",
+      "next": "按模块引用共享成本表。M06–M08 优先隔离已发现的两个算术差异：固定原 mHC 系数、专家选择与权重，先确定紧凑专家计算和归约能否独立逐位复现。在冻结的四个历史批次中，若整个专家前置段保持原状，余下替代工作达到参考的每批等时预算为 1.709 ms。只重算专家返回之后的路径上界为 14.853 ms，暂缓。已有数值记录未保存足够的中间张量来离线还原创始算术，先复用可用实参或同一轮保存对照所需张量。高价值跨迭代释放和物理上限仍开放。",
       "stop": "Stop the scored FFN variant and standalone low-value first-layer / empty-group Attention shortcuts. Preserve branch prerequisites: sequential BF16 collapse, immutable external premix, both norm planes, coefficient lifetime, Engram update, auxiliary mean, and all rank collective obligations. Reopen a rejected implementation only for a distinct mechanism with material additional scope.",
       "eager_expert_input_frontier": "For four archived prefills, all 160 EP16 generations bound by source/receiver counts and local native tasks. Within each carrier the DP-crossing count interval width divided by its floor is 2.875%, 0.371%, 0.731%, 430.205%. A one-arrival-per-source-token per opposite DP path can remove at least 1.371, 2.638, 2.697, 0.730 GB of logical duplicate input from this partition, before any intra-DP fanout. The archived clock bounds cannot identify the latest-exiting DP in any generation. The next Attention starts later on DP1 in every M816 transition and DP0 in every M817 transition. Checked all volumes and DP dedup bounds against 454 M3 full-route groups with 128376 assignments. No physical latency or service gain established.",
       "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
@@ -564,6 +580,10 @@
         {
           "path": "full-review/TERMINAL-COMPACT-MC2-PREPARATION.json",
           "sha256": "8888116d8d1d322692aab1ddde714c27a21796fb27a5812ea454a6c443087757"
+        },
+        {
+          "path": "full-review/TERMINAL-COMPACT-FFN-SHADOW.json",
+          "sha256": "33286b9e18564e92e599b99bd4cd84c93bbb9e2315ff4b5ac474c463abac2f17"
         }
       ],
       "dependent_decisions": [
@@ -598,7 +618,7 @@
         "M10",
         "M11"
       ],
-      "status": "GROUPED_SEMANTIC_COVERAGE_CONTINUES",
+      "status": "COMPACT_EXPERT_COUNTS_VERIFIED_ARITHMETIC_MISMATCH_LOCATED",
       "evidence": [
         {
           "path": "full-review/ORDERED-MODULE-VALUE-LEDGER.json",
@@ -716,13 +736,17 @@
         {
           "path": "full-review/TERMINAL-COMPACT-MC2-PREPARATION.json",
           "sha256": "8888116d8d1d322692aab1ddde714c27a21796fb27a5812ea454a6c443087757"
+        },
+        {
+          "path": "full-review/TERMINAL-COMPACT-FFN-SHADOW.json",
+          "sha256": "33286b9e18564e92e599b99bd4cd84c93bbb9e2315ff4b5ac474c463abac2f17"
         }
       ],
       "dependent_decisions": [
         "Elimination/sharing/fusion/splitting beyond current operator boundaries",
         "Conditional/multioutput/partial fusion and alternatives"
       ],
-      "next": "Use one contract per effective calculation and reader/state set. Reuse inactive-flag equivalence where actually proved;retain rounding,NaN,tie,mask and output obligations. Continue imported/inherited and unobserved legal paths.",
+      "next": "按模块引用共享成本表。M06–M08 优先隔离已发现的两个算术差异：固定原 mHC 系数、专家选择与权重，先确定紧凑专家计算和归约能否独立逐位复现。在冻结的四个历史批次中，若整个专家前置段保持原状，余下替代工作达到参考的每批等时预算为 1.709 ms。只重算专家返回之后的路径上界为 14.853 ms，暂缓。已有数值记录未保存足够的中间张量来离线还原创始算术，先复用可用实参或同一轮保存对照所需张量。高价值跨迭代释放和物理上限仍开放。",
       "stop": "Native agreement on selected inputs is not a proof for every legal branch;do not run one probe per syntacticif.",
       "OA_exact_Q_service_decision": "19 exact-Q OA family completed on 171, 600/600 observed candidate group-layer entries selected. Frozen C8 passing endpoints: none. 96 exact output texts with matching load counters. Each arm uses the same allocated 2.5 GiB per worker. 12160 zero-mismatch rank/layer/shape checks.",
       "external_premix_FFN_disposition": "Deferred full HcPre after router score in real eager FFN. 600/600 group-layer entries hit in three timed candidates, 10390732800 natural Y words matched across two diagnostic cases, 88/88 archived texts with fixed counters. Neither TTFT nor makespan passed its frozen bracketed C8 gate. Do not repeat the same schedule.",
@@ -851,6 +875,14 @@
         {
           "path": "full-review/TERMINAL-REPLACEMENT-BUDGET.json",
           "sha256": "e116dba81d4a8d530343b0cf17a5fb2eda75c9d78465c9f7b1a71ec8dd8ed243"
+        },
+        {
+          "path": "full-review/SHARED-MEASUREMENT-INVENTORY.json",
+          "sha256": "97ae41f9a4f282f7794ae80fedf0dda09f572510a87b6d44d2205c9ac03ec9a1"
+        },
+        {
+          "path": "full-review/TERMINAL-STAGE-SCOPE-SCREEN.json",
+          "sha256": "f9a04811b4d4871a0a78f5859e26a32feb4e487e56ba2f25c0550787c889077e"
         }
       ],
       "dependent_decisions": [
@@ -871,9 +903,9 @@
   "new_NPU_work": true,
   "service_actions": [
     {
-      "run_id": "terminal-readers-c8-74b4126128bc",
-      "utc": "2026-11-07T14:14:56.029399+00:00",
-      "started": "2026-11-07T14:09:11.850639592Z",
+      "run_id": "terminal-readers-c8-158a6e1d704b",
+      "utc": "2026-11-07T14:42:57.857616+00:00",
+      "started": "2026-11-07T14:35:54.853760209Z",
       "HTTP": 200,
       "generated_tokens": 2
     }

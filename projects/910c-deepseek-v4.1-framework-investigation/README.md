@@ -6,6 +6,7 @@
 
 | 入口 | 内容 |
 |---|---|
+| [共用测量目录](baselines/shared-measurements.json) | 通信、计算、搬运和调度的可复用实测条件与集中补证条件 |
 | [完整排查报告](REPORT.md) | 固定范围、执行顺序、价值筛查、实验裁决、理论边界和重要缺口 |
 | [模块分析](modules/README.md) | M00–M11 的分支、改写空间、证据、处置和下一步 |
 | [最终 FFN 与词表行需求](baselines/terminal-sparsity.json) | 171 功能对照、按原行归属的紧凑投递、替代成本上限 |
