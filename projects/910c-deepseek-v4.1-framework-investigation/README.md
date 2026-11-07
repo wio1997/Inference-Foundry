@@ -6,6 +6,7 @@
 
 | 入口 | 内容 |
 |---|---|
+| [四层 QLI 三组服务对照](baselines/qli-service-c8.json) | 首 token、整批完成时间、各组样本与原服务恢复 |
 | [四层 QLI 模型内实测](baselines/qli-model-window.json) | 原版与修正版短窗口、实际满批命中和整批收益判定 |
 | [融合方案怎样快速筛选](baselines/decision-workflow.md) | 按可消除的整份工作归并，只补可能改变取舍的证据 |
 | [逐请求的时间预算](baselines/graph-request-prefixes.json) | 58 类目标图任务在每个客户端截止时点前的总量，可直接查询联合范围 |

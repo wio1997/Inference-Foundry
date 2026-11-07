@@ -12,7 +12,7 @@
 
 | 需要回答的问题 | 可直接复用的数值 | 什么时候值得补测 |
 |---|---|---|
-| 区域全省能否改变优先级 | 83 类算子导航、98 张区域表，保留 cohort 和分母。[区域和频次](atlas.json) | 未命中的合法分支保留条件。仅在联合变换扩大可改范围、实际命中或频率变化时重新筛查 |
+| 区域全省能否改变优先级 | 83 类算子导航、102 张区域表，保留 cohort 和分母。[区域和频次](atlas.json) | 未命中的合法分支保留条件。仅在联合变换扩大可改范围、实际命中或频率变化时重新筛查 |
 | TP 通信和 rank 等待 | 16,016 条模型记录、28 类。224 条缺 native 绑定。下表给出同配置独立回放参考。[模型区间](communication.json) · [拓扑](topology.json) | 新消息尺寸、拓扑、后端或并发状态会改变决策时，合并同组需求。EP16 的 MC2 内部收发单列 |
 | 存储和数据交付 | 每逻辑设备报告 L2 192 MiB；实际输入行布局、字节和专家复用可查。[容量和驻留](atlas.json) · [专家输入](f21-peer-input-value.json) | HBM、L2、host-UVA 的持续读写速率仍待测。先算必须搬的字节和最晚交付时间，只批测会影响判断的冷热工作集、布局和并发 |
 | 矩阵与量化 | 当前直接算法的 BF16 / INT8 分别按 98,304 / 196,608 MAC/设备等效周期计。历史 16,062 个任务中 13,614 个有对应模式。[证据索引](../evidence-index.json) | 物理时钟上界、实际 shape 吞吐与无定价模式仍有缺口。跨 dtype、tile、量化分支的结果要单独绑定 |
@@ -132,18 +132,18 @@ AllGather 的 count 为每 rank 输入元素数，ReduceScatter 为每 rank 输�
 
 | 模块 | 具名公共成本族 | 可从本模块证据直接查询的区域表 |
 |---|---|---|
-| [M00 输入、metadata、embedding 与 Engram 查表准备](../modules/M00.md) | TP/EP 通信 | 14 |
-| [M01 条件 Engram 层内计算](../modules/M01.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 9 |
-| [M02 mHC Attention 前置、归一化与 SP 输入交付](../modules/M02.md) | 存储与交付、计算、调度与争用 | 16 |
-| [M03 Attention](../modules/M03.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 39 |
-| [M04 SP 输出交付与 mHC Attention 后置](../modules/M04.md) | TP/EP 通信 | 27 |
-| [M05 mHC FFN 前置与 RMS/cast](../modules/M05.md) | 存储与交付、计算 | 12 |
-| [M06 Router、路由/共享专家、EP 收发](../modules/M06.md) | TP/EP 通信、计算、调度与争用 | 60 |
-| [M07 mHC FFN 后置与下一层状态](../modules/M07.md) | TP/EP 通信、存储与交付 | 34 |
-| [M08 终端 collapse、norm、词表 head](../modules/M08.md) | TP/EP 通信、存储与交付、计算 | 24 |
-| [M09 采样、校验与输出状态](../modules/M09.md) | 目前仅使用模块价值与频次记录 | 14 |
-| [M10 DSpark context、decoder、draft head/Markov](../modules/M10.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 20 |
-| [M11 下一迭代输入与状态交接](../modules/M11.md) | 存储与交付、调度与争用 | 31 |
+| [M00 输入、metadata、embedding 与 Engram 查表准备](../modules/M00.md) | TP/EP 通信 | 15 |
+| [M01 条件 Engram 层内计算](../modules/M01.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 10 |
+| [M02 mHC Attention 前置、归一化与 SP 输入交付](../modules/M02.md) | 存储与交付、计算、调度与争用 | 17 |
+| [M03 Attention](../modules/M03.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 42 |
+| [M04 SP 输出交付与 mHC Attention 后置](../modules/M04.md) | TP/EP 通信 | 28 |
+| [M05 mHC FFN 前置与 RMS/cast](../modules/M05.md) | 存储与交付、计算 | 13 |
+| [M06 Router、路由/共享专家、EP 收发](../modules/M06.md) | TP/EP 通信、计算、调度与争用 | 62 |
+| [M07 mHC FFN 后置与下一层状态](../modules/M07.md) | TP/EP 通信、存储与交付 | 36 |
+| [M08 终端 collapse、norm、词表 head](../modules/M08.md) | TP/EP 通信、存储与交付、计算 | 26 |
+| [M09 采样、校验与输出状态](../modules/M09.md) | 目前仅使用模块价值与频次记录 | 15 |
+| [M10 DSpark context、decoder、draft head/Markov](../modules/M10.md) | TP/EP 通信、存储与交付、计算、调度与争用 | 22 |
+| [M11 下一迭代输入与状态交接](../modules/M11.md) | 存储与交付、调度与争用 | 33 |
 
 表内数量按模块与区域表共同引用的证据文件统计，同一张表可供多个模块使用。运行 `python3 tools/query_global_cost.py --module M04` 可取得对应表名、采样范围和适用于所有模块的缺口。
 

@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T16:03:36.885839+00:00",
-  "source_analysis_commit": "b3dd57a6609893d14022ad42a6442db10f537563",
+  "updated_at_utc": "2026-11-07T16:28:41.464883+00:00",
+  "source_analysis_commit": "556861d09e111a415ac6d32e1b3bda51d62d5313",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 QLI 重复 C8 与跨迭代实际交付；按模型顺序继续共同工作量筛查",
+  "active_module": "M06–M08 末层 FFN 的原版系数、专家权重与输出等价",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "正式回放覆盖与 TP 下游时间已核对。观察已启动的固定三组服务对照，核对每组一次准入、三次无 profiler 计时、每轮八份输出和原服务恢复。按预先规定的首 token P90 和整批门槛判定，随后推进全量分支的下一个高价值范围。",
-    "decision": "旧对照 16 个 worker 各记录过一次正式回放。本轮两次修正版 C8 观察到的目标图回放分别为 3,554 和 3,586 个 rank 次，全部命中共享转换的图。原版与修正版的同配置短窗口各有 128 个 rank 次目标图。按 DP0 / DP1 顺序，四个消费者耗时中位数减少 1.320 / 1.325 ms；计入第 20 层候选生成结束到稀疏 attention 开始的完整区间后，合计仍少 1.227 / 1.233 ms。将源层和四个消费层都量到本层首个下游 AllToAll 完成，两组差值为 1.256 / 1.242 ms。 相邻目标图启动之间的中位周期，DP0 / DP1 原版减修正版为 -0.355 / 0.547 ms。各阶段来自独立短窗口。保留完整四层共同表示，使用独立的原版、修正版、后置原版三组重复 C8 裁决端到端收益。",
+    "work": "M06–M08 先用原版 mHC 系数和路由权重复核紧凑专家返回、HcPost 和 norm 的数值；通过后再以每个历史批次 1.386 ms 的替代预算决定是否计时。 M03 与已接受的 CP、slot、CPU plan 组合需固定优化基线和候选接入；独立 C8 的收益只计入已通过的指标。",
+    "decision": "171 完成三组无 profiler 冻结 C8，每组一次准入、三次计时。12 轮共 96 份输出文本逐个与归档一致。按原版 / 修正版 / 后置原版，整批中位耗时为 15.8679 / 15.6304 / 15.8645 秒，首 token P90 中位为 1.2546 / 1.2196 / 1.3004 秒。修正版对前后参照的整批耗时改善分别为 +1.50% 和 +1.48%。 整批耗时通过预设的双参照 1% 和样本分离条件，接受此固定负载下的整批收益。首 token P90 未通过预设条件。本轮最慢候选与最快原版相隔 2.807 ms，每组各有一次服务启动和三次计时。",
     "source": {
-      "path": "full-review/QLI-MODEL-WINDOW.json",
-      "sha256": "7d321cf8716cbb96b5a81bee9451870a493e7c2802e4dd4ec1835cc78052e789"
+      "path": "full-review/QLI-REPEATED-SERVICE-C8.json",
+      "sha256": "10c3ca078a0177507c3fba325ed1efd2b97ba89c52f2b0d52d52f1321bd74707"
     },
     "handle": {
       "path": "full-review/runs/qli-membership-scoped-timing-627403ffa3b3-launch.json",
@@ -123,12 +123,13 @@
     "directory": "projects/910c-deepseek-v4.1-framework-investigation"
   },
   "service_observation": {
-    "utc_observed": "2026-11-07T15:56:19.619312+00:00",
-    "started_at": "2026-11-07T15:50:39.48125073Z",
+    "utc_observed": "2026-11-07T16:28:27.001055+00:00",
+    "started_at": "2026-11-07T16:23:02.22061434Z",
     "health_http": 200,
-    "original_kernel_sha256": "f1dd0d93d703c252a51c517fac851c055d0a09ba373c22dbbd92d1b042daaa23",
+    "validated_generation_tokens": 2,
     "original_script_sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba",
-    "validated_C8_texts": 8,
+    "original_kernel_sha256": "f1dd0d93d703c252a51c517fac851c055d0a09ba373c22dbbd92d1b042daaa23",
+    "private_environment_absent": true,
     "host_asset": "171",
     "not_a_live_status_assertion": true
   },
@@ -138,31 +139,32 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 98,
+    "region_tables": 102,
     "new_NPU_work_this_update": true,
-    "new_native_performance_comparisons": 0,
+    "new_native_performance_comparisons": 1,
     "new_native_cache_preparations": 0,
     "service_operations_this_update": [
-      "qli-membership-scoped-frontier-65a31aada2ad"
+      "qli-membership-scoped-frontier-65a31aada2ad",
+      "qli-membership-scoped-timing-627403ffa3b3"
     ],
     "does_not_replace_ordered_module_review": true,
-    "new_performance_admissions": 0,
+    "new_performance_admissions": 1,
     "new_native_cache_verifications": 0,
-    "timed_C8_samples": 0,
+    "timed_C8_samples": 9,
     "topology_rank_bindings": 16,
     "scoped_AIV_calibrated_tuples": 10,
     "new_profile_exports": 1,
     "F21_calls_reused": 4816,
     "unit_cost_reference": "baselines/unit-costs.md",
     "excluded_witness_attempts": 0,
-    "new_model_loads": 2,
+    "new_model_loads": 6,
     "archived_eager_F21_calls_bound": 2560,
     "archived_same_layer_indexer_chains": 368,
     "archived_request_slots_bound": 8,
     "archived_post_first_smla_readers": 1380,
     "archived_engine_metric_snapshots": 2,
     "regrouped_expert_layers": 40,
-    "diagnostic_C8_cases": 3,
+    "diagnostic_C8_cases": 6,
     "CPU_tokenizer_arms": 0,
     "native_rows_reused": 135592,
     "priced_matrix_or_FFN_calls": 22248,
@@ -170,7 +172,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "One candidate generation with unprofiled count and native-profile C8, one original restored C8; matched NPU-only reference window reused. No independently repeated timed campaign.",
+    "performance_scope": "One three-case native campaign and one three-arm C8 campaign, with one admission and three timed cases per arm. Each campaign independently restored.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -179,7 +181,7 @@
     "reused_FFN_entry_rank_layer_chains": 2560,
     "FFN_native_startup_only_attempts": 1,
     "attention_rank_layer_chains": 2560,
-    "attempted_model_service_comparisons": 0
+    "attempted_model_service_comparisons": 1
   },
   "latest_service_admission": {
     "record": "baselines/attention-handoff-c8.json",
@@ -299,5 +301,10 @@
     "record": "baselines/terminal-compact-shadow.json",
     "run_id": "terminal-readers-c8-158a6e1d704b",
     "result": "171 用真实权重和 16 个 rank 在冻结输入上跑了 4 个大批次，紧凑路径的原生行数为 3, 3, 6, 18。516 次专家分配逐专家收发守恒，选中专家 ID 与原路径一致。最早的逐位差异已出现在 mHC 的 post、comb、mix 系数，路由权重也有差异。最终归一化读出按 TP 去重共 26 个元素有差异。服务返回原路径的 8 份全文，均与归档一致。紧凑版本未进入计时。若完整保留专家前置计算，在历史固定排程中要达到上述门槛，余下替代路径每批等时预算为 1.709 ms。"
+  },
+  "latest_service_comparison": {
+    "record": "baselines/qli-service-c8.json",
+    "result": "171 完成三组无 profiler 冻结 C8，每组一次准入、三次计时。12 轮共 96 份输出文本逐个与归档一致。按原版 / 修正版 / 后置原版，整批中位耗时为 15.8679 / 15.6304 / 15.8645 秒，首 token P90 中位为 1.2546 / 1.2196 / 1.3004 秒。修正版对前后参照的整批耗时改善分别为 +1.50% 和 +1.48%。",
+    "decision": "整批耗时通过预设的双参照 1% 和样本分离条件，接受此固定负载下的整批收益。首 token P90 未通过预设条件。本轮最慢候选与最快原版相隔 2.807 ms，每组各有一次服务启动和三次计时。"
   }
 }

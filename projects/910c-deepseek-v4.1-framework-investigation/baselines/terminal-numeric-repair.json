@@ -1,0 +1,158 @@
+{
+  "shadow_run": "terminal-readers-c8-158a6e1d704b",
+  "scope": "Four real 171 shadow waves. Heavy and small refer to the original branch guard; rows count only masked-active expert sender inputs. Coefficients and final expert outputs use the model’s selected rows. Final normalization may include gathered rows from other ranks.",
+  "per_branch": {
+    "small": {
+      "active_rank_invocations": 14,
+      "active_rows": 42,
+      "wrong_weight_elements": 0,
+      "routing_weight_slots": 252,
+      "weight_diff_invocations": 0,
+      "HC_coeff_diff_invocations": 0,
+      "exact_expert_output_invocations": 14,
+      "exact_expert_output_but_wrong_HCpost": [],
+      "wrong_expert_output_invocations": 0
+    },
+    "heavy": {
+      "active_rank_invocations": 11,
+      "active_rows": 44,
+      "wrong_weight_elements": 226,
+      "routing_weight_slots": 264,
+      "weight_diff_invocations": 11,
+      "HC_coeff_diff_invocations": 11,
+      "exact_expert_output_invocations": 9,
+      "exact_expert_output_but_wrong_HCpost": [
+        {
+          "sequence": 0,
+          "dp": 0,
+          "tp": 7,
+          "active": 1,
+          "HCpost_differing_elements": 11
+        },
+        {
+          "sequence": 1,
+          "dp": 1,
+          "tp": 3,
+          "active": 1,
+          "HCpost_differing_elements": 8
+        },
+        {
+          "sequence": 1,
+          "dp": 1,
+          "tp": 7,
+          "active": 1,
+          "HCpost_differing_elements": 3
+        },
+        {
+          "sequence": 2,
+          "dp": 0,
+          "tp": 0,
+          "active": 6,
+          "HCpost_differing_elements": 62
+        },
+        {
+          "sequence": 2,
+          "dp": 0,
+          "tp": 4,
+          "active": 1,
+          "HCpost_differing_elements": 10
+        },
+        {
+          "sequence": 2,
+          "dp": 0,
+          "tp": 7,
+          "active": 1,
+          "HCpost_differing_elements": 9
+        },
+        {
+          "sequence": 3,
+          "dp": 0,
+          "tp": 7,
+          "active": 1,
+          "HCpost_differing_elements": 7
+        },
+        {
+          "sequence": 3,
+          "dp": 1,
+          "tp": 4,
+          "active": 1,
+          "HCpost_differing_elements": 9
+        },
+        {
+          "sequence": 3,
+          "dp": 1,
+          "tp": 7,
+          "active": 1,
+          "HCpost_differing_elements": 2
+        }
+      ],
+      "wrong_expert_output_invocations": 2
+    }
+  },
+  "kept_dense_regions": {
+    "dense_front": {
+      "stages": [
+        "expert_join",
+        "post",
+        "gather_1",
+        "gather_2",
+        "raw_copy",
+        "collapse_norm"
+      ],
+      "P90_free_stage_credit_ms": 21.753658000000087,
+      "room_at_guide": true,
+      "uniform_replacement_margin_ms_per_carrier": 1.7087774025000044
+    },
+    "dense_front_and_post": {
+      "stages": [
+        "expert_join",
+        "gather_1",
+        "gather_2",
+        "raw_copy",
+        "collapse_norm"
+      ],
+      "P90_free_stage_credit_ms": 20.46347199999991,
+      "room_at_guide": true,
+      "uniform_replacement_margin_ms_per_carrier": 1.3862309024999604
+    },
+    "dense_through_expert": {
+      "stages": [
+        "post",
+        "gather_1",
+        "gather_2",
+        "raw_copy",
+        "collapse_norm"
+      ],
+      "P90_free_stage_credit_ms": 14.85313300000007,
+      "room_at_guide": false,
+      "uniform_replacement_margin_ms_per_carrier": -0.016353847499999574
+    },
+    "dense_through_post": {
+      "stages": [
+        "gather_1",
+        "gather_2",
+        "raw_copy",
+        "collapse_norm"
+      ],
+      "P90_free_stage_credit_ms": 13.562946999999895,
+      "room_at_guide": false,
+      "uniform_replacement_margin_ms_per_carrier": -0.3389003475000436
+    }
+  },
+  "prefill_TTFT_guide_ms": 14.918548390000002,
+  "conclusion": "Replacing only final expert output with its original value cannot fix the observed HCpost differences in the nine active heavy invocations where this tensor was already bit-exact. Independent numerical obligations remain for the routing weights and the retained mHC coefficients. This does not prove which instruction introduced a discrepancy or that replaying dense coefficients is sufficient.",
+  "next_discriminator": "Use original dense selected pre coefficients, expert inputs and routing weights; compact only active expert dispatch/return and downstream demanded rows. First compare true selected routed and full expert outputs and HCpost/readout against the stock path. Retaining even the original post stage still leaves a conditional uniform budget for compact expert and remaining readout. If dense expert retirement must also remain, the current boundary no longer merits a separate TTFT experiment.",
+  "limits": [
+    "Sensitivity under a common EP16 retirement before downstream work, one dependency chain per phase, unchanged external gaps, fixed clocks and no transfer of eliminated work to another stage. Advancing the entire EP front by up to the largest pre-stage saving is credited, then the original last arrival to last exit is erased. Unchanged issuers and stage-relative gaps move with their prerequisites. Each local gather is charged its longest rank span, including waiting. The readout grants free native work through norm, excluding the invariant small logits projection. Scenarios which change upstream readiness, remove host launch gaps or let individual ranks use partial results before the common join need their own wider schedule model.",
+    "Fixed original join, four service carriers. Changing any other producer, earliest reader, schedule or frequency requires separate pricing. The uniform replacement allowance is per carrier, includes all replacement work in the changed stages, and is not an achieved saving."
+  ],
+  "sources": {
+    "full-review/runs/terminal-readers-c8-158a6e1d704b-result.json.gz": "084fb43e386e74f6c560f7974457df1e2af4e50d6229b2c94962b557a64b328b",
+    "full-review/TERMINAL-COMPACT-FFN-SHADOW.json": "33286b9e18564e92e599b99bd4cd84c93bbb9e2315ff4b5ac474c463abac2f17",
+    "full-review/TERMINAL-STAGE-SCOPE-SCREEN.json": "f9a04811b4d4871a0a78f5859e26a32feb4e487e56ba2f25c0550787c889077e",
+    "probes/terminal_compact/model.py": "da783bc7db2b3d404ae317cd25133b35093980be36c02e449e05cb0bdc22a569",
+    "tools/price_terminal_numeric_repair.py": "edef3ce105b2ae44866e48155762d1066d5c4dfc857b0295dcd6fcfaa5fc1667"
+  },
+  "new_NPU_work": false,
+  "overall_complete": false
+}
