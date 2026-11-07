@@ -14,3 +14,5 @@
 - [M09 采样、校验与输出状态](M09.md)
 - [M10 DSpark context、decoder、draft head/Markov](M10.md)
 - [M11 下一迭代输入与状态交接](M11.md)
+
+各模块共用[物理拓扑](../baselines/topology.json)及[公共缺口优先级](../baselines/material-gaps.json)，无需逐模块重复取证。
