@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T23:35:03.750830+00:00",
-  "source_analysis_commit": "daa479cf4673c8e176d82b9d62d081a1576d4d7a",
+  "updated_at_utc": "2026-11-07T23:55:15.508919+00:00",
+  "source_analysis_commit": "6427affbb99d85584d8ed85f17a585b695a8f773",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 稀疏索引选择与 SMLA 消费",
+  "active_module": "M06 routed 专家的矩阵乘与激活、量化边界",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "用既有 QLI 与 SMLA profile 筛索引选择、块成员转换和稀疏注意力消费的联合边界。优先确认实际可省的索引准备或重复 KV 读取能否传到请求，扣除已计价的四层 QLI 共享；冻结布局与缓存驻留。合法但未命中的视觉、packed 或其它量化分支按覆盖索引保留。",
-    "decision": "固定输出的 Attention 输入、旋转及缓存联合融合已按同排程归因，搬运收益和 50% 情景均降级。只保留额外可验证工作或不同真实负载的重开条件。WKV 单完成事件会推迟 QB。",
+    "work": "按执行顺序进入 M06 固定路由的 routed 专家内部。复用 F21 的阶段计数和各 rank 真实 assignment 数，筛 GMM1→反量化/SwiGLU/逐行量化→GMM2 两个中间张量，按冻结请求与普通请求估价。共享专家先前的估算只作对照；不重复计入，也不扩大到专家布局。",
+    "decision": "QLI→SMLA 索引准备单独降级；SMLA 选行收集直接供 QK/PV 使用保留为长提示条件候选。收益来自单层内部临时缓冲的消除，已扣除直接二次稀疏取数和既有 QLI 共享。",
     "source": {
-      "path": "full-review/ATTENTION-INPUT-FUSION-REQUESTS.json",
-      "sha256": "22eac811497df41b1e84f7a471b5c8be766d2461f356ca89b8405afd99130d5f"
+      "path": "full-review/SPARSE-SELECTION-DELIVERY-ESTIMATES.json",
+      "sha256": "a173949eb5f21f03106448dc43f1d7beb0a8d327e45662d716cfe3fd54c9ef07"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 129,
+    "region_tables": 130,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Q and cache projection epilogues, original and retimed joins, C2 state and six ordinary request estimates on archived profiles.",
+    "performance_scope": "Archived QLI publications, SMLA gather-to-Cube staging, PMU, actual reader generation and C8 plus ordinary request sensitivity.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,15 +280,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M03",
+    "scope": "M03/G07",
     "sources": [
-      "baselines/attention-input-fusions.json",
+      "baselines/sparse-selection-delivery.json",
       "baselines/branch-coverage.json"
     ],
     "observations": [
-      "冻结 prefill 逐卡层中，1,840 个同时有 Q 与 KV，400 个仅写 KV，320 个走空侧路径。368 个计算索引 Q 和权重，224 个发布新的压缩 key 与长 KV。另有 5,120 个图内层调用，若保持其余时间不变，Q 的局部旋转前移后均可被较晚的 KV 写入完全覆盖。只给融合计价时，两边均采用该排程。",
-      "把 QA/index-W 共用读取、Q 旋转、SWA 的 RMS→RoPE→store、压缩 key/scale 与长 KV 写入、C2 两组 FP32 投影共用输入和已经定价的 QR 量化共用放到同一批请求上。按同机搬运速率折算，可归给融合的冻结首 token P90 约省 2.10–4.04 ms，整批约省 7.33–9.27 ms；六个普通请求相对各自实测响应最多约省 0.057%。若假设联合方案净省一半相关向量/发布任务，并省去指定任务间全部间隙，整批约省 126.74–129.54 ms（0.68%–0.70%），普通响应最多约省 0.87%。仅在将这些任务费用全部抹去的情景，整批区间才触及 1%（183.11–186.10 ms）。这些均为估算，保留必需矩阵乘及原始舍入。",
-      "WKV 矩阵乘完成事件会放行 QB。若把 KV 归一化、旋转和写缓存全部并进 WKV，且仅在整个内核结束时发信号，QB 也得等。5,120 个图内层调用中，原后处理核时中位为 54.74 µs，保持原汇合时刻的时间余量中位为 13.00 µs；逐次计算，须消掉或隐藏的比例中位为 76.3%。按后处理剩余一半、无提前事件估算，这种方案会使冻结整批延长 142–145 ms。"
+      "8 个索引源层各发布一个按时间排列的有效位置前缀，同一结果供 4 或 6 个 Attention 层使用。QLI 的 INT8 索引 key 与 SMLA 的 512 维 BF16 压缩 KV 分属不同缓存。固定其余工作，把已绑定的索引准备核和指定间隙全部消除，冻结首 token P90 约省 6.56–6.70 ms，整批约省 33.60–33.73 ms。单独降级。短行可以另算：128、183、274 个可见位置的三组原生对照中，保留一次源调用、四层直接复用已准备好的索引，比已经取消候选过滤的对照再省 0.509–0.523 ms。该数值只适用于本组局部原生用例。",
+      "38 个压缩 Attention 层另有一处可融合的工作。171 源码中，Vector 按选中位置取 KV 行，写到临时 GM 缓冲，Cube 在 QK 和 PV 阶段分别读回。可以考虑让 Cube 按同一选中顺序直接取行。按每行 512 个有效位置、每个 KV 向量 1 KiB、原稀疏读与新稀疏读及缓冲访问等效速率相同、传输差额有一半能缩短关键路径估算，冻结首 token P90 可省 23.72–23.77 ms（1.59%），整批省 29.24–29.29 ms（0.16%）。六个普通请求响应最高约 0.34%。已扣除第二次稀疏读取，四层 QLI 旧收益未计入。",
+      "保留长提示首 token 条件候选。在上述半暴露情形，临时缓冲的有效速率超过稀疏读的约 1.33 倍，首 token 改善即低于 1%。若额外交付物理偏移，每 128 个有效行新增的暴露开销预算约 20 ns。大 Q 的 912 次历史 SMLA 计数中，Cube 与 Vector 的 MTE2 占用比中位约 0.63 和 0.67，仍无法区分具体缓存命中与暴露等待。维持原收集、只让 QK 与 PV 共用 Cube L1 时，原 192 KiB 的 KV 空间放不下完整的 512 KiB 分块；即使留住其中 192 行且旧缓冲按相同速率读，首 token 也仅省 8.90–8.91 ms。"
     ],
     "new_performance_measurements": 0
   },
@@ -317,11 +317,11 @@
     "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/attention-input-fusions.json",
-      "result": "把 QA/index-W 共用读取、Q 旋转、SWA 的 RMS→RoPE→store、压缩 key/scale 与长 KV 写入、C2 两组 FP32 投影共用输入和已经定价的 QR 量化共用放到同一批请求上。按同机搬运速率折算，可归给融合的冻结首 token P90 约省 2.10–4.04 ms，整批约省 7.33–9.27 ms；六个普通请求相对各自实测响应最多约省 0.057%。若假设联合方案净省一半相关向量/发布任务，并省去指定任务间全部间隙，整批约省 126.74–129.54 ms（0.68%–0.70%），普通响应最多约省 0.87%。仅在将这些任务费用全部抹去的情景，整批区间才触及 1%（183.11–186.10 ms）。这些均为估算，保留必需矩阵乘及原始舍入。"
+      "record": "baselines/sparse-selection-delivery.json",
+      "result": "38 个压缩 Attention 层另有一处可融合的工作。171 源码中，Vector 按选中位置取 KV 行，写到临时 GM 缓冲，Cube 在 QK 和 PV 阶段分别读回。可以考虑让 Cube 按同一选中顺序直接取行。按每行 512 个有效位置、每个 KV 向量 1 KiB、原稀疏读与新稀疏读及缓冲访问等效速率相同、传输差额有一半能缩短关键路径估算，冻结首 token P90 可省 23.72–23.77 ms（1.59%），整批省 29.24–29.29 ms（0.16%）。六个普通请求响应最高约 0.34%。已扣除第二次稀疏读取，四层 QLI 旧收益未计入。"
     },
-    "next": "用既有 QLI 与 SMLA profile 筛索引选择、块成员转换和稀疏注意力消费的联合边界。优先确认实际可省的索引准备或重复 KV 读取能否传到请求，扣除已计价的四层 QLI 共享；冻结布局与缓存驻留。合法但未命中的视觉、packed 或其它量化分支按覆盖索引保留。",
-    "decision": "固定输出的 Attention 输入、旋转及缓存联合融合已按同排程归因，搬运收益和 50% 情景均降级。只保留额外可验证工作或不同真实负载的重开条件。WKV 单完成事件会推迟 QB。",
+    "next": "按执行顺序进入 M06 固定路由的 routed 专家内部。复用 F21 的阶段计数和各 rank 真实 assignment 数，筛 GMM1→反量化/SwiGLU/逐行量化→GMM2 两个中间张量，按冻结请求与普通请求估价。共享专家先前的估算只作对照；不重复计入，也不扩大到专家布局。",
+    "decision": "QLI→SMLA 索引准备单独降级；SMLA 选行收集直接供 QK/PV 使用保留为长提示条件候选。收益来自单层内部临时缓冲的消除，已扣除直接二次稀疏取数和既有 QLI 共享。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
