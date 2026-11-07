@@ -1,0 +1,233 @@
+{
+  "branches": {
+    "HcPost_outputs_BF16_and_widened_FP32": {
+      "unit_B_per_row": 40960,
+      "drop_HcPre_cast_read_and_write_in_R": 3,
+      "added_HcPost_wide_write_in_R": 2,
+      "net_traffic_removed_in_R": 1
+    },
+    "store_only_widened_residual": {
+      "drop_HcPre_cast_read_and_write_in_R": 3,
+      "extra_HcPost_write_in_R": 1,
+      "extra_HcPre_Y_input_read_in_R": 1,
+      "extra_later_FFNPost_residual_read_in_R": 1,
+      "net_traffic_removed_in_R": 0
+    }
+  },
+  "historical_eager": {
+    "equal_rates_both_transfers": {
+      "eager_carrier_ms": {
+        "416": [
+          0.03257913569682153,
+          0.30739999999999995
+        ],
+        "816": [
+          0.015807397004889936,
+          0.5526000000000003
+        ],
+        "817": [
+          0.0020434841075793703,
+          0.5553999999999998
+        ],
+        "818": [
+          0.30479999999999996,
+          0.5508802500000002
+        ]
+      },
+      "P90_saved_ms": {
+        "inclusive": [
+          0.3552300168094007,
+          1.9662802499999543
+        ],
+        "prior_only": [
+          0.050430016809286826,
+          1.4154000000000906
+        ]
+      }
+    },
+    "equal_rates_one_payload": {
+      "eager_carrier_ms": {
+        "416": [
+          0.06515827139364307,
+          0.6147999999999999
+        ],
+        "816": [
+          0.03161479400977991,
+          1.1052000000000006
+        ],
+        "817": [
+          0.004086968215158776,
+          1.1107999999999996
+        ],
+        "818": [
+          0.6095999999999999,
+          1.1017605000000004
+        ]
+      },
+      "P90_saved_ms": {
+        "inclusive": [
+          0.710460033618574,
+          3.9325604999999086
+        ],
+        "prior_only": [
+          0.10086003361857365,
+          2.830799999999954
+        ]
+      }
+    },
+    "producer_store_25pct_slower": {
+      "eager_carrier_ms": {
+        "416": [
+          0.016289567848410767,
+          0.15369999999999998
+        ],
+        "816": [
+          0.007903698502444977,
+          0.27630000000000016
+        ],
+        "817": [
+          0.0010217420537896313,
+          0.2776999999999999
+        ],
+        "818": [
+          0.15239999999999998,
+          0.2754401250000001
+        ]
+      },
+      "P90_saved_ms": {
+        "inclusive": [
+          0.17761500840470035,
+          0.9831401250000908
+        ],
+        "prior_only": [
+          0.0252150084047571,
+          0.7076999999999316
+        ]
+      }
+    },
+    "producer_store_50pct_slower": {
+      "eager_carrier_ms": {
+        "416": [
+          0.0,
+          0.0
+        ],
+        "816": [
+          0.0,
+          0.0
+        ],
+        "817": [
+          0.0,
+          0.0
+        ],
+        "818": [
+          0.0,
+          0.0
+        ]
+      },
+      "P90_saved_ms": {
+        "inclusive": [
+          0.0,
+          0.0
+        ],
+        "prior_only": [
+          0.0,
+          0.0
+        ]
+      }
+    }
+  },
+  "checkpoint_projection": {
+    "attn": {
+      "matrices": 40,
+      "elements": 19660800,
+      "elements_exactly_BF16": 313,
+      "nonfinite_elements": 0,
+      "matrices_with_robust_precision_witness": 40,
+      "elements_with_no_BF16_in_ten_fraction_bit_bracket": 14748130,
+      "example": {
+        "key": "layers.0.hc_attn_fn",
+        "offset": 0,
+        "source_f32_hex": "bc183926",
+        "neighbor_magnitudes_on_ten_fraction_bit_grid": [
+          "3c182000",
+          "3c184000"
+        ]
+      }
+    },
+    "ffn": {
+      "matrices": 40,
+      "elements": 19660800,
+      "elements_exactly_BF16": 281,
+      "nonfinite_elements": 0,
+      "matrices_with_robust_precision_witness": 40,
+      "elements_with_no_BF16_in_ten_fraction_bit_bracket": 14747057,
+      "example": {
+        "key": "layers.0.hc_ffn_fn",
+        "offset": 2,
+        "source_f32_hex": "3d86bdaf",
+        "neighbor_magnitudes_on_ten_fraction_bit_grid": [
+          "3d86a000",
+          "3d86c000"
+        ]
+      }
+    }
+  },
+  "installed_source": {
+    "hc_pre.cpp": {
+      "sha256": "6f251e256d523b8a54b4a04d3d0684b5191472801b2191b1970c0780564222c0",
+      "lines": {
+        "TILING_KEY_IS(0)": 92,
+        "HcPreMembaseKSplitCorePart1": 95,
+        "HcPreMembaseKSplitCorePart2": 102
+      }
+    },
+    "hc_pre_m_k_split_core.h": {
+      "sha256": "4d697b15e541216722369284cbd8c9bd5f4154cd0d2251cdb06a6cd46f42fc14",
+      "lines": {
+        "CopyIn(xGm[curGlobalxOffset]": 148,
+        "CastTwoDim(xCastLocal, xLocal": 152,
+        "CopyOut(xCastLocal, xCastFp32WsGm": 159,
+        "ComputeDecode(xCastFp32WsGm": 126,
+        "CopyIn(xGm[xGmBlockBaseOffsetPart2": 422,
+        "ProcessY(yLocal, xLocal": 429,
+        "CopyOut(yLocal,": 435
+      }
+    },
+    "hc_pre_cube_compute.h": {
+      "sha256": "9056b512f88569025bd3cec598a66d5461b5fd4c14bf6a7eb6c963ff6537ed69",
+      "lines": {
+        "CopyInA1(curKL1Size, xGm": 275,
+        "DataCopy(al1Local, aGlobal, nd2nzParams)": 191
+      }
+    }
+  },
+  "prior_changed_reduction": {
+    "first_case": "full-review/runs/hc-pre-row-norm-barrier-9924b1614419-mismatch.json",
+    "decision": "STOP_CORRECTED_ROW_NORM_VARIANT;FIRST_EAGER_EXACTNESS_GATE_FAILED"
+  },
+  "scope": [
+    "For the two-output HcPost, round once to the original BF16 bit pattern before widening it to the FP32 plane. Keep original two HcPre Cube consumers, accumulation order, Y, coefficients and the BF16 residual for FFNPost. Redirect the Cube read to a newly addressed plane with the correct row strides. The stock per-core double buffer cannot be overwritten ahead of its reader.",
+    "For a sole wide residual, assume every remaining reader can consume it and keeps original BF16 arithmetic. Even ignoring conversion and layout, HcPre Y and later FFNPost must both reread a twice-as-wide plane. This mechanism alone saves zero net payload across those readers. On-chip forwarding has different costs.",
+    "Traffic estimate caps removed work by the original HcPre time, charges an additional HcPost write, and transfers the net change to EP16 entry. Rates come from matching old TensorMove; Q3 uses their median. Cost of stalls, cache and altered overlap is unknown. Excludes any change to Cube compute and any direct register-to-Cube transfer. P90 covers four prompt waves, not all decode steps.",
+    "Each finite normal weight witness lies strictly inside a BF16 cell even after rounding to either neighbor on a 10-fraction-bit grid. Every finer binary grid interval lies inside that interval. Thus a one-term BF16 weight replacement cannot preserve every original projected operand under such HF32 precision. This tests stored checkpoint constants; a different loader conversion, arithmetic algorithm or equivalent multi-term representation needs separate evidence. It is not a measured output mismatch of a newly modified device kernel.",
+    "Saved A3 source uses the same widened activation for Gram and the coefficient matrix. The coefficient projection explicitly sets HF32 mode. Taking just the diagonal via another reduction already changed two coefficient tensors on a finite native fixture. Source under this fixed installation and checkpoint hashes are distinct from attesting the binary selected at every invocation."
+  ],
+  "precision_reference": "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/API/ascendcopapi/docs/en/api/SIMD-API/basic_api/cube_compute_ISASI/mmad_compute_key_features/HF32.md",
+  "sources": {
+    "full-review/runs/hc-projection-weight-precision.json": "fc904d3a09b89f17bc708b6dfc5b0a6319286b516d2b6de4df141c1bf0d4ec87",
+    "full-review/HC-TENSOR-TRAFFIC-ESTIMATES.json": "605b70c0b5314bb423313b8930cfc4c5cf777b8926ca53ad9d9fec4197210a85",
+    "full-review/HC-PRE-ROW-NORM-BARRIER-RESULT.json": "7db31d7d9a55f2bbd64943da944e300140c29538b5a1ad86b4772035c950504f",
+    "full-review/ORDERED-POST-FFN-DISPOSITIONS.json": "38cff0c8ecdb75005e90a126b81a27977ead87d2c68406787c1d3a0720f0efaf",
+    "full-review/runs/hc-pre-native-source-pin.json": "f1be06d5a4959d46e950e64da8689756f8f8440ed56f2bf74acb2e7abbfb0165",
+    "full-review/PREFILL-FFN-ENTRY-EXPOSURE.json": "88acd71f32506372d48bf634d1be2b092023be76a39fed50abb797f98588b9b6",
+    "full-review/PREFILL-OA-JOINT-ARRIVAL.json": "5c7b01aefd7603c2957b6cbb439e7f005471ccd5e4b3a5d505a1925bd2f7b550",
+    "full-review/runs/first-token-v168-protocol-bodies.json": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de",
+    "tools/price_hc_workspace_delivery.py": "9a78678e7facfe68c66501c3159e3c14ebf78a06b26646fcc4a6900106199474",
+    "tools/price_hc_tensor_traffic.py": "ee060977a4360dcd3db2203687d8be9a46699f12ce1a15a6a18b55145a302e41",
+    "tools/price_draft_movable_arrivals.py": "c29bfb4bc983f4c833cc2ff481167236517b1624893a17eff9abd714c706f83a",
+    "tools/read_hc_projection_precision.py": "e8d9e16f78d5f38a8dddde2b0b3c20e8b032f164ae87e0b4cdfc17c4c6ceedb6",
+    "full-review/PREFILL-FFN-ENTRY-WEIGHTS.json": "b455377afb708f82e99af0b2ee8de1133e25a33171c035ea47ef6f9929a655c8"
+  },
+  "new_NPU_work": false,
+  "overall_complete": false
+}

@@ -1,22 +1,21 @@
 {
-  "updated_at_utc": "2026-11-07T20:22:57.183815+00:00",
-  "source_analysis_commit": "5a38c56f93469f0adee9981c20ce379792d0bdbc",
+  "updated_at_utc": "2026-11-07T20:44:37.217601+00:00",
+  "source_analysis_commit": "66e0439cb8f2d88ba45f29b6116e2a55d5c4e809",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03–M04 稀疏 Attention 结果到通信输入的直接交付",
+  "active_module": "M06 大批 MoE 最慢接收卡的专家工作与返回等待",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "从 M03–M04 的稀疏 Attention 输出到 TP8 AllToAll 顺序定价。把逆 RoPE、填充、发往各卡的布局和真实等待作为一段，复用原生对照；分别估算让 Attention 直接写通信输入时对 prefill 与普通 decode 请求的影响。剔除诊断记录，保留空发送卡的接收，不重复计入已有输出投影方案。若组合上限仍小，直接转向 M05–M06 的内部工作区与专家关键路径。",
-    "decision": "60 类命名任务中，21 类单独归零对首 token P90 和整批耗时均不足 1%，其中 13 类同时归零也低于两条线。M03 的两路 Q 共用量化结果估算仅省 0.43–0.58 ms 首 token P90。M05–M06 保留路由 FP32 与共享专家 BF16 舍入后，移动共享量化约慢 2.01 至快 3.09 ms；直接共享路由与共享专家的比例因子不能从算术式推出。",
-    "scope": "沿用既有请求、源层归属、单位成本和逐卡 profile",
+    "work": "进入 M06 大批 MoE。在已有两轮原生计数里，每轮五条相同路由都是接收最多行的卡在返回同步处等待最短。用实际每专家行数、分块尾部、GMM1/GMM2 与两段返回就绪给最慢接收卡定价；比较只减同步写入与能减少关键卡计算或提前交付的分组。先把所需的关键卡净缩短量换成请求收益，不重复旧的拆流水线实验。",
+    "decision": "M03–M04 的真实 BF16 发送布局在 2,240 条链上绑定。保留逆旋转并用原转置时间的 25% 估算新增布局写入，C8 首 token P90 约省 5.62–9.55 ms，整批约省 91.61–95.54 ms。M05 同时写回 BF16 和扩宽 FP32 残差仅净省 40,960 B/行，即便同速也约省 0.36–3.93 ms 首 token P90。固定权重的 80 个 mHC 系数矩阵均有单 BF16 不可表示的投影系数。",
     "source": {
-      "path": "full-review/ACTIVATION-QUANT-REQUEST-ESTIMATES.json",
-      "sha256": "dc00aab27c2a834e3198a04c6b11932c67d92ee5f7012b043fed9aabf1fcd5a3"
+      "path": "full-review/ATTENTION-SEND-REQUEST-ESTIMATES.json",
+      "sha256": "d57e07174aa90cd42fb2fc4326a5c9b43373b6ca643475dbc6af91cc8aa380d5"
     },
-    "target_family_filter": {
-      "path": "full-review/TARGET-FAMILY-ENDPOINT-FILTER.json",
-      "sha256": "5e2d06196769ee00cc32ade4ecc434dae043d17ae8598d3738c9feb0f9a37481"
+    "HC_workspace": {
+      "path": "full-review/HC-WORKSPACE-DELIVERY-VALUE.json",
+      "sha256": "25128488714f3f6764edaa80741e9fc3b3efeb300c2b6f6c5b067a88e42a54d7"
     }
   },
   "module_statuses": [
@@ -169,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Offline request and operator-family estimates from archived profiles, native results and source arithmetic.",
+    "performance_scope": "Archived eager/graph and request schedules; CPU-only read of 80 checkpoint coefficient matrices on 171.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,17 +283,18 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M00–M11 / M03/M05/M06",
+    "scope": "M02–M05",
     "sources": [
-      "baselines/target-family-filter.json",
-      "baselines/activation-quant.json"
+      "baselines/attention-send.json",
+      "baselines/hc-workspace-delivery.json",
+      "baselines/hc-weight-precision.json"
     ],
     "observations": [
-      "在 3,632 次逐卡目标图回放及 64 段 eager 主体中，60 类命名任务有 21 类独自全省也达不到首 token P90 或整批耗时的 1%。其中 13 类同时全省，按 100 ms 时钟余量及跨卡时间累加，最多分别省 5.82 ms 和 167.29 ms（0.39%、0.90%）。这批小项可跳过逐对分析；能改变通信、提交或其它大算子读写的组合单独计价。另有 69 类未绑定标签。",
-      "2,560 个逐卡层记录中，368 个有两次普通 Q 与索引 Q 的输入量化。两路共用结果在历史 C8 首 token P90 约省 0.43–0.58 ms，按六个普通请求的各自生成步数估算，每请求约省 0.12–1.58 ms。独立降级。",
-      "由 FFN 归一化额外生成共享专家的 INT8 与比例因子，保留原 FP32 路由输入和 BF16 输入，按前移成本估算首 token P90 慢 2.01 至快 3.09 ms。路由与共享专家的量化公式按逐步 FP32 舍入时，对 BF16 行最大值 0.55859375 可差一个比例因子最低位。该反例说明直接共用包需要核对设备实现；可共享同一行或绝对最大值，再分别生成两种输出。"
+      "4 批共 2,240 条真实 Attention 发送链。保留逆旋转、按旧转置时间的 25% 计入直接布局写入，首 token P90 估算省 5.62–9.55 ms，整批省 91.61–95.54 ms。六个普通请求各省 1.66–26.68 ms。只给 400 条空发送预置零缓冲区，原 EP16 到达模型给首 token P90 的收益为零。",
+      "Attention Post 额外交付扩宽的 FP32 残差时，每行少读一份 BF16，Cube 仍需读 FP32。历史 eager 首 token P90 在两种同速计价下省 0.36–3.93 ms。只存 FP32 则另有两个读者需要读取宽残差，净省字节为零。只读核对固定 checkpoint 中 40 个 Attention 和 40 个 FFN 投影矩阵，每个矩阵都有单 BF16 权重无法保留原投影操作数精度的系数。"
     ],
-    "new_measurements": 0
+    "new_performance_measurements": 0,
+    "checkpoint_weight_matrices_read": 80
   },
   "request_region_screen": {
     "record": "baselines/request-region-screen.json",
@@ -325,8 +325,8 @@
       "result": "在原服务上让相同后续请求分别到已缓存和另一组 DP，两个输入长度各交换两次目的地和顺序。四对比较共查询 4,966 个后续输入 token，同组多命中 4,608.0 个。四对中 1 对输出文本相同。在固定 32K C8 上，允许任意借用两组种子和所有其它输入时最多能命中 235,904 个 token，比原有实测多 0 个。",
       "decision": "保留已测命中数量，普通负载的稳定延迟收益仍待验证。"
     },
-    "next": "从 M03–M04 的稀疏 Attention 输出到 TP8 AllToAll 顺序定价。把逆 RoPE、填充、发往各卡的布局和真实等待作为一段，复用原生对照；分别估算让 Attention 直接写通信输入时对 prefill 与普通 decode 请求的影响。剔除诊断记录，保留空发送卡的接收，不重复计入已有输出投影方案。若组合上限仍小，直接转向 M05–M06 的内部工作区与专家关键路径。",
-    "decision": "60 类命名任务中，21 类单独归零对首 token P90 和整批耗时均不足 1%，其中 13 类同时归零也低于两条线。M03 的两路 Q 共用量化结果估算仅省 0.43–0.58 ms 首 token P90。M05–M06 保留路由 FP32 与共享专家 BF16 舍入后，移动共享量化约慢 2.01 至快 3.09 ms；直接共享路由与共享专家的比例因子不能从算术式推出。",
+    "next": "进入 M06 大批 MoE。在已有两轮原生计数里，每轮五条相同路由都是接收最多行的卡在返回同步处等待最短。用实际每专家行数、分块尾部、GMM1/GMM2 与两段返回就绪给最慢接收卡定价；比较只减同步写入与能减少关键卡计算或提前交付的分组。先把所需的关键卡净缩短量换成请求收益，不重复旧的拆流水线实验。",
+    "decision": "M03–M04 的真实 BF16 发送布局在 2,240 条链上绑定。保留逆旋转并用原转置时间的 25% 估算新增布局写入，C8 首 token P90 约省 5.62–9.55 ms，整批约省 91.61–95.54 ms。M05 同时写回 BF16 和扩宽 FP32 残差仅净省 40,960 B/行，即便同速也约省 0.36–3.93 ms 首 token P90。固定权重的 80 个 mHC 系数矩阵均有单 BF16 不可表示的投影系数。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
