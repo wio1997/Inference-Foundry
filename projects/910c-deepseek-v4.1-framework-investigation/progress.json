@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-07T23:16:18.276714+00:00",
-  "source_analysis_commit": "4f170a1af3439c4489b69512b8f53984c242b91c",
+  "updated_at_utc": "2026-11-07T23:35:03.750830+00:00",
+  "source_analysis_commit": "daa479cf4673c8e176d82b9d62d081a1576d4d7a",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 输入投影与旋转、缓存写入的联合价值",
+  "active_module": "M03 稀疏索引选择与 SMLA 消费",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "按 12 个执行模块归并已有分支族，优先筛 Attention 的 QA/index-W 同源投影、QB→RoPE 与 KV→归一化/旋转/cache 写入。先复用既有投影、量化和写缓存预算，扣掉已经计价的共同工作；仅当新组合能改变请求时间排序时点查依赖。",
-    "decision": "固定分片 OA→OB 的独立搬运与输出直写降级；分块流水仅保留为长提示首 token 条件候选。已把专家放置和纯排程从模块的当前融合待办移至历史资料。",
+    "work": "用既有 QLI 与 SMLA profile 筛索引选择、块成员转换和稀疏注意力消费的联合边界。优先确认实际可省的索引准备或重复 KV 读取能否传到请求，扣除已计价的四层 QLI 共享；冻结布局与缓存驻留。合法但未命中的视觉、packed 或其它量化分支按覆盖索引保留。",
+    "decision": "固定输出的 Attention 输入、旋转及缓存联合融合已按同排程归因，搬运收益和 50% 情景均降级。只保留额外可验证工作或不同真实负载的重开条件。WKV 单完成事件会推迟 QB。",
     "source": {
-      "path": "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json",
-      "sha256": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338"
+      "path": "full-review/ATTENTION-INPUT-FUSION-REQUESTS.json",
+      "sha256": "22eac811497df41b1e84f7a471b5c8be766d2461f356ca89b8405afd99130d5f"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 128,
+    "region_tables": 129,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Fixed-shard BF16 output projection: eager and graph profile attribution, six ordinary request estimates and tile overlap sensitivity.",
+    "performance_scope": "Q and cache projection epilogues, original and retimed joins, C2 state and six ordinary request estimates on archived profiles.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,13 +280,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M03/M04",
+    "scope": "M03",
     "sources": [
-      "baselines/oa-ob-fusion.json"
+      "baselines/attention-input-fusions.json",
+      "baselines/branch-coverage.json"
     ],
     "observations": [
-      "OA 和 OB 是同一分片上的两次输出投影。2,240 个非空逐卡层中有 1,600 次 OB 输出拷贝；另有 320 个空侧直接填零后归约。24 行图上 2,560 条链的 OA→OB 间隙中位为 0.02 µs。保留两次矩阵乘、BF16 中间舍入和 ReduceScatter，按同机连续搬运速率折算，省中间写读及间隙只值约 0.99 ms 首 token P90；若能直接写通信输入，则为 5.70–6.51 ms（0.38%–0.44%），整批 6.13–6.95 ms，六个普通请求响应最高约 0.13%。单独搬运融合降级。",
-      "分块流水只有在已舍入的 OA 结果可按块交给 OB、维持各自归约顺序，并且硬件有未占用资源时才可能另有收益。按相同搬运估价，若能隐藏两次投影剩余时间中较短者的 25%，冻结首 token P90 估算省 13.88–14.63 ms；隐藏 50% 时省 21.56–22.61 ms（1.45%–1.52%），整批省 0.48%，六个普通请求响应最高 0.65%。这只是敏感性估算。按另一个更有利的独立拷贝代理且完全重叠，整批才约省 194–197 ms。是否能做到这些重叠仍缺证据。"
+      "冻结 prefill 逐卡层中，1,840 个同时有 Q 与 KV，400 个仅写 KV，320 个走空侧路径。368 个计算索引 Q 和权重，224 个发布新的压缩 key 与长 KV。另有 5,120 个图内层调用，若保持其余时间不变，Q 的局部旋转前移后均可被较晚的 KV 写入完全覆盖。只给融合计价时，两边均采用该排程。",
+      "把 QA/index-W 共用读取、Q 旋转、SWA 的 RMS→RoPE→store、压缩 key/scale 与长 KV 写入、C2 两组 FP32 投影共用输入和已经定价的 QR 量化共用放到同一批请求上。按同机搬运速率折算，可归给融合的冻结首 token P90 约省 2.10–4.04 ms，整批约省 7.33–9.27 ms；六个普通请求相对各自实测响应最多约省 0.057%。若假设联合方案净省一半相关向量/发布任务，并省去指定任务间全部间隙，整批约省 126.74–129.54 ms（0.68%–0.70%），普通响应最多约省 0.87%。仅在将这些任务费用全部抹去的情景，整批区间才触及 1%（183.11–186.10 ms）。这些均为估算，保留必需矩阵乘及原始舍入。",
+      "WKV 矩阵乘完成事件会放行 QB。若把 KV 归一化、旋转和写缓存全部并进 WKV，且仅在整个内核结束时发信号，QB 也得等。5,120 个图内层调用中，原后处理核时中位为 54.74 µs，保持原汇合时刻的时间余量中位为 13.00 µs；逐次计算，须消掉或隐藏的比例中位为 76.3%。按后处理剩余一半、无提前事件估算，这种方案会使冻结整批延长 142–145 ms。"
     ],
     "new_performance_measurements": 0
   },
@@ -315,11 +317,11 @@
     "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/oa-ob-fusion.json",
-      "result": "OA 和 OB 是同一分片上的两次输出投影。2,240 个非空逐卡层中有 1,600 次 OB 输出拷贝；另有 320 个空侧直接填零后归约。24 行图上 2,560 条链的 OA→OB 间隙中位为 0.02 µs。保留两次矩阵乘、BF16 中间舍入和 ReduceScatter，按同机连续搬运速率折算，省中间写读及间隙只值约 0.99 ms 首 token P90；若能直接写通信输入，则为 5.70–6.51 ms（0.38%–0.44%），整批 6.13–6.95 ms，六个普通请求响应最高约 0.13%。单独搬运融合降级。"
+      "record": "baselines/attention-input-fusions.json",
+      "result": "把 QA/index-W 共用读取、Q 旋转、SWA 的 RMS→RoPE→store、压缩 key/scale 与长 KV 写入、C2 两组 FP32 投影共用输入和已经定价的 QR 量化共用放到同一批请求上。按同机搬运速率折算，可归给融合的冻结首 token P90 约省 2.10–4.04 ms，整批约省 7.33–9.27 ms；六个普通请求相对各自实测响应最多约省 0.057%。若假设联合方案净省一半相关向量/发布任务，并省去指定任务间全部间隙，整批约省 126.74–129.54 ms（0.68%–0.70%），普通响应最多约省 0.87%。仅在将这些任务费用全部抹去的情景，整批区间才触及 1%（183.11–186.10 ms）。这些均为估算，保留必需矩阵乘及原始舍入。"
     },
-    "next": "按 12 个执行模块归并已有分支族，优先筛 Attention 的 QA/index-W 同源投影、QB→RoPE 与 KV→归一化/旋转/cache 写入。先复用既有投影、量化和写缓存预算，扣掉已经计价的共同工作；仅当新组合能改变请求时间排序时点查依赖。",
-    "decision": "固定分片 OA→OB 的独立搬运与输出直写降级；分块流水仅保留为长提示首 token 条件候选。已把专家放置和纯排程从模块的当前融合待办移至历史资料。",
+    "next": "用既有 QLI 与 SMLA profile 筛索引选择、块成员转换和稀疏注意力消费的联合边界。优先确认实际可省的索引准备或重复 KV 读取能否传到请求，扣除已计价的四层 QLI 共享；冻结布局与缓存驻留。合法但未命中的视觉、packed 或其它量化分支按覆盖索引保留。",
+    "decision": "固定输出的 Attention 输入、旋转及缓存联合融合已按同排程归因，搬运收益和 50% 情景均降级。只保留额外可验证工作或不同真实负载的重开条件。WKV 单完成事件会推迟 QB。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
@@ -348,6 +350,7 @@
     "routing": "baselines/prefix-routing.json",
     "C8_ceiling": "baselines/c8-prefix-ceiling.json"
   },
+  "branch_coverage_index": "branch-coverage.md",
   "fusion_admission": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。",
   "module_value_map": "module-value-map.md",
   "delivery_mode": "profile_based_candidate_discovery",

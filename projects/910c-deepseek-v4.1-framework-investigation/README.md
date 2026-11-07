@@ -8,6 +8,8 @@
 |---|---|
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
+| [按执行顺序查询分支台账](branch-coverage.md) | 12 个模块、21 个已登记分支族、360 条历史语义记录，以及每组对应的当前证据 |
+| [Attention 输入、旋转与缓存写入](baselines/attention-input-fusions.json) | Q/KV 实际汇合、C2 与索引发布、六个普通请求与冻结 C8 的联合收益 |
 | [OA 与 OB 的逐请求估算](baselines/oa-ob-fusion.json) | 固定权重分片和归约的搬运收益、流水敏感性和普通请求 |
 | [mHC 两处融合与同排程对照](baselines/hc-paired-boundaries.json) | 171 SDK 的实际数据通路、两处残差共用的请求收益与扩宽写入成本 |
 | [采样形状、返回分数和请求估算](baselines/random-sampling-fusion.json) | Ascend 双阈值掩码、普通与投机采样、冻结和普通请求的条件收益 |

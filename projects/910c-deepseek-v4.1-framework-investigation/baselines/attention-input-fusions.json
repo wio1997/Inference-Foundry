@@ -1,0 +1,4156 @@
+{
+  "C8_increment_against_retimed_Q_outer_ms": {
+    "through_C2_bytes_and_QR": {
+      "TTFT_P90": [
+        2.1026068530559314,
+        4.035053268153888
+      ],
+      "makespan": [
+        7.334761258876824,
+        9.267207673972734
+      ]
+    },
+    "through_C2_half_vectors_and_gaps": {
+      "TTFT_P90": [
+        5.937727351314152,
+        8.733304856356881
+      ],
+      "makespan": [
+        126.74331414960398,
+        129.53889165464352
+      ]
+    },
+    "through_C2_free_vectors_and_gaps": {
+      "TTFT_P90": [
+        9.780199365831095,
+        12.773538356356994
+      ],
+      "makespan": [
+        183.11165216411973,
+        186.10499115464336
+      ]
+    },
+    "optimistic_union_all_tasks_gaps_weight_and_QR": {
+      "TTFT_P90": [
+        7.208416999999827,
+        10.368003000000044
+      ],
+      "makespan": [
+        183.87868099999832,
+        187.0382669999999
+      ]
+    }
+  },
+  "single_WKV_completion": {
+    "graph_suffix_native_us_median": 54.74,
+    "graph_available_slack_to_preserve_old_join_us_median": 13.0,
+    "graph_fraction_of_suffix_to_remove_or_hide_to_break_even_median": 0.7631536256962094
+  },
+  "cohorts": {
+    "frozen_eager": {
+      "query_and_KV": 1840,
+      "only_KV": 400,
+      "empty": 320,
+      "index_W_and_index_Q_rotations": 368,
+      "compressed_key_and_long_publications": 224,
+      "Q_rotation_fully_hidden_by_later_KV_if_moved": 243,
+      "index_W_cast_scale_finishes_later_than_index_Q_RoPE": 356
+    },
+    "matched_graph": {
+      "query_and_KV": 5120,
+      "only_KV": 0,
+      "empty": 0,
+      "index_W_and_index_Q_rotations": 1024,
+      "compressed_key_and_long_publications": 512,
+      "Q_rotation_fully_hidden_by_later_KV_if_moved": 5120,
+      "index_W_cast_scale_finishes_later_than_index_Q_RoPE": 1024
+    }
+  },
+  "contracts": {
+    "query_projection": "QB -> 64-head partial RoPE (64/512 rotated). Keep W8A8 output BF16 rounding then original rotary arithmetic and Q pitch. cos/sin must remain the query generation. Compression may reuse the source tables.",
+    "SWA": "After required BF16 WKV, fuse 512-wide RMS -> partial 64 RoPE -> strided cache store. Preserve epsilon, rounding, original positions, slot validity and write visibility. 2304 private logical bytes removed per row. No WKV time credited.",
+    "first_projection": "QA and index-W share a local BF16 input on the eight index layers only; one avoided read is 10240 bytes per local query row. Clamp by the original W/cast/scale branch and its visible tail versus index-Q rotation. Both GEMMs remain. Joined QA/index-W matched isolated 3/211 rows. Broader tilings and pitches still conditional.",
+    "index_Q": "Index-Q rotary -> query quantizer moves rotation to a later invocation. Price the exposed early tail against concurrent index-W and subtract remaining rotary cost if exposed at the later reader. Always keep per-head scale and its rounding, distinct from W8A8 QR. This option is separate from the joint totals.",
+    "compressed_key": "After WK keep the 128-wide key RMS, partial rotation, original per-row quantization then key INT8 and FP16 scale. Before changing the 512-wide long latent, WK must finish reading it. Keep independent long page coordinates and all destination writes. Joint totals include key/long interfaces once; pair-only subset is not added.",
+    "excluded": "Only the explicitly named QR-share and optimistic-union scenarios credit the previously priced second QR quantizer once. No credit for WKV/QA/QB/secondary matrix duration, changes to placement, QLI itself, inverse output rotary, C2 FP32 pool/ring updates outside the explicitly named C2 scenarios, communication, or host gaps.",
+    "C2_prefix": "C2 on layers 2/8/14 can share the FP32 activation tile across independent Wkv/Wgate projections. Optionally absorb the BF16-to-FP32 cast. Retain exact separate FP32 accumulation, old ring reads before conflicting updates, all ring state, BF16 pooled values including positive-zero incomplete rows, then RMS. If hardware cannot feed both FP32 GEMMs without GM staging, the corresponding bytes stay. Separate pool/update/normalization timing includes work still required. through_C2_bytes_and_QR does not include savings on those four vector tasks."
+  },
+  "ordinary_prompt_anchors_local_Q_rows": [
+    3,
+    413,
+    416,
+    419,
+    814,
+    815,
+    816,
+    817,
+    818
+  ],
+  "reference_ms": {
+    "TTFT_P90": 1491.854839,
+    "makespan": 18590.769232
+  },
+  "graph_calls_before_deadline": {
+    "TTFT_P90": [
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0
+    ],
+    "makespan": [
+      219,
+      223,
+      216,
+      222,
+      215,
+      223,
+      221,
+      213
+    ]
+  },
+  "rate_one_payload_GB_s": 1202.6518781744107,
+  "results": {
+    "index_W_share_input": {
+      "eager_waves_ms": {
+        "416": [
+          0.0,
+          0.014168156479216125
+        ],
+        "816": [
+          0.02779138386308069,
+          0.02779138386308069
+        ],
+        "817": [
+          0.02775732579462056,
+          0.027825441931541715
+        ],
+        "818": [
+          0.027723267726161373,
+          0.027859500000000006
+        ]
+      },
+      "graph_ms_per_40_layers": 0.00010217420537897311,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.08337415158916883,
+          0.09774665647933034
+        ],
+        "makespan": [
+          0.1060568251850782,
+          0.12042933007251122
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.004359432762836186,
+          "response_ms": 0.00813987836185819,
+          "TTFT_percent": [
+            9.382633277755907e-05,
+            0.0011265388330349573
+          ],
+          "response_percent": [
+            0.00011808848357774599,
+            0.00029591423631998435
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.0062326265281173595,
+          "response_ms": 0.006539149144254279,
+          "TTFT_percent": [
+            0.0020958257899682466,
+            0.0022739748798674647
+          ],
+          "response_percent": [
+            0.0013529479898276519,
+            0.0014014252232146382
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.004359432762836186,
+          "response_ms": 0.011307278728606356,
+          "TTFT_percent": [
+            0.0019535003389119653,
+            0.0019435486172425527
+          ],
+          "response_percent": [
+            0.00017596257092722568,
+            0.00024384392826123962
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.00933191075794621,
+          "response_ms": 0.010762349633251834,
+          "TTFT_percent": [
+            0.00041192700594536505,
+            0.0034322835691039146
+          ],
+          "response_percent": [
+            0.0003450624944081447,
+            0.0010198148866848004
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.004359432762836186,
+          "response_ms": 0.009161620415647921,
+          "TTFT_percent": [
+            0.002014181843620181,
+            0.0014781200437305772
+          ],
+          "response_percent": [
+            0.0003040733251264935,
+            0.000277454796171853
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.0062326265281173595,
+          "response_ms": 0.006641323349633252,
+          "TTFT_percent": [
+            0.002438505467431961,
+            0.0022406678762794505
+          ],
+          "response_percent": [
+            0.001086396789251197,
+            0.00102038470352101
+          ]
+        }
+      }
+    },
+    "index_W_entire_side_free": {
+      "eager_waves_ms": {
+        "416": [
+          0.0,
+          0.05068000000000119
+        ],
+        "816": [
+          0.0684,
+          0.10236
+        ],
+        "817": [
+          0.04745999999999912,
+          0.09624000000000069
+        ],
+        "818": [
+          0.048799999999999996,
+          0.0951
+        ]
+      },
+      "graph_ms_per_40_layers": 0.08469,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.24935000000004948,
+          0.4290699999999106
+        ],
+        "makespan": [
+          19.050530000000435,
+          19.230250000000524
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.0704369512195122,
+          "response_ms": 3.203966951219512,
+          "TTFT_percent": [
+            0.0015159864102730252,
+            0.018201900372411182
+          ],
+          "response_percent": [
+            0.04648123496238035,
+            0.11647587241686448
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.06416560975609756,
+          "response_ms": 0.31823560975609755,
+          "TTFT_percent": [
+            0.021576768501880488,
+            0.023410833952346374
+          ],
+          "response_percent": [
+            0.06584285187766423,
+            0.06820205512962729
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.0704369512195122,
+          "response_ms": 5.829356951219512,
+          "TTFT_percent": [
+            0.031563420189034616,
+            0.03140262657850935
+          ],
+          "response_percent": [
+            0.09071578233886032,
+            0.1257113521599309
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.05378939024390244,
+          "response_ms": 1.2394493902439023,
+          "TTFT_percent": [
+            0.002374358590595223,
+            0.019783776882891714
+          ],
+          "response_percent": [
+            0.039739231010374604,
+            0.11744730310171231
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.0704369512195122,
+          "response_ms": 4.050866951219512,
+          "TTFT_percent": [
+            0.03254387347724601,
+            0.023882526714117416
+          ],
+          "response_percent": [
+            0.1344478954179883,
+            0.12267834872859874
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.06416560975609756,
+          "response_ms": 0.4029256097560976,
+          "TTFT_percent": [
+            0.025104695348818304,
+            0.023067934504620434
+          ],
+          "response_percent": [
+            0.06591112428975136,
+            0.061906205617093125
+          ]
+        }
+      }
+    },
+    "index_key_scale_pair": {
+      "eager_waves_ms": {
+        "416": [
+          6.64132334968599e-05,
+          6.64132334968599e-05
+        ],
+        "816": [
+          0.00013027211185819075,
+          0.00013027211185819075
+        ],
+        "817": [
+          0.00013039184725494125,
+          0.00013039184725494125
+        ],
+        "818": [
+          0.0001305115826520477,
+          0.0001305115826520477
+        ]
+      },
+      "graph_ms_per_40_layers": 4.789415877139365e-07,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.0004580677168632974,
+          0.0004580677168632974
+        ],
+        "makespan": [
+          0.0005643927506753244,
+          0.0005643927506753244
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 2.069037393509322e-05,
+          "response_ms": 3.8411212680508874e-05,
+          "TTFT_percent": [
+            4.453106667169256e-07,
+            5.3466840701386635e-06
+          ],
+          "response_percent": [
+            5.572468845576348e-07,
+            1.3963875332262985e-06
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 2.9583404167940104e-05,
+          "response_ms": 3.1020228931081914e-05,
+          "TTFT_percent": [
+            9.947918607109504e-06,
+            1.079351018954485e-05
+          ],
+          "response_percent": [
+            6.418076029536246e-06,
+            6.648040944609505e-06
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 2.069037393509322e-05,
+          "response_ms": 5.32584018996409e-05,
+          "TTFT_percent": [
+            9.27153937066897e-06,
+            9.22430734443073e-06
+          ],
+          "response_percent": [
+            8.288011241844842e-07,
+            1.148529035484822e-06
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 4.429732691683222e-05,
+          "response_ms": 5.100250914482733e-05,
+          "TTFT_percent": [
+            1.9553621676778263e-06,
+            1.6292589082295228e-05
+          ],
+          "response_percent": [
+            1.6352426399727358e-06,
+            4.832877564530198e-06
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 2.069037393509322e-05,
+          "response_ms": 4.320062855764824e-05,
+          "TTFT_percent": [
+            9.559540835919296e-06,
+            7.0153293076242354e-06
+          ],
+          "response_percent": [
+            1.4338248232422155e-06,
+            1.3083080336406346e-06
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 2.9583404167940104e-05,
+          "response_ms": 3.149917051879585e-05,
+          "TTFT_percent": [
+            1.1574461021100513e-05,
+            1.0635417201889949e-05
+          ],
+          "response_percent": [
+            5.15267754845659e-06,
+            4.839588449304181e-06
+          ]
+        }
+      }
+    },
+    "compressed_key_and_long": {
+      "eager_waves_ms": {
+        "416": [
+          0.0071947669621040405,
+          0.0071947669621040405
+        ],
+        "816": [
+          0.01411281211797066,
+          0.01411281211797066
+        ],
+        "817": [
+          0.014125783452636825,
+          0.014125783452636825
+        ],
+        "818": [
+          0.014138754787305165,
+          0.014138754787305165
+        ]
+      },
+      "graph_ms_per_40_layers": 5.188533866900978e-05,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.049624002658674726,
+          0.049624002658674726
+        ],
+        "makespan": [
+          0.06114254784188233,
+          0.06114254784188233
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.0022414571763017654,
+          "response_ms": 0.004161214707055128,
+          "TTFT_percent": [
+            4.82419888943336e-05,
+            0.0005792241075983552
+          ],
+          "response_percent": [
+            6.036841249374377e-05,
+            0.00015127531609951568
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.0032048687848601778,
+          "response_ms": 0.003360524800867207,
+          "TTFT_percent": [
+            0.0010776911824368627,
+            0.0011692969372006918
+          ],
+          "response_percent": [
+            0.0006952915698664266,
+            0.0007202044356660295
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.0022414571763017654,
+          "response_ms": 0.005769660205794431,
+          "TTFT_percent": [
+            0.001004416765155805,
+            0.0009992999623133292
+          ],
+          "response_percent": [
+            8.978678845331914e-05,
+            0.00012442397884418908
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.004798877082656824,
+          "response_ms": 0.005525271824022961,
+          "TTFT_percent": [
+            0.00021183090149843117,
+            0.0017650304839153164
+          ],
+          "response_percent": [
+            0.0001771512859970464,
+            0.0005235617361574381
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.0022414571763017654,
+          "response_ms": 0.004680068093745225,
+          "TTFT_percent": [
+            0.001035616923891257,
+            0.0007599940083259588
+          ],
+          "response_percent": [
+            0.00015533102251790665,
+            0.0001417333703110687
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.0032048687848601778,
+          "response_ms": 0.003412410139536217,
+          "TTFT_percent": [
+            0.0012538999439525554,
+            0.001152170196871411
+          ],
+          "response_percent": [
+            0.0005582067344161306,
+            0.0005242887486746196
+          ]
+        }
+      }
+    },
+    "move_Q_RoPE_only": {
+      "eager_waves_ms": {
+        "416": [
+          0.17699899999999913,
+          0.6418950000000028
+        ],
+        "816": [
+          0.5780180000000001,
+          0.7410309999999998
+        ],
+        "817": [
+          0.6096960000000003,
+          0.7383370000000008
+        ],
+        "818": [
+          0.5990779999999999,
+          0.7667950000000004
+        ]
+      },
+      "graph_ms_per_40_layers": 0.1537095,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          2.1175005000000056,
+          3.0417675000001054
+        ],
+        "makespan": [
+          36.24100950000138,
+          37.16527649999989
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.28512733536585366,
+          "response_ms": 5.972378835365854,
+          "TTFT_percent": [
+            0.006136681927997096,
+            0.07368091977187484
+          ],
+          "response_percent": [
+            0.08664369769024138,
+            0.21711773118898034
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.34295118292682925,
+          "response_ms": 0.8040796829268293,
+          "TTFT_percent": [
+            0.11532311949634473,
+            0.12512579912790125
+          ],
+          "response_percent": [
+            0.16636384438990653,
+            0.1723247970446151
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.28512733536585366,
+          "response_ms": 10.737373335365854,
+          "TTFT_percent": [
+            0.1277680782276561,
+            0.12711718898672278
+          ],
+          "response_percent": [
+            0.16709376875237647,
+            0.2315537943430357
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.43862336707317073,
+          "response_ms": 2.590556367073171,
+          "TTFT_percent": [
+            0.01936160932339335,
+            0.16132599366623265
+          ],
+          "response_percent": [
+            0.08305842798168578,
+            0.24547501595514234
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.28512733536585366,
+          "response_ms": 7.509473835365854,
+          "TTFT_percent": [
+            0.13173693304999484,
+            0.09667597881371327
+          ],
+          "response_percent": [
+            0.24923873457691276,
+            0.22742041667548674
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.34295118292682925,
+          "response_ms": 0.9577891829268292,
+          "TTFT_percent": [
+            0.1341791186840041,
+            0.12329307640198044
+          ],
+          "response_percent": [
+            0.1566764691812055,
+            0.147156429525509
+          ]
+        }
+      }
+    },
+    "QB_RoPE_increment": {
+      "eager_waves_ms": {
+        "416": [
+          0.09819720146699276,
+          0.11334525183374172
+        ],
+        "816": [
+          0.21779796381418098,
+          0.22233107090464552
+        ],
+        "817": [
+          0.22140714119804542,
+          0.22260353545232625
+        ],
+        "818": [
+          0.2129914169926649,
+          0.22015816613691966
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.750393723471916,
+          0.7784380243276701
+        ],
+        "makespan": [
+          0.7503937234723708,
+          0.7784380243283522
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.032591910146699245,
+          "response_ms": 0.032591910146699245,
+          "TTFT_percent": [
+            0.0007014626841706416,
+            0.008422208672661304
+          ],
+          "response_percent": [
+            0.00047282392623460153,
+            0.001184834683336522
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.04693235061124692,
+          "response_ms": 0.04693235061124692,
+          "TTFT_percent": [
+            0.01578179445714273,
+            0.017123276336492587
+          ],
+          "response_percent": [
+            0.009710289216016077,
+            0.01005821682307798
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.032591910146699245,
+          "response_ms": 0.032591910146699245,
+          "TTFT_percent": [
+            0.014604722903431955,
+            0.014530322026964844
+          ],
+          "response_percent": [
+            0.0005071915567388845,
+            0.0007028516401211968
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.07065926119804397,
+          "response_ms": 0.07065926119804397,
+          "TTFT_percent": [
+            0.003119024459469604,
+            0.025988527698741416
+          ],
+          "response_percent": [
+            0.0022654774982130673,
+            0.00669550506232181
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.032591910146699245,
+          "response_ms": 0.032591910146699245,
+          "TTFT_percent": [
+            0.015058388840403532,
+            0.011050693581510892
+          ],
+          "response_percent": [
+            0.0010817224509328104,
+            0.0009870286451901936
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.04693235061124692,
+          "response_ms": 0.04693235061124692,
+          "TTFT_percent": [
+            0.01836220942305182,
+            0.016872471003756738
+          ],
+          "response_percent": [
+            0.0076772583311857144,
+            0.0072107696226906045
+          ]
+        }
+      }
+    },
+    "SWA_suffix_at_existing_join": {
+      "eager_waves_ms": {
+        "416": [
+          0.04462969290953332,
+          0.12751340831295513
+        ],
+        "816": [
+          0.24386939339853297,
+          0.25012245476772615
+        ],
+        "817": [
+          0.24409353806158293,
+          0.2503523467298315
+        ],
+        "818": [
+          0.24431768272463353,
+          0.2475227598296152
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0009195678484107576,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.777829874942654,
+          0.8764305374884316
+        ],
+        "makespan": [
+          0.9819739372906042,
+          1.0805745998368366
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.03972551795537899,
+          "response_ms": 0.07374952834657703,
+          "TTFT_percent": [
+            0.0008549964800964973,
+            0.010265633414666235
+          ],
+          "response_percent": [
+            0.0010699140183506586,
+            0.0026810640637944926
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.056800136002445024,
+          "response_ms": 0.059558839547677295,
+          "TTFT_percent": [
+            0.019100003725650256,
+            0.02072353956392612
+          ],
+          "response_percent": [
+            0.012322705976709598,
+            0.012764238613650253
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.03972551795537899,
+          "response_ms": 0.10225613164731051,
+          "TTFT_percent": [
+            0.017801355591684425,
+            0.01771067010130701
+          ],
+          "response_percent": [
+            0.0015912981584342094,
+            0.0022051757481308582
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.0850508676803179,
+          "response_ms": 0.0979248175580685,
+          "TTFT_percent": [
+            0.0037542953619414277,
+            0.03128177103800685
+          ],
+          "response_percent": [
+            0.0031396658687476535,
+            0.009279124923897982
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.03972551795537899,
+          "response_ms": 0.0829452068306846,
+          "TTFT_percent": [
+            0.018354318404965052,
+            0.013469432270638536
+          ],
+          "response_percent": [
+            0.002752943660625053,
+            0.0025119514245900173
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.056800136002445024,
+          "response_ms": 0.060478407396088056,
+          "TTFT_percent": [
+            0.022222965160512996,
+            0.02042000102762871
+          ],
+          "response_percent": [
+            0.009893140893036655,
+            0.00929200982266403
+          ]
+        }
+      }
+    },
+    "Q_and_SWA_increment": {
+      "eager_waves_ms": {
+        "416": [
+          0.11334525183374172,
+          0.11440786356968238
+        ],
+        "816": [
+          0.22233107090464552,
+          0.22233107090464552
+        ],
+        "817": [
+          0.22205860635696953,
+          0.22260353545232625
+        ],
+        "818": [
+          0.2190546847188263,
+          0.22015816613691966
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0009195678484107339,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.777709181662658,
+          0.7804202039119446
+        ],
+        "makespan": [
+          0.9818532440112904,
+          0.9845642662585306
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.035185437251680884,
+          "response_ms": 0.06920944764287804,
+          "TTFT_percent": [
+            0.0007572821337316236,
+            0.009092412609099522
+          ],
+          "response_percent": [
+            0.0010040492447279223,
+            0.0025160155883084913
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.05026241978911975,
+          "response_ms": 0.05302112333435195,
+          "TTFT_percent": [
+            0.01690158638336816,
+            0.018338252659001533
+          ],
+          "response_percent": [
+            0.010970054459859867,
+            0.011363120486282893
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.035185437251680884,
+          "response_ms": 0.09771605094361079,
+          "TTFT_percent": [
+            0.015766905314352507,
+            0.01568658392911855
+          ],
+          "response_percent": [
+            0.0015206459447571034,
+            0.002107267919024956
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.07520797271470044,
+          "response_ms": 0.0880819225924507,
+          "TTFT_percent": [
+            0.0033198126114962396,
+            0.027661547105396114
+          ],
+          "response_percent": [
+            0.002824082933350374,
+            0.00834643539455968
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.035185437251680884,
+          "response_ms": 0.07840512612698537,
+          "TTFT_percent": [
+            0.016256672078150337,
+            0.011930061289739485
+          ],
+          "response_percent": [
+            0.002602258806496132,
+            0.0023744574978500346
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.05026241978911975,
+          "response_ms": 0.053940691182762686,
+          "TTFT_percent": [
+            0.01966509382668741,
+            0.01806965151810112
+          ],
+          "response_percent": [
+            0.008823692301351327,
+            0.008287543503401485
+          ]
+        }
+      }
+    },
+    "index_Q_late_fusion_exposed": {
+      "eager_waves_ms": {
+        "416": [
+          -0.12892547481662678,
+          0.011334525183374354
+        ],
+        "816": [
+          -0.16348589290953544,
+          -0.13834489290953544
+        ],
+        "817": [
+          -0.16928545806846068,
+          -0.13149326968215064
+        ],
+        "818": [
+          -0.16686402322738386,
+          -0.13160602322738385
+        ]
+      },
+      "graph_ms_per_40_layers": -0.02572826063569682,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          -0.6542891096576113,
+          -0.41583792127130437
+        ],
+        "makespan": [
+          -6.365962970783585,
+          -6.12751178239705
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": -0.054020624521438375,
+          "response_ms": -1.0059662680422208,
+          "TTFT_percent": [
+            -0.0011626643577139408,
+            -0.013959690312693002
+          ],
+          "response_percent": [
+            -0.014593956548553616,
+            -0.03657053910857501
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": -0.06646926463116466,
+          "response_ms": -0.14365404653825514,
+          "TTFT_percent": [
+            -0.02235141130721638,
+            -0.02425132283679252
+          ],
+          "response_percent": [
+            -0.02972197899252909,
+            -0.03078694181680401
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": -0.054020624521438375,
+          "response_ms": -1.8035423477488222,
+          "TTFT_percent": [
+            -0.02420711914873301,
+            -0.024083800761022532
+          ],
+          "response_percent": [
+            -0.028066518558804644,
+            -0.03889378350141508
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": -0.0870661055399845,
+          "response_ms": -0.44726175443974,
+          "TTFT_percent": [
+            -0.003843251516723914,
+            -0.032022976989604705
+          ],
+          "response_percent": [
+            -0.014340108052567342,
+            -0.04238146975016933
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": -0.054020624521438375,
+          "response_ms": -1.263248874399189,
+          "TTFT_percent": [
+            -0.024959063945125686,
+            -0.018316366422872175
+          ],
+          "response_percent": [
+            -0.04192711204720831,
+            -0.03825681954276451
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": -0.06646926463116466,
+          "response_ms": -0.16938230717395195,
+          "TTFT_percent": [
+            -0.02600599674760824,
+            -0.023896112713809002
+          ],
+          "response_percent": [
+            -0.02770779029753206,
+            -0.026024198219010353
+          ]
+        }
+      }
+    },
+    "index_Q_late_fusion_hidden": {
+      "eager_waves_ms": {
+        "416": [
+          0.0,
+          0.13992000000000007
+        ],
+        "816": [
+          0.0,
+          0.0
+        ],
+        "817": [
+          0.0,
+          0.0
+        ],
+        "818": [
+          0.0,
+          0.0
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.0,
+          0.13992000000007465
+        ],
+        "makespan": [
+          0.0,
+          0.1399200000014389
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.0,
+          "response_ms": 0.0,
+          "TTFT_percent": [
+            0.0,
+            0.0
+          ],
+          "response_percent": [
+            0.0,
+            0.0
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.0,
+          "response_ms": 0.0,
+          "TTFT_percent": [
+            0.0,
+            0.0
+          ],
+          "response_percent": [
+            0.0,
+            0.0
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.0,
+          "response_ms": 0.0,
+          "TTFT_percent": [
+            0.0,
+            0.0
+          ],
+          "response_percent": [
+            0.0,
+            0.0
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.0,
+          "response_ms": 0.0,
+          "TTFT_percent": [
+            0.0,
+            0.0
+          ],
+          "response_percent": [
+            0.0,
+            0.0
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.0,
+          "response_ms": 0.0,
+          "TTFT_percent": [
+            0.0,
+            0.0
+          ],
+          "response_percent": [
+            0.0,
+            0.0
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.0,
+          "response_ms": 0.0,
+          "TTFT_percent": [
+            0.0,
+            0.0
+          ],
+          "response_percent": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "joint_bytes": {
+      "eager_waves_ms": {
+        "416": [
+          0.12054001879584576,
+          0.13577078701100248
+        ],
+        "816": [
+          0.2642352668856968,
+          0.2642352668856968
+        ],
+        "817": [
+          0.2639417156042269,
+          0.26455476083650487
+        ],
+        "818": [
+          0.2609167072322927,
+          0.2621564209242249
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0010736273924587167,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.9107073359105016,
+          0.9277908630499496
+        ],
+        "makespan": [
+          1.149052617034613,
+          1.166136144176562
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.04178632719081885,
+          "response_ms": 0.08151054071179137,
+          "TTFT_percent": [
+            0.0008993504554035166,
+            0.010798175549732838
+          ],
+          "response_percent": [
+            0.0011825061407994123,
+            0.002963205140727992
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.059699915102097316,
+          "response_ms": 0.06292079727947347,
+          "TTFT_percent": [
+            0.02007510335577328,
+            0.0217815244760697
+          ],
+          "response_percent": [
+            0.013018294019553952,
+            0.013484750145163567
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.04178632719081885,
+          "response_ms": 0.11479298987801159,
+          "TTFT_percent": [
+            0.018724822418420283,
+            0.018629432508674437
+          ],
+          "response_percent": [
+            0.0017863953041376487,
+            0.002475535826130385
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.08933876055530349,
+          "response_ms": 0.10436954404972552,
+          "TTFT_percent": [
+            0.003943570518940036,
+            0.032858861158415346
+          ],
+          "response_percent": [
+            0.003346296713755566,
+            0.00988981201740192
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.04178632719081885,
+          "response_ms": 0.09224681463637854,
+          "TTFT_percent": [
+            0.01930647084566178,
+            0.014168175341796025
+          ],
+          "response_percent": [
+            0.003061663154140533,
+            0.0027936456643329567
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.059699915102097316,
+          "response_ms": 0.06399442467193218,
+          "TTFT_percent": [
+            0.023357499238071937,
+            0.021462489591251993
+          ],
+          "response_percent": [
+            0.010468295825018658,
+            0.00983221695559712
+          ]
+        }
+      }
+    },
+    "joint_bytes_vs_stock": {
+      "eager_waves_ms": {
+        "416": [
+          0.29931003835574577,
+          0.7776657870110024
+        ],
+        "816": [
+          0.8422532668856971,
+          1.0052662668856969
+        ],
+        "817": [
+          0.8741656156653506,
+          1.0028100214721993
+        ],
+        "818": [
+          0.8612028989804598,
+          1.0288424351051535
+        ]
+      },
+      "graph_ms_per_40_layers": 0.1547831273924587,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          3.0317149472796245,
+          3.969367637866526
+        ],
+        "makespan": [
+          37.393569228406704,
+          38.33122191899383
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.3269136625566724,
+          "response_ms": 6.0538893760776435,
+          "TTFT_percent": [
+            0.00703603238340061,
+            0.08447909532160766
+          ],
+          "response_percent": [
+            0.08782620383104077,
+            0.22008093632970827
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.4026510980289265,
+          "response_ms": 0.8670004802063026,
+          "TTFT_percent": [
+            0.135398222852118,
+            0.14690732360397096
+          ],
+          "response_percent": [
+            0.17938213840946046,
+            0.18580954718977866
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.3269136625566724,
+          "response_ms": 10.852166325243862,
+          "TTFT_percent": [
+            0.1464929006460763,
+            0.14574662149539716
+          ],
+          "response_percent": [
+            0.1688801640565141,
+            0.23402933016916605
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.5279621276284742,
+          "response_ms": 2.694925911122896,
+          "TTFT_percent": [
+            0.023305179842333386,
+            0.194184854824648
+          ],
+          "response_percent": [
+            0.08640472469544133,
+            0.25536482797254423
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.3269136625566724,
+          "response_ms": 7.601720650002232,
+          "TTFT_percent": [
+            0.1510434038956566,
+            0.11084415415550926
+          ],
+          "response_percent": [
+            0.2523003977310533,
+            0.23021406233981967
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.4026510980289265,
+          "response_ms": 1.0217836075987612,
+          "TTFT_percent": [
+            0.15753661792207602,
+            0.14475556599323242
+          ],
+          "response_percent": [
+            0.1671447650062241,
+            0.15698864648110605
+          ]
+        }
+      }
+    },
+    "joint_25pct": {
+      "eager_waves_ms": {
+        "416": [
+          0.2979945000000004,
+          0.34603590647921983
+        ],
+        "816": [
+          0.42310763386308076,
+          0.4641851338630807
+        ],
+        "817": [
+          0.4267198983801941,
+          0.47963969193154177
+        ],
+        "818": [
+          0.4228611628973108,
+          0.46881400000000023
+        ]
+      },
+      "graph_ms_per_40_layers": 0.385755549205379,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.95643874434586,
+          2.144430281479117
+        ],
+        "makespan": [
+          87.59417066794049,
+          87.78216220507238
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.36379226660429964,
+          "response_ms": 14.636747587203324,
+          "TTFT_percent": [
+            0.007829755870832806,
+            0.09400904608078475
+          ],
+          "response_percent": [
+            0.21234117393966837,
+            0.532099104179599
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.3541284222598247,
+          "response_ms": 1.5113950698759617,
+          "TTFT_percent": [
+            0.11908165473811791,
+            0.12920381685523263
+          ],
+          "response_percent": [
+            0.31270718506563416,
+            0.3239117393472406
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.36379226660429964,
+          "response_ms": 26.595169612570075,
+          "TTFT_percent": [
+            0.163018528961713,
+            0.1621880632613141
+          ],
+          "response_percent": [
+            0.41387097033648945,
+            0.5735306245433233
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.3381391525262389,
+          "response_ms": 5.738716841401545,
+          "TTFT_percent": [
+            0.014926058800383522,
+            0.12436782641735822
+          ],
+          "response_percent": [
+            0.1839947609467995,
+            0.5437872829598611
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.36379226660429964,
+          "response_ms": 18.494303079257115,
+          "TTFT_percent": [
+            0.1680823671580382,
+            0.123348304762511
+          ],
+          "response_percent": [
+            0.613824190271165,
+            0.5600901214409092
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.3541284222598247,
+          "response_ms": 1.8971506190813407,
+          "TTFT_percent": [
+            0.13855219624630397,
+            0.12731136323594147
+          ],
+          "response_percent": [
+            0.3103385022519202,
+            0.29148158733950436
+          ]
+        }
+      }
+    },
+    "joint_50pct": {
+      "eager_waves_ms": {
+        "416": [
+          0.5943910391198048,
+          0.6757836564792215
+        ],
+        "816": [
+          0.8184238838630808,
+          0.9005788838630806
+        ],
+        "817": [
+          0.8256398983801941,
+          0.931453941931541
+        ],
+        "818": [
+          0.8179139128973111,
+          0.9097685000000005
+        ]
+      },
+      "graph_ms_per_40_layers": 0.48635942420537903,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          3.5427281584657067,
+          3.9039444064792406
+        ],
+        "makespan": [
+          111.51452033206078,
+          111.87573658007386
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.524154106543324,
+          "response_ms": 18.51945280214235,
+          "TTFT_percent": [
+            0.011281159798244624,
+            0.13544880438335719
+          ],
+          "response_percent": [
+            0.2686691374090006,
+            0.6732495854838453
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.5407837667720198,
+          "response_ms": 1.999862039388157,
+          "TTFT_percent": [
+            0.18184766247165562,
+            0.197305051976399
+          ],
+          "response_percent": [
+            0.41377085404149977,
+            0.4285966022675329
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.524154106543324,
+          "response_ms": 33.59659495250909,
+          "TTFT_percent": [
+            0.23487808631972656,
+            0.23368154629629354
+          ],
+          "response_percent": [
+            0.5228263461205743,
+            0.724517886756938
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.5682982955140436,
+          "response_ms": 7.37733023438935,
+          "TTFT_percent": [
+            0.02508568946135904,
+            0.20902052673207275
+          ],
+          "response_percent": [
+            0.23653198971402026,
+            0.6990584262171853
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.524154106543324,
+          "response_ms": 23.38304704419614,
+          "TTFT_percent": [
+            0.2421740951388525,
+            0.17772098642974138
+          ],
+          "response_percent": [
+            0.776081145446049,
+            0.7081431294013582
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.5407837667720198,
+          "response_ms": 2.486221463593536,
+          "TTFT_percent": [
+            0.21158081043728943,
+            0.19441511676546372
+          ],
+          "response_percent": [
+            0.4066995195414759,
+            0.3819874771127586
+          ]
+        }
+      }
+    },
+    "joint_100pct": {
+      "eager_waves_ms": {
+        "416": [
+          1.183671058679708,
+          1.3366681369193183
+        ],
+        "816": [
+          1.6090563838630811,
+          1.7733663838630807
+        ],
+        "817": [
+          1.6234798983801955,
+          1.8350824419315412
+        ],
+        "818": [
+          1.6080194128973104,
+          1.7916775000000003
+        ]
+      },
+      "graph_ms_per_40_layers": 0.6891296742053789,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          6.7133564280256905,
+          7.4259241369193205
+        ],
+        "makespan": [
+          159.7001441016182,
+          160.41271181051343
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.8459639144701532,
+          "response_ms": 26.343761860069172,
+          "TTFT_percent": [
+            0.018207343953905532,
+            0.21860899177554355
+          ],
+          "response_percent": [
+            0.3821795303927204,
+            0.9576917278206508
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.9149709801866539,
+          "response_ms": 2.9823600028027903,
+          "TTFT_percent": [
+            0.3076744240484685,
+            0.3338273222959566
+          ],
+          "response_percent": [
+            0.6170493869649416,
+            0.6391587713375122
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.8459639144701532,
+          "response_ms": 47.706781760435916,
+          "TTFT_percent": [
+            0.3790839046109257,
+            0.3771527365261824
+          ],
+          "response_percent": [
+            0.742407450166839,
+            1.0288071381610084
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 1.0291463070994098,
+          "response_ms": 10.676961745974713,
+          "TTFT_percent": [
+            0.045428333806365004,
+            0.3785207608263367
+          ],
+          "response_percent": [
+            0.3423247876452042,
+            1.011723731727455
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.8459639144701532,
+          "response_ms": 33.23505860212296,
+          "TTFT_percent": [
+            0.3908593731297942,
+            0.28683461502399615
+          ],
+          "response_percent": [
+            1.103068488043957,
+            1.006506053717516
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.9149709801866539,
+          "response_ms": 3.6714896770081693,
+          "TTFT_percent": [
+            0.3579809776281726,
+            0.3289377397768494
+          ],
+          "response_percent": [
+            0.6005873207620366,
+            0.5640941885115877
+          ]
+        }
+      }
+    },
+    "joint_bytes_plus_25pct_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          0.2283890970354519,
+          0.45658522833129483
+        ],
+        "816": [
+          0.2648952668856968,
+          0.26506526688569687
+        ],
+        "817": [
+          0.26464599109322406,
+          0.26537976083650566
+        ],
+        "818": [
+          0.26164098272129027,
+          0.26295642092422494
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0016936273924587186,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.0212649651280117,
+          1.2516803043702112
+        ],
+        "makespan": [
+          1.397250246252952,
+          1.6276655854962883
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.04245358328837984,
+          "response_ms": 0.10511779680935242,
+          "TTFT_percent": [
+            0.0009137115422842057,
+            0.01097060392433467
+          ],
+          "response_percent": [
+            0.0015249860833812677,
+            0.003821414913548891
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.06038796388258513,
+          "response_ms": 0.06546884605996128,
+          "TTFT_percent": [
+            0.02030647136288827,
+            0.022032559194080526
+          ],
+          "response_percent": [
+            0.013545484545338621,
+            0.014030830338806886
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.04245358328837984,
+          "response_ms": 0.1576202459755727,
+          "TTFT_percent": [
+            0.019023825771296507,
+            0.018926912648021193
+          ],
+          "response_percent": [
+            0.0024528681372181843,
+            0.0033991149307171674
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.09006121177481571,
+          "response_ms": 0.11377199526923777,
+          "TTFT_percent": [
+            0.0039754607904518855,
+            0.03312457924279581
+          ],
+          "response_percent": [
+            0.0036477581401091245,
+            0.01078076613539121
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.04245358328837984,
+          "response_ms": 0.1220540707339396,
+          "TTFT_percent": [
+            0.019614762128006922,
+            0.014394416842872574
+          ],
+          "response_percent": [
+            0.004050963197504243,
+            0.0036963425443374697
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.06038796388258513,
+          "response_ms": 0.06716247345242,
+          "TTFT_percent": [
+            0.02362669725683823,
+            0.021709847393423715
+          ],
+          "response_percent": [
+            0.01098652959291722,
+            0.01031896159148308
+          ]
+        }
+      }
+    },
+    "joint_bytes_plus_50pct_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          0.32915409703545223,
+          0.7827127283312952
+        ],
+        "816": [
+          0.26555526688569686,
+          0.26589526688569687
+        ],
+        "817": [
+          0.2653059910932239,
+          0.26620476083650546
+        ],
+        "818": [
+          0.26230525821028783,
+          0.2637564209242249
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0023136273924587187,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.1246342406170697,
+          1.580882804370276
+        ],
+        "makespan": [
+          1.6382595217437483,
+          2.0945080854944536
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.04312083938594081,
+          "response_ms": 0.1287250529069134,
+          "TTFT_percent": [
+            0.0009280726291648943,
+            0.011143032298936498
+          ],
+          "response_percent": [
+            0.0018674660259631226,
+            0.0046796246863697885
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.06107601266307292,
+          "response_ms": 0.06801689484044908,
+          "TTFT_percent": [
+            0.02053783937000326,
+            0.022283593912091344
+          ],
+          "response_percent": [
+            0.014072675071123288,
+            0.014576910532450202
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.04312083938594081,
+          "response_ms": 0.20044750207313367,
+          "TTFT_percent": [
+            0.019322829124172717,
+            0.01922439278736794
+          ],
+          "response_percent": [
+            0.0031193409702987176,
+            0.004322694035303947
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.09078366299432788,
+          "response_ms": 0.12317444648874995,
+          "TTFT_percent": [
+            0.004007351061963732,
+            0.03339029732717626
+          ],
+          "response_percent": [
+            0.003949219566462682,
+            0.011671720253380494
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.04312083938594081,
+          "response_ms": 0.15186132683150058,
+          "TTFT_percent": [
+            0.019923053410352057,
+            0.014620658343949117
+          ],
+          "response_percent": [
+            0.00504026324086795,
+            0.00459903942434198
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.06107601266307292,
+          "response_ms": 0.0703305222329078,
+          "TTFT_percent": [
+            0.023895895275604515,
+            0.021957205195595433
+          ],
+          "response_percent": [
+            0.011504763360815776,
+            0.010805706227369035
+          ]
+        }
+      }
+    },
+    "joint_bytes_plus_100pct_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          0.5306840970354538,
+          1.4349677283312972
+        ],
+        "816": [
+          0.26687526688569685,
+          0.2675552668856968
+        ],
+        "817": [
+          0.26662599109322366,
+          0.267854760836506
+        ],
+        "818": [
+          0.26360525821028785,
+          0.2653564209242249
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0035536273924587176,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.3313442406172271,
+          2.2392878043701785
+        ],
+        "makespan": [
+          2.120249521743972,
+          3.028193085494422
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.04445535158106276,
+          "response_ms": 0.17593956510203532,
+          "TTFT_percent": [
+            0.0009567948029262719,
+            0.011487889048140153
+          ],
+          "response_percent": [
+            0.002552425911126831,
+            0.006396044232011581
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.062452110224048535,
+          "response_ms": 0.07311299240142469,
+          "TTFT_percent": [
+            0.021000575384233243,
+            0.02278566334811299
+          ],
+          "response_percent": [
+            0.015127056122692623,
+            0.015669070919736836
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.04445535158106276,
+          "response_ms": 0.28610201426825554,
+          "TTFT_percent": [
+            0.019920835829925147,
+            0.01981935306606144
+          ],
+          "response_percent": [
+            0.004452286636459784,
+            0.006169852244477504
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.09222856543335228,
+          "response_ms": 0.14197934892777433,
+          "TTFT_percent": [
+            0.004071131604987428,
+            0.03392173349593716
+          ],
+          "response_percent": [
+            0.004552142419169796,
+            0.013453628489359064
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.04445535158106276,
+          "response_ms": 0.21147583902662248,
+          "TTFT_percent": [
+            0.020539635975042332,
+            0.015073141346102204
+          ],
+          "response_percent": [
+            0.007018863327595363,
+            0.006404433184350999
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.062452110224048535,
+          "response_ms": 0.07666661979388341,
+          "TTFT_percent": [
+            0.024434291313137093,
+            0.022451920799938876
+          ],
+          "response_percent": [
+            0.012541230896612895,
+            0.01177919549914095
+          ]
+        }
+      }
+    },
+    "pair_bytes_plus_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          0.07902641323349689,
+          0.39456341323349625
+        ],
+        "816": [
+          0.00029027211185819073,
+          0.0004302721118581907
+        ],
+        "817": [
+          0.0002903918472547957,
+          0.0004303918472551231
+        ],
+        "818": [
+          0.0002905115826520476,
+          0.00039051158265204766
+        ]
+      },
+      "graph_ms_per_40_layers": 0.00019047894158771394,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.0800880677168152,
+          0.396005067716942
+        ],
+        "makespan": [
+          0.12237439274758799,
+          0.4382913927511254
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.0002137391544228981,
+          "response_ms": 0.007261459993168314,
+          "TTFT_percent": [
+            4.600222579744489e-06,
+            5.5233208239871674e-05
+          ],
+          "response_percent": [
+            0.00010534491561590914,
+            0.00026398052807707976
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.00022397364807037913,
+          "response_ms": 0.0007954104728335209,
+          "TTFT_percent": [
+            7.531491671793838e-05,
+            8.17168247073135e-05
+          ],
+          "response_percent": [
+            0.0001645701874308141,
+            0.00017046687188920185
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.0002137391544228981,
+          "response_ms": 0.013166307182387446,
+          "TTFT_percent": [
+            9.577840359493077e-05,
+            9.529047943360285e-05
+          ],
+          "response_percent": [
+            0.00020489255788567966,
+            0.00028393428172290505
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.0002409070830143932,
+          "response_ms": 0.0029076122652423883,
+          "TTFT_percent": [
+            1.06340636972605e-05,
+            8.860580047949711e-05
+          ],
+          "response_percent": [
+            9.32238753809289e-05,
+            0.0002755184856325433
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.0002137391544228981,
+          "response_ms": 0.009166249409045453,
+          "TTFT_percent": [
+            9.87535644039267e-05,
+            7.247092579929361e-05
+          ],
+          "response_percent": [
+            0.0003042269609846188,
+            0.0002775949827721841
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.00022397364807037913,
+          "response_ms": 0.000985889414421235,
+          "TTFT_percent": [
+            8.762934260803139e-05,
+            8.051991501502777e-05
+          ],
+          "response_percent": [
+            0.00016127314361875166,
+            0.00015147379895217217
+          ]
+        }
+      }
+    },
+    "compressed_bytes_plus_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          0.41025476696210256,
+          1.3115647669621031
+        ],
+        "816": [
+          0.01675281211797066,
+          0.017432812117970663
+        ],
+        "817": [
+          0.016725783452639007,
+          0.017425783452637917
+        ],
+        "818": [
+          0.016718754787305164,
+          0.017338754787305163
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0006118853386690098,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.4610640026587589,
+          1.3643740026586784
+        ],
+        "makespan": [
+          0.5969025478443655,
+          1.5002125478422386
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.0035514571763017653,
+          "response_ms": 0.026191214707055127,
+          "TTFT_percent": [
+            7.643659645576259e-05,
+            0.0009177465603028858
+          ],
+          "response_percent": [
+            0.00037996646759586814,
+            0.0009521460829989223
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.004844868784860178,
+          "response_ms": 0.006680524800867208,
+          "TTFT_percent": [
+            0.001629168842784684,
+            0.0017676512242991568
+          ],
+          "response_percent": [
+            0.0013821985706303688,
+            0.0014317238762588157
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.0035514571763017653,
+          "response_ms": 0.04515966020579443,
+          "TTFT_percent": [
+            0.0015914393396959316,
+            0.0015833320662816722
+          ],
+          "response_percent": [
+            0.0007027694375223846,
+            0.0009738779071276094
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.0069848770826568245,
+          "response_ms": 0.015551271824022961,
+          "TTFT_percent": [
+            0.0003083247984455068,
+            0.002569042875018854
+          ],
+          "response_percent": [
+            0.0004986049356951695,
+            0.0014736018670142943
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.0035514571763017653,
+          "response_ms": 0.032310068093745224,
+          "TTFT_percent": [
+            0.0016408741577305088,
+            0.0012041658450369585
+          ],
+          "response_percent": [
+            0.0010723681395431101,
+            0.0009784932086836285
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.004844868784860178,
+          "response_ms": 0.007292410139536217,
+          "TTFT_percent": [
+            0.0018955474016571015,
+            0.0017417603641180091
+          ],
+          "response_percent": [
+            0.0011929024600093464,
+            0.0011204188331825735
+          ]
+        }
+      }
+    },
+    "SWA_bytes_plus_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          0.0,
+          0.002960000000000036
+        ],
+        "816": [
+          0.0,
+          0.0
+        ],
+        "817": [
+          0.0,
+          0.0
+        ],
+        "818": [
+          0.0,
+          0.0
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0028395678484108068,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.002839567848468505,
+          0.005799567848498555
+        ],
+        "makespan": [
+          0.6332236301968805,
+          0.6361836301948642
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.002900675211700195,
+          "response_ms": 0.10796468560290004,
+          "TTFT_percent": [
+            6.243007576874194e-05,
+            0.0007495753337129646
+          ],
+          "response_percent": [
+            0.0015662870421424958,
+            0.00392490969391048
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.002927562451547526,
+          "response_ms": 0.011446265996779947,
+          "TTFT_percent": [
+            0.0009844422507936346,
+            0.001068121672946313
+          ],
+          "response_percent": [
+            0.0023682289896971103,
+            0.0024530845719593656
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.002900675211700195,
+          "response_ms": 0.19599128890363507,
+          "TTFT_percent": [
+            0.0012998181913564694,
+            0.0012931965242886133
+          ],
+          "response_percent": [
+            0.0030499938935417818,
+            0.004226594827837612
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.0029720486120222004,
+          "response_ms": 0.042725998489773494,
+          "TTFT_percent": [
+            0.0001311914695746429,
+            0.0010931216427392128
+          ],
+          "response_percent": [
+            0.0013698811242304197,
+            0.004048614920827274
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.002900675211700195,
+          "response_ms": 0.13636036408700813,
+          "TTFT_percent": [
+            0.0013401943930532413,
+            0.000983510104185453
+          ],
+          "response_percent": [
+            0.004525787736476911,
+            0.004129601021131681
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.002927562451547526,
+          "response_ms": 0.014285833845190752,
+          "TTFT_percent": [
+            0.0011454042709187551,
+            0.0010524768508736381
+          ],
+          "response_percent": [
+            0.002336896308782852,
+            0.002194900860154678
+          ]
+        }
+      }
+    },
+    "joint_50pct_tasks_and_all_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          1.0070450977995118,
+          1.963730597799515
+        ],
+        "816": [
+          0.8216238838630808,
+          0.9036388838630807
+        ],
+        "817": [
+          0.8284998983801947,
+          0.9343939419315407
+        ],
+        "818": [
+          0.8208939128973111,
+          0.9125685000000004
+        ]
+      },
+      "graph_ms_per_40_layers": 0.48698942420537905,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          3.9650522171455123,
+          5.201321347799421
+        ],
+        "makespan": [
+          112.0767043907399,
+          113.31297352139518
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.5255127650799094,
+          "response_ms": 18.544121460678934,
+          "TTFT_percent": [
+            0.011310401664083564,
+            0.1357999008873212
+          ],
+          "response_percent": [
+            0.2690270155429212,
+            0.6741463811025731
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.5424630350647027,
+          "response_ms": 2.00343130768084,
+          "TTFT_percent": [
+            0.18241234475771967,
+            0.1979177333069571
+          ],
+          "response_percent": [
+            0.41450933457699635,
+            0.42936154316480263
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.5255127650799094,
+          "response_ms": 33.64079361104569,
+          "TTFT_percent": [
+            0.23548691321443443,
+            0.23428727164262675
+          ],
+          "response_percent": [
+            0.5235141605606621,
+            0.725471040453784
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.5705080272213608,
+          "response_ms": 7.388359966096667,
+          "TTFT_percent": [
+            0.02518323091773898,
+            0.2098332676624009
+          ],
+          "response_percent": [
+            0.23688562501349245,
+            0.700103577599046
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.5255127650799094,
+          "response_ms": 23.414015702732726,
+          "TTFT_percent": [
+            0.242801833999605,
+            0.17818165655009116
+          ],
+          "response_percent": [
+            0.777108992327791,
+            0.7090809987358384
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.5424630350647027,
+          "response_ms": 2.490420731886219,
+          "TTFT_percent": [
+            0.21223782155363324,
+            0.19501882412737517
+          ],
+          "response_percent": [
+            0.40738644161260607,
+            0.38263266014425057
+          ]
+        }
+      }
+    },
+    "joint_100pct_tasks_and_all_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          1.6017950977995135,
+          2.61350507823961
+        ],
+        "816": [
+          1.6122563838630812,
+          1.7764263838630807
+        ],
+        "817": [
+          1.6263398983801942,
+          1.8380224419315407
+        ],
+        "818": [
+          1.6109994128973104,
+          1.7944775
+        ]
+      },
+      "graph_ms_per_40_layers": 0.6897296742053789,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          7.1411204671455835,
+          8.71216107823966
+        ],
+        "makespan": [
+          160.26110814074127,
+          161.8321487518333
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.847301719348202,
+          "response_ms": 26.36729966494722,
+          "TTFT_percent": [
+            0.018236136994768393,
+            0.21895469940039633
+          ],
+          "response_percent": [
+            0.382521002778576,
+            0.9585474127885951
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.9166334192110442,
+          "response_ms": 2.985822441827181,
+          "TTFT_percent": [
+            0.3082334472092257,
+            0.334433863465032
+          ],
+          "response_percent": [
+            0.6177657645569814,
+            0.6399008173247775
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.847301719348202,
+          "response_ms": 47.74891956531397,
+          "TTFT_percent": [
+            0.3796833867969902,
+            0.3777491647686449
+          ],
+          "response_percent": [
+            0.7430631938393474,
+            1.0297158490998992
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 1.0313458680750194,
+          "response_ms": 10.687561306950323,
+          "TTFT_percent": [
+            0.04552542630870227,
+            0.3793297609541399
+          ],
+          "response_percent": [
+            0.34266463080905896,
+            1.0127281211446
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.847301719348202,
+          "response_ms": 33.26459640700101,
+          "TTFT_percent": [
+            0.3914774770075838,
+            0.2872882144513578
+          ],
+          "response_percent": [
+            1.1040488450265344,
+            1.007400590410807
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.9166334192110442,
+          "response_ms": 3.6755521160325597,
+          "TTFT_percent": [
+            0.35863140431938534,
+            0.329535396912476
+          ],
+          "response_percent": [
+            0.601251860113651,
+            0.5647183488515152
+          ]
+        }
+      }
+    },
+    "dual_output_extra_gap_only": {
+      "eager_waves_ms": {
+        "416": [
+          0.022900000000001454,
+          0.21017999999999937
+        ],
+        "816": [
+          8e-05,
+          0.00016
+        ],
+        "817": [
+          8.000000000174624e-05,
+          0.00014000000000032742
+        ],
+        "818": [
+          8e-05,
+          0.00016
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0001,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.02323999999998705,
+          0.21073999999998705
+        ],
+        "makespan": [
+          0.04544000000169035,
+          0.23294000000169035
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.0001,
+          "response_ms": 0.0038,
+          "TTFT_percent": [
+            2.1522601191930523e-06,
+            2.5841408603399287e-05
+          ],
+          "response_percent": [
+            5.512812570985351e-05,
+            0.00013814384540253045
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.0001,
+          "response_ms": 0.0004,
+          "TTFT_percent": [
+            3.362668660657445e-05,
+            3.648501750600395e-05
+          ],
+          "response_percent": [
+            8.275987961011349e-05,
+            8.572523380635974e-05
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.0001,
+          "response_ms": 0.006900000000000001,
+          "TTFT_percent": [
+            4.481088355268141e-05,
+            4.458260335636206e-05
+          ],
+          "response_percent": [
+            0.00010737700631065126,
+            0.00014880000266960145
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.0001,
+          "response_ms": 0.0015,
+          "TTFT_percent": [
+            4.4141764385670465e-06,
+            3.678007278607216e-05
+          ],
+          "response_percent": [
+            4.809300564005433e-05,
+            0.00014213646481999644
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.0001,
+          "response_ms": 0.0048000000000000004,
+          "TTFT_percent": [
+            4.620284227780548e-05,
+            3.390624707717554e-05
+          ],
+          "response_percent": [
+            0.00015931155127473678,
+            0.0001453654442341038
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.0001,
+          "response_ms": 0.0005,
+          "TTFT_percent": [
+            3.9124844981984515e-05,
+            3.5950619954060866e-05
+          ],
+          "response_percent": [
+            8.179068628778555e-05,
+            7.682088717886004e-05
+          ]
+        }
+      }
+    },
+    "joint_bytes_and_existing_QR_share": {
+      "eager_waves_ms": {
+        "416": [
+          0.22211307747555006,
+          0.2511965830990228
+        ],
+        "816": [
+          0.39109426688569654,
+          0.4138552668856965
+        ],
+        "817": [
+          0.3919988175602169,
+          0.4249283476030074
+        ],
+        "818": [
+          0.387827911144273,
+          0.41708159445723253
+        ]
+      },
+      "graph_ms_per_40_layers": 0.021743627392458723,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.4147777004582167,
+          1.5288054194375036
+        ],
+        "makespan": [
+          6.241862981583836,
+          6.355890700564487
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.09069718084935542,
+          "response_ms": 0.8952113943703282,
+          "TTFT_percent": [
+            0.0019520392526530754,
+            0.023437429095045946
+          ],
+          "response_percent": [
+            0.012987191127826498,
+            0.032544195912231136
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.12103674437038997,
+          "response_ms": 0.18626762654776613,
+          "TTFT_percent": [
+            0.04070064670823168,
+            0.044160277372234026
+          ],
+          "response_percent": [
+            0.03853871587088676,
+            0.03991958959090738
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.09069718084935542,
+          "response_ms": 1.5692638435365487,
+          "TTFT_percent": [
+            0.04064220809596952,
+            0.0404351643934705
+          ],
+          "response_percent": [
+            0.024420703424710262,
+            0.03384151653732572
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.17123493128701078,
+          "response_ms": 0.4756457147814329,
+          "TTFT_percent": [
+            0.007558611991467701,
+            0.06298033236254322
+          ],
+          "response_percent": [
+            0.01525015469576742,
+            0.045071066937208804
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.09069718084935542,
+          "response_ms": 1.1126476682949156,
+          "TTFT_percent": [
+            0.041904675418243685,
+            0.030752010230815193
+          ],
+          "response_percent": [
+            0.036928672095475366,
+            0.033695942203693784
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.12103674437038997,
+          "response_ms": 0.20801125394022485,
+          "TTFT_percent": [
+            0.047355438606155945,
+            0.04351345997336705
+          ],
+          "response_percent": [
+            0.03402676643070766,
+            0.031959218141750435
+          ]
+        }
+      }
+    },
+    "joint_50pct_all_gaps_plus_existing_QR_share": {
+      "eager_waves_ms": {
+        "416": [
+          1.1047571369193172,
+          2.070350597799514
+        ],
+        "816": [
+          0.952349383863081,
+          1.0484388838630807
+        ],
+        "817": [
+          0.9587054419315405,
+          1.0902039419315401
+        ],
+        "818": [
+          0.9513115000000004,
+          1.0558204709657704
+        ]
+      },
+      "graph_ms_per_40_layers": 0.507772174205379,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          4.4748956369194275,
+          5.772586068765349
+        ],
+        "makespan": [
+          117.20031831051165,
+          118.49800874236098
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.5745019937384459,
+          "response_ms": 19.362072439337467,
+          "TTFT_percent": [
+            0.012364777295201537,
+            0.14845940763662718
+          ],
+          "response_percent": [
+            0.2808933587997594,
+            0.7038818794032712
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.6038631143329954,
+          "response_ms": 2.1271796369491325,
+          "TTFT_percent": [
+            0.20305915698945676,
+            0.22031956297669403
+          ],
+          "response_percent": [
+            0.4401128266574878,
+            0.4558824293139795
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.5745019937384459,
+          "response_ms": 35.103009839704214,
+          "TTFT_percent": [
+            0.257439419421968,
+            0.25612794514280335
+          ],
+          "response_percent": [
+            0.5462690013160539,
+            0.757004051863628
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.6524424229530681,
+          "response_ms": 7.761252861828374,
+          "TTFT_percent": [
+            0.028799959709210284,
+            0.23996879804935123
+          ],
+          "response_percent": [
+            0.24884131843853322,
+            0.7354380295695769
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.5745019937384459,
+          "response_ms": 24.439794181391257,
+          "TTFT_percent": [
+            0.2654362500498221,
+            0.19479206546025704
+          ],
+          "response_percent": [
+            0.8111544841401513,
+            0.740146153785001
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.6038631143329954,
+          "response_ms": 2.6349518111545116,
+          "TTFT_percent": [
+            0.2362605073861684,
+            0.21709253327661124
+          ],
+          "response_percent": [
+            0.431029033939142,
+            0.4048386716128673
+          ]
+        }
+      }
+    },
+    "optimistic_union_all_tasks_gaps_weight_and_QR": {
+      "eager_waves_ms": {
+        "416": [
+          1.7583200000000025,
+          2.8937730000000026
+        ],
+        "816": [
+          1.8001240000000005,
+          1.983736
+        ],
+        "817": [
+          1.7949199999999987,
+          2.043536
+        ],
+        "818": [
+          1.7722480000000003,
+          1.9836580000000001
+        ]
+      },
+      "graph_ms_per_40_layers": 0.796381,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          7.9219929999999295,
+          9.701084000000037
+        ],
+        "makespan": [
+          184.71857499999896,
+          186.4976659999993
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.9632892317073171,
+          "response_ms": 30.42938623170732,
+          "TTFT_percent": [
+            0.02073248996651774,
+            0.24892750639803354
+          ],
+          "response_percent": [
+            0.4414513235408543,
+            1.1062190598123325
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 1.0367288536585366,
+          "response_ms": 3.4258718536585366,
+          "TTFT_percent": [
+            0.348617562579688,
+            0.3782507037471111
+          ],
+          "response_percent": [
+            0.708811855421142,
+            0.7342091641137627
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.9632892317073171,
+          "response_ms": 55.117197231707316,
+          "TTFT_percent": [
+            0.4316584158958853,
+            0.4294594173466207
+          ],
+          "response_percent": [
+            0.8577274833296298,
+            1.1886143616259417
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 1.1582380463414634,
+          "response_ms": 12.307572046341463,
+          "TTFT_percent": [
+            0.051126670944124146,
+            0.4260007964803705
+          ],
+          "response_percent": [
+            0.3946054212267167,
+            1.16623652078959
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.9632892317073171,
+          "response_ms": 38.393196231707314,
+          "TTFT_percent": [
+            0.44506700440481595,
+            0.326615226970509
+          ],
+          "response_percent": [
+            1.2742665937643063,
+            1.162717505372761
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 1.0367288536585366,
+          "response_ms": 4.222252853658537,
+          "TTFT_percent": [
+            0.40561855687740755,
+            0.3727104501328723
+          ],
+          "response_percent": [
+            0.6906819171625854,
+            0.6487144202230446
+          ]
+        }
+      }
+    },
+    "WKV_single_event_traffic_only": {
+      "eager_waves_ms": {
+        "416": [
+          -6.1773233398533,
+          -1.9346664689486537
+        ],
+        "816": [
+          -9.466031474327627,
+          -8.855983812469436
+        ],
+        "817": [
+          -9.41067223395477,
+          -8.809166428105895
+        ],
+        "818": [
+          -9.425417009210728,
+          -8.86455704374236
+        ]
+      },
+      "graph_ms_per_40_layers": -1.677223038508557,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          -36.15666709585503,
+          -30.141596791774873
+        ],
+        "makespan": [
+          -408.5001816447548,
+          -402.48511134067303
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": -2.931861934918971,
+          "response_ms": -64.98911435973558,
+          "TTFT_percent": [
+            -0.06310129517506279,
+            -0.7576344222899399
+          ],
+          "response_percent": [
+            -0.942823175314618,
+            -2.362591096568074
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": -3.4839030493395535,
+          "response_ms": -8.515572164865224,
+          "TTFT_percent": [
+            -1.1715211600783026,
+            -1.2711026374437415
+          ],
+          "response_percent": [
+            -1.7618693179386986,
+            -1.8249985370700008
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": -2.931861934918971,
+          "response_ms": -116.98302855350084,
+          "TTFT_percent": [
+            -1.3137932375819323,
+            -1.307100377401087
+          ],
+          "response_percent": [
+            -1.820476434091066,
+            -2.522764487109998
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": -4.397280165926335,
+          "response_ms": -27.87840270504613,
+          "TTFT_percent": [
+            -0.19410370502210222,
+            -1.6173228456352209
+          ],
+          "response_percent": [
+            -0.8938374523529932,
+            -2.641691736882322
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": -2.931861934918971,
+          "response_ms": -81.76134474482114,
+          "TTFT_percent": [
+            -1.3546035455936285,
+            -0.9940843516152861
+          ],
+          "response_percent": [
+            -2.7136513886679174,
+            -2.476098791668465
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": -3.4839030493395535,
+          "response_ms": -10.19279520337378,
+          "TTFT_percent": [
+            -1.3630716673767318,
+            -1.2524847448360004
+          ],
+          "response_percent": [
+            -1.6673514297495804,
+            -1.566039140711206
+          ]
+        }
+      }
+    },
+    "WKV_single_event_half_suffix_hidden": {
+      "eager_waves_ms": {
+        "416": [
+          -2.8819494999999993,
+          -0.8909370000000002
+        ],
+        "816": [
+          -4.6129074999999995,
+          -4.282108000000001
+        ],
+        "817": [
+          -4.570194999999997,
+          -4.260732999999998
+        ],
+        "818": [
+          -4.582273999999999,
+          -4.2736215
+        ]
+      },
+      "graph_ms_per_40_layers": -0.57517,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          -17.222496000000092,
+          -14.282569499999909
+        ],
+        "makespan": [
+          -144.9102359999997,
+          -141.97030950000044
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": -1.2171151219512195,
+          "response_ms": -22.49840512195122,
+          "TTFT_percent": [
+            -0.026195483374423983,
+            -0.31451969183717615
+          ],
+          "response_percent": [
+            -0.32639339627214176,
+            -0.8178989997290337
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": -1.4995709756097562,
+          "response_ms": -3.225080975609756,
+          "TTFT_percent": [
+            -0.5042560324114438,
+            -0.5471187329661737
+          ],
+          "response_percent": [
+            -0.6672682831858268,
+            -0.6911770516964727
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": -1.2171151219512195,
+          "response_ms": -40.328675121951214,
+          "TTFT_percent": [
+            -0.5454000399996374,
+            -0.5426216072098146
+          ],
+          "response_percent": [
+            -0.6275902033434724,
+            -0.8696966617112797
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": -1.966907024390244,
+          "response_ms": -10.019287024390243,
+          "TTFT_percent": [
+            -0.08682274643915433,
+            -0.7234298352050978
+          ],
+          "response_percent": [
+            -0.3212384182488821,
+            -0.949404025109127
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": -1.2171151219512195,
+          "response_ms": -28.25010512195122,
+          "TTFT_percent": [
+            -0.5623417801344418,
+            -0.4126780604624469
+          ],
+          "response_percent": [
+            -0.9376183480525907,
+            -0.8555393918151186
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": -1.4995709756097562,
+          "response_ms": -3.8002509756097558,
+          "TTFT_percent": [
+            -0.58670481960215,
+            -0.5391050623828662
+          ],
+          "response_percent": [
+            -0.621650270721897,
+            -0.5838773028973396
+          ]
+        }
+      }
+    },
+    "C2_shared_FP32_input_and_cast": {
+      "eager_waves_ms": {
+        "416": [
+          0.15670893887530565,
+          0.1742489388753056
+        ],
+        "816": [
+          0.4725853031784842,
+          0.49252530317848414
+        ],
+        "817": [
+          0.4620195644865525,
+          0.4781415644865529
+        ],
+        "818": [
+          0.47249282579462104,
+          0.49514470965770174
+        ]
+      },
+      "graph_ms_per_40_layers": 0.0018391356968215158,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.5656457680318,
+          1.641899651894846
+        ],
+        "makespan": [
+          1.9739338927247445,
+          2.050187776589155
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.04953718054520245,
+          "response_ms": 0.11758520132759853,
+          "TTFT_percent": [
+            0.001066168981047052,
+            0.012801105235289385
+          ],
+          "response_percent": [
+            0.0017058557264227068,
+            0.004274650493111892
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.07052432027849007,
+          "response_ms": 0.07604172736895462,
+          "TTFT_percent": [
+            0.02371499216146469,
+            0.025730810599597392
+          ],
+          "response_percent": [
+            0.01573301050599939,
+            0.01629673714435775
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.04953718054520245,
+          "response_ms": 0.17459840792906553,
+          "TTFT_percent": [
+            0.022198048289392223,
+            0.022084964716392562
+          ],
+          "response_percent": [
+            0.002717080340583903,
+            0.003765252690717843
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.10524849692811139,
+          "response_ms": 0.13099639668361263,
+          "TTFT_percent": [
+            0.0046458543533466545,
+            0.038710473776406296
+          ],
+          "response_percent": [
+            0.0042000069630211846,
+            0.012412909819177736
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.04953718054520245,
+          "response_ms": 0.1359765582958137,
+          "TTFT_percent": [
+            0.022887585396171632,
+            0.01679619883072288
+          ],
+          "response_percent": [
+            0.004513049258147032,
+            0.004117977667103223
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.07052432027849007,
+          "response_ms": 0.07788086306577613,
+          "TTFT_percent": [
+            0.02759253098355751,
+            0.02535393035850464
+          ],
+          "response_percent": [
+            0.01273985847766976,
+            0.011965753989936472
+          ]
+        }
+      }
+    },
+    "C2_pool_ring_norm_free_and_internal_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          0.20327999999999974,
+          0.21333799999999975
+        ],
+        "816": [
+          0.292918,
+          0.312998
+        ],
+        "817": [
+          0.3020779999999995,
+          0.3154800000000005
+        ],
+        "818": [
+          0.314318,
+          0.32862
+        ]
+      },
+      "graph_ms_per_40_layers": 0.06768,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.180274000000054,
+          1.238115999999991
+        ],
+        "makespan": [
+          16.205234000000928,
+          16.263075999999273
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.11510682926829269,
+          "response_ms": 2.619266829268293,
+          "TTFT_percent": [
+            0.0024773983808090995,
+            0.029745226081636714
+          ],
+          "response_percent": [
+            0.03799875553461891,
+            0.09521989261326715
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.13597463414634148,
+          "response_ms": 0.3390146341463415,
+          "TTFT_percent": [
+            0.045723764088826425,
+            0.04961036907201751
+          ],
+          "response_percent": [
+            0.07014202577004473,
+            0.07265527193993158
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.11510682926829269,
+          "response_ms": 4.717346829268293,
+          "TTFT_percent": [
+            0.05158038722459844,
+            0.0513176211287678
+          ],
+          "response_percent": [
+            0.07341080873273509,
+            0.10173061170848666
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.17050136585365855,
+          "response_ms": 1.1180213658536586,
+          "TTFT_percent": [
+            0.007526231118947195,
+            0.0627105264622228
+          ],
+          "response_percent": [
+            0.03584600523580084,
+            0.10594106969044194
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.11510682926829269,
+          "response_ms": 3.296066829268293,
+          "TTFT_percent": [
+            0.05318262677781211,
+            0.039028405934409933
+          ],
+          "response_percent": [
+            0.10939614993248639,
+            0.09981962892955819
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.13597463414634148,
+          "response_ms": 0.4066946341463415,
+          "TTFT_percent": [
+            0.05319986482457669,
+            0.048883723955875896
+          ],
+          "response_percent": [
+            0.06652766647277827,
+            0.062485285212007725
+          ]
+        }
+      }
+    },
+    "through_C2_half_vectors_and_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          1.3741525757946218,
+          2.332048536674819
+        ],
+        "816": [
+          1.5888826870415647,
+          1.687792187041565
+        ],
+        "817": [
+          1.5883065064180943,
+          1.7184455064180928
+        ],
+        "818": [
+          1.5963823257946215,
+          1.7063782677261619
+        ]
+      },
+      "graph_ms_per_40_layers": 0.5448763099022006,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          6.692600404951008,
+          7.989540807762751
+        ],
+        "makespan": [
+          127.6551412032386,
+          128.95208160605034
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.6826166742836484,
+          "response_ms": 20.843040140665067,
+          "TTFT_percent": [
+            0.0146916864475689,
+            0.17639776399657278
+          ],
+          "response_percent": [
+            0.30237835185529116,
+            0.7577204512923081
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.7432224346114855,
+          "response_ms": 2.3778513643180874,
+          "TTFT_percent": [
+            0.24992107887655696,
+            0.27116483537654923
+          ],
+          "response_percent": [
+            0.4919767316042726,
+            0.5096046604073489
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.6826166742836484,
+          "response_ms": 37.73420574763329,
+          "TTFT_percent": [
+            0.3058865630244322,
+            0.3043282843402689
+          ],
+          "response_percent": [
+            0.5872153693755119,
+            0.8137463646352353
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.8434974198811795,
+          "response_ms": 8.471765758511987,
+          "TTFT_percent": [
+            0.037233464368315976,
+            0.31023896498093856
+          ],
+          "response_percent": [
+            0.27162178560355743,
+            0.8027645571319929
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.6826166742836484,
+          "response_ms": 26.291803239687074,
+          "TTFT_percent": [
+            0.3153883053812752,
+            0.2314496961726124
+          ],
+          "response_percent": [
+            0.8726224916509786,
+            0.7962332620109918
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.7432224346114855,
+          "response_ms": 2.9227276742202877,
+          "TTFT_percent": [
+            0.2907846254130749,
+            0.26719307288049365
+          ],
+          "response_percent": [
+            0.47810380461356133,
+            0.44905306583161747
+          ]
+        }
+      }
+    },
+    "through_C2_bytes_and_QR": {
+      "eager_waves_ms": {
+        "416": [
+          0.38245303591075724,
+          0.4150455219743277
+        ],
+        "816": [
+          0.8720805700641804,
+          0.9034215700641803
+        ],
+        "817": [
+          0.86081138204677,
+          0.8988699120895616
+        ],
+        "818": [
+          0.8690374614498962,
+          0.9074073041149335
+        ]
+      },
+      "graph_ms_per_40_layers": 0.023582763089280243,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          3.0079652125609755,
+          3.1483270713322327
+        ],
+        "makespan": [
+          8.243338618380221,
+          8.38370047715216
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.14023436139455783,
+          "response_ms": 1.0127965956979268,
+          "TTFT_percent": [
+            0.003018208233700126,
+            0.03623853433033532
+          ],
+          "response_percent": [
+            0.014693046854249207,
+            0.03681884640534303
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.19156106464887995,
+          "response_ms": 0.26230935391672067,
+          "TTFT_percent": [
+            0.06441563886969634,
+            0.06989108797183138
+          ],
+          "response_percent": [
+            0.05427172637688613,
+            0.05621632673526511
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.14023436139455783,
+          "response_ms": 1.7438622514656144,
+          "TTFT_percent": [
+            0.06284025638536173,
+            0.06252012910986304
+          ],
+          "response_percent": [
+            0.027137783765294167,
+            0.03760676922804356
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.2764834282151221,
+          "response_ms": 0.6066421114650455,
+          "TTFT_percent": [
+            0.012204466344814353,
+            0.1016908061389495
+          ],
+          "response_percent": [
+            0.019450161658788604,
+            0.057483976756386536
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.14023436139455783,
+          "response_ms": 1.2486242265907292,
+          "TTFT_percent": [
+            0.0647922608144153,
+            0.04754820906153806
+          ],
+          "response_percent": [
+            0.04144172135362239,
+            0.037813919870797
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.19156106464887995,
+          "response_ms": 0.2858921170060009,
+          "TTFT_percent": [
+            0.07494796958971342,
+            0.06886739033187166
+          ],
+          "response_percent": [
+            0.04676662490837741,
+            0.043924972131686904
+          ]
+        }
+      }
+    },
+    "through_C2_free_vectors_and_gaps": {
+      "eager_waves_ms": {
+        "416": [
+          2.0741170953545236,
+          3.083843036674818
+        ],
+        "816": [
+          2.531451687041564,
+          2.710226687041565
+        ],
+        "817": [
+          2.5464400064180936,
+          2.7758240064180923
+        ],
+        "818": [
+          2.54852732579462,
+          2.741234296760391
+        ]
+      },
+      "graph_ms_per_40_layers": 0.7812513099022003,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          10.481787424510912,
+          12.092379336796967
+        ],
+        "makespan": [
+          183.919578222798,
+          185.53017013508725
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 1.0617828328202337,
+          "response_ms": 29.968081299201646,
+          "TTFT_percent": [
+            0.02285232846322813,
+            0.27437964030982454
+          ],
+          "response_percent": [
+            0.4347589876698679,
+            1.089448944738783
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 1.1852167029041685,
+          "response_ms": 3.5289706326107693,
+          "TTFT_percent": [
+            0.39854910629435936,
+            0.4324265215386687
+          ],
+          "response_percent": [
+            0.7301429617562333,
+            0.7563045814408386
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 1.0617828328202337,
+          "response_ms": 54.186871906169856,
+          "TTFT_percent": [
+            0.47579426879743686,
+            0.47337042886218966
+          ],
+          "response_percent": [
+            0.8432498676265581,
+            1.1685516933761486
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 1.389443651588497,
+          "response_ms": 12.326961990219301,
+          "TTFT_percent": [
+            0.06133249429558502,
+            0.5110383863757081
+          ],
+          "response_percent": [
+            0.39522710168023484,
+            1.1680738661734926
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 1.0617828328202337,
+          "response_ms": 37.78059439822365,
+          "TTFT_percent": [
+            0.4905738475807477,
+            0.3600107107190622
+          ],
+          "response_percent": [
+            1.2539343961797165,
+            1.1441651850263068
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 1.1852167029041685,
+          "response_ms": 4.310221942512969,
+          "TTFT_percent": [
+            0.4637141977118439,
+            0.4260927524931282
+          ],
+          "response_percent": [
+            0.7050720214616158,
+            0.6622301471232716
+          ]
+        }
+      }
+    },
+    "through_C2_bytes_and_QR_vs_stock": {
+      "eager_waves_ms": {
+        "416": [
+          0.5653989772310494,
+          1.0462747258863085
+        ],
+        "816": [
+          1.454338570064181,
+          1.6377335700641806
+        ],
+        "817": [
+          1.475304317896402,
+          1.6291104482142509
+        ],
+        "818": [
+          1.47205472477508,
+          1.662157260899775
+        ]
+      },
+      "graph_ms_per_40_layers": 0.17727776308928017,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          5.144374353056037,
+          6.1525537681538935
+        ],
+        "makespan": [
+          44.500037758876715,
+          45.50821717397412
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.4253516174921187,
+          "response_ms": 6.9846288517954855,
+          "TTFT_percent": [
+            0.00915467322962545,
+            0.10991684947730639
+          ],
+          "response_percent": [
+            0.10132881509959245,
+            0.25391670744644457
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 0.5345041134293677,
+          "response_ms": 1.0663374026972083,
+          "TTFT_percent": [
+            0.1797360231221427,
+            0.195013919355016
+          ],
+          "response_percent": [
+            0.22062488767745517,
+            0.2285300579067114
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.4253516174921187,
+          "response_ms": 12.480239507563171,
+          "TTFT_percent": [
+            0.19060381800384016,
+            0.1896328244963816
+          ],
+          "response_percent": [
+            0.19421605164667385,
+            0.2691390829047341
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 0.7151018794346342,
+          "response_ms": 3.1969905626845567,
+          "TTFT_percent": [
+            0.03156585867375375,
+            0.2630149917506285
+          ],
+          "response_percent": [
+            0.10250192344159258,
+            0.30293929109524936
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.4253516174921187,
+          "response_ms": 8.757406482688287,
+          "TTFT_percent": [
+            0.19652453695597807,
+            0.1442207703736404
+          ],
+          "response_percent": [
+            0.29065750247927236,
+            0.26521339243637565
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 0.5345041134293677,
+          "response_ms": 1.2436151657864882,
+          "TTFT_percent": [
+            0.20912390580157078,
+            0.19215754245781436
+          ],
+          "response_percent": [
+            0.20343227577515016,
+            0.19107124068960626
+          ]
+        }
+      }
+    },
+    "through_C2_half_vectors_and_gaps_vs_stock": {
+      "eager_waves_ms": {
+        "416": [
+          1.6337790366748155,
+          2.9166160562347163
+        ],
+        "816": [
+          2.1936136870415646,
+          2.383540187041565
+        ],
+        "817": [
+          2.22755699190098,
+          2.4223905064180946
+        ],
+        "818": [
+          2.226666325794621,
+          2.4303797967603904
+        ]
+      },
+      "graph_ms_per_40_layers": 0.6978788099022004,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          8.979494851314257,
+          10.850805356356886
+        ],
+        "makespan": [
+          163.90859064960387,
+          165.7799011546449
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 0.9672525584299899,
+          "response_ms": 26.788768524811406,
+          "TTFT_percent": [
+            0.02081779106696315,
+            0.24995168585072713
+          ],
+          "response_percent": [
+            0.38863542074946583,
+            0.9738693414778211
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 1.0857770077822173,
+          "response_ms": 3.1794134374888183,
+          "TTFT_percent": [
+            0.3651108316531677,
+            0.3961459313655078
+          ],
+          "response_percent": [
+            0.6578196832933793,
+            0.6813899007395272
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 0.9672525584299899,
+          "response_ms": 48.423011631779616,
+          "TTFT_percent": [
+            0.4334344176183945,
+            0.4312263715791066
+          ],
+          "response_percent": [
+            0.7535533370385998,
+            1.0442527913157897
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 1.2818810967104481,
+          "response_ms": 11.052184435341253,
+          "TTFT_percent": [
+            0.05658449334143746,
+            0.471476800401003
+          ],
+          "response_percent": [
+            0.35435517892252505,
+            1.047278949451996
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 0.9672525584299899,
+          "response_ms": 33.76755662383341,
+          "TTFT_percent": [
+            0.44689817399944654,
+            0.32795904232157413
+          ],
+          "response_percent": [
+            1.1207420476042527,
+            1.022632472775791
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 1.0857770077822173,
+          "response_ms": 3.877292247391019,
+          "TTFT_percent": [
+            0.42480857114482246,
+            0.39034356561635875
+          ],
+          "response_percent": [
+            0.6342527877048436,
+            0.5957140605925882
+          ]
+        }
+      }
+    },
+    "through_C2_free_vectors_and_gaps_vs_stock": {
+      "eager_waves_ms": {
+        "416": [
+          2.3560600366748154,
+          3.6573890562347198
+        ],
+        "816": [
+          3.146541687041565,
+          3.3853416870415636
+        ],
+        "817": [
+          3.1959540064180914,
+          3.4669770064180945
+        ],
+        "818": [
+          3.1889293257946196,
+          3.4468492967603916
+        ]
+      },
+      "graph_ms_per_40_layers": 0.9344818099022003,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          12.8219668658312,
+          14.891038856357
+        ],
+        "makespan": [
+          220.27692866411962,
+          222.34600065464474
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 1.3465772047714533,
+          "response_ms": 35.92240417115287,
+          "TTFT_percent": [
+            0.02898184415244055,
+            0.3479745176452239
+          ],
+          "response_percent": [
+            0.5211407402493372,
+            1.3059102758702517
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 1.5278991785139246,
+          "response_ms": 4.331344608220526,
+          "TTFT_percent": [
+            0.513781868423303,
+            0.557454282754896
+          ],
+          "response_percent": [
+            0.8961538958156122,
+            0.9282638230890505
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 1.3465772047714533,
+          "response_ms": 64.89134027812108,
+          "TTFT_percent": [
+            0.6034131431770882,
+            0.6003391740904443
+          ],
+          "response_percent": [
+            1.00983157312325,
+            1.3993958850171642
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 1.8279046259787408,
+          "response_ms": 14.910649964609545,
+          "TTFT_percent": [
+            0.08068693531943066,
+            0.672304651894961
+          ],
+          "response_percent": [
+            0.4780653152298952,
+            1.4128980494253371
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 1.3465772047714533,
+          "response_ms": 45.26722227017487,
+          "TTFT_percent": [
+            0.6221569420694363,
+            0.456573794134733
+          ],
+          "response_percent": [
+            1.5024148753666395,
+            1.3708937238641428
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 1.5278991785139246,
+          "response_ms": 5.265826418122726,
+          "TTFT_percent": [
+            0.5977881850745879,
+            0.5492892269487589
+          ],
+          "response_percent": [
+            0.8613911132212188,
+            0.8090509143401333
+          ]
+        }
+      }
+    },
+    "optimistic_union_all_tasks_gaps_weight_and_QR_vs_stock": {
+      "eager_waves_ms": {
+        "416": [
+          2.0332169999999996,
+          3.4556489999999997
+        ],
+        "816": [
+          2.4143689999999993,
+          2.6558309999999987
+        ],
+        "817": [
+          2.442616999999999,
+          2.7341700000000007
+        ],
+        "818": [
+          2.41046,
+          2.690332
+        ]
+      },
+      "graph_ms_per_40_layers": 0.9495215,
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          10.250184499999932,
+          12.48550350000005
+        ],
+        "makespan": [
+          221.0439574999982,
+          223.2792765000013
+        ]
+      },
+      "ordinary": {
+        "chat-single": {
+          "own_prompt_ms": 1.2480210426829268,
+          "response_ms": 36.38031654268293,
+          "TTFT_percent": [
+            0.026860659180801934,
+            0.32250621709609933
+          ],
+          "response_percent": [
+            0.5277838588761282,
+            1.3225570589914502
+          ]
+        },
+        "code-single": {
+          "own_prompt_ms": 1.3793608414634146,
+          "response_ms": 4.227925341463415,
+          "TTFT_percent": [
+            0.46383334733271075,
+            0.5032600444788903
+          ],
+          "response_percent": [
+            0.8747564806501504,
+            0.9060997210319615
+          ]
+        },
+        "chat-mixed": {
+          "own_prompt_ms": 1.2480210426829268,
+          "response_ms": 65.81548304268293,
+          "TTFT_percent": [
+            0.5592492561496067,
+            0.5564002712632633
+          ],
+          "response_percent": [
+            1.0242129765235832,
+            1.419325224993091
+          ]
+        },
+        "code-mixed": {
+          "own_prompt_ms": 1.5966685085365855,
+          "response_ms": 14.889969508536584,
+          "TTFT_percent": [
+            0.07047976510584184,
+            0.587255839592049
+          ],
+          "response_percent": [
+            0.4774022583695247,
+            1.4109384181472866
+          ]
+        },
+        "chat-return": {
+          "own_prompt_ms": 1.2480210426829268,
+          "response_ms": 45.87553154268293,
+          "TTFT_percent": [
+            0.5766211939446161,
+            0.4231570983072156
+          ],
+          "response_percent": [
+            1.5226046032537364,
+            1.38931604628703
+          ]
+        },
+        "code-return": {
+          "own_prompt_ms": 1.3793608414634146,
+          "response_ms": 5.177446841463414,
+          "TTFT_percent": [
+            0.5396727909647582,
+            0.4958887739096482
+          ],
+          "response_percent": [
+            0.8469338607636406,
+            0.7954721193652124
+          ]
+        }
+      }
+    }
+  },
+  "paired_reference_method": "Compare max of eight transformed deadlines in each arm; subtract lower/upper credits across independently bounded peer joins for the outer interval. For ordinary requests the denominator is the corresponding measured stock or restored time.",
+  "byte_model": {
+    "SWA_RMS_output_write_and_scatter_value_read": 2048,
+    "SWA_rotary_tail_RW": 256,
+    "index_key_RMS_output_write_and_DQ_input_read": 512,
+    "index_key_rotary_tail_RW": 256,
+    "INT8_codes_RW": 256,
+    "FP32_scales_RW": 8,
+    "pair_FP16_intermediate_and_duplicate_coordinate": 12,
+    "long_KV_rotary_tail_RW": 256,
+    "query_rotary_tail_RW_per_Q_row": 16384
+  },
+  "limits": [
+    "Frozen C8 uses 4 actual eager waves with TP/DP join bounds and one rank-window estimate per scheduled target graph. Keep other arrivals fixed and assume changes transmit to the next EP16 join. Uncaptured host launch relief, interference and unrelated downstream waits can change service time.",
+    "joint_bytes uses the same pre-join Q rotary scheduling in both arms; joint_bytes_vs_stock also counts the schedule-only credit. The KV-only stream has no Q join. Combined savings are recomputed via max on the two clocks. No sum of the single-branch effects.",
+    "The contiguous-copy rate prices logical intermediate traffic. Cache hits, missing rows, pitches and scatter geometry can alter it. 25/50/100% are net fractions of observed vector/publication task times, including still mandatory computation and stores; the last is deliberately generous. They do not remove either projection. Named internal-gap scenarios additionally assume that a fraction of wall time between consecutive kernels on one stream disappears with their submission. Device gaps can include delayed upstream readiness, synchronization or other submissions. The key-to-long gap is separate and only belongs to a joint multi-output producer. Do not interpret these scenarios as measured host time.",
+    "Eager/graph source layers 2,8,14 (C2) and 20 (C1) publish compressed key and long KV. Layers 24,28,32,36 consume previous keys; other 32 layers have no index projections. Local-query-empty branches retain their real cache writes, both-empty branches their original zero/collective obligations.",
+    "The eight-request run and six ordinary requests have different histories. Ordinary first prompts interpolate per-layer-group costs over actual nonempty row sizes using the T3/K24 graph as a short anchor; cache shape, launch overhead, and concurrency are proxies. Results use each request’s actual verification count and two measured reference times. Packed A5, different dtype, alternate execution order and unobserved branches retain distinct contracts.",
+    "Earlier WKV completion starts QB in the pinned dual-stream schedule. Extending the WKV kernel through all stores without an early completion signal delays QB: the matrix join needs its own reprice. The priced SWA path keeps WKV separate. Moving rotation into the KV writer cannot overwrite the pre-RoPE compressed latent before WK reads it."
+  ],
+  "sources": {
+    "full-review/C2-POOL-RING-OWNER.json": "d9e22c32bbd950c283bf7e8793583181b7eaa51c9d2ebfb8d5798186d38a831c",
+    "full-review/CLEAN-C2-PUBLICATION-VALUE.json": "73a4dceba5185a4f0f1a0f6dc781b393cda620876e9c18c4d43066ac3a1dde3d",
+    "full-review/runs/first-token-v168-protocol-bodies.json": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de",
+    "full-review/PREFILL-OA-JOINT-ARRIVAL.json": "5c7b01aefd7603c2957b6cbb439e7f005471ccd5e4b3a5d505a1925bd2f7b550",
+    "full-review/CURRENT-CPU-PLAN-KV-JOIN.json": "8f235a3c1a98fcbea114de67a6330f380e2bded0aaf673c9c730687dee1132fa",
+    "full-review/runs/publication-residual-profile-cpu-plan-2979e908408a-export-result.json": "34952fab8267806368ec224548858999a626a4bc6445daf6de22d6b08331d641",
+    "full-review/ATTENTION-QR-PROJECTION.json": "7005161d443dcf39bfa37e4a2e49905ff9365c40c9a794941caa27df56a9f746",
+    "full-review/INDEX-CACHE-PUBLICATION.json": "dc1eb4a845f6efab149140b4b9d6e8bb9429fb3f0c4c1be167e9ddea8683992a",
+    "full-review/ACTIVATION-QUANT-REQUEST-ESTIMATES.json": "dc00aab27c2a834e3198a04c6b11932c67d92ee5f7012b043fed9aabf1fcd5a3",
+    "full-review/GRAPH-REQUEST-PREFIX-BUDGETS.json": "9794e03363db44e832bb2830d886b3e0d27bfbc9c6cc5afe63b14ce1e58cca82",
+    "full-review/ORDINARY-TERMINAL-ROW-ESTIMATES.json": "42f9504b4b447bf5ea13e67615fabe05888fff44410e386e1a5d3cd0a826f542",
+    "full-review/ORDINARY-SERVING-GUARDS.json": "45ebb28aac22c3d28870ec132f4cb6fe8fec5dac620f710330680c5030a3b101",
+    "full-review/runs/frozen-vocab-chains.json": "d655027c001310763cb9026b44e72d3b2a1210dbe21eb46e9dbcf23501ce3a17",
+    "full-review/runs/joint168-qli-step-frontiers.json.gz": "f579eb8751f9e3ce075e7c840196f4c759b2b86f55757225b60f0368fdc7da32",
+    ".cache/v168-pinned-replay-spans.json": "008414f0d02ebb1e14d3bd92276703713f65696e992773b86cabbf5901185f57",
+    "full-review/runs/joint168-request-endpoints.json.gz": "725c0b16b949d17402bbde4d6b80da0e676b3db91a3d939e478dad47132b222f",
+    "full-review/KV-PIPELINE-VALUE-CONTRACT.json": "979f0a89ba8f7e5ce445401a9fd092d08e94c1a03105a61f8f4bad961637e23a",
+    "full-review/SWA-C2-PROJECTED-TRANSPORT.json": "295b5139e5307e76ffec25843af38382656f326701e80390df89e4ae4c0e7472",
+    "tools/price_oa_ob_fusion.py": "d26ef1ec926604136d12aab4d4fcb8ddcae6b3d877da85cd1e75ccc8d1a29381",
+    "tools/price_ffn_early_readers.py": "adfb46078aef4b7053bdbb213e07bde9b712359c765c4b26ac4aea39fef6aef5",
+    "tools/price_draft_movable_arrivals.py": "c29bfb4bc983f4c833cc2ff481167236517b1624893a17eff9abd714c706f83a",
+    "tools/price_both_hc_boundaries.py": "8241bf473d8da118092548156d73009b3fa8454df5490e0cabb9033f3058a057",
+    "tools/price_vocab_selection_fusion.py": "58016b49184b542a58a98b701a4207520105c5591e9456c8ce142964e26469fd",
+    "tools/price_attention_input_fusions.py": "19eb9449601b11ead5bcd1c55c54c378bfc6e49719c5ee8d81f3657c4b4843e0"
+  },
+  "new_measurements": 0,
+  "overall_complete": false
+}
