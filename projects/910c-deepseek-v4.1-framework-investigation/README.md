@@ -6,6 +6,9 @@
 
 | 入口 | 内容 |
 |---|---|
+| [当前融合优先级](baselines/fusion-priority.json) | 已实测收益、无需单独深查的范围和下一项真正影响请求的判断 |
+| [末层 FFN 原系数数值对照](baselines/terminal-dense-coefficients.json) | 保持真实路由权重后，逐段核对专家、mHC 和读出 |
+| [末层 FFN 分支收益预算](baselines/terminal-guard-budgets.json) | 哪些 DP 分支必须同时覆盖、不同批次替代成本怎样分摊 |
 | [四层 QLI 三组服务对照](baselines/qli-service-c8.json) | 首 token、整批完成时间、各组样本与原服务恢复 |
 | [四层 QLI 模型内实测](baselines/qli-model-window.json) | 原版与修正版短窗口、实际满批命中和整批收益判定 |
 | [融合方案怎样快速筛选](baselines/decision-workflow.md) | 按可消除的整份工作归并，只补可能改变取舍的证据 |

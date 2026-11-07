@@ -1520,13 +1520,13 @@
     }
   },
   "GLOBAL-MATERIAL-GAPS.json": {
-    "source_sha256": "26d9fc600d6ad980f817ffd1289d98deae2383482acac7badce5d16eb6fb98c8",
+    "source_sha256": "34200bafe375c3df4af5bb5535b3588bf6a810b1a4352ef312378e0cbbf4d0e6",
     "data": {
       "status": "SHARED_DEPENDENCY_GAPS_PRIORITIZED_WITH_TOPOLOGY_EVIDENCE",
-      "updated_utc": "2026-11-07T16:28:34.975219+00:00",
+      "updated_utc": "2026-11-07T16:50:47.154678+00:00",
       "ordering": "Reuse established facts first;resolve sharedcost applicability and output before timings;only then a new material candidate. This is not a new all-pairs research program.",
-      "previous_goal_turn": "旧对照 16 个 worker 各记录过一次正式回放。本轮两次修正版 C8 观察到的目标图回放分别为 3,554 和 3,586 个 rank 次，全部命中共享转换的图。原版与修正版的同配置短窗口各有 128 个 rank 次目标图。按 DP0 / DP1 顺序，四个消费者耗时中位数减少 1.320 / 1.325 ms；计入第 20 层候选生成结束到稀疏 attention 开始的完整区间后，合计仍少 1.227 / 1.233 ms。将源层和四个消费层都量到本层首个下游 AllToAll 完成，两组差值为 1.256 / 1.242 ms。 相邻目标图启动之间的中位周期，DP0 / DP1 原版减修正版为 -0.355 / 0.547 ms。各阶段来自独立短窗口。保留完整四层共同表示，使用独立的原版、修正版、后置原版三组重复 C8 裁决端到端收益。",
-      "current_goal_turn": "171 完成三组无 profiler 冻结 C8，每组一次准入、三次计时。12 轮共 96 份输出文本逐个与归档一致。按原版 / 修正版 / 后置原版，整批中位耗时为 15.8679 / 15.6304 / 15.8645 秒，首 token P90 中位为 1.2546 / 1.2196 / 1.3004 秒。修正版对前后参照的整批耗时改善分别为 +1.50% 和 +1.48%。 整批耗时通过预设的双参照 1% 和样本分离条件，接受此固定负载下的整批收益。首 token P90 未通过预设条件。本轮最慢候选与最快原版相隔 2.807 ms，每组各有一次服务启动和三次计时。",
+      "previous_goal_turn": "在历史四批排程中，保留原前后处理时，单侧大批分支的三批全部免费只省 14.323 ms，双侧大批单独为 6.140 ms。对照正在核验原系数、原路由权重下的低行数算术。",
+      "current_goal_turn": "171 原系数与路由权重对照完成 4 个 EP16 批次，共 64 次 rank 调用。有效发送行 86 个，所选路由专家输出有 0 个元素不同，共享与路由专家合并后有 1 个元素不同，HcPost 有 1 个元素不同。最终归一化读出按 TP 去重有 0 个元素不同。直接代回原专家结果后 HcPost 有 0 个元素不同，直接代回原 HcPost 后读出按 TP 去重有 0 个元素不同。服务始终返回原路径的结果，8 份输出文本与归档一致，已恢复原服务。",
       "gaps": [
         {
           "id": "G01",
@@ -1702,6 +1702,10 @@
             {
               "path": "full-review/QLI-REPEATED-SERVICE-C8.json",
               "sha256": "10c3ca078a0177507c3fba325ed1efd2b97ba89c52f2b0d52d52f1321bd74707"
+            },
+            {
+              "path": "full-review/FUSION-PRIORITY.json",
+              "sha256": "5f4667b8885d772dbc4887b4c2ffca02b00172d7caf7924a0e3b6a1f7345d3e2"
             }
           ],
           "dependent_decisions": [
@@ -2011,6 +2015,10 @@
             {
               "path": "full-review/ENDPOINT-SHORTFALLS.json",
               "sha256": "ae78532c1cee4543676b1ac57ff058ad35f600d70948287fa90f0dcdb8846a58"
+            },
+            {
+              "path": "full-review/FUSION-PRIORITY.json",
+              "sha256": "5f4667b8885d772dbc4887b4c2ffca02b00172d7caf7924a0e3b6a1f7345d3e2"
             }
           ],
           "dependent_decisions": [
@@ -2019,7 +2027,7 @@
             "CompleteHC early-output scheduling"
           ],
           "existing_scope": "Target idealized router-gated shared schedule median2.20584ms,withF21-exclusive constraint0.5938425ms;these alternatives are not additive. DraftF21 median0.561894ms includingwait,role differs fromtarget. 301 current EP16 ordinal/layer brackets overlap on all ranks. In six groups with a call >=1ms the last-entrant-fixed completion slack is at most 4.292us in exported time. Target body F21 occupies median22.610% inclusive. The historical target body receiver population has 76.701% empty expert slots. Paired native sparse-credit protocol retained both epilogue boundaries and failed the 14.25us value gate on both sparse layouts with exact outputs. Positive-row packing changes a different input stage.",
-          "next": "M06–M08 先用原版 mHC 系数和路由权重复核紧凑专家返回、HcPost 和 norm 的数值；通过后再以每个历史批次 1.386 ms 的替代预算决定是否计时。 M03 与已接受的 CP、slot、CPU plan 组合需固定优化基线和候选接入；独立 C8 的收益只计入已通过的指标。",
+          "next": "对 QLI 与 CP、slot、CPU plan 的组合按匹配基线作增量裁决。末层共享专家保留时复用逐请求预算。",
           "stop": "Stop the scored FFN variant and standalone low-value first-layer / empty-group Attention shortcuts. Preserve branch prerequisites: sequential BF16 collapse, immutable external premix, both norm planes, coefficient lifetime, Engram update, auxiliary mean, and all rank collective obligations. Reopen a rejected implementation only for a distinct mechanism with material additional scope.",
           "eager_expert_input_frontier": "For four archived prefills, all 160 EP16 generations bound by source/receiver counts and local native tasks. Within each carrier the DP-crossing count interval width divided by its floor is 2.875%, 0.371%, 0.731%, 430.205%. A one-arrival-per-source-token per opposite DP path can remove at least 1.371, 2.638, 2.697, 0.730 GB of logical duplicate input from this partition, before any intra-DP fanout. The archived clock bounds cannot identify the latest-exiting DP in any generation. The next Attention starts later on DP1 in every M816 transition and DP0 in every M817 transition. Checked all volumes and DP dedup bounds against 454 M3 full-route groups with 128376 assignments. No physical latency or service gain established.",
           "natural_expert_delivery": "One frozen C8 route census on 171. Four actual carriers 416/816/817/834, 160 EP16 layer calls, 61440 expert counters reconcile exactly across all sources. On natural routes, direct same-destination-rank reuse removes 3.990 GB logical cross-card input; a sibling-chip relay can replace another 3.424 GB on this boundary with local fanout. Across actual expert order the full direct reuse window needs up to 5115 live rows. Six-slot ordered return with one reducer card and original hottest-card row capacity saves 6.491 GB in the vector model. With no balance constraint, moving FP32 state between slots adds only 11.315 MB of byte savings vs the best single reducer. Diagnostic texts and six counters match and stock service restored. No production speedup measured.",
@@ -2159,6 +2167,18 @@
             {
               "path": "full-review/TERMINAL-NUMERIC-REPAIR-BUDGET.json",
               "sha256": "c2bfe7fc37e9c7f86bf8f8a64adeac01ed8ef01de2b912ab5704f9ee17972b54"
+            },
+            {
+              "path": "full-review/runs/terminal-readers-c8-e41833521353-launch.json",
+              "sha256": "85a4feed5476aec6d45b1e182f4e8d6ebb081c73fcc2314627504c484ee300a2"
+            },
+            {
+              "path": "full-review/TERMINAL-GUARD-BUDGETS.json",
+              "sha256": "113aa8d3167371f399e3292c9ca7dc1c0a243bf8e89f20986dc78815dc4de01d"
+            },
+            {
+              "path": "full-review/TERMINAL-DENSE-COEFFICIENT-SHADOW.json",
+              "sha256": "469d2bfa42e52772655d7a886917bce4d6738bfac93aba93d90dbe0770b88f6e"
             }
           ],
           "dependent_decisions": [
@@ -2166,7 +2186,7 @@
             "Producer writes consumer layout",
             "Safe shared banks and delayed publication"
           ],
-          "next": "模型输出值已在真实 C8 大组验证，紧凑 FFN 的低 M 算术、实际有效位与专家协作及其他分支继续核验。",
+          "next": "原系数下已检查读出和两个替换对照。实际接入仍需核对 head 所见向量、aux 与原始状态的外部读者。",
           "stop": "Missing fields do not establish independence;equalshape/pointer does not establish valueidentity. Do not instrument every tinyview.",
           "selected_kv_scope": "Source-bound fanout and working sets in four archived eager bodies; physical retention and page reuse are unresolved.",
           "cross_layer_reader_disposition": "2560 prefill Attention HcPre entries with external premix and verified TP8 gather/late coefficient readers. Fixed-peer, free-HcPre slow-request upper ms: layer0 0.659, Engram layers 1.492, aux 2.090, direct predecessor FFNPost 24.442; receiver-only empty DP at M416 0.0.",
@@ -2193,7 +2213,7 @@
             "M10",
             "M11"
           ],
-          "status": "DENSE_COEFFICIENT_AND_ROUTING_REPAIR_CONDITIONAL_BUDGET",
+          "status": "DENSE_COEFFICIENT_AND_ROUTING_NATIVE_DISPOSITION",
           "evidence": [
             {
               "path": "full-review/ORDERED-MODULE-VALUE-LEDGER.json",
@@ -2319,13 +2339,29 @@
             {
               "path": "full-review/TERMINAL-NUMERIC-REPAIR-BUDGET.json",
               "sha256": "c2bfe7fc37e9c7f86bf8f8a64adeac01ed8ef01de2b912ab5704f9ee17972b54"
+            },
+            {
+              "path": "full-review/runs/terminal-readers-c8-e41833521353-launch.json",
+              "sha256": "85a4feed5476aec6d45b1e182f4e8d6ebb081c73fcc2314627504c484ee300a2"
+            },
+            {
+              "path": "full-review/TERMINAL-GUARD-BUDGETS.json",
+              "sha256": "113aa8d3167371f399e3292c9ca7dc1c0a243bf8e89f20986dc78815dc4de01d"
+            },
+            {
+              "path": "full-review/TERMINAL-DENSE-COEFFICIENT-SHADOW.json",
+              "sha256": "469d2bfa42e52772655d7a886917bce4d6738bfac93aba93d90dbe0770b88f6e"
+            },
+            {
+              "path": "full-review/FUSION-PRIORITY.json",
+              "sha256": "5f4667b8885d772dbc4887b4c2ffca02b00172d7caf7924a0e3b6a1f7345d3e2"
             }
           ],
           "dependent_decisions": [
             "Elimination/sharing/fusion/splitting beyond current operator boundaries",
             "Conditional/multioutput/partial fusion and alternatives"
           ],
-          "next": "M06–M08 先用原版 mHC 系数和路由权重复核紧凑专家返回、HcPost 和 norm 的数值；通过后再以每个历史批次 1.386 ms 的替代预算决定是否计时。",
+          "next": "先用已通过 26→1 批量 slot 的基线核对四层 QLI 是否仍命中、局部提前能否传到最慢请求。历史三次计时各需约 126–127 ms，按另一配置约 1.23 ms 的单步实测，完全传递时相当于约 103 步。末层 FFN 暂缓独立实验；EP16 仅在能定价的具体关键区间重新进入深查。",
           "stop": "Native agreement on selected inputs is not a proof for every legal branch;do not run one probe per syntacticif.",
           "OA_exact_Q_service_decision": "19 exact-Q OA family completed on 171, 600/600 observed candidate group-layer entries selected. Frozen C8 passing endpoints: none. 96 exact output texts with matching load counters. Each arm uses the same allocated 2.5 GiB per worker. 12160 zero-mismatch rank/layer/shape checks.",
           "external_premix_FFN_disposition": "Deferred full HcPre after router score in real eager FFN. 600/600 group-layer entries hit in three timed candidates, 10390732800 natural Y words matched across two diagnostic cases, 88/88 archived texts with fixed counters. Neither TTFT nor makespan passed its frozen bracketed C8 gate. Do not repeat the same schedule.",
@@ -2494,6 +2530,18 @@
             {
               "path": "full-review/TERMINAL-NUMERIC-REPAIR-BUDGET.json",
               "sha256": "c2bfe7fc37e9c7f86bf8f8a64adeac01ed8ef01de2b912ab5704f9ee17972b54"
+            },
+            {
+              "path": "full-review/runs/terminal-readers-c8-e41833521353-launch.json",
+              "sha256": "85a4feed5476aec6d45b1e182f4e8d6ebb081c73fcc2314627504c484ee300a2"
+            },
+            {
+              "path": "full-review/TERMINAL-GUARD-BUDGETS.json",
+              "sha256": "113aa8d3167371f399e3292c9ca7dc1c0a243bf8e89f20986dc78815dc4de01d"
+            },
+            {
+              "path": "full-review/TERMINAL-DENSE-COEFFICIENT-SHADOW.json",
+              "sha256": "469d2bfa42e52772655d7a886917bce4d6738bfac93aba93d90dbe0770b88f6e"
             }
           ],
           "dependent_decisions": [
@@ -2513,8 +2561,7 @@
       ],
       "new_NPU_work": true,
       "service_actions": [
-        "qli-membership-scoped-frontier-65a31aada2ad",
-        "qli-membership-scoped-timing-627403ffa3b3"
+        "terminal-readers-c8-e41833521353"
       ],
       "overall_complete": false,
       "numeric_model_ceiling": null,
