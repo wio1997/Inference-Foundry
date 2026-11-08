@@ -1,0 +1,2072 @@
+{
+  "source_contract": {
+    "model_config_sha256": "43d3b2bc55626893d59275b32e04068c0fc916f5c382eb91de73bdbade9c88f7",
+    "files": {
+      "sparse_flash_mla.cpp": "9f0a013978559209e4e4bf6772d6465b55ce40e989b8337416e56b486a320d91",
+      "sparse_flash_mla_csa_kernel.h": "e6457adc513a10d5c11a8c3c4022b35718fd9a0f8cc51aeb87329fbc1f3010d3",
+      "sparse_flash_mla_csa_block_cube.h": "55210741e16d8cc455215849c73e2c06db10f23efeb73ca87b4a16847339ccc3",
+      "sparse_flash_mla_csa_block_vector.h": "685190e19519b9a44da7fa95832c06e4b41849577488f4efd0d2df80e1158757",
+      "sparse_flash_mla_tiling.cpp": "8f4fe80a67dc1d71dfa2c6caba86f99bec001f2c17a58692e0d44dce8729a241",
+      "sparse_flash_mla_tiling.h": "de63da101eefdf0d88927f56cd519d1d291feb2c83093ac595abdee5e86e46c2"
+    },
+    "proof_lines": {
+      "sparse_flash_mla_tiling.cpp": [
+        770,
+        2280,
+        2485,
+        2491
+      ],
+      "sparse_flash_mla_csa_kernel.h": [
+        427,
+        540,
+        557,
+        815,
+        837,
+        895
+      ],
+      "sparse_flash_mla_csa_block_cube.h": [
+        324,
+        735,
+        846
+      ],
+      "sparse_flash_mla_csa_block_vector.h": [
+        207,
+        219,
+        488,
+        889,
+        903,
+        915,
+        934,
+        951
+      ]
+    },
+    "G": 64,
+    "kv_heads": 1,
+    "base_keys": 512,
+    "preload_slots": 2,
+    "ub_allocations_without_optional_lse_bytes": {
+      "input1": 65536,
+      "input2": 32768,
+      "output1": 32768,
+      "temporary": 32768,
+      "valid": 8192,
+      "max_exp_sum": 6144,
+      "default_max_sum": 2048,
+      "sinks": 512,
+      "broadcast_sinks": 12288
+    },
+    "max_user_UB_bytes_per_vector": 196352,
+    "remaining_UB_before_optional_runtime_reserve_bytes": 3328,
+    "UB_for_32_FP32_output_heads_bytes": 65536,
+    "first_partial_eliminated_bytes_per_two_tile_query": 262144,
+    "probability_publication_bytes_per_query_key": 256,
+    "stock_global_score_write_and_read_bytes_per_query_key": 512,
+    "SDK_UB_to_L1": {
+      "scope": "171 reproduction container CANN 9.2 dav_c220 headers, read via the target container filesystem. No workload or service change.",
+      "toolkit": "/usr/local/Ascend/cann-9.2.0/aarch64-linux/asc",
+      "files": {
+        "impl/basic_api/dav_c220/kernel_operator_data_copy_impl.h": {
+          "sha256": "c1467bd9edd9597bbcffe382585cc6a5f98581d367c2f9b86a3ac59cccda0214",
+          "evidence_lines": [
+            136,
+            142,
+            147,
+            162,
+            168,
+            184,
+            185,
+            192,
+            232,
+            239
+          ]
+        },
+        "impl/basic_api/dav_c220/kernel_operator_scm_data_copy_impl.h": {
+          "sha256": "d6de974d869dd705be6cd06a8241e66ec90836edabde238b1f5d30325b36fa6b",
+          "evidence_lines": [
+            42,
+            65,
+            66,
+            69,
+            90
+          ]
+        }
+      },
+      "interpretation": "Both regular AIV UB-to-L1 and its ND-to-NZ API stage through GM, then ask the Matmul service to move the staging data into AIC L1. The API name alone cannot be credited with eliminating the probability or KV GM panel.",
+      "public_API_reference": "https://www.hiascend.com/document/detail/en/CANNCommunityEdition/850/API/ascendcopapi/atlasascendc_api_07_0104.html",
+      "implementations_measured": 0
+    },
+    "first_partial": "G=64, CSA, first nonfinal tile in !HEAD_RATIO_ONE. Preserve the Cube FP32 store, point it at the first partial bank, and retain the later rescaled read. Remove precisely the intervening identity read and write. Ring-slot address/layout, synchronization and retirement remain conditions.",
+    "probabilities": "Counterfactual only for a different handoff. The checked TSCM API stages via GM and removes neither logical access. An actual new handoff must eliminate the BF16 Vector-to-Cube GM write/read. The current PV already retains the left operand across its four output-column chunks. No credit for FP32 scores, partial-output handoff, shared KV, or the four existing column reuses in this component."
+  },
+  "eager_rank_layer_slots": {
+    "(True, 0)": 92,
+    "(True, 2)": 828,
+    "(True, 1)": 920,
+    "(False, 0)": 720
+  },
+  "reference_ms": {
+    "TTFT_P90": 1491.854839,
+    "makespan": 18590.769232
+  },
+  "two_way_reference_GB_s": 2405.3037563488215,
+  "shape_geometry": {
+    "graph_template_rank_windows": 128,
+    "eager_rank_windows": 64,
+    "active_graph_waves": 223,
+    "full_graph_waves": 213
+  },
+  "cases": {
+    "partial_half": {
+      "assumptions": {
+        "name": "partial_half",
+        "fold": true,
+        "probability": false,
+        "gather": false,
+        "selected": 256,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          5.924796082151488,
+          5.925776954523144,
+          5.936784522249354
+        ],
+        "makespan": [
+          7.247992911492474,
+          7.311095700733858,
+          7.322103268459614
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.005683530108000641,
+              0.005704641032875591
+            ],
+            "response_pct": [
+              0.003831007808654441,
+              0.00717977980152696
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.06824008981109256,
+              0.0684935610485254
+            ],
+            "response_pct": [
+              0.009600002605567495,
+              0.018217421370367047
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.1270963731516481,
+              0.12742620803006935
+            ],
+            "response_pct": [
+              0.07820039381203824,
+              0.08225923778152121
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.13789980123943804,
+              0.1382576726959418
+            ],
+            "response_pct": [
+              0.08100237790180603,
+              0.08520665357144998
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.11833328302959231,
+              0.11877282060584747
+            ],
+            "response_pct": [
+              0.00410946804199198,
+              0.019238009079783343
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.11773045748946764,
+              0.11816775592834719
+            ],
+            "response_pct": [
+              0.005694783982428759,
+              0.027061387855420862
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.025001864524356928,
+              0.025045161961478185
+            ],
+            "response_pct": [
+              0.018159896541155726,
+              0.0209797996600152
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.208322075429291,
+              0.20868284100151793
+            ],
+            "response_pct": [
+              0.05367066294785729,
+              0.06141609246698235
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.12200906517729249,
+              0.12246225609210698
+            ],
+            "response_pct": [
+              0.008764546221935988,
+              0.030033853603274673
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.08953712164897974,
+              0.0898696986588191
+            ],
+            "response_pct": [
+              0.007997299284751227,
+              0.027780960825320302
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.14787736762498857,
+              0.14826113241986316
+            ],
+            "response_pct": [
+              0.061827676966123464,
+              0.06808532247221039
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.13587997717922848,
+              0.13623260687779054
+            ],
+            "response_pct": [
+              0.05807087838869104,
+              0.06394829428097207
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "partial_full": {
+      "assumptions": {
+        "name": "partial_full",
+        "fold": true,
+        "probability": false,
+        "gather": false,
+        "selected": 256,
+        "exposure": 1,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          11.849592164303203,
+          11.85154296577025,
+          11.873569044498709
+        ],
+        "makespan": [
+          14.49598582298131,
+          14.622180458190996,
+          14.644206536919228
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.011367060216001283,
+              0.011409282065751182
+            ],
+            "response_pct": [
+              0.007662015617308882,
+              0.01435955960305392
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.13648017962218512,
+              0.1369871220970508
+            ],
+            "response_pct": [
+              0.01920000521113499,
+              0.036434842740734094
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.2541927463032962,
+              0.2548524160601387
+            ],
+            "response_pct": [
+              0.15640078762407647,
+              0.16451847556304242
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.2757996024788761,
+              0.2765153453918836
+            ],
+            "response_pct": [
+              0.16200475580361207,
+              0.17041330714289996
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.23666656605918462,
+              0.23754564121169494
+            ],
+            "response_pct": [
+              0.00821893608398396,
+              0.03847601815956669
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.2354609149789353,
+              0.23633551185669438
+            ],
+            "response_pct": [
+              0.011389567964857518,
+              0.054122775710841724
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.050003729048713856,
+              0.05009032392295637
+            ],
+            "response_pct": [
+              0.03631979308231145,
+              0.0419595993200304
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.416644150858582,
+              0.41736568200303586
+            ],
+            "response_pct": [
+              0.10734132589571457,
+              0.1228321849339647
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.24401813035458497,
+              0.24492451218421396
+            ],
+            "response_pct": [
+              0.017529092443871977,
+              0.060067707206549345
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.17907424329795948,
+              0.1797393973176382
+            ],
+            "response_pct": [
+              0.015994598569502454,
+              0.055561921650640604
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.29575473524997714,
+              0.2965222648397263
+            ],
+            "response_pct": [
+              0.12365535393224693,
+              0.13617064494442077
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.27175995435845696,
+              0.2724652137555811
+            ],
+            "response_pct": [
+              0.11614175677738207,
+              0.12789658856194414
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "partial_half_rate": {
+      "assumptions": {
+        "name": "partial_half_rate",
+        "fold": true,
+        "probability": false,
+        "gather": false,
+        "selected": 256,
+        "exposure": 0.5,
+        "rate_multiple": 0.5,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          11.849592164303203,
+          11.85154296577025,
+          11.873569044498709
+        ],
+        "makespan": [
+          14.49598582298131,
+          14.622180458190996,
+          14.644206536919228
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.011367060216001283,
+              0.011409282065751182
+            ],
+            "response_pct": [
+              0.007662015617308882,
+              0.01435955960305392
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.13648017962218512,
+              0.1369871220970508
+            ],
+            "response_pct": [
+              0.01920000521113499,
+              0.036434842740734094
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.2541927463032962,
+              0.2548524160601387
+            ],
+            "response_pct": [
+              0.15640078762407647,
+              0.16451847556304242
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.2757996024788761,
+              0.2765153453918836
+            ],
+            "response_pct": [
+              0.16200475580361207,
+              0.17041330714289996
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.23666656605918462,
+              0.23754564121169494
+            ],
+            "response_pct": [
+              0.00821893608398396,
+              0.03847601815956669
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.2354609149789353,
+              0.23633551185669438
+            ],
+            "response_pct": [
+              0.011389567964857518,
+              0.054122775710841724
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.050003729048713856,
+              0.05009032392295637
+            ],
+            "response_pct": [
+              0.03631979308231145,
+              0.0419595993200304
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.416644150858582,
+              0.41736568200303586
+            ],
+            "response_pct": [
+              0.10734132589571457,
+              0.1228321849339647
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.24401813035458497,
+              0.24492451218421396
+            ],
+            "response_pct": [
+              0.017529092443871977,
+              0.060067707206549345
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.17907424329795948,
+              0.1797393973176382
+            ],
+            "response_pct": [
+              0.015994598569502454,
+              0.055561921650640604
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.29575473524997714,
+              0.2965222648397263
+            ],
+            "response_pct": [
+              0.12365535393224693,
+              0.13617064494442077
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.27175995435845696,
+              0.2724652137555811
+            ],
+            "response_pct": [
+              0.11614175677738207,
+              0.12789658856194414
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "probabilities": {
+      "assumptions": {
+        "name": "probabilities",
+        "fold": false,
+        "probability": true,
+        "gather": false,
+        "selected": 256,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          1.6663488981050705,
+          1.6666247684597693,
+          1.6697206468827517
+        ],
+        "makespan": [
+          2.0384980063572584,
+          2.0562456658299197,
+          2.059341544252675
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.0004746659514852218,
+              0.00160443029049626
+            ],
+            "response_pct": [
+              0.0003199506173253951,
+              0.002019313069179456
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.005699142354154585,
+              0.01926381404489777
+            ],
+            "response_pct": [
+              0.0008017542415439578,
+              0.005123649760415728
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.014342556173223778,
+              0.03583862100845699
+            ],
+            "response_pct": [
+              0.008824748599860701,
+              0.023135410626052833
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.015561700121789724,
+              0.03888497044573362
+            ],
+            "response_pct": [
+              0.009140946562142625,
+              0.0239643713169703
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.00988272769111284,
+              0.0334048557953946
+            ],
+            "response_pct": [
+              0.0003432065144696537,
+              0.005410690053689063
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.009832382086682932,
+              0.033234681354847646
+            ],
+            "response_pct": [
+              0.0004756058305589331,
+              0.007611015334337114
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.0037205105764999964,
+              0.007043951801665745
+            ],
+            "response_pct": [
+              0.0027023619411941997,
+              0.005900568654379277
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.031000267367981133,
+              0.058692049031676956
+            ],
+            "response_pct": [
+              0.0079866951103082,
+              0.01727327600633879
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.01018971447528319,
+              0.03444250952590509
+            ],
+            "response_pct": [
+              0.0007319802293147247,
+              0.008447021325921
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.007477786205607309,
+              0.02527585274779287
+            ],
+            "response_pct": [
+              0.0006679028002270762,
+              0.007813395232121332
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.016687647328686654,
+              0.0416984434930865
+            ],
+            "response_pct": [
+              0.00697712222589147,
+              0.019148996945309162
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.015333767260094144,
+              0.03831542068437857
+            ],
+            "response_pct": [
+              0.0065531754735791824,
+              0.017985457766523386
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "stock_TSCM_probability_credit": {
+      "assumptions": {
+        "name": "stock_TSCM_probability_credit",
+        "fold": false,
+        "probability": true,
+        "gather": false,
+        "selected": 256,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 1.0
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "makespan": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "gather": {
+      "assumptions": {
+        "name": "gather",
+        "fold": false,
+        "probability": false,
+        "gather": true,
+        "selected": 256,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          11.849592164303203,
+          11.85154296577025,
+          11.873569044498709
+        ],
+        "makespan": [
+          14.49598582298131,
+          14.622180458190996,
+          14.644206536919228
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.0021884992120365667,
+              0.011409282065751182
+            ],
+            "response_pct": [
+              0.0014751672659820863,
+              0.01435955960305392
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.0262765182805404,
+              0.1369871220970508
+            ],
+            "response_pct": [
+              0.003696575497727807,
+              0.036434842740734094
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.06977725568600839,
+              0.2548524160601387
+            ],
+            "response_pct": [
+              0.04293284488345278,
+              0.16451847556304242
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.07570845218889892,
+              0.2765153453918836
+            ],
+            "response_pct": [
+              0.04447116384104076,
+              0.17041330714289996
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.04556539540512162,
+              0.23754564121169494
+            ],
+            "response_pct": [
+              0.0015823911197600162,
+              0.03847601815956669
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.04533327149718257,
+              0.23633551185669438
+            ],
+            "response_pct": [
+              0.002192832627158908,
+              0.054122775710841724
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.020444546175277984,
+              0.05009032392295637
+            ],
+            "response_pct": [
+              0.014849726227907341,
+              0.0419595993200304
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.17034930680048668,
+              0.41736568200303586
+            ],
+            "response_pct": [
+              0.0438876206942999,
+              0.1228321849339647
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.04698079150244075,
+              0.24492451218421396
+            ],
+            "response_pct": [
+              0.0033748747936715976,
+              0.060067707206549345
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.03447715002001574,
+              0.1797393973176382
+            ],
+            "response_pct": [
+              0.0030794388083668586,
+              0.055561921650640604
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.08118624186569784,
+              0.2965222648397263
+            ],
+            "response_pct": [
+              0.033944049835234705,
+              0.13617064494442077
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.07459954737599894,
+              0.2724652137555811
+            ],
+            "response_pct": [
+              0.03188152760585875,
+              0.12789658856194414
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "gather_and_partial": {
+      "assumptions": {
+        "name": "gather_and_partial",
+        "fold": true,
+        "probability": false,
+        "gather": true,
+        "selected": 256,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          17.77438824645469,
+          17.777101948655172,
+          17.810353566748063
+        ],
+        "makespan": [
+          21.743978734473785,
+          21.933058187285496,
+          21.96630980537884
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.00787202932003721,
+              0.017113923098626794
+            ],
+            "response_pct": [
+              0.0053061750746365285,
+              0.02153933940458088
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.09451660809163297,
+              0.20548068314557644
+            ],
+            "response_pct": [
+              0.013296578103295303,
+              0.05465226411110115
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.1968736288376565,
+              0.38227862409020835
+            ],
+            "response_pct": [
+              0.12113323869549104,
+              0.24677771334456378
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.213608253428337,
+              0.41477301808782574
+            ],
+            "response_pct": [
+              0.12547354174284683,
+              0.25561996071435006
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.16389867843471395,
+              0.35631846181754284
+            ],
+            "response_pct": [
+              0.005691859161751997,
+              0.05771402723935004
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.16306372898665022,
+              0.354503267785042
+            ],
+            "response_pct": [
+              0.007887616609587669,
+              0.0811841635662626
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.04544641069963494,
+              0.07513548588443457
+            ],
+            "response_pct": [
+              0.033009622769063086,
+              0.0629393989800456
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.3786713822297779,
+              0.6260485230045538
+            ],
+            "response_pct": [
+              0.09755828364215724,
+              0.18424827740094707
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.16898985667973324,
+              0.3673867682763214
+            ],
+            "response_pct": [
+              0.012139421015607587,
+              0.09010156080982397
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.1240142716689955,
+              0.2696090959764576
+            ],
+            "response_pct": [
+              0.011076738093118087,
+              0.08334288247596087
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.22906360949068647,
+              0.4447833972595898
+            ],
+            "response_pct": [
+              0.09577172680135819,
+              0.20425596741663127
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.21047952455522745,
+              0.4086978206333719
+            ],
+            "response_pct": [
+              0.0899524059945498,
+              0.19184488284291634
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "gather_and_partial_128": {
+      "assumptions": {
+        "name": "gather_and_partial_128",
+        "fold": true,
+        "probability": false,
+        "gather": true,
+        "selected": 128,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          11.849592164303203,
+          11.85154296577025,
+          11.873569044498709
+        ],
+        "makespan": [
+          14.49598582298131,
+          14.622180458190996,
+          14.644206536919228
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.00787202932003721,
+              0.011409282065751182
+            ],
+            "response_pct": [
+              0.0053061750746365285,
+              0.01435955960305392
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.09451660809163297,
+              0.1369871220970508
+            ],
+            "response_pct": [
+              0.013296578103295303,
+              0.036434842740734094
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.19246437785876164,
+              0.2548524160601387
+            ],
+            "response_pct": [
+              0.1184202961117221,
+              0.16451847556304242
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.2088242079160476,
+              0.2765153453918836
+            ],
+            "response_pct": [
+              0.12266339220671335,
+              0.17041330714289996
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.16389867843471395,
+              0.23754564121169494
+            ],
+            "response_pct": [
+              0.005691859161751997,
+              0.03847601815956669
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.16306372898665022,
+              0.23633551185669438
+            ],
+            "response_pct": [
+              0.007887616609587669,
+              0.054122775710841724
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.04145007980409069,
+              0.05009032392295637
+            ],
+            "response_pct": [
+              0.03010692103109443,
+              0.0419595993200304
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.34537290781196295,
+              0.41736568200303586
+            ],
+            "response_pct": [
+              0.08897949431570877,
+              0.1228321849339647
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.16898985667973324,
+              0.24492451218421396
+            ],
+            "response_pct": [
+              0.012139421015607587,
+              0.060067707206549345
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.1240142716689955,
+              0.1797393973176382
+            ],
+            "response_pct": [
+              0.011076738093118087,
+              0.055561921650640604
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.22393342039253736,
+              0.2965222648397263
+            ],
+            "response_pct": [
+              0.09362678955078535,
+              0.13617064494442077
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.20576555115431178,
+              0.2724652137555811
+            ],
+            "response_pct": [
+              0.08793780029785452,
+              0.12789658856194414
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "gather_and_partial_512": {
+      "assumptions": {
+        "name": "gather_and_partial_512",
+        "fold": true,
+        "probability": false,
+        "gather": true,
+        "selected": 512,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          29.623980410757895,
+          29.628219914425472,
+          29.683922611247
+        ],
+        "makespan": [
+          36.239964557455096,
+          36.554813645478134,
+          36.61051634229807
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.00787202932003721,
+              0.02779487825619214
+            ],
+            "response_pct": [
+              0.0053061750746365285,
+              0.03540796713615841
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.09451660809163297,
+              0.333723047551193
+            ],
+            "response_pct": [
+              0.013296578103295303,
+              0.0898568960350672
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.1968736288376565,
+              0.6371310401503464
+            ],
+            "response_pct": [
+              0.12113323869549104,
+              0.41129618890760583
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.213608253428337,
+              0.6912883634797087
+            ],
+            "response_pct": [
+              0.12547354174284683,
+              0.42603326785724965
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.16389867843471395,
+              0.5784802878603053
+            ],
+            "response_pct": [
+              0.005691859161751997,
+              0.09565579759320988
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.16306372898665022,
+              0.5755333342809505
+            ],
+            "response_pct": [
+              0.007887616609587669,
+              0.13456659385635925
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.04551068033286182,
+              0.12522580980739093
+            ],
+            "response_pct": [
+              0.0330563044831009,
+              0.10489899830007594
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.37920689362605237,
+              1.0434142050075896
+            ],
+            "response_pct": [
+              0.09769624910546666,
+              0.3070804623349117
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.16898985667973324,
+              0.5966761938994329
+            ],
+            "response_pct": [
+              0.012139421015607587,
+              0.14904611836638934
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.1240142716689955,
+              0.4378745864546366
+            ],
+            "response_pct": [
+              0.011076738093118087,
+              0.13787997481256298
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.22906360949068647,
+              0.7413056620993154
+            ],
+            "response_pct": [
+              0.09577172680135819,
+              0.3404266123610517
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.21047952455522745,
+              0.6811630343889522
+            ],
+            "response_pct": [
+              0.0899524059945498,
+              0.31974147140486014
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "unproven_alternate_three": {
+      "assumptions": {
+        "name": "unproven_alternate_three",
+        "fold": true,
+        "probability": true,
+        "gather": true,
+        "selected": 256,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          19.44073714455999,
+          19.4436654125916,
+          19.480074213630814
+        ],
+        "makespan": [
+          23.782476740831044,
+          23.98924254859594,
+          24.025651349635154
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.00834669527152243,
+              0.018718353389123046
+            ],
+            "response_pct": [
+              0.005626125691961923,
+              0.023558652473760332
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.10021575044578754,
+              0.22474449719047412
+            ],
+            "response_pct": [
+              0.01409833234483926,
+              0.059775913871516866
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.2112161850108803,
+              0.41811724509866477
+            ],
+            "response_pct": [
+              0.12995798729535174,
+              0.2699131239706163
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.22916995355012673,
+              0.4536579885335588
+            ],
+            "response_pct": [
+              0.13461448830498945,
+              0.27958433203132005
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.17378140612582677,
+              0.38972331761293727
+            ],
+            "response_pct": [
+              0.006035065676221651,
+              0.06312471729303906
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.17289611107333316,
+              0.38773794913988946
+            ],
+            "response_pct": [
+              0.008363222440146601,
+              0.08879517890059967
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.04916692127613496,
+              0.08217943768610037
+            ],
+            "response_pct": [
+              0.035711984710257307,
+              0.0688399676344249
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.4096716495977592,
+              0.6847405720362312
+            ],
+            "response_pct": [
+              0.10554497875246549,
+              0.20152155340728597
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.17917957115501643,
+              0.4018292778022263
+            ],
+            "response_pct": [
+              0.012871401244922311,
+              0.09854858213574501
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.1314920578746028,
+              0.29488494872425036
+            ],
+            "response_pct": [
+              0.011744640893345162,
+              0.09115627770808224
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.24575125681937313,
+              0.4864818407526757
+            ],
+            "response_pct": [
+              0.10274884902724966,
+              0.22340496436194016
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.22581329181532162,
+              0.4470132413177499
+            ],
+            "response_pct": [
+              0.09650558146812899,
+              0.20983034060943948
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    },
+    "empty_partial": {
+      "assumptions": {
+        "name": "empty_partial",
+        "fold": true,
+        "probability": false,
+        "gather": false,
+        "selected": 0,
+        "exposure": 0.5,
+        "rate_multiple": 1.0,
+        "extra_ns_per_query": 0.0,
+        "probability_delivery_fraction": 0.25
+      },
+      "C8_saved_ms": {
+        "TTFT_P90": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "makespan": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "ordinary_two_stock_runs": {
+        "chat-single": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 37
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 38
+          }
+        ],
+        "code-single": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 3
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 3
+          }
+        ],
+        "chat-mixed": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 66
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 69
+          }
+        ],
+        "code-mixed": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 14
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 13
+          }
+        ],
+        "chat-return": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 43
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 45
+          }
+        ],
+        "code-return": [
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 6
+          },
+          {
+            "prompt_pct": [
+              0.0,
+              0.0
+            ],
+            "response_pct": [
+              0.0,
+              0.0
+            ],
+            "steps": 6
+          }
+        ]
+      }
+    }
+  },
+  "hypothetical_only": [
+    "probabilities",
+    "unproven_alternate_three"
+  ],
+  "clock_columns": [
+    "lower",
+    "aligned",
+    "upper"
+  ],
+  "numeric_model_ceiling": null,
+  "overall_complete": false,
+  "new_inference_runs": 0,
+  "branches": {
+    "G64_first_nonfinal": "Direct first FP32 store to the partial-result bank, conditional on generation-safe reuse and compatible Fixpipe output.",
+    "G64_first_final": "One active tile. No first-partial identity spill and no saving.",
+    "G64_later_final": "Retain read of the previous FP32 partial, online-softmax rescaling, addition, division and final output.",
+    "SWA_only_or_empty_compressed": "No two-tile first-partial credit.",
+    "other_splits_head_ratios_draft": "No extrapolation from the checked architecture and dispatch.",
+    "TSCM_probabilities": "Confirmed staging through GM on this SDK. No removed GM pair via this interface."
+  },
+  "joint_gates": {
+    "lower": {
+      "first_uniform_selected_count_for_1pct": 195,
+      "extra_exposed_ns_per_nonempty_query_to_lose_1pct_bracket": [
+        26.25,
+        26.3125
+      ]
+    },
+    "upper": {
+      "first_uniform_selected_count_for_1pct": 194,
+      "extra_exposed_ns_per_nonempty_query_to_lose_1pct_bracket": [
+        26.5,
+        26.5625
+      ]
+    }
+  },
+  "partial_net_fraction_of_full_time_for_one_percent": {
+    "TTFT_P90": [
+      1.2589925613593693,
+      1.2587853272006784,
+      1.2564502159451458
+    ],
+    "makespan": [
+      12.824770566846855,
+      12.714088220396633,
+      12.694965196735765
+    ]
+  },
+  "limits": [
+    "Every nonempty query in an admitted compressed layer is assumed to have one 128-position SWA tile and one compressed tile of the indicated size in frozen C8. This is a conditional geometry; empty compressed rows are excluded from the first-partial credit. Flash-decode split work, alternate layouts, the two SWA-only layers and draft get no credit.",
+    "The original QK/PV arithmetic for both tiles stays. One shared arithmetic floor caps joint net traffic time before the exposure factor is applied. A lower bandwidth is a sensitivity of these traffic terms, not a new measurement. A shorter original SWA window and alignment can change probability traffic. No speed assigned to skipping vector instructions or flags.",
+    "The host source for DAV_2201 generates FLASH_DECODE=0 in this path. Data, dt/shape and task order are traced; effective selected lengths, accepted replacement tile transfer and generated machine code are not measured. The filtered FP32 copy may be redirected only with exact bank generation, alignment, fences and FP32 payload preserved.",
+    "Ordinary request results project position-dependent bounds to the local batch and use two original service references. Per-shape timing, filled rows, propagation, and branches whose verification coincides with another request may differ. Timing intervals are scenario outputs, not confidence intervals."
+  ],
+  "sources": {
+    "full-review/runs/smla-arch22-source-pins-171.json": "a5f5cae7e617ba9bf286eef39f540f3f695c930b407c5fd0cbf04d2eb30c31c6",
+    "full-review/INDEXER-ATTENTION-DELIVERY.json": "b5146eb7b27da84de2c54d0e19fda6bba52987bbe6c1440e3c102991263ed3f2",
+    "full-review/runs/smla-cann92-tscm-routing.json": "5195227e2ac50eaaa12deaf3c64678bd785e0aad43496b337ce5d10dafdd614c",
+    "full-review/JOINT-ATTENTION-FUSION-FRONTIERS.json": "5b98c424b9e655e3b85d952d306a69318ac57f43b01624cd7ffcbf0ed24a0a0b",
+    "full-review/SPARSE-SELECTION-DELIVERY-ESTIMATES.json": "a173949eb5f21f03106448dc43f1d7beb0a8d327e45662d716cfe3fd54c9ef07",
+    "full-review/runs/first-token-v168-protocol-bodies.json": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de",
+    "full-review/GRAPH-REQUEST-PREFIX-BUDGETS.json": "9794e03363db44e832bb2830d886b3e0d27bfbc9c6cc5afe63b14ce1e58cca82",
+    "full-review/ORDINARY-TERMINAL-ROW-ESTIMATES.json": "42f9504b4b447bf5ea13e67615fabe05888fff44410e386e1a5d3cd0a826f542",
+    "full-review/ORDINARY-SERVING-GUARDS.json": "45ebb28aac22c3d28870ec132f4cb6fe8fec5dac620f710330680c5030a3b101",
+    ".cache/v168-pinned-replay-spans.json": "008414f0d02ebb1e14d3bd92276703713f65696e992773b86cabbf5901185f57",
+    "full-review/runs/joint168-request-endpoints.json.gz": "725c0b16b949d17402bbde4d6b80da0e676b3db91a3d939e478dad47132b222f",
+    "full-review/ORDINARY-EMBEDDING-FIXED-ROUTE.json": "0fb83c823a979ad15f57ea55bbd03116cf6fa926e6c8813177f5b2fe3b9315ed",
+    "tools/price_ordinary_embedding_paths.py": "eabb4c83d8b740cdf61ac5d6491e58174fae4a65d145a6513fb1d58a3345b7ef",
+    "tools/price_joint_attention_frontiers.py": "be8e7132c72e146d221087c5e3f15b1d4c3e47654ec3aed274820af2ce63477d",
+    "tools/price_smla_inner_handoffs.py": "d6dd38a868229d394dd7db2df9ee7e9578426c5f2a858c1dddfdd9dc46679d14"
+  }
+}

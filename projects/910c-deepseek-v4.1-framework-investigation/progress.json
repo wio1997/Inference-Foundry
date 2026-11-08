@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-08T06:11:42.512519+00:00",
-  "source_analysis_commit": "7437c27b2fc486064ee84d8a616ee66274570c8a",
+  "updated_at_utc": "2026-11-08T06:35:15.796556+00:00",
+  "source_analysis_commit": "a8de93dbff7ebbdee9a6590307104cabf528bfde",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "全模型融合边界对账；两批热点签名与目标 tiling 直接等待、已绑定提交分量已复核",
+  "active_module": "M03 压缩 Attention 的滑窗 PV 首段写入、概率和压缩 KV 交付已估值",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "沿 12 个模块的实际顺序，继续把条件分支与已计价的具体生产者、读者和消除项对账。优先核对跨越同类型统计、在普通请求或长提示确有临界预算的分支组合。对已有同布局结论或整组收益过小的变体共用一次判断。仅在出现新读者、不同可省工作或会翻转估值的已有记录时重开。",
-    "decision": "目标与 eager 两批共有 96 个达到本地 1% 参考的签名，20 种热点类型已按读者与现有证据归组。17,892 条目标 tiling 发布均早于目标主体，纯设备提前在已绑定读者处可省等待为零。即使已绑定 launch 与拷贝提交全部免费，冻结整批估算省 0.141%，普通请求最高 0.161%。该分量降级。",
+    "work": "沿执行顺序核对剩余有价值的算子边界。优先用已有 QLI 非候选生产层的原生计数与分阶段归档，判断打分与局部选择融合能否达到已有净减核时门槛。已有估值直接引用，缺计数即保留条件后转下组；仅当固定路由、放置、权重与输入后仍能指出额外可消工作才重开。",
+    "decision": "M03 压缩 Attention 已找到首段 PV 的 FP32 原样复制。按每查询 256 个有效压缩位置、50% 关键路径暴露计，首段单项约省 5.93 ms；与压缩 KV 面板一并消除时，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约 0.12%，六个普通请求整段最高约 0.256%。仅保留长提示首 token 的条件候选。已核对 SDK 概率搬运仍经过 GM。",
     "source": {
-      "path": "full-review/PROFILE-FUSION-BOUNDARY-AUDIT.json",
-      "sha256": "7c4f33619903fbefb84a31a90e4c47bedf8fe808b5e5bea9ec63ac5fe7d0eb19"
+      "path": "full-review/SMLA-INTERNAL-HANDOFF-ESTIMATES.json",
+      "sha256": "b000a89c33c3ecf923b121e221fd45209bd0a4eaf65f84838cf5f0ad6b456244"
     }
   },
   "module_statuses": [
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "96 hot signatures in two cohorts; 17,892 target tiling publications, 227 active C8 waves and six ordinary request estimates.",
+    "performance_scope": "M03 compressed attention: first-partial identity, probability staging and KV-panel net traffic. Four eager and 223 graph waves, six ordinary requests, zero new measurements.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,13 +280,13 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "热点分组复核和 SMLA/QLI 多输出 tiling 的提交收益",
+    "scope": "M03 压缩 Attention 的首段 PV、概率与 KV 交付",
     "sources": [
-      "profile-boundary-audit.md",
-      "baselines/profile-boundary-audit.json"
+      "smla-partial-handoffs.md",
+      "baselines/smla-inner-handoffs.json"
     ],
     "observations": [
-      "解码与 eager 的 96 个局部热点签名已关联实际融合边界及历史估值。17,892 次目标 tiling 产出的就绪信号均早于目标主体。合并已绑定的 launch 与拷贝 API，即使全省，冻结 C8 整批估算省 26.16 ms（0.141%），六个普通请求最高约 0.161%。"
+      "压缩 Attention 的滑窗首块会原样复制 FP32 部分结果。合并这次交付和已有的压缩 KV 面板消除后，按 256 个有效位置、50% 搬运差额暴露估算，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约省 0.12%，六个普通请求整段最高约 0.256%。仅列为长提示首 token 条件候选。"
     ],
     "new_performance_measurements": 0
   },
@@ -315,11 +315,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "profile-boundary-audit.md",
-      "result": "解码与 eager 的 96 个局部热点签名已关联实际融合边界及历史估值。17,892 次目标 tiling 产出的就绪信号均早于目标主体。合并已绑定的 launch 与拷贝 API，即使全省，冻结 C8 整批估算省 26.16 ms（0.141%），六个普通请求最高约 0.161%。"
+      "record": "smla-partial-handoffs.md",
+      "result": "压缩 Attention 的滑窗首块会原样复制 FP32 部分结果。合并这次交付和已有的压缩 KV 面板消除后，按 256 个有效位置、50% 搬运差额暴露估算，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约省 0.12%，六个普通请求整段最高约 0.256%。仅列为长提示首 token 条件候选。"
     },
-    "next": "沿 12 个模块的实际顺序，继续把条件分支与已计价的具体生产者、读者和消除项对账。优先核对跨越同类型统计、在普通请求或长提示确有临界预算的分支组合。对已有同布局结论或整组收益过小的变体共用一次判断。仅在出现新读者、不同可省工作或会翻转估值的已有记录时重开。",
-    "decision": "目标与 eager 两批共有 96 个达到本地 1% 参考的签名，20 种热点类型已按读者与现有证据归组。17,892 条目标 tiling 发布均早于目标主体，纯设备提前在已绑定读者处可省等待为零。即使已绑定 launch 与拷贝提交全部免费，冻结整批估算省 0.141%，普通请求最高 0.161%。该分量降级。",
+    "next": "沿执行顺序核对剩余有价值的算子边界。优先用已有 QLI 非候选生产层的原生计数与分阶段归档，判断打分与局部选择融合能否达到已有净减核时门槛。已有估值直接引用，缺计数即保留条件后转下组；仅当固定路由、放置、权重与输入后仍能指出额外可消工作才重开。",
+    "decision": "M03 压缩 Attention 已找到首段 PV 的 FP32 原样复制。按每查询 256 个有效压缩位置、50% 关键路径暴露计，首段单项约省 5.93 ms；与压缩 KV 面板一并消除时，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约 0.12%，六个普通请求整段最高约 0.256%。仅保留长提示首 token 的条件候选。已核对 SDK 概率搬运仍经过 GM。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
