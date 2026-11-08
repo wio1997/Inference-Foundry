@@ -1,0 +1,466 @@
+{
+  "wide_boundaries": {
+    "archived_rows": [
+      "M04-OP-10",
+      "M18-OP-05"
+    ],
+    "legacy_source_files": {
+      "all360-current-branch-rows.json": "f0bdc5f4e9acb87c82e7fa9b345441aaa51794a315530da718f07eb658f5ef88",
+      "index-context-native-chains-v64.json": "36ba1a3897f3a5fb23a90f10edbeae6b870ffa61f43c95ecca112bb3ed14ac45",
+      "embedding-initialization-fusion-costs-v67.json": "c919f810c2b7602da9a01dfa630e8248816bc6da532fcb5f048c8fafee8493c6"
+    },
+    "current_eager_rank_calls": 56,
+    "archived_graph_proxy_max_ns": 28240,
+    "ordinary_joint_sensitivity": [
+      {
+        "name": "chat-single",
+        "verifications": 37,
+        "response_ms": 1.348937184138142,
+        "response_percent_faster_reference": 0.04903878153244847
+      },
+      {
+        "name": "code-single",
+        "verifications": 3,
+        "response_ms": 0.21561829828850856,
+        "response_percent_faster_reference": 0.04620982258427953
+      },
+      {
+        "name": "chat-mixed",
+        "verifications": 68,
+        "response_ms": 2.3857034703545232,
+        "response_percent_faster_reference": 0.05144821489241022
+      },
+      {
+        "name": "code-mixed",
+        "verifications": 14,
+        "response_ms": 0.589662126680929,
+        "response_percent_faster_reference": 0.05587499341644543
+      },
+      {
+        "name": "chat-return",
+        "verifications": 47,
+        "response_ms": 1.683380668245721,
+        "response_percent_faster_reference": 0.055871247009193506
+      },
+      {
+        "name": "code-return",
+        "verifications": 4,
+        "response_ms": 0.2490626466992665,
+        "response_percent_faster_reference": 0.04074200960437055
+      }
+    ],
+    "ordinary_prompt_proxy_max_eager_ns": 97820,
+    "observed_legacy_small_M": {
+      "12": 16,
+      "24": 48
+    },
+    "C8_saved_ms": {
+      "transpose_free": {
+        "TTFT_P90": 0.40255600000000413,
+        "makespan": 6.671836000001349
+      },
+      "one_bank_copy": {
+        "TTFT_P90": 0.19544222585568605,
+        "makespan": 0.2408075730454584
+      },
+      "one_bank_plus_5us": {
+        "TTFT_P90": 0.220442225855777,
+        "makespan": 1.3758075730438577
+      },
+      "joint_free_transpose_bank_plus_5us": {
+        "TTFT_P90": 0.6229982258557811,
+        "makespan": 8.047643573045207
+      }
+    },
+    "scope": "Preserve bank address, generation, tail and external readers. One bank write/read per rank and call is hypothetical. A full 5120-channel RMS can read TP8 rank-major output while preserving reduction, scale and auxiliary outputs. Eager transpose durations are current; graph uses an old M12/M24 maximum as a proxy; ordinary prompts use the largest scheduled eager sample with one padded graph copy per verification; 5 us is assumed copy overhead. Positive savings require efficient strided loads. No native or numerical result."
+  },
+  "route_evidence": {
+    "pins": [
+      {
+        "file": "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+        "sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31"
+      },
+      {
+        "file": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+        "sha256": "fcee256905928917154d8dac94d6611bb83d02da441e8aa154a525ef51e6a601"
+      },
+      {
+        "file": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/fused_moe/prepare_finalize.py",
+        "sha256": "dff4fac292200fc06f60aef48505f1ee38314ea5adb53560b325901db308eb24"
+      }
+    ],
+    "EP0_observed_draft_types": [
+      [
+        "",
+        "vllm_ascend.models.deepseek_v41.dspark.DSparkDeepseekV41ForCausalLM"
+      ],
+      [
+        "model",
+        "vllm_ascend.models.deepseek_v41.dspark.DeepseekV41DSparkModel"
+      ]
+    ],
+    "MTP_gate": "Both hooks must be present on the inner draft model. The pinned DSpark class derives directly from torch.nn.Module and supplies neither. Scope is the archived unchanged DSpark implementation and EP0 type binding.",
+    "positive_pad_callers": {
+      "163": [
+        "PrepareAndFinalizeWithAll2All",
+        "hidden_states"
+      ],
+      "164": [
+        "PrepareAndFinalizeWithAll2All",
+        "router_logits"
+      ],
+      "297": [
+        "PrepareAndFinalizeWithMC2",
+        "hidden_states"
+      ],
+      "298": [
+        "PrepareAndFinalizeWithMC2",
+        "router_logits"
+      ]
+    }
+  },
+  "mlp": {
+    "shared_eager": [
+      [
+        [
+          "DynamicQuant",
+          "QuantBatchMatmulV3",
+          "DequantSwigluQuant",
+          "QuantBatchMatmulV3"
+        ],
+        2560
+      ]
+    ],
+    "shared_archived_graph_patterns": 2560,
+    "routed_W8A8_patterns": 4472,
+    "eager_padding_by_PadV3_MemSet": [
+      [
+        0,
+        0,
+        1280
+      ],
+      [
+        4,
+        3,
+        1280
+      ]
+    ],
+    "max_prefill_requested_pad_and_memset_ms": 0.21102000000000043
+  },
+  "head": {
+    "TP8_calls": 453,
+    "waves": 227,
+    "target_rank_calls": 3624,
+    "shapes_rows_scans_transposed": [
+      [
+        1,
+        1,
+        false,
+        8
+      ],
+      [
+        2,
+        1,
+        true,
+        8
+      ],
+      [
+        6,
+        2,
+        true,
+        32
+      ],
+      [
+        8,
+        2,
+        true,
+        8
+      ],
+      [
+        12,
+        2,
+        true,
+        80
+      ],
+      [
+        14,
+        2,
+        true,
+        8
+      ],
+      [
+        18,
+        2,
+        true,
+        48
+      ],
+      [
+        19,
+        2,
+        true,
+        8
+      ],
+      [
+        24,
+        2,
+        true,
+        3424
+      ]
+    ],
+    "reference_ms": {
+      "TTFT_P90": 1491.854839,
+      "makespan": 18590.769232
+    },
+    "C8_saved_ms": {
+      "scan_free": {
+        "TTFT_P90": 0.15612000000010084,
+        "makespan": 8.451520999999047
+      },
+      "half_net_packed_summary": {
+        "TTFT_P90": 0.07806000000005042,
+        "makespan": 4.225760500001343
+      },
+      "half_net_extra_collective_signed": {
+        "TTFT_P90": -0.05626925391015902,
+        "makespan": -1.8986904275152483
+      },
+      "free_tail_after_dense_BF16": {
+        "TTFT_P90": 0.6122170000001006,
+        "makespan": 40.61441299999933
+      },
+      "free_full_target_after_gemm": {
+        "TTFT_P90": 1.1569139999999152,
+        "makespan": 75.63456299999962
+      }
+    },
+    "ordinary": [
+      {
+        "name": "chat-single",
+        "verification_calls": 37,
+        "estimates": {
+          "scan_free": {
+            "prompt_ms": 0.0163,
+            "response_ms": 1.2284199999999998,
+            "response_percent_faster_reference": 0.044657542781414844
+          },
+          "half_net_packed_summary": {
+            "prompt_ms": 0.00815,
+            "response_ms": 0.6142099999999999,
+            "response_percent_faster_reference": 0.022328771390707422
+          },
+          "half_net_extra_collective_signed": {
+            "prompt_ms": -0.01862375078201294,
+            "response_ms": -0.40319252971649167,
+            "response_percent_faster_reference": -0.01465751749805531
+          },
+          "free_tail_after_dense_BF16": {
+            "prompt_ms": 0.04135,
+            "response_ms": 3.77983,
+            "response_percent_faster_reference": 0.1374105924125912
+          },
+          "free_full_target_after_gemm": {
+            "prompt_ms": 0.07444,
+            "response_ms": 6.6133945,
+            "response_percent_faster_reference": 0.24042098615630134
+          }
+        }
+      },
+      {
+        "name": "code-single",
+        "verification_calls": 3,
+        "estimates": {
+          "scan_free": {
+            "prompt_ms": 0.0163,
+            "response_ms": 0.11455,
+            "response_percent_faster_reference": 0.02454956383129627
+          },
+          "half_net_packed_summary": {
+            "prompt_ms": 0.00815,
+            "response_ms": 0.057275,
+            "response_percent_faster_reference": 0.012274781915648136
+          },
+          "half_net_extra_collective_signed": {
+            "prompt_ms": -0.01862375078201294,
+            "response_ms": -0.05586499816775321,
+            "response_percent_faster_reference": -0.011972600073806256
+          },
+          "free_tail_after_dense_BF16": {
+            "prompt_ms": 0.04135,
+            "response_ms": 0.33907,
+            "response_percent_faster_reference": 0.07266713756680598
+          },
+          "free_full_target_after_gemm": {
+            "prompt_ms": 0.07444,
+            "response_ms": 0.5961700000000001,
+            "response_percent_faster_reference": 0.12776703159584374
+          }
+        }
+      },
+      {
+        "name": "chat-mixed",
+        "verification_calls": 68,
+        "estimates": {
+          "scan_free": {
+            "prompt_ms": 0.0163,
+            "response_ms": 2.24398,
+            "response_percent_faster_reference": 0.04839191738993221
+          },
+          "half_net_packed_summary": {
+            "prompt_ms": 0.00815,
+            "response_ms": 1.12199,
+            "response_percent_faster_reference": 0.024195958694966106
+          },
+          "half_net_extra_collective_signed": {
+            "prompt_ms": -0.01862375078201294,
+            "response_ms": -0.7253988039588928,
+            "response_percent_faster_reference": -0.015643383183421587
+          },
+          "free_tail_after_dense_BF16": {
+            "prompt_ms": 0.04135,
+            "response_ms": 6.91207,
+            "response_percent_faster_reference": 0.14906029484818437
+          },
+          "free_full_target_after_gemm": {
+            "prompt_ms": 0.07444,
+            "response_ms": 12.091978,
+            "response_percent_faster_reference": 0.26076613893924083
+          }
+        }
+      },
+      {
+        "name": "code-mixed",
+        "verification_calls": 14,
+        "estimates": {
+          "scan_free": {
+            "prompt_ms": 0.0163,
+            "response_ms": 0.4748,
+            "response_percent_faster_reference": 0.044990928997689535
+          },
+          "half_net_packed_summary": {
+            "prompt_ms": 0.00815,
+            "response_ms": 0.2374,
+            "response_percent_faster_reference": 0.022495464498844767
+          },
+          "half_net_extra_collective_signed": {
+            "prompt_ms": -0.01862375078201294,
+            "response_ms": -0.19241623858213425,
+            "response_percent_faster_reference": -0.018232909284017045
+          },
+          "free_tail_after_dense_BF16": {
+            "prompt_ms": 0.04135,
+            "response_ms": 1.43071,
+            "response_percent_faster_reference": 0.13557070772174473
+          },
+          "free_full_target_after_gemm": {
+            "prompt_ms": 0.07444,
+            "response_ms": 2.50918,
+            "response_percent_faster_reference": 0.23776398319802577
+          }
+        }
+      },
+      {
+        "name": "chat-return",
+        "verification_calls": 47,
+        "estimates": {
+          "scan_free": {
+            "prompt_ms": 0.0163,
+            "response_ms": 1.55555,
+            "response_percent_faster_reference": 0.051628559080295164
+          },
+          "half_net_packed_summary": {
+            "prompt_ms": 0.00815,
+            "response_ms": 0.777775,
+            "response_percent_faster_reference": 0.025814279540147582
+          },
+          "half_net_extra_collective_signed": {
+            "prompt_ms": -0.01862375078201294,
+            "response_ms": -0.6020699598252773,
+            "response_percent_faster_reference": -0.019982645682434037
+          },
+          "free_tail_after_dense_BF16": {
+            "prompt_ms": 0.04135,
+            "response_ms": 4.705629999999999,
+            "response_percent_faster_reference": 0.15617941979686237
+          },
+          "free_full_target_after_gemm": {
+            "prompt_ms": 0.07444,
+            "response_ms": 8.24821,
+            "response_percent_faster_reference": 0.27375731882079096
+          }
+        }
+      },
+      {
+        "name": "code-return",
+        "verification_calls": 4,
+        "estimates": {
+          "scan_free": {
+            "prompt_ms": 0.0163,
+            "response_ms": 0.14734,
+            "response_percent_faster_reference": 0.024102079435284647
+          },
+          "half_net_packed_summary": {
+            "prompt_ms": 0.00815,
+            "response_ms": 0.07367,
+            "response_percent_faster_reference": 0.012051039717642324
+          },
+          "half_net_extra_collective_signed": {
+            "prompt_ms": -0.01862375078201294,
+            "response_ms": -0.0601987539100647,
+            "response_percent_faster_reference": -0.009847394791947411
+          },
+          "free_tail_after_dense_BF16": {
+            "prompt_ms": 0.04135,
+            "response_ms": 0.44551,
+            "response_percent_faster_reference": 0.07287713729614269
+          },
+          "free_full_target_after_gemm": {
+            "prompt_ms": 0.07444,
+            "response_ms": 0.7813540000000001,
+            "response_percent_faster_reference": 0.12781495978741278
+          }
+        }
+      }
+    ],
+    "small_TP8_gather_us_by_DP": [
+      26.77375078201294,
+      28.788749128580093
+    ]
+  },
+  "rules": [
+    "Preserve the BF16 shard, full TP8 gather and canonical dense output, including raw FP32, independent clones and normalization wherever observed. No disappearing dense write, transpose or full collective is priced in the scan cases.",
+    "Greedy argmax can use per-shard candidates only when shard scoring follows all order-changing processors at their original precision. Preserve token-ID tie order and special-value behavior, row mapping, masks, rejected entries and sample state. Explicit exceptional or unsupported rows keep dense selection. Counterfactual assumes all scored rows eligible.",
+    "Packed side output supplies the winning local ID or score/ID pair along with the mandatory full packet. A small reducer compares eight candidates per row; half net includes the cost of comparison, format conversion and packing as a sensitivity. A second option charges a fully exposed small TP8 AllGather using a 12-FP32 calibration; actual packet size and interference can differ. Cost can exceed the scan credit.",
+    "Tail and full post-GEMM bracket are favourable ceilings on removing that original interval at fixed schedules and GEMM time. They give free replacements and may remove required work; the latter even erases full gather latency. Credits extend to inclusive deadlines using the largest scheduled rank per wave.",
+    "Six ordinary requests use median B1/M1 prompt and B1/M6 verification samples and actual verification counts. M1 prompt falls back to the other DP if its own sample is absent. Sparse scoring, sampling, unbounded logprob readers and changed weights require separate evidence."
+  ],
+  "sources": {
+    "full-review/EP0-CONFIG-SNAPSHOT.json": "a030b64c7fb1b1b3c217c69314c611ef52694f7f5c2b4d24499e5a98f2236c96",
+    "full-review/SPEC-ROW-VALIDITY-CONTRACTS.json": "d146024e995351265a705100224184254fc793c359600398c0f57b3943a9128e",
+    "full-review/MODEL-ROLE-PUBLICATION-CONTRACTS.json": "8061a416ef58a97fe3a64ddc5007b3d6a117e5decfb52aaeb0570a9fe16afacf",
+    "full-review/ROUTER-ID-GENERATION.json": "6bd9a50fe8c90285bde93026017a2bf79ec7612a2d163a90673bf0d9c85c4040",
+    "full-review/SHARED-MLP-FUSION-ESTIMATES.json": "0a1621ab14a339f41cb96de2de6e56ddb6cf499ce81578119d11051d09fa8916",
+    "full-review/ROUTED-EXPERT-CONTRACTS.json": "c15c3de48413b3944fff53562f7e4d1c739aa66d7eb6cbc5b894c86be0cb6ca3",
+    "full-review/PREFILL-FFN-ENTRY-EXPOSURE.json": "88acd71f32506372d48bf634d1be2b092023be76a39fed50abb797f98588b9b6",
+    "full-review/runs/dspark-prefill-v168.json": "21dc744eebe30b81d00bc7a85f03178c8c6c1b56fd2f394dcb6bde3135475e9e",
+    "full-review/BRANCH-COVERAGE-LEDGER.json": "f6911e8313afe149d4b4f994ac26e45ac5c725aabe1a8a611f6ed661dc86de2a",
+    "full-review/runs/first-token-v168-protocol-bodies.json": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de",
+    "full-review/runs/frozen-vocab-chains.json": "d655027c001310763cb9026b44e72d3b2a1210dbe21eb46e9dbcf23501ce3a17",
+    "full-review/runs/joint168-qli-step-frontiers.json.gz": "f579eb8751f9e3ce075e7c840196f4c759b2b86f55757225b60f0368fdc7da32",
+    ".cache/v168-pinned-replay-spans.json": "008414f0d02ebb1e14d3bd92276703713f65696e992773b86cabbf5901185f57",
+    "full-review/GRAPH-REQUEST-PREFIX-BUDGETS.json": "9794e03363db44e832bb2830d886b3e0d27bfbc9c6cc5afe63b14ce1e58cca82",
+    "full-review/runs/joint168-request-endpoints.json.gz": "725c0b16b949d17402bbde4d6b80da0e676b3db91a3d939e478dad47132b222f",
+    "full-review/ORDINARY-SERVING-GUARDS.json": "45ebb28aac22c3d28870ec132f4cb6fe8fec5dac620f710330680c5030a3b101",
+    "full-review/ORDINARY-TERMINAL-ROW-ESTIMATES.json": "42f9504b4b447bf5ea13e67615fabe05888fff44410e386e1a5d3cd0a826f542",
+    "full-review/SHARED-COLLECTIVE-CALIBRATION.json": "ab8c7fb91ecaef0be95343e14123adddb96c20734ae456d54a36e713929fda16",
+    "full-review/DEFAULT-COLLECTIVE-CALIBRATION.json": "c57bbd9d4508baac033b0ce070d01834c19504792d800af57bc3a8d8a0726a70",
+    "full-review/SCORE-SELECTION-PACKETS.json": "660954b857c58aab1b58230e8c394df2c4c9facc243d4896493c84cc38da7336",
+    "full-review/TARGET-HEAD-VERIFICATION-NATIVE.json": "737b57b0520006e3bc36e1e0ebf980d745380ecef3526910e64cc687c30e8328",
+    "full-review/COMMON-OPERATOR-ABI-CONTRACTS.json": "7e461d6d211fc26b90df0048c4b99aa6a99ab1fd7f19bfd2fecf62c04c605a0e",
+    "full-review/HELPER-LIFECYCLE-CONTRACTS.json": "54e9fde203c0c042841ef2da6635c7128f017cbd75ef0feb1df6df7f9eaa4446",
+    "tools/price_score_readers.py": "b11c1fe9edfe2d13ba03d1d38eee8a0d1ef7bbaad4cc823f911538037d13b963",
+    "tools/price_vocab_selection_fusion.py": "58016b49184b542a58a98b701a4207520105c5591e9456c8ce142964e26469fd",
+    "tools/screen_optional_fusion_paths.py": "2714536abee0254bbed7f4932b870087c07e33b702e55353d81765a321694f44"
+  },
+  "new_measurements": 0,
+  "overall_complete": false
+}

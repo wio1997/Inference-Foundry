@@ -1,21 +1,21 @@
 {
-  "updated_at_utc": "2026-11-08T03:39:26.393475+00:00",
-  "source_analysis_commit": "c3538d6fdf7adf4db96680159d7891f82ab3a2f5",
+  "updated_at_utc": "2026-11-08T04:01:40.422915+00:00",
+  "source_analysis_commit": "dfe2f5335f2fe2da5c15cc365811d95289a81fe7",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 Attention 至 M06、M08，剩余四条算子合同的整组价值初筛",
+  "active_module": "M02→M03→M04 及相邻 Post/Pre，保留候选的共用工作与请求联合上限",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "按执行顺序复用现有索引、共享 MLP 和词表 profile，对剩余四条合同先整组估价。优先保留能消掉大中间面的算子链，例如 SMLA 的压缩 KV gather→QK/PV；沿用有效行数及相对速率的既有敏感性。仅在已有证据能改变排序时定点补查。",
-    "decision": "C2 和索引的具名直接交付按联合成本降级。冷热专家、权重副本、纯排程及 ring 容量只保留历史处置。只在能指明新增可消除工作且可能改变请求排序时重开。",
+    "work": "优先为已入围的跨层 mHC、SMLA 压缩 KV 与 OA→OB 投影在同一冻结请求上估算联合收益。沿单次前向的执行顺序区分互斥机制、共用读写和串行区间，重算最慢请求与资源条件，再核对普通负载。旧记录按原分支和证据复用，仅为新增实质工作补估。",
+    "decision": "固定分支的四条历史合同已逐项归因。175 条候选的登记范围均有处置；机器台账已恢复全部 360 个历史分支的原始说明与 454 份证据文件指纹，保留当时的适用性和缺口。模型整体仍有条件候选与联合上限待判断。",
     "source": {
-      "path": "full-review/C2-SELECTION-PIPELINE-REQUESTS.json",
-      "sha256": "a6cc23204b41a4ca2f57a3bb97d45566275636a44afe017511dbedf19ccdbfb7"
+      "path": "full-review/OPTIONAL-PATHS-AND-RAW-HEAD.json",
+      "sha256": "943dc2c83758b9f5f08cd5a24e1f9a4dd9387b64a8d96f18a60dff791f0b1c90"
     },
     "scope_ledger": {
       "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
-      "sha256": "42a56e56620367b37083929e105ad7bfa4c008cc5c31e38a9861f05c952f9cd0"
+      "sha256": "d5a4ec242728d65d4134c47b3253651038e8026b579c96c68e7bc89f14f714e7"
     }
   },
   "module_statuses": [
@@ -168,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "446 graph and seven eager scheduled TP8 targets; C2 and eight index source layers; six ordinary request projections.",
+    "performance_scope": "453 scheduled TP8 target heads, six ordinary requests, 2560 eager MLP and routing chains, two original 5120-channel operator boundaries.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,15 +284,16 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M03 C2, selection and first attention reader",
+    "scope": "Optional paths, full raw logits and two wide activation transfers",
     "sources": [
-      "c2-selection-pipeline.md",
-      "baselines/c2-selection-pipeline.json",
-      "baselines/fusion-scope.json"
+      "optional-paths-and-raw-head.md",
+      "baselines/optional-paths-and-raw-head.json",
+      "baselines/branch-coverage.json"
     ],
     "observations": [
-      "冻结 453 次 TP8 调用中，两处 C2 投影、pool/ring、RMS 和八层 QLI 到首个 Attention 的直接交付，按有利时钟和已有搬运速率合计估算省 0.353 ms 首 token P90 和 0.461 ms 整批。六个普通请求的响应降幅最高约 0.005%。",
-      "每序列四查询分块、最多四批交付时，图中 28,544 处均无第二个有效查询组。若每次额外交付花 2 µs，冻结首 token 降低 1% 需要兑现理想重叠的 96.9%–98.0%。流水收益单列。"
+      "在保留完整 logits 与原 TP8 通信时，给词表头增加获胜 ID 输出，按净省一半扫描估算，冻结 C8 整批缩短 4.23 ms（0.023%）。另付一次小 AllGather 时预计延长 1.90 ms。",
+      "固定 DSpark 内层没有可选 MTP 压缩入口；W8A8 共享链已用 DequantSwigluQuant；两个 MoE 补行调用方均先判断 pad_size>0。已按实际分支处置剩余四条历史改写。",
+      "输入 embedding 直写持久缓冲、DSpark 的全宽 RMS 直接读取 rank-major 数据，两处均按有利假设计价，冻结整批合计约 8.05 ms，普通响应最多约 0.056%。"
     ],
     "new_performance_measurements": 0
   },
@@ -321,11 +322,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/c2-selection-pipeline.json",
-      "result": "冻结 453 次 TP8 调用中，两处 C2 投影、pool/ring、RMS 和八层 QLI 到首个 Attention 的直接交付，按有利时钟和已有搬运速率合计估算省 0.353 ms 首 token P90 和 0.461 ms 整批。六个普通请求的响应降幅最高约 0.005%。 每序列四查询分块、最多四批交付时，图中 28,544 处均无第二个有效查询组。若每次额外交付花 2 µs，冻结首 token 降低 1% 需要兑现理想重叠的 96.9%–98.0%。流水收益单列。"
+      "record": "baselines/optional-paths-and-raw-head.json",
+      "result": "在保留完整 logits 与原 TP8 通信时，给词表头增加获胜 ID 输出，按净省一半扫描估算，冻结 C8 整批缩短 4.23 ms（0.023%）。另付一次小 AllGather 时预计延长 1.90 ms。 固定 DSpark 内层没有可选 MTP 压缩入口；W8A8 共享链已用 DequantSwigluQuant；两个 MoE 补行调用方均先判断 pad_size>0。已按实际分支处置剩余四条历史改写。 输入 embedding 直写持久缓冲、DSpark 的全宽 RMS 直接读取 rank-major 数据，两处均按有利假设计价，冻结整批合计约 8.05 ms，普通响应最多约 0.056%。"
     },
-    "next": "按执行顺序复用现有索引、共享 MLP 和词表 profile，对剩余四条合同先整组估价。优先保留能消掉大中间面的算子链，例如 SMLA 的压缩 KV gather→QK/PV；沿用有效行数及相对速率的既有敏感性。仅在已有证据能改变排序时定点补查。",
-    "decision": "C2 和索引的具名直接交付按联合成本降级。冷热专家、权重副本、纯排程及 ring 容量只保留历史处置。只在能指明新增可消除工作且可能改变请求排序时重开。",
+    "next": "优先为已入围的跨层 mHC、SMLA 压缩 KV 与 OA→OB 投影在同一冻结请求上估算联合收益。沿单次前向的执行顺序区分互斥机制、共用读写和串行区间，重算最慢请求与资源条件，再核对普通负载。旧记录按原分支和证据复用，仅为新增实质工作补估。",
+    "decision": "固定分支的四条历史合同已逐项归因。175 条候选的登记范围均有处置；机器台账已恢复全部 360 个历史分支的原始说明与 454 份证据文件指纹，保留当时的适用性和缺口。模型整体仍有条件候选与联合上限待判断。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"

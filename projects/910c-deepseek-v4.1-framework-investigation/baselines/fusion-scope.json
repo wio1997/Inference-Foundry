@@ -8,11 +8,10 @@
     "contract": "Original branch contract and family references retained. No individual quantitative verdict assigned here."
   },
   "disposition_counts": {
-    "contract": 4,
-    "inactive": 25,
+    "inactive": 27,
     "mixed": 37,
     "outside": 10,
-    "reference": 97,
+    "reference": 99,
     "version_failed": 2
   },
   "families": {
@@ -518,7 +517,8 @@
         "INDEXER-ATTENTION-DELIVERY.json",
         "QLI-ON-BATCHED-SLOT-C8.json",
         "SMLA-PANEL-OCCUPANCY-SCREEN.json",
-        "C2-SELECTION-PIPELINE-REQUESTS.json"
+        "C2-SELECTION-PIPELINE-REQUESTS.json",
+        "OPTIONAL-PATHS-AND-RAW-HEAD.json"
       ],
       "alternatives": [
         {
@@ -573,7 +573,9 @@
         {
           "id": "G07.A08",
           "proposal": "可选MTP TopK压缩按真实输入owner和请求前缀owner直接交付，或对已证无依赖的兼容buffer合批通信；只写原local_num_reqs前缀并保持尾部，异view别名按原顺序分阶段。不要以无本地目的行跳过提供源行的rank，或用-1代替SUM中性0。当前工作负载收益未证实。",
-          "disposition": "contract"
+          "disposition": "inactive",
+          "source": "OPTIONAL-PATHS-AND-RAW-HEAD.json",
+          "scope": "已归档 EP0 的 draft.model 是固定的 DeepseekV41DSparkModel，源码没有调用所需的两个方法。实际 DSpark 路径无 MTP TopK 压缩开销；兼容其它 MTP 模型仍保留源端、前缀、别名与 SUM 合同。"
         },
         {
           "id": "G07.A09",
@@ -889,7 +891,8 @@
         "ROUTED-EXPERT-HANDOFF-ESTIMATES.json",
         "SHARED-MLP-FUSION-ESTIMATES.json",
         "MOE-MERGE-HC-C8.json",
-        "FFN-MERGE-PREMIX-ESTIMATES.json"
+        "FFN-MERGE-PREMIX-ESTIMATES.json",
+        "OPTIONAL-PATHS-AND-RAW-HEAD.json"
       ],
       "alternatives": [
         {
@@ -979,12 +982,16 @@
         {
           "id": "G10.A13",
           "proposal": "预裁剪激活可在consumer中直接读取两半并按原次序裁剪，条件性删除两个clamp输出和cat的物化接口；M行、每半D、元素e字节的逻辑接口上界8*e*M*D。GEMM epilogue还需保留原低精度边界及全部raw读者，与已有norm/quant/activation同一工作只计一次；无当前C8收益结论。",
-          "disposition": "contract"
+          "disposition": "inactive",
+          "source": "OPTIONAL-PATHS-AND-RAW-HEAD.json",
+          "scope": "2,560 条 eager 共享专家链的两次量化矩阵乘之间直接执行 DequantSwigluQuant，路由侧为原生 W8A8 DispatchFFNCombine。所提 Python 双 clamp 和 cat 在这些链上没有独立物化；保留原激活数值。"
         },
         {
           "id": "G10.A14",
           "proposal": "在pad_rows=0且调用方不依赖fresh output或独立可写存储时跳过cat；或由producer写最终bank的有效行和所需零尾。与已有padding融合计同一物化，需实际调用比例、alias和关键路径证据。",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "OPTIONAL-PATHS-AND-RAW-HEAD.json",
+          "scope": "两个已绑定调用方只在 pad_size>0 时调用 cat。实测 eager 入口有 1,280 条 PadV3 分支，1,280 条同层紧凑路径。固定对端，前者的已计 pad/memset 对首 token 最多 0.211 ms。其它分片和 ABI 保留条件。"
         }
       ],
       "branch_cases": [
@@ -1425,7 +1432,8 @@
       "family_sources": [
         "VOCAB-SELECTION-FUSION-ESTIMATES.json",
         "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
-        "SCORE-READER-AND-DRAFT-REQUESTS.json"
+        "SCORE-READER-AND-DRAFT-REQUESTS.json",
+        "OPTIONAL-PATHS-AND-RAW-HEAD.json"
       ],
       "alternatives": [
         {
@@ -1487,7 +1495,9 @@
         {
           "id": "G13.A09",
           "proposal": "保留完整raw需求时仍可融合head epilogue处理/选行，并独立保留raw输出",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "OPTIONAL-PATHS-AND-RAW-HEAD.json",
+          "scope": "保留完整 TP8 分数与原读者，用 453 次实际调用估算额外逐行获胜 ID。独立于删掉完整分数的旧估计，保留 raw 的快路径只能在本地可确定最终排序的行上启用。"
         },
         {
           "id": "G13.A10",
@@ -4254,7 +4264,7 @@
     "full-review/EXPERT-SIBLING-TILE-REQUEST-ESTIMATES.json": "74443ef6d1a28451b65769a28201c57756c1abf8d0d7f5063861133f2281ef32",
     "full-review/FFN-MERGE-PREMIX-ESTIMATES.json": "24b7670864385dc3851ecaecdc5dc508909d301e9839421eab0acbd46237b563",
     "full-review/FROZEN-C8-MODALITY-ADMISSION.json": "b5860c46591c3e1e82782715ac607d9e78e55b8e4729e7bae49e6ed75c74db28",
-    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "ed87ac2e0f0569fe3542998d31881c1cfe86dc1ca18a2c278c9e5fdaafd832d5",
+    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "04622bb24888aa492af4609888efd749611dffb9275afc5499d102d308c8f612",
     "full-review/HC-PAIRED-BOUNDARY-REQUESTS.json": "f25158211efe9c36af2e4aec01bd26526bc2e257c18801e51793fa2148901fa1",
     "full-review/HC-PRE-ROW-NORM-BARRIER-RESULT.json": "7db31d7d9a55f2bbd64943da944e300140c29538b5a1ad86b4772035c950504f",
     "full-review/INDEX-AND-NEXT-STEP-DELIVERY-CONTRACTS.json": "7cfdb7323f97be7c71c6db50ba671d83a6837a76dbc76dccd7fd06bbfef99c82",
@@ -4268,6 +4278,7 @@
     "full-review/NATIVE-METADATA-REUSE-SCREEN.json": "0110dd3aad016a4f2a8e2ccab5c18da39727a05a2840ffe63970819a8cbed580",
     "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338",
     "full-review/OA-OB-SHARED-CUBE-SCREEN.json": "dec4073d6006e1794713683ab6ae97b4fbc047b01048b244f52fb3d8c739e213",
+    "full-review/OPTIONAL-PATHS-AND-RAW-HEAD.json": "943dc2c83758b9f5f08cd5a24e1f9a4dd9387b64a8d96f18a60dff791f0b1c90",
     "full-review/ORDERED-ENGRAM-VALUE.json": "1e4a7e4a8a5ae588e3771f7b1c122892353cf4828f873fc1761a1c4fd50a8cb3",
     "full-review/ORDERED-RETURN-ENDPOINT-ESTIMATES.json": "9f23b62ce1c0f59686b572991678d2d3d67a571c16b416818e36a9e108081316",
     "full-review/ORDERED-SAMPLING-DISPOSITIONS.json": "135303843047a8035d1dc38b8dc8f31b941849b015a8406c7e1f9dc3778dbdc6",
@@ -4295,7 +4306,7 @@
     "full-review/runs/clean-native-profile-ea31701f9da0-result.json": "b2081df7e3874fd6c9aad8108a816c297daae3ec33421dc0dd9024029e2c89e6",
     "full-review/runs/ordinary-load-9144f2d04ace-result.json.gz": "42686163175d4fd4f0adfea7ce2ce8b76ac13bc463944a2b8d2e413cf5137dbf",
     "full-review/runs/prefill-request-steps.json": "43dff720802f11e4601a1897f895cdb02eb1db725af1c101518ddde0979bce3a",
-    "tools/reconcile_fusion_scope.py": "08fa13a7d3b61360cedf4b53e505a55ace8511eddfe8bc4e2e95105a446fc1f7"
+    "tools/reconcile_fusion_scope.py": "98ae526975797caf9428f1a2eedbcbbb1d54968e4c553633c837a348ef48bac1"
   },
   "limits": [
     "Case IDs are local to the frozen proposal list. Legacy source IDs and work units are separate.",
