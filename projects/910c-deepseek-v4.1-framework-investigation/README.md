@@ -43,7 +43,7 @@
 | [DSpark 三层非专家工作的整组收益](baselines/draft-fixed-expert.json) | 保留专家耗时，比较具名计算与全部剩余时间，识别决定判断的请求 |
 | [mHC 循环提前退出的价值筛查](baselines/mhc-iteration-cost.json) | 真实调用次数、两侧的合计收益、提前退出的最晚时点与开销 |
 | [QLI 在批量 slot 基线上的增量](baselines/qli-batched-slot-c8.json) | 171 同基线前后参照，输出一致性、首 token、整批耗时和恢复 |
-| [单算子与联合范围的价值初筛](baselines/fusion-priority.json) | 局部占比、请求级上界、无需单独深查的范围和重新打开条件 |
+| [历史 profile 成本初筛](baselines/fusion-priority.json) | 归档的局部占比和请求级成本；当前优先级以[融合候选表](fusion-candidates.md)为准 |
 | [末层 FFN 原系数数值对照](baselines/terminal-dense-coefficients.json) | 保持真实路由权重后，逐段核对专家、mHC 和读出 |
 | [末层 FFN 分支收益预算](baselines/terminal-guard-budgets.json) | 哪些 DP 分支必须同时覆盖、不同批次替代成本怎样分摊 |
 | [四层 QLI 三组服务对照](baselines/qli-service-c8.json) | 首 token、整批完成时间、各组样本与原服务恢复 |
