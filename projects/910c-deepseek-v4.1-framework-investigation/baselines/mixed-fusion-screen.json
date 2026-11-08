@@ -1,0 +1,305 @@
+{
+  "counts": {
+    "archive": 21,
+    "reuse": 12,
+    "conditional": 4
+  },
+  "definitions": {
+    "archive": "No separate operator saving identified for the mechanism as written.",
+    "reuse": "Reuse evidence only for the named component. Does not prove the whole mixed proposal.",
+    "conditional": "Independent fusion mechanism possible; no incremental request benefit established."
+  },
+  "rows": {
+    "G01.A05": {
+      "proposal": "冻结权重下，对已证明只依赖embedding行与不可变首层初态的计算前缀，考虑预计算表或热缓存；保留raw embedding/aux读者，按权重、owner、数值模式及shape代际区分。先计新增容量/流量与命中率，不能把后续上下文相关层按token ID缓存。",
+      "original_source": "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "仅预计算、命中缓存或提前执行原投影。批内生产者复用另见 G11.A09。",
+      "component_evidence": null
+    },
+    "G04.A04": {
+      "proposal": "按SWA-only、C1、C2分开比较owner投影再汇集。稳态24→3行通过原生对照，混合1688→211行有位差。保留原M的owner占位变体可维持窄传输，仍需承担原GEMM计算量",
+      "original_source": "SWA-C2-PROJECTED-TRANSPORT.json",
+      "decision": "archive",
+      "fixed_layout_scope": "收益来自换投影所有者、改变传输行数或协议。固定原分片与行域后未提出可消除的算子交付。",
+      "component_evidence": null
+    },
+    "G05.A04": {
+      "proposal": "WK读完pre-RoPE latent后拆开long KV与index K分支。可测试long发布与QLI并行，SMLA等两路完成",
+      "original_source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "调整就绪顺序、并发流、缓冲复用或事件。保留原执行和交付时没有单列的融合节省。",
+      "component_evidence": null
+    },
+    "G06.A03": {
+      "proposal": "用实际index/longKV slot发布行的并集裁剪latent及后续计算。P减C的有效slot仍要交付经过原RMS/RoPE/量化的默认值",
+      "original_source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "通过裁掉无读者的行来省计算。该项没有给出保留相同行时能合并的生产与消费。",
+      "component_evidence": null
+    },
+    "G06.A04": {
+      "proposal": "用D=ring尾部所需投影行与可发布pool端点的当前输入对之并集裁剪FP32 WKV/Wgate。正常有效端点全部发布时D覆盖所有live行，used≤32时ring已保留全部live行",
+      "original_source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "通过裁掉无读者的行来省计算。该项没有给出保留相同行时能合并的生产与消费。",
+      "component_evidence": null
+    },
+    "G06.A06": {
+      "proposal": "六行奇数起点下，3槽先取旧前驱再更新；4槽无同owner覆盖。若物理范围和下一代读者均已绑定，可将更新与pool后的RMS并排提交，仍需预算共享资源",
+      "original_source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "调整就绪顺序、并发流、缓冲复用或事件。保留原执行和交付时没有单列的融合节省。",
+      "component_evidence": null
+    },
+    "G07.A02": {
+      "proposal": "分块score/topK与结果归并流水；仅在有最终集合证书时允许attention提前消费",
+      "original_source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+      "decision": "conditional",
+      "fixed_layout_scope": "只考虑 score/局部 Top-K 到最终归并可消掉的部分结果写读。要先找到物化的中间列表、读者与可省字节，按查询提前启动的时间单列。",
+      "component_evidence": "C2-SELECTION-PIPELINE-REQUESTS.json"
+    },
+    "G08.A05": {
+      "proposal": "按真实发送行域比较变长exchange。draft的混合TP8实例可协调省去零查询源的7个对端片段，每层少168KiB逻辑对端数据。各rank仍参与，在原偏移重建零片段后再投影及规约。单独核对backend零计数、图与通信组合同",
+      "original_source": "DRAFT-ALLTOALL-PHASE-AND-ZERO-SEND.json",
+      "decision": "archive",
+      "fixed_layout_scope": "收益来自换投影所有者、改变传输行数或协议。固定原分片与行域后未提出可消除的算子交付。",
+      "component_evidence": null
+    },
+    "G08.A06": {
+      "proposal": "按TP共享的真实行前缀联合裁剪所有发送尾部。EAGER的12/24行域可少672KiB对端逻辑负载，保留原顺序。若消费者支持紧凑行域，可连同OA/OB补零行一起裁剪，在OB尾部或规约交付中复原原输出合同。",
+      "original_source": "DRAFT-ALLTOALL-PHASE-AND-ZERO-SEND.json",
+      "decision": "conditional",
+      "fixed_layout_scope": "只考虑 OB 尾部或规约交付直接生成原布局，可省单独重建零行的任务。变长 exchange 的链路字节不能作为这次融合收益。",
+      "component_evidence": "DRAFT-ALLTOALL-PHASE-AND-ZERO-SEND.json"
+    },
+    "G08.A07": {
+      "proposal": "按权重owner比较OA前移、按panel流水及全本地投影。当前图执行域每TP rank的all-to-all逻辑输入192KiB，OA前移后为48KiB，但每层每rank完整OA额外需要56MiB BF16权重",
+      "original_source": "OA-OB-FUSION-REQUEST-ESTIMATES.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "固定 OA/OB 权重分片，仅复用同一行块的 OA→OB 交付估值。换卡和权重复制另行归档。",
+      "component_evidence": "OA-OB-SHARED-CUBE-SCREEN.json"
+    },
+    "G09.A05": {
+      "proposal": "按容量和权重合同比较已存在的分段MC2与FusedMC2。分段路径暴露dispatch、GMM2、combine事件，同时新增中间结果和提交成本",
+      "original_source": "MODULAR-MOE-ADMISSION.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "原分派、两次 GMM、激活量化、返回。当前已选 FusedMC2；已有内部交付和固定路由的中间写读估值。",
+      "component_evidence": "ROUTED-EXPERT-HANDOFF-ESTIMATES.json"
+    },
+    "G10.A01": {
+      "proposal": "当前fused MC2=1由选型强制关闭shared overlap，单独打开开关的变体已排除。显式共享调度或受支持的分段backend仍是条件方案，需分别计价和验收",
+      "original_source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "调整就绪顺序、并发流、缓冲复用或事件。保留原执行和交付时没有单列的融合节省。",
+      "component_evidence": null
+    },
+    "G10.A03": {
+      "proposal": "保留FusedMC2时，单独实现并验证受支持的shared调度协议；当前flag-only重叠开关已被配置禁用。可评估量化准备前移及gate-up按router就绪启动，activation/down遵守真实输入依赖；FusedMC2没有已证实的细粒度routed完成事件",
+      "original_source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "调整就绪顺序、并发流、缓冲复用或事件。保留原执行和交付时没有单列的融合节省。",
+      "component_evidence": null
+    },
+    "G10.A04": {
+      "proposal": "选择分段MC2时，shared activation可对齐dispatch完成或GMM2前事件，down可对齐combine前事件。比较暴露就绪点的收益与分段新增I/O",
+      "original_source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "调整就绪顺序、并发流、缓冲复用或事件。保留原执行和交付时没有单列的融合节省。",
+      "component_evidence": null
+    },
+    "G10.A06": {
+      "proposal": "在终层注意力及缓存写入结束后，按所有终层读者的行并集裁FFN。保留活跃raw、aux、PP和路由状态分支，并独立核对缩小M的原生精度。",
+      "original_source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+      "decision": "archive",
+      "fixed_layout_scope": "通过裁掉无读者的行来省计算。该项没有给出保留相同行时能合并的生产与消费。",
+      "component_evidence": null
+    },
+    "G10.A07": {
+      "proposal": "把shared作为始终执行的局部专家分支纳入新的联合MoE区域，按真实row/weight owner选择本地grouped-MLP或显式共享专家路由；routed原归约与shared独立累加并各自舍入后再merge，避免两个完整输出面",
+      "original_source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "在本地共享或路由输出到合并处，只继承实际可少写读的输出面估值。合并分支须保留各自舍入。",
+      "component_evidence": "FFN-MERGE-PREMIX-ESTIMATES.json"
+    },
+    "G10.A12": {
+      "proposal": "为共享/路由分支的并发microbatch或跨迭代重叠建立显式输出与workspace bank及事件代际；只解除存储冲突，保留输入、参数、collective顺序及所有末端读者，不能把清空Python引用槽当成设备回收。",
+      "original_source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "调整就绪顺序、并发流、缓冲复用或事件。保留原执行和交付时没有单列的融合节省。",
+      "component_evidence": null
+    },
+    "G11.A06": {
+      "proposal": "按共同TP组比较两层合包与各自ready；按head分片WKV可将每层每卡的独立矩阵由300MiB减到37.5MiB，另计25,600列部分和、数值规约与跨卡交付",
+      "original_source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+      "decision": "conditional",
+      "fixed_layout_scope": "固定两层 WKV 分片与原 TP 组，只考虑两次交付有共同就绪区间时合为一次，扣除第一层读者被推迟的代价。",
+      "component_evidence": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json"
+    },
+    "G11.A08": {
+      "proposal": "lookup就绪后可提前WKV，保留隐藏状态到gate的依赖；同资源串行前移只改变排程，memo命中和WKV省算力另计",
+      "original_source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+      "decision": "archive",
+      "fixed_layout_scope": "仅预计算、命中缓存或提前执行原投影。批内生产者复用另见 G11.A09。",
+      "component_evidence": null
+    },
+    "G11.A09": {
+      "proposal": "同一table/head/hash/参数代际的重复lookup或WKV可批内共享；也可按内容与参数代际缓存跨迭代的去量化/投影结果，历史hash写入独立保留",
+      "original_source": "CURRENT-ENGRAM-JOINT-CACHE-VALUE.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "只保留同一批相同表、head、hash 和参数代次的重复查表或投影复用；命中率和跨迭代缓存单列。",
+      "component_evidence": "CURRENT-ENGRAM-JOINT-CACHE-VALUE.json"
+    },
+    "G15.A05": {
+      "proposal": "各层按SWA可见窗口与最终写者分别确定context需求。仅在后续读者和退回范围都已绑定时裁掉老行；联合投影以各层需求并集计价",
+      "original_source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "按相同有效行复用三层地址及交付预算，各层 WKV 保留。由窗口裁行取得的成本另列。",
+      "component_evidence": "DSPARK-CONTEXT-FUSION-ESTIMATES.json"
+    },
+    "G15.A06": {
+      "proposal": "同一请求连续走设备纠正时，有效prefix单调。用纠正后的prefix定老行窗口，再单独用每层实际query槽匹配拒绝尾部。三层均无需求且其它观察者退休后才前移到共享main投影",
+      "original_source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "通过裁掉无读者的行来省计算。该项没有给出保留相同行时能合并的生产与消费。",
+      "component_evidence": null
+    },
+    "G16.A05": {
+      "proposal": "比较vocab本地Markov分片与每步小摘要collective，和当前一次大词表gather后本地五步的成本",
+      "original_source": "MARKOV-OWNER-GROUPS.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "固定词表分片时仅继承各步 W2 输出、加 bias 与 ArgMax 的交付预算；三种 owner 分配不能各计一份。",
+      "component_evidence": "VOCAB-SELECTION-FUSION-ESTIMATES.json"
+    },
+    "G16.A06": {
+      "proposal": "以request为owner路由base词表分片，整条五步链在owner执行，末尾发布IDs。比较单owner、多个request owner和词表分片的时延、精度与容量",
+      "original_source": "MARKOV-OWNER-GROUPS.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "固定词表分片时仅继承各步 W2 输出、加 bias 与 ArgMax 的交付预算；三种 owner 分配不能各计一份。",
+      "component_evidence": "VOCAB-SELECTION-FUSION-ESTIMATES.json"
+    },
+    "G16.A07": {
+      "proposal": "每个request也可分配给2卡或4卡小组。按原词表片号路由，组内每步AllGather一个BF16分数和本片ID组成的INT32包，恢复原全局列后比较",
+      "original_source": "MARKOV-OWNER-GROUPS.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "固定词表分片时仅继承各步 W2 输出、加 bias 与 ArgMax 的交付预算；三种 owner 分配不能各计一份。",
+      "component_evidence": "VOCAB-SELECTION-FUSION-ESTIMATES.json"
+    },
+    "G16.A10": {
+      "proposal": "以额外工作换依赖轮次：对有限候选前驱提前计算后续bias/选择，提交时只采纳真实命中分支，未覆盖前驱执行原路径；必须计入推测命中率、额外Cube/带宽与资源竞争",
+      "original_source": "SCORE-READER-AND-DRAFT-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "投机、延后执行、移动图边界或捕获多次提交。需出现可点名的任务合并或共同结果，才单列算子收益。",
+      "component_evidence": null
+    },
+    "G17.A03": {
+      "proposal": "按是否生成后续模型步，推迟位置gather与后置common block table clone。并行DSpark保留已经构造的step零分组表",
+      "original_source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+      "decision": "archive",
+      "fixed_layout_scope": "投机、延后执行、移动图边界或捕获多次提交。需出现可点名的任务合并或共同结果，才单列算子收益。",
+      "component_evidence": null
+    },
+    "G17.A05": {
+      "proposal": "五个采样索引面在均匀布局由行数确定，可常驻只读索引。无额外行时logits索引是连续前缀，满足别名合同可改view。混合prefill采用typed合包或紧凑(C_i,D_i)描述，draft ID可从当前输入直接按仿射位置取值",
+      "original_source": "SPEC-INDEX-READERS-AND-TEMPLATE.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "共享位置/计数或在已有 producer 中发布小结果。已有设备准备、提交与等待估值只覆盖其中已绑定的读写；提交包和接收顺序另算。",
+      "component_evidence": "DRAFT-STATE-HANDOFF-REQUESTS.json"
+    },
+    "G17.A10": {
+      "proposal": "上一轮seed/count发布可为旧owner同时生成computed加count。下一轮仍需映射、分支及接受数。与保留旧bank的方案对比额外发布量和ready时间。",
+      "original_source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "共享位置/计数或在已有 producer 中发布小结果。已有设备准备、提交与等待估值只覆盖其中已绑定的读写；提交包和接收顺序另算。",
+      "component_evidence": "DRAFT-STATE-HANDOFF-REQUESTS.json"
+    },
+    "G18.A11": {
+      "proposal": "共享相同qsl/count/ratio计划，按第一次consumer需要的波次分组，而非把全部metadata拖到一个晚完成kernel",
+      "original_source": "CPU-PLAN-C8.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "共享确定的 slot 计划并合并实际 writer，保留分组首次读取期限。设备执行与整次 caller 的增量分开计价。",
+      "component_evidence": "REQUEST-FUSION-BUDGETS.json"
+    },
+    "G18.A12": {
+      "proposal": "graph外producer与graph内producer分别部署，保留各group ready和buffer reusable前沿",
+      "original_source": "METADATA-EXECUTION-MODE.json",
+      "decision": "archive",
+      "fixed_layout_scope": "投机、延后执行、移动图边界或捕获多次提交。需出现可点名的任务合并或共同结果，才单列算子收益。",
+      "component_evidence": null
+    },
+    "G19.A01": {
+      "proposal": "合法地把稳定控制量编译专门化、把多个小producer纳入一个capture区域，减少host launch和重复update",
+      "original_source": "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+      "decision": "archive",
+      "fixed_layout_scope": "投机、延后执行、移动图边界或捕获多次提交。需出现可点名的任务合并或共同结果，才单列算子收益。",
+      "component_evidence": null
+    },
+    "G19.A02": {
+      "proposal": "按输出bank拆分target和draft的复用退休条件。EP0的139次跨角色交接未发现producer输出重叠，观察到的输出bank已有分离。保持同角色前次读者、共用输入和捕获事件代际，只有设备先后证明release已在inputs_ready内时才折叠对应wait",
+      "original_source": "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+      "decision": "archive",
+      "fixed_layout_scope": "调整就绪顺序、并发流、缓冲复用或事件。保留原执行和交付时没有单列的融合节省。",
+      "component_evidence": null
+    },
+    "G19.A03": {
+      "proposal": "联合传递已就绪ID/count/logprob小结果；以请求commit前沿拆分通知与payload，不等待不相关读者",
+      "original_source": "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+      "decision": "reuse",
+      "fixed_layout_scope": "共享位置/计数或在已有 producer 中发布小结果。已有设备准备、提交与等待估值只覆盖其中已绑定的读写；提交包和接收顺序另算。",
+      "component_evidence": "DRAFT-STATE-HANDOFF-REQUESTS.json"
+    },
+    "G20.A01": {
+      "proposal": "在每个expert owner按layer/权重代际和精度聚合已就绪请求行，让一块权重服务多个请求，再按原token/专家顺序返回",
+      "original_source": "ORDERED-RETURN-ENDPOINT-ESTIMATES.json",
+      "decision": "conditional",
+      "fixed_layout_scope": "固定专家在原卡及原路由，要有两个原本独立且已就绪的同权重 GMM 调用，才可计横向合并省的提交或重复读取。已在同一 GMM 的请求行不能再计。",
+      "component_evidence": "ORDERED-RETURN-ENDPOINT-ESTIMATES.json"
+    },
+    "G20.A02": {
+      "proposal": "分开处理满块和尾块。已到齐的整块可提早提交；专家的预期行数低于块宽时，确认收齐就用尾块路径。按原token与topK槽回填",
+      "original_source": "ORDERED-RETURN-ENDPOINT-ESTIMATES.json",
+      "decision": "archive",
+      "fixed_layout_scope": "分批交付或改变返回时机。保留原返回顺序与相加次数时，条目只给出了调度机制。",
+      "component_evidence": null
+    },
+    "G20.A03": {
+      "proposal": "用有界的请求与owner队列交付专家结果，按每token原topK顺序合并。比较细粒度ready路径与大prefill批处理，保留队列信用和异常退休",
+      "original_source": "ORDERED-RETURN-ENDPOINT-ESTIMATES.json",
+      "decision": "archive",
+      "fixed_layout_scope": "分批交付或改变返回时机。保留原返回顺序与相加次数时，条目只给出了调度机制。",
+      "component_evidence": null
+    }
+  },
+  "sources": {
+    "full-review/ATTENTION-INPUT-FUSION-REQUESTS.json": "22eac811497df41b1e84f7a471b5c8be766d2461f356ca89b8405afd99130d5f",
+    "full-review/C2-SELECTION-PIPELINE-REQUESTS.json": "a6cc23204b41a4ca2f57a3bb97d45566275636a44afe017511dbedf19ccdbfb7",
+    "full-review/C8-DRAFT-SUBMISSION-WAIT-BUDGET.json": "4f9c6055536f67c7bf50515ff9268005bdc9c1579f355a8fe52fe7cd3a833d00",
+    "full-review/CPU-PLAN-C8.json": "a33d3e0067d8d8e0461ef53ee296183970463d3331e054e54c2fe3a61b442319",
+    "full-review/CURRENT-ENGRAM-JOINT-CACHE-VALUE.json": "08bfcb693e66a4e87f09272746acb9e2edcb3b28e9fb534bbf8e3a17d771e7e9",
+    "full-review/DRAFT-ALLTOALL-PHASE-AND-ZERO-SEND.json": "936ae588d21be036597bb85d2b8030f18a794244a50e18c24c2aa41b377cacf4",
+    "full-review/DRAFT-STATE-HANDOFF-REQUESTS.json": "862723043d794ebb8888dcdd2d8c00fd6e2e64f773e8f62c19b788e1fd680335",
+    "full-review/DSPARK-CONTEXT-FUSION-ESTIMATES.json": "7a3fed29f31a7f866879c724475ea5992c03df37303aff3e210bb58506ff02fe",
+    "full-review/EMBEDDING-ENGRAM-FUSION-ESTIMATES.json": "4ba7f874359cd39796f26ec5dd2a6f12a0337fbf7162a06a5f300c049d8b699e",
+    "full-review/FFN-MERGE-PREMIX-ESTIMATES.json": "24b7670864385dc3851ecaecdc5dc508909d301e9839421eab0acbd46237b563",
+    "full-review/FUSION-SCOPE-RECONCILIATION.json": "239fbd4248e4f79a4a72688d21e6d6825102ac57dc5cdf4708cf690f77aefff3",
+    "full-review/INITIAL-HC-AND-ENGRAM-REQUESTS.json": "0a2d4037dc9827ef9becb631a0d4a10e114d4a9c76dc20bcdabf9da160ee1660",
+    "full-review/MARKOV-OWNER-GROUPS.json": "941fbaa6e093a647b0ef6dff1274968256dc6b0c4287872d2a2b210308af3dab",
+    "full-review/METADATA-EXECUTION-MODE.json": "70ba36b8005b5b6d33d355bf28d57c4af421c6a768ad637292fb8437efbf7949",
+    "full-review/MODULAR-MOE-ADMISSION.json": "731fad54ea59dad4a2ba8d75345134c6ebc9555da0a7c8d01b5b9b0526333049",
+    "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338",
+    "full-review/OA-OB-SHARED-CUBE-SCREEN.json": "dec4073d6006e1794713683ab6ae97b4fbc047b01048b244f52fb3d8c739e213",
+    "full-review/ORDERED-RETURN-ENDPOINT-ESTIMATES.json": "9f23b62ce1c0f59686b572991678d2d3d67a571c16b416818e36a9e108081316",
+    "full-review/REQUEST-FUSION-BUDGETS.json": "a17b1413e339a258fcf18e516eb48f00f6f151ec2114e3157046fe12b5eeb841",
+    "full-review/ROUTED-EXPERT-HANDOFF-ESTIMATES.json": "69e94edbe705836e9464e8fd090b91ee22c949d06d8dcc2869c3582cd99afaff",
+    "full-review/SCORE-READER-AND-DRAFT-REQUESTS.json": "befdf6a89c59d66489f75814e50a10a60dd4bd06faa7391ba0d9da8ad52b94bf",
+    "full-review/SHARED-EXPERT-OVERLAP-CONTRACTS.json": "5730baae4624c8ab1d889c7e4c62c4610e0e7a13266cc1b99c0d044d4b4a9ae0",
+    "full-review/SPEC-INDEX-READERS-AND-TEMPLATE.json": "47a2af14509ffcc5cfd2e49efc62bd69b4cad9be4d0befc27796f474f9b11c1c",
+    "full-review/SWA-C2-PROJECTED-TRANSPORT.json": "295b5139e5307e76ffec25843af38382656f326701e80390df89e4ae4c0e7472",
+    "full-review/TERMINAL-HEAD-DELIVERY-ESTIMATES.json": "6c22b216268672ffc5420d797f40a69044a53a0886b9976c9971d617c360a764",
+    "full-review/VOCAB-SELECTION-FUSION-ESTIMATES.json": "674db8db41de46062a8c3c8c8f7a1fb3c4dbf4da38b5f0a3ee4bb6281ca75529",
+    "tools/screen_mixed_fusion_scope.py": "22b4b79d781bcdf69999db2c833947fccbf1f7db951611d0a72dc2942b1c6fda"
+  },
+  "scope": "All 37 previously mixed proposals; not the list of all fusion opportunities.",
+  "new_service_operations": 0,
+  "overall_complete": false
+}
