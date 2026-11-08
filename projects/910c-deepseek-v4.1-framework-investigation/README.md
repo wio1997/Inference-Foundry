@@ -13,6 +13,7 @@
 | [三次检查点归集与草稿选行的联合估算](baselines/dspark-checkpoint-packet.json) | 原生均值、三次归集与按行交付 |
 | [末层输出到词表投影的实测区间和请求估算](baselines/terminal-head-delivery.json) | raw 读者、分片行数与连续区间上限 |
 | [路由分数、TopK 与分派入口](baselines/router-score-delivery.json) | 路由分数、同代 ID、关键路径与一次主机晚提交 |
+| [验证后分数输出、惩罚与五步草稿投影](score-readers.md) | 有限 Top-K 的拼行、归一化与排名，W1/W2 缓存的请求收益范围 |
 | [FFN 输出合并、HcPost 与下一层 premix](ffn-merge-premix.md) | 固定专家分布时每处中间写读的新增请求收益 |
 | [OA、OB 的共享 Cube 与接收端旋转](oa-ob-shared-cube.md) | 逐卡矩阵与搬运预算、分块门槛和不同形状的处置 |
 | [逐项融合归因](scope-reconciliation.md) | 分支适用条件、重复预算与退出融合筛查的原因 |

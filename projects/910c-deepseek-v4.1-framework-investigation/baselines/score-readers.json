@@ -1,0 +1,1178 @@
+{
+  "new_fusion_candidate": {
+    "name": "验证后直接从 target/bonus 读出有限 Top-K logprobs",
+    "modules": [
+      "M08",
+      "M09"
+    ],
+    "operator_sequence": [
+      "FP32 scatter of target and bonus",
+      "rectangular gather",
+      "FP32 log_softmax",
+      "topk, sampled gather and >= rank"
+    ],
+    "shared_readers": "post-verification public output, retaining raw/processed generation, internal bonus plane, and the earlier greedy or stochastic token decision",
+    "relationship": "Extends G13.A10 with a local post-verification source-row mapping. No change to the TP8 dense exchange; no credit for skipping an unaccepted rectangular slot. Distinct from earlier pre-verification score packing; any shared normalized read is charged once.",
+    "decision": "deprioritized under the recorded shape schedule at both copy-rate assumptions; other workloads remain conditional"
+  },
+  "source_contracts": {
+    "vllm/vllm/v1/sample/rejection_sampler.py": {
+      "sha256": "0bb9d224887ccb1355e16199005cc23a4afc6fa75156eca419851b7247d99750",
+      "symbol": "RejectionSampler._get_logprobs_tensors",
+      "lines": [
+        218,
+        265
+      ]
+    },
+    "vllm-ascend/vllm_ascend/sample/rejection_sampler.py": {
+      "sha256": "bb1d39de851540c16c2dd2b16df60c60a1fc4957cedb88bdce9417efc0d55eda",
+      "symbol": "AscendRejectionSampler.forward",
+      "lines": [
+        146,
+        254
+      ]
+    },
+    "vllm/vllm/v1/sample/sampler.py": {
+      "sha256": "f95805b2c6d06218c724826aa5f881a606e8d0a534a566aee7c85948520dd216",
+      "symbol": "Sampler.gather_logprobs",
+      "lines": [
+        310,
+        358
+      ]
+    },
+    "vllm-ascend/vllm_ascend/sample/sampler.py": {
+      "sha256": "867f1770614bb594baf5ecfb858aa4a20dc413cbfbe4f94e06b3786900b581ee",
+      "symbol": "AscendSampler",
+      "lines": [
+        45,
+        84
+      ]
+    }
+  },
+  "separate_partial_metadata_rank_calls": {
+    "no_penalty_no_requested_scores": 1104
+  },
+  "scheduled_TP8_calls": 453,
+  "scheduled_waves": 227,
+  "shape_calls_B_T_rect": [
+    [
+      1,
+      0,
+      1,
+      1
+    ],
+    [
+      1,
+      5,
+      6,
+      4
+    ],
+    [
+      2,
+      0,
+      2,
+      1
+    ],
+    [
+      2,
+      10,
+      12,
+      10
+    ],
+    [
+      3,
+      5,
+      18,
+      1
+    ],
+    [
+      3,
+      15,
+      18,
+      6
+    ],
+    [
+      4,
+      10,
+      24,
+      1
+    ],
+    [
+      4,
+      15,
+      24,
+      1
+    ],
+    [
+      4,
+      20,
+      24,
+      428
+    ]
+  ],
+  "logical_bytes_at_B4_T20": {
+    "reconstruction_only": 62054400,
+    "normalized_packet_only_one_extra_scan": 24821760,
+    "finite_logprobs_joint": 86876160,
+    "finite_logprobs_no_extra_scan": 99287040,
+    "penalty_output_mask": 18616320,
+    "warm_prompt_mask_and_output_mask": 46540800,
+    "both_features_one_extra_scan": 105492480,
+    "all_dense_interfaces_warm_prompt": 133416960
+  },
+  "median_one_payload_GB_s": 1202.6518781744107,
+  "C8_baseline_ms": {
+    "TTFT_P90": 1491.854839,
+    "makespan": 18590.769232
+  },
+  "models": {
+    "1": {
+      "C8_ms": {
+        "reconstruction_only": {
+          "TTFT_P90": 0.13544468100553786,
+          "makespan": 11.40960193803403
+        },
+        "normalized_packet_only_one_extra_scan": {
+          "TTFT_P90": 0.06277753468816627,
+          "makespan": 4.572440437499608
+        },
+        "finite_logprobs_joint": {
+          "TTFT_P90": 0.19822221569370413,
+          "makespan": 15.982042375533638
+        },
+        "finite_logprobs_no_extra_scan": {
+          "TTFT_P90": 0.22961098303790095,
+          "makespan": 18.268262594283442
+        },
+        "penalty_output_mask": {
+          "TTFT_P90": 0.03998842963028437,
+          "makespan": 3.422235606740287
+        },
+        "warm_prompt_mask_and_output_mask": {
+          "TTFT_P90": 0.09997107407548356,
+          "makespan": 8.55558901684708
+        },
+        "both_features_one_extra_scan": {
+          "TTFT_P90": 0.2356307466382077,
+          "makespan": 19.40169808358769
+        },
+        "all_dense_interfaces_warm_prompt": {
+          "TTFT_P90": 0.2930334923976261,
+          "makespan": 24.532471595011884
+        },
+        "free_W1_and_W2": {
+          "TTFT_P90": 0.8564180000000761,
+          "makespan": 39.573137999999744
+        },
+        "free_W2": {
+          "TTFT_P90": 0.8019999999999072,
+          "makespan": 36.85996000000159
+        },
+        "free_W2_and_score_chain": {
+          "TTFT_P90": 1.8160600000001068,
+          "makespan": 88.8229050000009
+        },
+        "B4_cache_all_hit": {
+          "TTFT_P90": 0.1984100043773651,
+          "makespan": 21.428280472755432
+        }
+      },
+      "ordinary": {
+        "chat-single": {
+          "reconstruction_only": {
+            "ms": 0.47728125687652817,
+            "response_pct": [
+              0.006924110823170034,
+              0.017350912674599085
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.19177246897921763,
+            "response_pct": [
+              0.0027821202046250763,
+              0.006971627975559632
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.6690537258557459,
+            "response_pct": [
+              0.009706231027795111,
+              0.02432254065015872
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.7649399603453546,
+            "response_pct": [
+              0.011097291130107647,
+              0.027808354637938532
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.14382935173441322,
+            "response_pct": [
+              0.0020865901534688073,
+              0.005228720981669724
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.35957337933603306,
+            "response_pct": [
+              0.0052164753836720186,
+              0.013071802454174311
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.812883077590159,
+            "response_pct": [
+              0.011792821181263917,
+              0.02955126163182844
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 1.0286271051917788,
+            "response_pct": [
+              0.014922706411467129,
+              0.037394343104333025
+            ]
+          },
+          "free_W2": {
+            "ms": 6.12426,
+            "response_pct": [
+              0.08884709872627036,
+              0.2226391649065529
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 6.491997999999999,
+            "response_pct": [
+              0.09418202154003091,
+              0.23600778106987805
+            ]
+          }
+        },
+        "code-single": {
+          "reconstruction_only": {
+            "ms": 0.03869848028728607,
+            "response_pct": [
+              0.008006703924175363,
+              0.008293590676446005
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.016339358343520783,
+            "response_pct": [
+              0.0033806083235407083,
+              0.0035017382856105347
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.05503783863080685,
+            "response_pct": [
+              0.01138731224771607,
+              0.011795328962056538
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.06320751780256724,
+            "response_pct": [
+              0.013077616409486424,
+              0.013546198104861806
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.012254518757640588,
+            "response_pct": [
+              0.0025354562426555317,
+              0.0026263037142079016
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.03063629689410147,
+            "response_pct": [
+              0.006338640606638828,
+              0.006565759285519753
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.06729235738844745,
+            "response_pct": [
+              0.013922768490371605,
+              0.014421632676264444
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.08567413552490832,
+            "response_pct": [
+              0.0177259528543549,
+              0.01836108824757629
+            ]
+          },
+          "free_W2": {
+            "ms": 0.63256,
+            "response_pct": [
+              0.13087647361543348,
+              0.1355658847413773
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 0.6731579999999999,
+            "response_pct": [
+              0.13927618759646193,
+              0.14426656734655377
+            ]
+          }
+        },
+        "chat-mixed": {
+          "reconstruction_only": {
+            "ms": 0.8771655531784842,
+            "response_pct": [
+              0.01365034944045391,
+              0.018916266181832012
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.35172618750000006,
+            "response_pct": [
+              0.005473522471711421,
+              0.007585051831734601
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 1.2288917406784843,
+            "response_pct": [
+              0.019123871912165333,
+              0.026501318013566613
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 1.4047548344284844,
+            "response_pct": [
+              0.021860633148021044,
+              0.030293843929433913
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.2637946406250001,
+            "response_pct": [
+              0.004105141853783567,
+              0.005688788873800952
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.6594866015625002,
+            "response_pct": [
+              0.010262854634458916,
+              0.014221972184502378
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 1.4926863813034843,
+            "response_pct": [
+              0.023229013765948898,
+              0.032190106887367564
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 1.8883783422409843,
+            "response_pct": [
+              0.029386726546624248,
+              0.04072329019806899
+            ]
+          },
+          "free_W2": {
+            "ms": 11.122699999999998,
+            "response_pct": [
+              0.1730901779842725,
+              0.23986344778161967
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 11.790518,
+            "response_pct": [
+              0.1834826848828764,
+              0.25426508838782375
+            ]
+          }
+        },
+        "code-mixed": {
+          "reconstruction_only": {
+            "ms": 0.18059290800733496,
+            "response_pct": [
+              0.005790170495567049,
+              0.017112558343816947
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.07309712943154036,
+            "response_pct": [
+              0.0023436404386819017,
+              0.006926511710592575
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.2536900374388753,
+            "response_pct": [
+              0.00813381093424895,
+              0.02403907005440952
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.2902386021546455,
+            "response_pct": [
+              0.009305631153589901,
+              0.02750232590970581
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.05482284707365526,
+            "response_pct": [
+              0.0017577303290114258,
+              0.005194883782944431
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.13705711768413814,
+            "response_pct": [
+              0.004394325822528564,
+              0.012987209457361074
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.30851288451253056,
+            "response_pct": [
+              0.009891541263260376,
+              0.029233953837353947
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.3907471551230135,
+            "response_pct": [
+              0.012528136756777518,
+              0.0370262795117706
+            ]
+          },
+          "free_W2": {
+            "ms": 2.37122,
+            "response_pct": [
+              0.0760260645558731,
+              0.22469121874031464
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 2.5255579999999997,
+            "response_pct": [
+              0.08097445009218955,
+              0.2393159238785737
+            ]
+          }
+        },
+        "chat-return": {
+          "reconstruction_only": {
+            "ms": 0.6062761911674817,
+            "response_pct": [
+              0.020122250107464656,
+              0.018360751637004458
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.24337044269559904,
+            "response_pct": [
+              0.008077442241719857,
+              0.007370344274145052
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.8496466338630808,
+            "response_pct": [
+              0.028199692349184517,
+              0.025731095911149512
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.9713318552108803,
+            "response_pct": [
+              0.03223841347004444,
+              0.029416268048222036
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.18252783202169928,
+            "response_pct": [
+              0.0060580816812898924,
+              0.005527758205608789
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.4563195800542482,
+            "response_pct": [
+              0.015145204203224731,
+              0.013819395514021972
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 1.03217446588478,
+            "response_pct": [
+              0.034257774030474406,
+              0.0312588541167583
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 1.305966213917329,
+            "response_pct": [
+              0.043344896552409244,
+              0.03955049142517148
+            ]
+          },
+          "free_W2": {
+            "ms": 7.5872,
+            "response_pct": [
+              0.2518184587149339,
+              0.22977431218604005
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 8.082758,
+            "response_pct": [
+              0.26826598240797683,
+              0.2447820223555742
+            ]
+          }
+        },
+        "code-return": {
+          "reconstruction_only": {
+            "ms": 0.05159797371638142,
+            "response_pct": [
+              0.008440467362643913,
+              0.007927604235047845
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.021499155715158928,
+            "response_pct": [
+              0.0035168614011016315,
+              0.003303168431269936
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.07309712943154036,
+            "response_pct": [
+              0.011957328763745547,
+              0.011230772666317784
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.08384670728911982,
+            "response_pct": [
+              0.013715759464296361,
+              0.01288235688195275
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.016124366786369197,
+            "response_pct": [
+              0.002637646050826224,
+              0.002477376323452452
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.04031091696592299,
+            "response_pct": [
+              0.00659411512706556,
+              0.0061934408086311305
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.08922149621790955,
+            "response_pct": [
+              0.014594974814571771,
+              0.013708148989770236
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.11340804639746335,
+            "response_pct": [
+              0.018551443890811106,
+              0.017424213474948914
+            ]
+          },
+          "free_W2": {
+            "ms": 0.8033399999999999,
+            "response_pct": [
+              0.13141145984485927,
+              0.12342658301253083
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 0.8516379999999999,
+            "response_pct": [
+              0.13931211297751422,
+              0.13084717343046
+            ]
+          }
+        }
+      }
+    },
+    "2": {
+      "C8_ms": {
+        "reconstruction_only": {
+          "TTFT_P90": 0.06772234050276893,
+          "makespan": 5.704800969018834
+        },
+        "normalized_packet_only_one_extra_scan": {
+          "TTFT_P90": 0.03138876734419682,
+          "makespan": 2.286220218749804
+        },
+        "finite_logprobs_joint": {
+          "TTFT_P90": 0.09911110784696575,
+          "makespan": 7.991021187768638
+        },
+        "finite_logprobs_no_extra_scan": {
+          "TTFT_P90": 0.11480549151883679,
+          "makespan": 9.134131297141721
+        },
+        "penalty_output_mask": {
+          "TTFT_P90": 0.019994214815142186,
+          "makespan": 1.7111178033701435
+        },
+        "warm_prompt_mask_and_output_mask": {
+          "TTFT_P90": 0.049985537037855465,
+          "makespan": 4.27779450842354
+        },
+        "both_features_one_extra_scan": {
+          "TTFT_P90": 0.11781537331899017,
+          "makespan": 9.700849041793845
+        },
+        "all_dense_interfaces_warm_prompt": {
+          "TTFT_P90": 0.14651674619881305,
+          "makespan": 12.266235797505942
+        },
+        "free_W1_and_W2": {
+          "TTFT_P90": 0.8564180000000761,
+          "makespan": 39.573137999999744
+        },
+        "free_W2": {
+          "TTFT_P90": 0.8019999999999072,
+          "makespan": 36.85996000000159
+        },
+        "free_W2_and_score_chain": {
+          "TTFT_P90": 1.8160600000001068,
+          "makespan": 88.8229050000009
+        },
+        "B4_cache_all_hit": {
+          "TTFT_P90": 0.1984100043773651,
+          "makespan": 21.428280472755432
+        }
+      },
+      "ordinary": {
+        "chat-single": {
+          "reconstruction_only": {
+            "ms": 0.23864062843826409,
+            "response_pct": [
+              0.003462055411585017,
+              0.008675456337299542
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.09588623448960881,
+            "response_pct": [
+              0.0013910601023125382,
+              0.003485813987779816
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.3345268629278729,
+            "response_pct": [
+              0.0048531155138975554,
+              0.01216127032507936
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.3824699801726773,
+            "response_pct": [
+              0.005548645565053824,
+              0.013904177318969266
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.07191467586720661,
+            "response_pct": [
+              0.0010432950767344036,
+              0.002614360490834862
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.17978668966801653,
+            "response_pct": [
+              0.0026082376918360093,
+              0.006535901227087156
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.4064415387950795,
+            "response_pct": [
+              0.005896410590631959,
+              0.01477563081591422
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.5143135525958894,
+            "response_pct": [
+              0.007461353205733564,
+              0.018697171552166512
+            ]
+          },
+          "free_W2": {
+            "ms": 6.12426,
+            "response_pct": [
+              0.08884709872627036,
+              0.2226391649065529
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 6.491997999999999,
+            "response_pct": [
+              0.09418202154003091,
+              0.23600778106987805
+            ]
+          }
+        },
+        "code-single": {
+          "reconstruction_only": {
+            "ms": 0.019349240143643035,
+            "response_pct": [
+              0.004003351962087682,
+              0.0041467953382230026
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.008169679171760392,
+            "response_pct": [
+              0.0016903041617703542,
+              0.0017508691428052673
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.027518919315403425,
+            "response_pct": [
+              0.005693656123858035,
+              0.005897664481028269
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.03160375890128362,
+            "response_pct": [
+              0.006538808204743212,
+              0.006773099052430903
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.006127259378820294,
+            "response_pct": [
+              0.0012677281213277658,
+              0.0013131518571039508
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.015318148447050735,
+            "response_pct": [
+              0.003169320303319414,
+              0.0032828796427598764
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.033646178694223726,
+            "response_pct": [
+              0.006961384245185802,
+              0.007210816338132222
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.04283706776245416,
+            "response_pct": [
+              0.00886297642717745,
+              0.009180544123788145
+            ]
+          },
+          "free_W2": {
+            "ms": 0.63256,
+            "response_pct": [
+              0.13087647361543348,
+              0.1355658847413773
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 0.6731579999999999,
+            "response_pct": [
+              0.13927618759646193,
+              0.14426656734655377
+            ]
+          }
+        },
+        "chat-mixed": {
+          "reconstruction_only": {
+            "ms": 0.4385827765892421,
+            "response_pct": [
+              0.006825174720226955,
+              0.009458133090916006
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.17586309375000003,
+            "response_pct": [
+              0.0027367612358557107,
+              0.0037925259158673006
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.6144458703392421,
+            "response_pct": [
+              0.009561935956082667,
+              0.013250659006783306
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.7023774172142422,
+            "response_pct": [
+              0.010930316574010522,
+              0.015146921964716956
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.13189732031250004,
+            "response_pct": [
+              0.0020525709268917835,
+              0.002844394436900476
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.3297433007812501,
+            "response_pct": [
+              0.005131427317229458,
+              0.007110986092251189
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.7463431906517421,
+            "response_pct": [
+              0.011614506882974449,
+              0.016095053443683782
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.9441891711204922,
+            "response_pct": [
+              0.014693363273312124,
+              0.020361645099034494
+            ]
+          },
+          "free_W2": {
+            "ms": 11.122699999999998,
+            "response_pct": [
+              0.1730901779842725,
+              0.23986344778161967
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 11.790518,
+            "response_pct": [
+              0.1834826848828764,
+              0.25426508838782375
+            ]
+          }
+        },
+        "code-mixed": {
+          "reconstruction_only": {
+            "ms": 0.09029645400366748,
+            "response_pct": [
+              0.0028950852477835245,
+              0.008556279171908474
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.03654856471577018,
+            "response_pct": [
+              0.0011718202193409509,
+              0.0034632558552962875
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.12684501871943765,
+            "response_pct": [
+              0.004066905467124475,
+              0.01201953502720476
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.14511930107732274,
+            "response_pct": [
+              0.004652815576794951,
+              0.013751162954852904
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.02741142353682763,
+            "response_pct": [
+              0.0008788651645057129,
+              0.0025974418914722153
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.06852855884206907,
+            "response_pct": [
+              0.002197162911264282,
+              0.006493604728680537
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.15425644225626528,
+            "response_pct": [
+              0.004945770631630188,
+              0.014616976918676973
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.19537357756150675,
+            "response_pct": [
+              0.006264068378388759,
+              0.0185131397558853
+            ]
+          },
+          "free_W2": {
+            "ms": 2.37122,
+            "response_pct": [
+              0.0760260645558731,
+              0.22469121874031464
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 2.5255579999999997,
+            "response_pct": [
+              0.08097445009218955,
+              0.2393159238785737
+            ]
+          }
+        },
+        "chat-return": {
+          "reconstruction_only": {
+            "ms": 0.30313809558374083,
+            "response_pct": [
+              0.010061125053732328,
+              0.009180375818502229
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.12168522134779952,
+            "response_pct": [
+              0.004038721120859928,
+              0.003685172137072526
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.4248233169315404,
+            "response_pct": [
+              0.014099846174592258,
+              0.012865547955574756
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.48566592760544014,
+            "response_pct": [
+              0.01611920673502222,
+              0.014708134024111018
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.09126391601084964,
+            "response_pct": [
+              0.0030290408406449462,
+              0.0027638791028043947
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.2281597900271241,
+            "response_pct": [
+              0.0075726021016123655,
+              0.006909697757010986
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.51608723294239,
+            "response_pct": [
+              0.017128887015237203,
+              0.01562942705837915
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.6529831069586645,
+            "response_pct": [
+              0.021672448276204622,
+              0.01977524571258574
+            ]
+          },
+          "free_W2": {
+            "ms": 7.5872,
+            "response_pct": [
+              0.2518184587149339,
+              0.22977431218604005
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 8.082758,
+            "response_pct": [
+              0.26826598240797683,
+              0.2447820223555742
+            ]
+          }
+        },
+        "code-return": {
+          "reconstruction_only": {
+            "ms": 0.02579898685819071,
+            "response_pct": [
+              0.004220233681321957,
+              0.003963802117523923
+            ]
+          },
+          "normalized_packet_only_one_extra_scan": {
+            "ms": 0.010749577857579464,
+            "response_pct": [
+              0.0017584307005508158,
+              0.001651584215634968
+            ]
+          },
+          "finite_logprobs_joint": {
+            "ms": 0.03654856471577018,
+            "response_pct": [
+              0.005978664381872774,
+              0.005615386333158892
+            ]
+          },
+          "finite_logprobs_no_extra_scan": {
+            "ms": 0.04192335364455991,
+            "response_pct": [
+              0.0068578797321481805,
+              0.006441178440976375
+            ]
+          },
+          "penalty_output_mask": {
+            "ms": 0.008062183393184598,
+            "response_pct": [
+              0.001318823025413112,
+              0.001238688161726226
+            ]
+          },
+          "warm_prompt_mask_and_output_mask": {
+            "ms": 0.020155458482961495,
+            "response_pct": [
+              0.00329705756353278,
+              0.0030967204043155653
+            ]
+          },
+          "both_features_one_extra_scan": {
+            "ms": 0.044610748108954774,
+            "response_pct": [
+              0.007297487407285886,
+              0.006854074494885118
+            ]
+          },
+          "all_dense_interfaces_warm_prompt": {
+            "ms": 0.056704023198731676,
+            "response_pct": [
+              0.009275721945405553,
+              0.008712106737474457
+            ]
+          },
+          "free_W2": {
+            "ms": 0.8033399999999999,
+            "response_pct": [
+              0.13141145984485927,
+              0.12342658301253083
+            ]
+          },
+          "free_W1_and_W2": {
+            "ms": 0.8516379999999999,
+            "response_pct": [
+              0.13931211297751422,
+              0.13084717343046
+            ]
+          }
+        }
+      }
+    }
+  },
+  "traffic_GB_s_for_one_percent": {
+    "reconstruction_only": {
+      "TTFT_P90": 10.918810311946123,
+      "makespan": 73.80963653930385
+    },
+    "normalized_packet_only_one_extra_scan": {
+      "TTFT_P90": 5.06078192236233,
+      "makespan": 29.579486525681446
+    },
+    "finite_logprobs_joint": {
+      "TTFT_P90": 15.979592234308454,
+      "makespan": 103.3891230649853
+    },
+    "finite_logprobs_no_extra_scan": {
+      "TTFT_P90": 18.509983195489617,
+      "makespan": 118.17886632782601
+    },
+    "penalty_output_mask": {
+      "TTFT_P90": 3.223648758765046,
+      "makespan": 22.138718568544164
+    },
+    "warm_prompt_mask_and_output_mask": {
+      "TTFT_P90": 8.059121896912615,
+      "makespan": 55.34679642136041
+    },
+    "both_features_one_extra_scan": {
+      "TTFT_P90": 18.995263653798336,
+      "makespan": 125.51115206054149
+    },
+    "all_dense_interfaces_warm_prompt": {
+      "TTFT_P90": 23.622759452670742,
+      "makespan": 158.70254034036975
+    }
+  },
+  "B4_native_cache_all_hit_gain_per_step_us": 19.84100043773651,
+  "optional_EP0_dynamic_spec_method": null,
+  "rules": [
+    "Optional finite positive top-K logprobs with no extra dense normalized reader: keep exact FP32 row normalization, rounded >= rank, backend ties, original chosen-token score and TopK order/duplicates. Preserve separate raw target vs processed planes, internal bonus logits, post-verification score filtering before discard. Full-score output or foreign consumers need their dense deliveries. No whole-vocab compute deletion or TP communication saving.",
+    "Rejection reconstruction uses M input rows and rectangular P=B*max(width) output slots. Bypass old zeros(M), FP32 source reads and two scatter writes (M each), then map every accepted original clamped index to the actual target or bonus source rather than reading the reconstructed bank. Eliminate temporary accepted-row write/read (P each). New source read replaces old bank gather read one for one. Net 4V*(3M+2P) bytes. Preserve zero fallback for unwritten indices and original mapping, clamping, rejected-slot placeholder conversion and filtering. Ordinary call has no such assembly.",
+    "Normalized output handoff: save one FP32 normalized write and two full scans for finite positive TopK and tie-inclusive rank per P rows. Charge one extra FP32 source scan for a two-pass implementation in the main arm. Normalization reduction and arithmetics, topK, rank and output remain; further scans, spills, tie reconstruction or additional read ports lower net value. Same arithmetic/output behavior has not been verified for a new kernel.",
+    "Penalty: only the output-count membership interface is charged (4-byte count read, one bool write and one bool read). The consumer already reads output counts. Preserve prompt mask, distinct target/bonus history generations, existing score writes and arithmetic. The warm-prompt alternative additionally reuses the completed prompt membership across all calls, including the first, optimistically charging no construction/misses and removing 9*M*V dense bytes (INT32 zeroing, count read, bool write); the penalty consumer still reads the correct prompt mask at the row owner. A replay, migration, prompt update, remap or stale generation invalidates it. Token gathers, histogram atomics, output-history updates, penalty arithmetic, CPU work and event costs unpriced.",
+    "Separate metadata cohort explicitly disables both outer features on 1104 rank calls. For optional score/penalty estimates use 453 archived greedy TP8 group geometries, 227 waves, identical D5 counts, largest scheduled DP byte total per wave, full serialized exposure to inclusive client deadline and original greedy denominator. Hypothetical all-enabled run; enabled latency, mixed request incidence, separate launch changes, cache rates and acceptance can differ. Divide logical traffic by median one-payload rate and twice that rate as sensitivities, with no unmeasured task-time caps.",
+    "Draft W2 arms use actual five task durations and allow the largest scheduled rank per wave to set the time saved. Free W2 leaves the base GEMM, score selection and state intact. Free W1+W2 also drops five matched original embedding gathers, retaining all score readers and charging zero cost for lookup. A separate arm frees recorded W2-through-ArgMax typed tasks but retains predecessor/embedding gathers and gaps. No sharing between target and draft logits. The all-hit cache variant uses historical four-row isolated hit delta for all five steps only when a scheduled DP has B4; charges zero hits and zero overhead elsewhere. No production hit rate inferred. Ordinary W2 uses maximum of available same-DP one-request samples per shape, falling back to the other DP only for the missing one-row prompt.",
+    "Bandwidth break-even is the linear transfer-only rate with the maximum re-evaluated across all original requests, holding schedule, admission and all other work fixed."
+  ],
+  "sources": {
+    "evidence/retrieved-source/vllm-ascend/vllm_ascend/ops/triton/bincount.py": "b66a7e5d365e78f16b822ef3cdec1ad3739c4ce5340edff082e1d37bc08124d9",
+    "evidence/retrieved-source/vllm-ascend/vllm_ascend/ops/triton/penalty.py": "7f10253471c23953cfba22e9bcd4c3305f80b4d3f6a2798d8f76f4ef6e61241b",
+    "full-review/SEED-COUNT-PUBLICATION.json": "5a4c3b81776b5408b4b747f2fd2074f0cb76dfb5a61accfaac679cc8b47b1d6f",
+    "full-review/MARKOV-NATIVE-DELIVERY.json": "c9f9ee716dc1bc128dd3dd0c110c97f357dab8b761a34bdb6817d183f8540668",
+    "full-review/SAMPLER-EXTENSION-OUTPUT-CONTRACTS.json": "3611687b0213322ca3d482f34dbf4755bdbfb1fc51be3e8b8508c90e0b3a4846",
+    "full-review/SAMPLING-SENTINEL-PREDICATES-CONTRACTS.json": "f3626230dffb050e6ccc73a5f3e7c77732d7c165d555b880c750531424b87f23",
+    "full-review/SAME-CALL-CONTROLS.json": "04b945775ec210a7dea4e387329c95977b914b12734779dd18c24bca9cccc69c",
+    "full-review/EP0-CONFIG-SNAPSHOT.json": "a030b64c7fb1b1b3c217c69314c611ef52694f7f5c2b4d24499e5a98f2236c96",
+    "full-review/MARKOV-BIAS-CACHE.json": "7c35c038cfa77e143f6089169c074e15694830966151487f418fba8ffe0f8821",
+    "full-review/PROCESSOR-ROUTE-ORDER.json": "7eab9a6ff0cd47b89f321bef48307f00465462336f6ff5dd8b17a1f4043f7c9e",
+    "full-review/SCORE-SELECTION-PACKETS.json": "660954b857c58aab1b58230e8c394df2c4c9facc243d4896493c84cc38da7336",
+    "full-review/SAMPLER-CUTOFF-FRONTIER.json": "e340765d2c0cbe94182c96ba90dc42f4eed2215662005b2838c59c376d3e9342",
+    "full-review/DSPARK-MERGED-BRANCHES.json": "da8c308346f5d8cbbb13d23479a7a48fce4c6f2cff22d5d3f5c007235e360f90",
+    "full-review/DYNAMIC-VERIFY-BUDGET-CONTRACTS.json": "80a880491d00238baca1e4ef4978dc86a4c6c0dd07caec57c1ee736a5f202aa1",
+    "full-review/REJECTION-RECOVERY-DOMAIN.json": "f4730f98983e6371ec1bf30c448011c114d4786961422673e927d557eb267c34",
+    "full-review/runs/first-token-v168-protocol-bodies.json": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de",
+    "full-review/runs/frozen-vocab-chains.json": "d655027c001310763cb9026b44e72d3b2a1210dbe21eb46e9dbcf23501ce3a17",
+    ".cache/v168-pinned-replay-spans.json": "008414f0d02ebb1e14d3bd92276703713f65696e992773b86cabbf5901185f57",
+    "full-review/runs/joint168-qli-step-frontiers.json.gz": "f579eb8751f9e3ce075e7c840196f4c759b2b86f55757225b60f0368fdc7da32",
+    "full-review/PREFILL-OA-JOINT-ARRIVAL.json": "5c7b01aefd7603c2957b6cbb439e7f005471ccd5e4b3a5d505a1925bd2f7b550",
+    "full-review/runs/joint168-request-endpoints.json.gz": "725c0b16b949d17402bbde4d6b80da0e676b3db91a3d939e478dad47132b222f",
+    "full-review/GRAPH-REQUEST-PREFIX-BUDGETS.json": "9794e03363db44e832bb2830d886b3e0d27bfbc9c6cc5afe63b14ce1e58cca82",
+    "full-review/PREFILL-FFN-ENTRY-EXPOSURE.json": "88acd71f32506372d48bf634d1be2b092023be76a39fed50abb797f98588b9b6",
+    "full-review/ORDINARY-TERMINAL-ROW-ESTIMATES.json": "42f9504b4b447bf5ea13e67615fabe05888fff44410e386e1a5d3cd0a826f542",
+    "full-review/ORDINARY-SERVING-GUARDS.json": "45ebb28aac22c3d28870ec132f4cb6fe8fec5dac620f710330680c5030a3b101",
+    "tools/price_vocab_selection_fusion.py": "58016b49184b542a58a98b701a4207520105c5591e9456c8ce142964e26469fd",
+    "tools/price_score_readers.py": "b11c1fe9edfe2d13ba03d1d38eee8a0d1ef7bbaad4cc823f911538037d13b963"
+  },
+  "new_measurements": 0,
+  "overall_complete": false
+}
