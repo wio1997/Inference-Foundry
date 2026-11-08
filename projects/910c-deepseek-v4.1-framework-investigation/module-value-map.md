@@ -29,6 +29,8 @@
 
 例如，末层逻辑行从 24 减至 6，能省多少通信取决于分片。只要原八卡等长包的最长分片仍为 3，每次就还要传 24 个槽。反过来，单个 slot 写入很小，但同一批可把 26 次提交合为一次，应当按整批定价。[普通请求分片](baselines/ordinary-terminal-rows.json) · [slot 联合提交](modules/M11.md)
 
+B1–B3 真实写入已按 192 个逐卡窗口核对。对 MoE 入口只使用原有同步时点，整个估算保持专家与权重放置固定。[slot 写入与最晚参与卡](slot-batch-by-population.md)
+
 普通请求输入侧的固定协议预算和 B1 slot 入口已按每个请求所属引擎核对。[固定通信与 B1 批写的条件价值](ordinary-input-and-slot.md)
 
 同一批长提示上的三项联合估算已按 34 个直接 Attention 入口、40 个 FFN 入口、38 个压缩 KV 层及有收益的大行 OA→OB 分块计价。各模块共享这一份请求预算。[逐层通信与请求结果](joint-attention-frontiers.md)

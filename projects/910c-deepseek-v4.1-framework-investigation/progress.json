@@ -1,25 +1,25 @@
 {
-  "updated_at_utc": "2026-11-08T04:52:23.733695+00:00",
-  "source_analysis_commit": "fc963b18a270db0383c56015bb10dd541de22fb7",
+  "updated_at_utc": "2026-11-08T05:10:46.757217+00:00",
+  "source_analysis_commit": "90f232c69f4a30253273de7f82347cd72ef17bf7",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M00/M01 输入交付已按固定通信重算，M00/M11 按活跃请求数筛 slot 写入的端到端价值",
+  "active_module": "M00/M11 的 B1–B4 分支已按真实汇合点估算；全模型固定算术的请求时间上限仍开放",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "用同一套 slot 生产者和读者的已有计时，按实际请求数与全局/本地有效行归并双输出与批写候选。优先核对 B1–B4 的常见命中条件、13/26 项在最迟就绪卡上各需省多少，形成可复用的负载门槛。已有数据足以降级的分支直接登记；找不到正常分支调用次数时保持条件估算。",
-    "decision": "固定通信协议时，词嵌入与两层 Engram 的普通响应按各自服务代际估算最高约 0.14%，能消去图外重复查表时约 0.62%。B4 的 26 项批写不命中真实 B1 本地入口；新增 B1 全局/本地输出的条件候选，保留 13 与 26 项和 skip/正常分支。",
+    "work": "转向全模型融合可影响的时间上限。先在同一冻结请求中按 prefill、目标验证和草稿的执行顺序，汇总主要投影及专家矩阵乘中必须保留的工作和已有计算成本，区分图内、图外与跨卡重复计数。以这份共同基线筛跨模块候选，注明算术、频率、未计资源和普通请求适用条件。",
+    "decision": "冻结请求全部十个非满目标图波次中，正常 B1/B2/B3 分别有 2/4/6 个 TP rank 执行 26 组写入，其余各有 13 组全局写入。仅适配 26 组的普通响应估算最高 0.93%。两个分支须一起保留且 13 组需要足够净节省。C8 非满图扩展在同速有利情景仅约 0.041%，该指标降级。",
     "source": {
-      "path": "full-review/ORDINARY-EMBEDDING-FIXED-ROUTE.json",
-      "sha256": "0fb83c823a979ad15f57ea55bbd03116cf6fa926e6c8813177f5b2fe3b9315ed"
+      "path": "full-review/SLOT-BATCH-BY-POPULATION.json",
+      "sha256": "21dcea4f69092ca5baf3c28019c50adbc6fa6d73503d1ee71378b3e09f6cd0be"
     },
-    "slot_candidate": {
-      "path": "full-review/SINGLE-REQUEST-SLOT-BATCH-SCREEN.json",
-      "sha256": "03c5b0f96380f4887dffeb79ecae192f697dfa7371877a3d58fea04e522bd706"
+    "native_signature_receipt": {
+      "path": "full-review/runs/frozen-slot-partial-wave-signatures.json",
+      "sha256": "b74256d4e50767e1686ff7cfeb8baff02218cd7b8e9942fd777c42644bd65307"
     },
     "scope_ledger": {
       "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
-      "sha256": "4c4c2335e3daec6081227c367da50611819396d4a45885c8f99eb9a8657565bd"
+      "sha256": "239fbd4248e4f79a4a72688d21e6d6825102ac57dc5cdf4708cf690f77aefff3"
     }
   },
   "module_statuses": [
@@ -172,7 +172,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Six ordinary requests under three generations, per-engine verification counts, 446 frozen active target graph groups and a 48-record B1-shaped slot census.",
+    "performance_scope": "Twelve archived waves across 16 ranks, ten of them partial; per-rank slot paths, 112 prior dual-writer windows and six ordinary request projections.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -288,15 +288,13 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "Ordinary target graph vs live inputs, fixed-route embedding fusion and B1 slot batch",
+    "scope": "Normal B1–B4 slot writer chains at TP8 and EP16 readiness on 171",
     "sources": [
-      "ordinary-input-and-slot.md",
-      "baselines/ordinary-embedding-fixed-route.json",
-      "baselines/single-request-slot-batch.json"
+      "slot-batch-by-population.md",
+      "baselines/slot-batch-by-population.json"
     ],
     "observations": [
-      "普通请求的目标图固定 24 行，171 次请求验证走图，2 次并入另一请求的 eager prefill。保留原 TP8 协议时，输入侧局部融合整段响应最高估算约 0.14%；图内结果还能取代图外查表时约 0.62%。",
-      "原 26 项 B4 批写要求本地实际请求数为四。B1 归档有 13 个全局写入加零个或 13 个非空本地写入。另设 B1 批写分支、借用 B4 的 0.961 ms 原生节省时，后续对话在两次原服务参考中预计缩短约 1.28%–1.37%。正常分支命中和实际收益仍未知。"
+      "正常 B1、B2、B3 各有 2、4、6 个 TP rank 做 26 项，其余各做 13 项。仅优化 26 项时，按三个 B1 组的就绪差外推，六个普通请求的整段最高约 0.93%。若 13 项也净省 0.480 ms，后续对话估算约 0.64%–1.37%。即使两类卡都省 0.961 ms，冻结 C8 的小批量扩展也只省 7.69 ms（0.041%）。"
     ],
     "new_performance_measurements": 0
   },
@@ -325,11 +323,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "ordinary-input-and-slot.md",
-      "result": "普通请求的目标图固定 24 行，171 次请求验证走图，2 次并入另一请求的 eager prefill。保留原 TP8 协议时，输入侧局部融合整段响应最高估算约 0.14%；图内结果还能取代图外查表时约 0.62%。 原 26 项 B4 批写要求本地实际请求数为四。B1 归档有 13 个全局写入加零个或 13 个非空本地写入。另设 B1 批写分支、借用 B4 的 0.961 ms 原生节省时，后续对话在两次原服务参考中预计缩短约 1.28%–1.37%。正常分支命中和实际收益仍未知。"
+      "record": "slot-batch-by-population.md",
+      "result": "正常 B1、B2、B3 各有 2、4、6 个 TP rank 做 26 项，其余各做 13 项。仅优化 26 项时，按三个 B1 组的就绪差外推，六个普通请求的整段最高约 0.93%。若 13 项也净省 0.480 ms，后续对话估算约 0.64%–1.37%。即使两类卡都省 0.961 ms，冻结 C8 的小批量扩展也只省 7.69 ms（0.041%）。"
     },
-    "next": "用同一套 slot 生产者和读者的已有计时，按实际请求数与全局/本地有效行归并双输出与批写候选。优先核对 B1–B4 的常见命中条件、13/26 项在最迟就绪卡上各需省多少，形成可复用的负载门槛。已有数据足以降级的分支直接登记；找不到正常分支调用次数时保持条件估算。",
-    "decision": "固定通信协议时，词嵌入与两层 Engram 的普通响应按各自服务代际估算最高约 0.14%，能消去图外重复查表时约 0.62%。B4 的 26 项批写不命中真实 B1 本地入口；新增 B1 全局/本地输出的条件候选，保留 13 与 26 项和 skip/正常分支。",
+    "next": "转向全模型融合可影响的时间上限。先在同一冻结请求中按 prefill、目标验证和草稿的执行顺序，汇总主要投影及专家矩阵乘中必须保留的工作和已有计算成本，区分图内、图外与跨卡重复计数。以这份共同基线筛跨模块候选，注明算术、频率、未计资源和普通请求适用条件。",
+    "decision": "冻结请求全部十个非满目标图波次中，正常 B1/B2/B3 分别有 2/4/6 个 TP rank 执行 26 组写入，其余各有 13 组全局写入。仅适配 26 组的普通响应估算最高 0.93%。两个分支须一起保留且 13 组需要足够净节省。C8 非满图扩展在同速有利情景仅约 0.041%，该指标降级。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"

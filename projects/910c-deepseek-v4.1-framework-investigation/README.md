@@ -7,6 +7,7 @@
 | 入口 | 内容 |
 |---|---|
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
+| [B1–B4 批写与最晚参与卡](slot-batch-by-population.md) | 正常更新时 13/26 项的实际分布、服务增量与普通请求门槛 |
 | [普通请求的输入与 slot 批写](ordinary-input-and-slot.md) | 固定通信的融合价值、真实 B1 与 24 行图、13/26 项分支及收益门槛 |
 | [三处 Attention 融合的同批估算](joint-attention-frontiers.md) | 长提示首 token、普通整段响应和成立条件 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
