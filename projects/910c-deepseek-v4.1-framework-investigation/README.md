@@ -6,6 +6,7 @@
 
 | 入口 | 内容 |
 |---|---|
+| [从热点定位实际可省的算子工作](profile-boundary-audit.md) | 96 个局部热点签名、固定 MoE 布局的对照、Attention 元数据发布与真实读者 |
 | [四条条件提案的请求收益](four-mixed-fusion-edges.md) | 两层 Engram 合包、QLI 分数与列表、草稿 OB 补齐、同波专家 GMM |
 | [融合收益归因与混合提案处置](fusion-attribution.md) | 37 条混合提案的复用、归档与条件项，以及普通 slot 的设备收益预算 |
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |

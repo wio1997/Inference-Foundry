@@ -2,6 +2,8 @@
 
 在 171 的固定 DeepSeek V4.1 Flash W8A8、DSpark、Engram、CANN 9.2 和 910C 环境中，先执行输入准备，随后经过 40 个目标层。在层 1、14 插入 Engram。每层依次执行 Attention 和 FFN/MoE，再进入末层读出、校验/采样、草稿提案及下一次迭代。表中收益按最早涉及的模块归属一次。TTFT 表示首 token 延迟。表内历史八请求的 TTFT P90 为 1491.85 ms，1% 对应 14.92 ms。不同服务对照使用各自的前后参照。
 
+两批 profile 的单签名与整类热点已对照。在 M00/M03/M11，目标 tiling 已早于图内读者就绪；合并提交的请求级预算已降级。[跨模块热点对账](profile-boundary-audit.md)
+
 | 执行位置 | profile 中值钱的工作 | 对应算子、适用分支与取舍 |
 |---|---|---|
 | [M00 输入与元数据](modules/M00.md) | 单独输入非通信设备任务在已测 decode 周期内最高占 0.127%。同一批 26 个 builder 重复准备 CP 局部长度和 CPU 输入计划，提交与同步也耗时。 | **保留批内公共生产者。** 已有有效长度时跳过重复的后缀处理、减法、截断和空行选择，保留 query offset 和未命中分支。同轮 CP 单改整批缩短 6.10% / 4.89%。在 CP 加 slot 基线上，同批复用 CPU 计划又缩短 10.36% / 9.56%，后者属主机端工作共享。显式批字典、实际输入内容、TP 范围、causal 和代际都要匹配。[同场比较](baselines/module-fusion-estimates.json) 原始 ID 图内外的目标查表在 446 组同时出现，单独跳过图外已命名设备工作，冻结整批估算省 14.39–31.05 ms。[图内外词嵌入、Engram 与请求估算](baselines/embedding-engram-fusion.json) [首层四路展开与 Engram](initial-hc-engram.md) [可选路径、完整分数与宽张量](optional-paths-and-raw-head.md) |

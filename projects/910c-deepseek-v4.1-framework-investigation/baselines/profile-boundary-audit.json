@@ -1,0 +1,1436 @@
+{
+  "scope": "同代固定路由和权重的算子融合。热点仅定位，核对具名生产者、读者、已定价的消除项与真实分支。",
+  "hotspots": {
+    "decode": {
+      "signature_count": 405,
+      "hot_signature_count": 24,
+      "hot_types": {
+        "DispatchFFNCombine": {
+          "modules": "M06/M10",
+          "candidate_boundary": "固定 TopK、专家和权重，检查分派输入及两个 GMM 之间的写读；同波各专家已归组。",
+          "evidence": [
+            "router-score-delivery",
+            "routed-expert-handoffs",
+            "four-mixed-fusion-edges",
+            "draft-fixed-expert"
+          ],
+          "hot_signatures": {
+            "84": {
+              "phase": "outside_target_graph",
+              "inputs": "\"3,5120;8,5120,4608;8,2304,5120;3,3;36864;40960;3,3;3\"",
+              "local_max_pct": 4.886074971324519,
+              "periods_at_guide": 82,
+              "role": "草稿路由专家"
+            },
+            "309": {
+              "phase": "target_graph",
+              "inputs": "\"3,5120;24,5120,4608;24,2304,5120;3,6;110592;122880;3,6;3\"",
+              "local_max_pct": 26.867043867179188,
+              "periods_at_guide": 112,
+              "role": "目标路由专家"
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 25.102096617752252,
+          "rank_local_max_pct": 27.85120454670394
+        },
+        "ForeachAddList": {
+          "modules": "M06/M07/M10",
+          "candidate_boundary": "共享与路由输出的加法并入 HcPost。目标 M3 有服务对照；草稿单列。",
+          "evidence": [
+            "ffn-merge-premix"
+          ],
+          "hot_signatures": {
+            "316": {
+              "phase": "target_graph",
+              "inputs": "\"3,5120;3,5120;\"",
+              "local_max_pct": 1.6489147562592628,
+              "periods_at_guide": 112
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 1.5666431499906541,
+          "rank_local_max_pct": 1.7709533320471513
+        },
+        "HcPost": {
+          "modules": "M04/M07/M10",
+          "candidate_boundary": "融合上游加法或向下一层 premix 同时交付 Y 和残差，保留旁路读者。",
+          "evidence": [
+            "hc-paired-boundaries",
+            "cross-layer-hc-fusion",
+            "ffn-merge-premix"
+          ],
+          "hot_signatures": {
+            "319": {
+              "phase": "target_graph",
+              "inputs": "\"1,3,5120;1,3,4,5120;1,3,4;1,3,4,4\"",
+              "local_max_pct": 1.1010649986410048,
+              "periods_at_guide": 96
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 1.143108605856213,
+          "rank_local_max_pct": 1.1840176212043412
+        },
+        "HcPre": {
+          "modules": "M02/M05/M10",
+          "candidate_boundary": "共享残差读和归一化写读；初层、直接衔接层及 Engram/aux 层使用不同预算。",
+          "evidence": [
+            "hc-paired-boundaries",
+            "initial-hc-engram"
+          ],
+          "hot_signatures": {
+            "320": {
+              "phase": "target_graph",
+              "inputs": "\"3,4,5120;24,20480;3;24;3,4\"",
+              "local_max_pct": 5.426281852380487,
+              "periods_at_guide": 112
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 5.496956660805784,
+          "rank_local_max_pct": 5.81539582206698
+        },
+        "InplacePartialRotaryMul": {
+          "modules": "M03/M04/M10",
+          "candidate_boundary": "区分 Q 旋转、K 缓存写入和投影前逆旋转，以及草稿三层 K。",
+          "evidence": [
+            "attention-input-fusions",
+            "attention-send",
+            "receiver-inverse-rope",
+            "draft-context-fusion"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 7,
+          "rank_local_median_pct": 1.3584744975132748,
+          "rank_local_max_pct": 1.472953115552676
+        },
+        "MatMulV2": {
+          "modules": "M01/M03/M04",
+          "candidate_boundary": "按权重形状区分 Q/KV 输入投影、Engram WKV 和 OB。仅计前后可省工作。",
+          "evidence": [
+            "embedding-engram-fusion",
+            "attention-input-fusions",
+            "oa-ob-fusion"
+          ],
+          "hot_signatures": {
+            "333": {
+              "phase": "target_graph",
+              "inputs": "\"24,1024;5120,1024\"",
+              "local_max_pct": 1.1316284481018128,
+              "periods_at_guide": 96,
+              "role": "OB 输出投影",
+              "evidence": "oa-ob-shared-cube"
+            },
+            "336": {
+              "phase": "target_graph",
+              "inputs": "\"3,5120;1280,5120\"",
+              "local_max_pct": 1.3235357152886886,
+              "periods_at_guide": 105,
+              "role": "Q 低秩输入投影",
+              "evidence": "attention-input-fusions"
+            },
+            "338": {
+              "phase": "target_graph",
+              "inputs": "\"3,6144;25600,6144\"",
+              "local_max_pct": 1.0368874068903033,
+              "periods_at_guide": 55,
+              "role": "Engram WKV 投影",
+              "evidence": "embedding-engram-fusion"
+            }
+          },
+          "all_signature_count": 16,
+          "rank_local_median_pct": 5.556852386323184,
+          "rank_local_max_pct": 5.752919327915283
+        },
+        "MatMulV3": {
+          "modules": "M04/M06",
+          "candidate_boundary": "区分 5120→384 的路由打分和 1024→5120 的 OB。",
+          "evidence": [
+            "router-score-delivery",
+            "oa-ob-fusion"
+          ],
+          "hot_signatures": {
+            "340": {
+              "phase": "target_graph",
+              "inputs": "\"3,5120;384,5120\"",
+              "local_max_pct": 1.3006894506635034,
+              "periods_at_guide": 106,
+              "role": "384 专家路由打分",
+              "evidence": "router-score-delivery"
+            }
+          },
+          "all_signature_count": 3,
+          "rank_local_median_pct": 1.5688813245653694,
+          "rank_local_max_pct": 1.6457392510750588
+        },
+        "QuantBatchMatmulV3": {
+          "modules": "M03/M06",
+          "candidate_boundary": "按实际权重区分 Q 展开、共享专家 Up 和 Down；输入量化、激活、Down 合并分别估价。",
+          "evidence": [
+            "attention-input-fusions",
+            "shared-mlp-fusion",
+            "ffn-merge-premix"
+          ],
+          "hot_signatures": {
+            "355": {
+              "phase": "target_graph",
+              "inputs": "\"3,1280;1024,80,16,32;32768;3\"",
+              "local_max_pct": 3.18997569237256,
+              "periods_at_guide": 112,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "357": {
+              "phase": "target_graph",
+              "inputs": "\"3,2304;160,144,16,32;5120;3\"",
+              "local_max_pct": 1.5982182654468806,
+              "periods_at_guide": 112,
+              "role": "共享 FFN Down 到加法",
+              "evidence": "ffn-merge-premix"
+            },
+            "358": {
+              "phase": "target_graph",
+              "inputs": "\"3,5120;144,320,16,32;4608\"",
+              "local_max_pct": 1.9905707264287675,
+              "periods_at_guide": 112,
+              "role": "共享 FFN Up 到门控激活",
+              "evidence": "shared-mlp-fusion"
+            }
+          },
+          "all_signature_count": 8,
+          "rank_local_median_pct": 7.071616925497942,
+          "rank_local_max_pct": 7.3987817849903745
+        },
+        "RmsNorm": {
+          "modules": "M02/M03/M05/M10",
+          "candidate_boundary": "按消费者区分投影前归一化和 KV 缓存发布，保留独立读取的 BF16 与 scale。",
+          "evidence": [
+            "hc-paired-boundaries",
+            "attention-input-fusions",
+            "activation-quant"
+          ],
+          "hot_signatures": {
+            "365": {
+              "phase": "target_graph",
+              "inputs": "\"24,512;512\"",
+              "local_max_pct": 1.0914118359600773,
+              "periods_at_guide": 43
+            }
+          },
+          "all_signature_count": 12,
+          "rank_local_median_pct": 1.895904392760222,
+          "rank_local_max_pct": 2.020675365569278
+        },
+        "ScatterNdUpdateSk": {
+          "modules": "M03/M10",
+          "candidate_boundary": "K 生产者直接按 slot 写到对应层，仍须更新持久缓存。",
+          "evidence": [
+            "attention-input-fusions",
+            "c2-selection-pipeline",
+            "draft-context-fusion"
+          ],
+          "hot_signatures": {
+            "372": {
+              "phase": "target_graph",
+              "inputs": "\"17303,128,512;24,2;24,512\"",
+              "local_max_pct": 2.749488407504002,
+              "periods_at_guide": 112
+            }
+          },
+          "all_signature_count": 8,
+          "rank_local_median_pct": 2.9625464837673556,
+          "rank_local_max_pct": 3.2495714691178414
+        },
+        "SparseFlashMla": {
+          "modules": "M03/M10",
+          "candidate_boundary": "压缩 KV 面板直接交付 QK/PV；SWA 与压缩分支分别保留实际索引与掩码。",
+          "evidence": [
+            "smla-panel-occupancy",
+            "sparse-selection-delivery"
+          ],
+          "hot_signatures": {
+            "381": {
+              "phase": "target_graph",
+              "inputs": "\"3,64,512;17303,128,1,512;17303,128,1,512;;3,1,512;4,272;4,272;5;;;;4;4;;;;64;1024\"",
+              "local_max_pct": 1.718697112890376,
+              "periods_at_guide": 112
+            },
+            "382": {
+              "phase": "target_graph",
+              "inputs": "\"3,64,512;17303,128,1,512;17303,64,1,512;;3,1,512;4,272;4,272;5;;;;4;4;4;;;64;1024\"",
+              "local_max_pct": 1.568592434951042,
+              "periods_at_guide": 112
+            }
+          },
+          "all_signature_count": 5,
+          "rank_local_median_pct": 3.633021782185776,
+          "rank_local_max_pct": 3.81992265809906
+        },
+        "SparseFlashMlaMetadata": {
+          "modules": "M00/M03/M11",
+          "candidate_boundary": "已共享同代同键的 tiling；不同输出可由同一个 kernel 生成，按实际发布和消费计价。",
+          "evidence": [
+            "profile-boundary-audit"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 5,
+          "rank_local_median_pct": 1.1115671103465212,
+          "rank_local_max_pct": 1.4217143396109628
+        },
+        "Transpose": {
+          "modules": "M00/M01/M03/M04/M08/M10",
+          "candidate_boundary": "按 embedding/Engram、Attention 发送和词表读者区分，禁止按类型总额计价。",
+          "evidence": [
+            "ordinary-embedding-fixed-route",
+            "attention-send",
+            "oa-ob-fusion",
+            "vocab-selection-fusion"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 6,
+          "rank_local_median_pct": 1.1633497225519462,
+          "rank_local_max_pct": 1.2810624965832917
+        },
+        "TransposeBatchMatMul": {
+          "modules": "M04/M10",
+          "candidate_boundary": "OA 向 OB 直接交付行块，保留中间舍入及两份矩阵计算。",
+          "evidence": [
+            "oa-ob-shared-cube",
+            "oa-ob-fusion"
+          ],
+          "hot_signatures": {
+            "389": {
+              "phase": "target_graph",
+              "inputs": "\"24,1,4096;1,4096,1024\"",
+              "local_max_pct": 3.911935621923438,
+              "periods_at_guide": 112
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 4.055415141344801,
+          "rank_local_max_pct": 4.202957664417043
+        },
+        "VllmAscendQuantLightningIndexerV2": {
+          "modules": "M03",
+          "candidate_boundary": "共用四层掩码转换、分数与归并列表写读、减少排序计算分别估价。",
+          "evidence": [
+            "four-mixed-fusion-edges",
+            "qli-service-c8",
+            "sparse-selection-delivery"
+          ],
+          "hot_signatures": {
+            "392": {
+              "phase": "target_graph",
+              "inputs": "\"3,32,128;17303,128,1,128;3,32;3,32;17303,128,1;5;;;4;;4,272;;1024;3,1,2048\"",
+              "local_max_pct": 3.684345750695207,
+              "periods_at_guide": 112
+            }
+          },
+          "all_signature_count": 3,
+          "rank_local_median_pct": 4.439890972324967,
+          "rank_local_max_pct": 4.601642740971237
+        },
+        "hcom_allGather_": {
+          "modules": "跨模块",
+          "candidate_boundary": "先用实际通信 ID、组、载荷和读者绑定。相同的 N/A 签名不能分摊给各个候选。",
+          "evidence": [
+            "communication",
+            "collective-calibration"
+          ],
+          "hot_signatures": {
+            "280": {
+              "phase": "outside_target_graph",
+              "inputs": "N/A",
+              "local_max_pct": 3.429163570817228,
+              "periods_at_guide": 84,
+              "role": "通信 ID、载荷与消费者须另绑定"
+            },
+            "401": {
+              "phase": "target_graph",
+              "inputs": "N/A",
+              "local_max_pct": 1.6465656168076463,
+              "periods_at_guide": 112,
+              "role": "通信 ID、载荷与消费者须另绑定"
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 3.189001791513971,
+          "rank_local_max_pct": 4.551704546116061
+        },
+        "hcom_allReduce_": {
+          "modules": "跨模块",
+          "candidate_boundary": "先用实际通信 ID、组、载荷和读者绑定。相同的 N/A 签名不能分摊给各个候选。",
+          "evidence": [
+            "communication",
+            "collective-calibration"
+          ],
+          "hot_signatures": {
+            "281": {
+              "phase": "outside_target_graph",
+              "inputs": "N/A",
+              "local_max_pct": 22.01685510339279,
+              "periods_at_guide": 61,
+              "role": "通信 ID、载荷与消费者须另绑定"
+            },
+            "402": {
+              "phase": "target_graph",
+              "inputs": "N/A",
+              "local_max_pct": 4.110625749935299,
+              "periods_at_guide": 11,
+              "role": "通信 ID、载荷与消费者须另绑定"
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 1.661677294422129,
+          "rank_local_max_pct": 22.321514851980826
+        },
+        "hcom_alltoall_": {
+          "modules": "跨模块",
+          "candidate_boundary": "先用实际通信 ID、组、载荷和读者绑定。相同的 N/A 签名不能分摊给各个候选。",
+          "evidence": [
+            "communication",
+            "collective-calibration"
+          ],
+          "hot_signatures": {
+            "282": {
+              "phase": "outside_target_graph",
+              "inputs": "N/A",
+              "local_max_pct": 2.7995618366231554,
+              "periods_at_guide": 7,
+              "role": "通信 ID、载荷与消费者须另绑定"
+            },
+            "403": {
+              "phase": "target_graph",
+              "inputs": "N/A",
+              "local_max_pct": 1.5844735220756476,
+              "periods_at_guide": 105,
+              "role": "通信 ID、载荷与消费者须另绑定"
+            }
+          },
+          "all_signature_count": 2,
+          "rank_local_median_pct": 1.3641229006578715,
+          "rank_local_max_pct": 3.903836204357252
+        },
+        "hcom_reduceScatter_": {
+          "modules": "跨模块",
+          "candidate_boundary": "先用实际通信 ID、组、载荷和读者绑定。相同的 N/A 签名不能分摊给各个候选。",
+          "evidence": [
+            "communication",
+            "collective-calibration"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 2,
+          "rank_local_median_pct": 0.8119458014800345,
+          "rank_local_max_pct": 1.1038396453093584
+        }
+      },
+      "visible_only_after_grouping": [
+        "InplacePartialRotaryMul",
+        "SparseFlashMlaMetadata",
+        "Transpose",
+        "hcom_reduceScatter_"
+      ]
+    },
+    "eager": {
+      "signature_count": 663,
+      "hot_signature_count": 72,
+      "hot_types": {
+        "DispatchFFNCombine": {
+          "modules": "M06/M10",
+          "candidate_boundary": "固定 TopK、专家和权重，检查分派输入及两个 GMM 之间的写读；同波各专家已归组。",
+          "evidence": [
+            "router-score-delivery",
+            "routed-expert-handoffs",
+            "four-mixed-fusion-edges",
+            "draft-fixed-expert"
+          ],
+          "hot_signatures": {
+            "102": {
+              "phase": "eager_target",
+              "inputs": "\"416,5120;24,5120,4608;24,2304,5120;416,6;110592;122880;416,6;416\"",
+              "local_max_pct": 90.40965678444721,
+              "periods_at_guide": 16,
+              "role": "目标路由专家"
+            },
+            "103": {
+              "phase": "eager_target",
+              "inputs": "\"816,5120;24,5120,4608;24,2304,5120;816,6;110592;122880;816,6;816\"",
+              "local_max_pct": 86.10246976066425,
+              "periods_at_guide": 16,
+              "role": "目标路由专家"
+            },
+            "104": {
+              "phase": "eager_target",
+              "inputs": "\"817,5120;24,5120,4608;24,2304,5120;817,6;110592;122880;817,6;817\"",
+              "local_max_pct": 85.60025353444944,
+              "periods_at_guide": 16,
+              "role": "目标路由专家"
+            },
+            "105": {
+              "phase": "eager_target",
+              "inputs": "\"818,5120;24,5120,4608;24,2304,5120;818,6;110592;122880;818,6;818\"",
+              "local_max_pct": 55.06922647245334,
+              "periods_at_guide": 16,
+              "role": "目标路由专家"
+            }
+          },
+          "all_signature_count": 4,
+          "rank_local_median_pct": 44.65091304066043,
+          "rank_local_max_pct": 90.40965678444721
+        },
+        "HcPost": {
+          "modules": "M04/M07/M10",
+          "candidate_boundary": "融合上游加法或向下一层 premix 同时交付 Y 和残差，保留旁路读者。",
+          "evidence": [
+            "hc-paired-boundaries",
+            "cross-layer-hc-fusion",
+            "ffn-merge-premix"
+          ],
+          "hot_signatures": {
+            "140": {
+              "phase": "eager_target",
+              "inputs": "\"1,416,5120;1,416,4,5120;1,416,4;1,416,4,4\"",
+              "local_max_pct": 2.2746717172709743,
+              "periods_at_guide": 8
+            },
+            "141": {
+              "phase": "eager_target",
+              "inputs": "\"1,419,5120;1,419,4,5120;1,419,4;1,419,4,4\"",
+              "local_max_pct": 1.6276533712063956,
+              "periods_at_guide": 8
+            },
+            "142": {
+              "phase": "eager_target",
+              "inputs": "\"1,816,5120;1,816,4,5120;1,816,4;1,816,4,4\"",
+              "local_max_pct": 3.039298150784723,
+              "periods_at_guide": 8
+            },
+            "143": {
+              "phase": "eager_target",
+              "inputs": "\"1,817,5120;1,817,4,5120;1,817,4;1,817,4,4\"",
+              "local_max_pct": 2.841422937078486,
+              "periods_at_guide": 8
+            },
+            "144": {
+              "phase": "eager_target",
+              "inputs": "\"1,818,5120;1,818,4,5120;1,818,4;1,818,4,4\"",
+              "local_max_pct": 2.686950605109631,
+              "periods_at_guide": 8
+            }
+          },
+          "all_signature_count": 6,
+          "rank_local_median_pct": 1.880201682649616,
+          "rank_local_max_pct": 3.039298150784723
+        },
+        "HcPre": {
+          "modules": "M02/M05/M10",
+          "candidate_boundary": "共享残差读和归一化写读；初层、直接衔接层及 Engram/aux 层使用不同预算。",
+          "evidence": [
+            "hc-paired-boundaries",
+            "initial-hc-engram"
+          ],
+          "hot_signatures": {
+            "145": {
+              "phase": "eager_target",
+              "inputs": "\"3,4,5120;24,20480;3;24;3,4\"",
+              "local_max_pct": 1.2280684570042548,
+              "periods_at_guide": 17
+            },
+            "146": {
+              "phase": "eager_target",
+              "inputs": "\"416,4,5120;24,20480;3;24;416,4\"",
+              "local_max_pct": 4.4896018969186775,
+              "periods_at_guide": 8
+            },
+            "147": {
+              "phase": "eager_target",
+              "inputs": "\"419,4,5120;24,20480;3;24;419,4\"",
+              "local_max_pct": 3.192221602888278,
+              "periods_at_guide": 8
+            },
+            "148": {
+              "phase": "eager_target",
+              "inputs": "\"816,4,5120;24,20480;3;24;816,4\"",
+              "local_max_pct": 5.378777635326606,
+              "periods_at_guide": 8
+            },
+            "149": {
+              "phase": "eager_target",
+              "inputs": "\"817,4,5120;24,20480;3;24;817,4\"",
+              "local_max_pct": 5.490562573938546,
+              "periods_at_guide": 8
+            },
+            "150": {
+              "phase": "eager_target",
+              "inputs": "\"818,4,5120;24,20480;3;24;818,4\"",
+              "local_max_pct": 5.0061322836696736,
+              "periods_at_guide": 8
+            }
+          },
+          "all_signature_count": 6,
+          "rank_local_median_pct": 3.8070829868153604,
+          "rank_local_max_pct": 5.490562573938546
+        },
+        "InplacePartialRotaryMul": {
+          "modules": "M03/M04/M10",
+          "candidate_boundary": "区分 Q 旋转、K 缓存写入和投影前逆旋转，以及草稿三层 K。",
+          "evidence": [
+            "attention-input-fusions",
+            "attention-send",
+            "receiver-inverse-rope",
+            "draft-context-fusion"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 32,
+          "rank_local_median_pct": 1.0030275611664317,
+          "rank_local_max_pct": 1.302987178989811
+        },
+        "MatMulV2": {
+          "modules": "M01/M03/M04",
+          "candidate_boundary": "按权重形状区分 Q/KV 输入投影、Engram WKV 和 OB。仅计前后可省工作。",
+          "evidence": [
+            "embedding-engram-fusion",
+            "attention-input-fusions",
+            "oa-ob-fusion"
+          ],
+          "hot_signatures": {
+            "211": {
+              "phase": "eager_target",
+              "inputs": "\"3328,5120;512,5120\"",
+              "local_max_pct": 2.296214829054426,
+              "periods_at_guide": 8,
+              "role": "512 通道 KV 相关投影，按同流后继区分普通 KV 和 C2",
+              "evidence": "attention-input-fusions"
+            },
+            "214": {
+              "phase": "eager_target",
+              "inputs": "\"3346,5120;512,5120\"",
+              "local_max_pct": 1.6528719650563377,
+              "periods_at_guide": 8,
+              "role": "512 通道 KV 相关投影，按同流后继区分普通 KV 和 C2",
+              "evidence": "attention-input-fusions"
+            },
+            "232": {
+              "phase": "eager_target",
+              "inputs": "\"6528,5120;512,5120\"",
+              "local_max_pct": 3.0041479967910925,
+              "periods_at_guide": 8,
+              "role": "512 通道 KV 相关投影，按同流后继区分普通 KV 和 C2",
+              "evidence": "attention-input-fusions"
+            },
+            "235": {
+              "phase": "eager_target",
+              "inputs": "\"6534,5120;512,5120\"",
+              "local_max_pct": 2.949178073257075,
+              "periods_at_guide": 8,
+              "role": "512 通道 KV 相关投影，按同流后继区分普通 KV 和 C2",
+              "evidence": "attention-input-fusions"
+            },
+            "238": {
+              "phase": "eager_target",
+              "inputs": "\"6540,5120;512,5120\"",
+              "local_max_pct": 2.691918945570036,
+              "periods_at_guide": 8,
+              "role": "512 通道 KV 相关投影，按同流后继区分普通 KV 和 C2",
+              "evidence": "attention-input-fusions"
+            }
+          },
+          "all_signature_count": 55,
+          "rank_local_median_pct": 4.07466422552751,
+          "rank_local_max_pct": 6.514452313020793
+        },
+        "MatMulV3": {
+          "modules": "M04/M06",
+          "candidate_boundary": "区分 5120→384 的路由打分和 1024→5120 的 OB。",
+          "evidence": [
+            "router-score-delivery",
+            "oa-ob-fusion"
+          ],
+          "hot_signatures": {
+            "259": {
+              "phase": "eager_target",
+              "inputs": "\"3328,1024;5120,1024\"",
+              "local_max_pct": 2.340964504403538,
+              "periods_at_guide": 8,
+              "role": "OB 输出投影",
+              "evidence": "oa-ob-shared-cube"
+            },
+            "260": {
+              "phase": "eager_target",
+              "inputs": "\"3352,1024;5120,1024\"",
+              "local_max_pct": 1.7024314216980492,
+              "periods_at_guide": 8,
+              "role": "OB 输出投影",
+              "evidence": "oa-ob-shared-cube"
+            },
+            "262": {
+              "phase": "eager_target",
+              "inputs": "\"6528,1024;5120,1024\"",
+              "local_max_pct": 3.2722980822083936,
+              "periods_at_guide": 8,
+              "role": "OB 输出投影",
+              "evidence": "oa-ob-shared-cube"
+            },
+            "263": {
+              "phase": "eager_target",
+              "inputs": "\"6536,1024;5120,1024\"",
+              "local_max_pct": 3.862073443696561,
+              "periods_at_guide": 8,
+              "role": "OB 输出投影",
+              "evidence": "oa-ob-shared-cube"
+            },
+            "264": {
+              "phase": "eager_target",
+              "inputs": "\"6544,1024;5120,1024\"",
+              "local_max_pct": 3.5546406511081954,
+              "periods_at_guide": 8,
+              "role": "OB 输出投影",
+              "evidence": "oa-ob-shared-cube"
+            }
+          },
+          "all_signature_count": 8,
+          "rank_local_median_pct": 2.01125533535573,
+          "rank_local_max_pct": 3.862073443696561
+        },
+        "PadV3": {
+          "modules": "M05/M06",
+          "candidate_boundary": "给已绑定路由输入的补齐和清零计价。其他 padding 签名需要各自读者。",
+          "evidence": [
+            "ffn-entry"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 16,
+          "rank_local_median_pct": 0.6444856101773921,
+          "rank_local_max_pct": 1.5785868335889437
+        },
+        "QuantBatchMatmulV3": {
+          "modules": "M03/M06",
+          "candidate_boundary": "按实际权重区分 Q 展开、共享专家 Up 和 Down；输入量化、激活、Down 合并分别估价。",
+          "evidence": [
+            "attention-input-fusions",
+            "shared-mlp-fusion",
+            "ffn-merge-premix"
+          ],
+          "hot_signatures": {
+            "348": {
+              "phase": "eager_target",
+              "inputs": "\"413,1280;1024,80,16,32;32768;413\"",
+              "local_max_pct": 1.9808805392772668,
+              "periods_at_guide": 1,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "350": {
+              "phase": "eager_target",
+              "inputs": "\"416,1280;1024,80,16,32;32768;416\"",
+              "local_max_pct": 2.940208767923389,
+              "periods_at_guide": 8,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "353": {
+              "phase": "eager_target",
+              "inputs": "\"416,5120;144,320,16,32;4608\"",
+              "local_max_pct": 1.240228070796056,
+              "periods_at_guide": 8,
+              "role": "共享 FFN Up 到门控激活",
+              "evidence": "shared-mlp-fusion"
+            },
+            "354": {
+              "phase": "eager_target",
+              "inputs": "\"419,1280;1024,80,16,32;32768;419\"",
+              "local_max_pct": 2.0357482700678133,
+              "periods_at_guide": 7,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "358": {
+              "phase": "eager_target",
+              "inputs": "\"814,1280;1024,80,16,32;32768;814\"",
+              "local_max_pct": 3.131686483794165,
+              "periods_at_guide": 1,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "360": {
+              "phase": "eager_target",
+              "inputs": "\"815,1280;1024,80,16,32;32768;815\"",
+              "local_max_pct": 3.4175312709044556,
+              "periods_at_guide": 1,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "362": {
+              "phase": "eager_target",
+              "inputs": "\"816,1280;1024,80,16,32;32768;816\"",
+              "local_max_pct": 3.518867045347017,
+              "periods_at_guide": 8,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "365": {
+              "phase": "eager_target",
+              "inputs": "\"816,5120;144,320,16,32;4608\"",
+              "local_max_pct": 1.2224419792621284,
+              "periods_at_guide": 8,
+              "role": "共享 FFN Up 到门控激活",
+              "evidence": "shared-mlp-fusion"
+            },
+            "366": {
+              "phase": "eager_target",
+              "inputs": "\"817,1280;1024,80,16,32;32768;817\"",
+              "local_max_pct": 3.446571514370073,
+              "periods_at_guide": 7,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "369": {
+              "phase": "eager_target",
+              "inputs": "\"817,5120;144,320,16,32;4608\"",
+              "local_max_pct": 1.1989321492250264,
+              "periods_at_guide": 8,
+              "role": "共享 FFN Up 到门控激活",
+              "evidence": "shared-mlp-fusion"
+            },
+            "370": {
+              "phase": "eager_target",
+              "inputs": "\"818,1280;1024,80,16,32;32768;818\"",
+              "local_max_pct": 3.1769174920144203,
+              "periods_at_guide": 7,
+              "role": "Q 扩展投影到旋转",
+              "evidence": "attention-input-fusions"
+            },
+            "373": {
+              "phase": "eager_target",
+              "inputs": "\"818,5120;144,320,16,32;4608\"",
+              "local_max_pct": 1.100183097881776,
+              "periods_at_guide": 8,
+              "role": "共享 FFN Up 到门控激活",
+              "evidence": "shared-mlp-fusion"
+            }
+          },
+          "all_signature_count": 30,
+          "rank_local_median_pct": 4.321383683228348,
+          "rank_local_max_pct": 5.841740167865174
+        },
+        "RmsNorm": {
+          "modules": "M02/M03/M05/M10",
+          "candidate_boundary": "按消费者区分投影前归一化和 KV 缓存发布，保留独立读取的 BF16 与 scale。",
+          "evidence": [
+            "hc-paired-boundaries",
+            "attention-input-fusions",
+            "activation-quant"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 29,
+          "rank_local_median_pct": 1.0249620714449645,
+          "rank_local_max_pct": 1.323265436662556
+        },
+        "ScatterNdUpdateSk": {
+          "modules": "M03/M10",
+          "candidate_boundary": "K 生产者直接按 slot 写到对应层，仍须更新持久缓存。",
+          "evidence": [
+            "attention-input-fusions",
+            "c2-selection-pipeline",
+            "draft-context-fusion"
+          ],
+          "hot_signatures": {
+            "453": {
+              "phase": "eager_target",
+              "inputs": "\"17304,128,512;3328,2;3328,512\"",
+              "local_max_pct": 2.4143867727662185,
+              "periods_at_guide": 8
+            },
+            "454": {
+              "phase": "eager_target",
+              "inputs": "\"17304,128,512;3346,2;3346,512\"",
+              "local_max_pct": 1.6882107652219571,
+              "periods_at_guide": 8
+            },
+            "456": {
+              "phase": "eager_target",
+              "inputs": "\"17304,128,512;6528,2;6528,512\"",
+              "local_max_pct": 3.0105061794878165,
+              "periods_at_guide": 8
+            },
+            "457": {
+              "phase": "eager_target",
+              "inputs": "\"17304,128,512;6534,2;6534,512\"",
+              "local_max_pct": 2.977614894315672,
+              "periods_at_guide": 8
+            },
+            "458": {
+              "phase": "eager_target",
+              "inputs": "\"17304,128,512;6540,2;6540,512\"",
+              "local_max_pct": 2.7227282399768367,
+              "periods_at_guide": 8
+            }
+          },
+          "all_signature_count": 42,
+          "rank_local_median_pct": 1.7366435706179586,
+          "rank_local_max_pct": 3.078939324685771
+        },
+        "SparseFlashMla": {
+          "modules": "M03/M10",
+          "candidate_boundary": "压缩 KV 面板直接交付 QK/PV；SWA 与压缩分支分别保留实际索引与掩码。",
+          "evidence": [
+            "smla-panel-occupancy",
+            "sparse-selection-delivery"
+          ],
+          "hot_signatures": {
+            "514": {
+              "phase": "eager_target",
+              "inputs": "\"413,64,512;17304,128,1,512;17304,128,1,512;;413,1,512;4,272;4,272;5;;;;4;4;;;;64;1024\"",
+              "local_max_pct": 2.610210053046945,
+              "periods_at_guide": 1
+            },
+            "515": {
+              "phase": "eager_target",
+              "inputs": "\"413,64,512;17304,128,1,512;17304,64,1,512;;413,1,512;4,272;4,272;5;;;;4;4;4;;;64;1024\"",
+              "local_max_pct": 2.349608780012087,
+              "periods_at_guide": 1
+            },
+            "517": {
+              "phase": "eager_target",
+              "inputs": "\"416,64,512;17304,128,1,512;17304,128,1,512;;416,1,512;1,272;1,272;2;;;;1;1;;;;64;1024\"",
+              "local_max_pct": 3.743766261291378,
+              "periods_at_guide": 8
+            },
+            "518": {
+              "phase": "eager_target",
+              "inputs": "\"416,64,512;17304,128,1,512;17304,64,1,512;;416,1,512;1,272;1,272;2;;;;1;1;1;;;64;1024\"",
+              "local_max_pct": 3.3682366707343845,
+              "periods_at_guide": 8
+            },
+            "520": {
+              "phase": "eager_target",
+              "inputs": "\"419,64,512;17304,128,1,512;17304,128,1,512;;419,1,512;4,272;4,272;5;;;;4;4;;;;64;1024\"",
+              "local_max_pct": 2.636889963086059,
+              "periods_at_guide": 7
+            },
+            "521": {
+              "phase": "eager_target",
+              "inputs": "\"419,64,512;17304,128,1,512;17304,64,1,512;;419,1,512;4,272;4,272;5;;;;4;4;4;;;64;1024\"",
+              "local_max_pct": 2.3651276827103325,
+              "periods_at_guide": 7
+            },
+            "523": {
+              "phase": "eager_target",
+              "inputs": "\"814,64,512;17304,128,1,512;17304,128,1,512;;814,1,512;4,272;4,272;5;;;;4;4;;;;64;1024\"",
+              "local_max_pct": 4.648044779354312,
+              "periods_at_guide": 1
+            },
+            "524": {
+              "phase": "eager_target",
+              "inputs": "\"814,64,512;17304,128,1,512;17304,64,1,512;;814,1,512;4,272;4,272;5;;;;4;4;4;;;64;1024\"",
+              "local_max_pct": 4.17132256917314,
+              "periods_at_guide": 1
+            },
+            "526": {
+              "phase": "eager_target",
+              "inputs": "\"815,64,512;17304,128,1,512;17304,128,1,512;;815,1,512;3,272;3,272;4;;;;3;3;;;;64;1024\"",
+              "local_max_pct": 5.043970377628942,
+              "periods_at_guide": 1
+            },
+            "527": {
+              "phase": "eager_target",
+              "inputs": "\"815,64,512;17304,128,1,512;17304,64,1,512;;815,1,512;3,272;3,272;4;;;;3;3;3;;;64;1024\"",
+              "local_max_pct": 4.540095479096476,
+              "periods_at_guide": 1
+            },
+            "529": {
+              "phase": "eager_target",
+              "inputs": "\"816,64,512;17304,128,1,512;17304,128,1,512;;816,1,512;2,272;2,272;3;;;;2;2;;;;64;1024\"",
+              "local_max_pct": 5.144419171311163,
+              "periods_at_guide": 8
+            },
+            "530": {
+              "phase": "eager_target",
+              "inputs": "\"816,64,512;17304,128,1,512;17304,64,1,512;;816,1,512;2,272;2,272;3;;;;2;2;2;;;64;1024\"",
+              "local_max_pct": 4.65550250639223,
+              "periods_at_guide": 8
+            },
+            "532": {
+              "phase": "eager_target",
+              "inputs": "\"817,64,512;17304,128,1,512;17304,128,1,512;;817,1,512;3,272;3,272;4;;;;3;3;;;;64;1024\"",
+              "local_max_pct": 5.151913106889186,
+              "periods_at_guide": 7
+            },
+            "533": {
+              "phase": "eager_target",
+              "inputs": "\"817,64,512;17304,128,1,512;17304,64,1,512;;817,1,512;3,272;3,272;4;;;;3;3;3;;;64;1024\"",
+              "local_max_pct": 4.643381286636917,
+              "periods_at_guide": 7
+            },
+            "535": {
+              "phase": "eager_target",
+              "inputs": "\"818,64,512;17304,128,1,512;17304,128,1,512;;818,1,512;4,272;4,272;5;;;;4;4;;;;64;1024\"",
+              "local_max_pct": 4.750678456075211,
+              "periods_at_guide": 7
+            },
+            "536": {
+              "phase": "eager_target",
+              "inputs": "\"818,64,512;17304,128,1,512;17304,64,1,512;;818,1,512;4,272;4,272;5;;;;4;4;4;;;64;1024\"",
+              "local_max_pct": 4.281953351632736,
+              "periods_at_guide": 7
+            }
+          },
+          "all_signature_count": 30,
+          "rank_local_median_pct": 6.109284880282127,
+          "rank_local_max_pct": 9.906532195495945
+        },
+        "Transpose": {
+          "modules": "M00/M01/M03/M04/M08/M10",
+          "candidate_boundary": "按 embedding/Engram、Attention 发送和词表读者区分，禁止按类型总额计价。",
+          "evidence": [
+            "ordinary-embedding-fixed-route",
+            "attention-send",
+            "oa-ob-fusion",
+            "vocab-selection-fusion"
+          ],
+          "hot_signatures": {},
+          "all_signature_count": 10,
+          "rank_local_median_pct": 1.1396677168353175,
+          "rank_local_max_pct": 1.4006712015424627
+        },
+        "TransposeBatchMatMul": {
+          "modules": "M04/M10",
+          "candidate_boundary": "OA 向 OB 直接交付行块，保留中间舍入及两份矩阵计算。",
+          "evidence": [
+            "oa-ob-shared-cube",
+            "oa-ob-fusion"
+          ],
+          "hot_signatures": {
+            "581": {
+              "phase": "eager_target",
+              "inputs": "\"3328,1,4096;1,4096,1024\"",
+              "local_max_pct": 2.615471724966991,
+              "periods_at_guide": 8
+            },
+            "582": {
+              "phase": "eager_target",
+              "inputs": "\"3352,1,4096;1,4096,1024\"",
+              "local_max_pct": 1.7860774638756114,
+              "periods_at_guide": 8
+            },
+            "583": {
+              "phase": "eager_target",
+              "inputs": "\"6528,1,4096;1,4096,1024\"",
+              "local_max_pct": 3.353186060699931,
+              "periods_at_guide": 8
+            },
+            "584": {
+              "phase": "eager_target",
+              "inputs": "\"6536,1,4096;1,4096,1024\"",
+              "local_max_pct": 3.3453804838410557,
+              "periods_at_guide": 8
+            },
+            "585": {
+              "phase": "eager_target",
+              "inputs": "\"6544,1,4096;1,4096,1024\"",
+              "local_max_pct": 3.0783189718242663,
+              "periods_at_guide": 8
+            }
+          },
+          "all_signature_count": 6,
+          "rank_local_median_pct": 2.1788397378466096,
+          "rank_local_max_pct": 3.353186060699931
+        },
+        "VllmAscendQuantLightningIndexerV2": {
+          "modules": "M03",
+          "candidate_boundary": "共用四层掩码转换、分数与归并列表写读、减少排序计算分别估价。",
+          "evidence": [
+            "four-mixed-fusion-edges",
+            "qli-service-c8",
+            "sparse-selection-delivery"
+          ],
+          "hot_signatures": {
+            "593": {
+              "phase": "eager_target",
+              "inputs": "\"413,32,128;17304,128,1,128;413,32;413,32;17304,128,1;5;;;4;;4,272;;1024;413,1,2048\"",
+              "local_max_pct": 3.4096688607515238,
+              "periods_at_guide": 1
+            },
+            "596": {
+              "phase": "eager_target",
+              "inputs": "\"416,32,128;17304,128,1,128;416,32;416,32;17304,128,1;2;;;1;;1,272;;1024;416,1,2048\"",
+              "local_max_pct": 4.446736657141569,
+              "periods_at_guide": 8
+            },
+            "599": {
+              "phase": "eager_target",
+              "inputs": "\"419,32,128;17304,128,1,128;419,32;419,32;17304,128,1;5;;;4;;4,272;;1024;419,1,2048\"",
+              "local_max_pct": 3.681116909712084,
+              "periods_at_guide": 7
+            },
+            "602": {
+              "phase": "eager_target",
+              "inputs": "\"814,32,128;17304,128,1,128;814,32;814,32;17304,128,1;5;;;4;;4,272;;1024;814,1,2048\"",
+              "local_max_pct": 5.7659200533868935,
+              "periods_at_guide": 1
+            },
+            "605": {
+              "phase": "eager_target",
+              "inputs": "\"815,32,128;17304,128,1,128;815,32;815,32;17304,128,1;4;;;3;;3,272;;1024;815,1,2048\"",
+              "local_max_pct": 5.963799799029102,
+              "periods_at_guide": 1
+            },
+            "608": {
+              "phase": "eager_target",
+              "inputs": "\"816,32,128;17304,128,1,128;816,32;816,32;17304,128,1;3;;;2;;2,272;;1024;816,1,2048\"",
+              "local_max_pct": 7.196525078976291,
+              "periods_at_guide": 8
+            },
+            "611": {
+              "phase": "eager_target",
+              "inputs": "\"817,32,128;17304,128,1,128;817,32;817,32;17304,128,1;4;;;3;;3,272;;1024;817,1,2048\"",
+              "local_max_pct": 6.747732096151547,
+              "periods_at_guide": 7
+            },
+            "614": {
+              "phase": "eager_target",
+              "inputs": "\"818,32,128;17304,128,1,128;818,32;818,32;17304,128,1;5;;;4;;4,272;;1024;818,1,2048\"",
+              "local_max_pct": 5.77312643616378,
+              "periods_at_guide": 7
+            }
+          },
+          "all_signature_count": 30,
+          "rank_local_median_pct": 4.840703252115672,
+          "rank_local_max_pct": 8.707229600818554
+        },
+        "hcom_alltoall_": {
+          "modules": "跨模块",
+          "candidate_boundary": "先用实际通信 ID、组、载荷和读者绑定。相同的 N/A 签名不能分摊给各个候选。",
+          "evidence": [
+            "communication",
+            "collective-calibration"
+          ],
+          "hot_signatures": {
+            "661": {
+              "phase": "eager_target",
+              "inputs": "N/A",
+              "local_max_pct": 3.5807666447137305,
+              "periods_at_guide": 10,
+              "role": "通信 ID、载荷与消费者须另绑定"
+            }
+          },
+          "all_signature_count": 1,
+          "rank_local_median_pct": 0.0,
+          "rank_local_max_pct": 3.5807666447137305
+        }
+      },
+      "visible_only_after_grouping": [
+        "InplacePartialRotaryMul",
+        "PadV3",
+        "RmsNorm",
+        "Transpose"
+      ]
+    }
+  },
+  "tiling": {
+    "rank_windows_by_kind_population_and_outputs": {
+      "E/1/2": 6,
+      "E/1/5": 10,
+      "E/2/2": 4,
+      "E/2/5": 12,
+      "E/3/5": 8,
+      "E/4/5": 16,
+      "G/1/2": 18,
+      "G/1/5": 6,
+      "G/2/2": 36,
+      "G/2/5": 36,
+      "G/3/2": 12,
+      "G/3/5": 36,
+      "G/4/5": 3424
+    },
+    "producer_calls": 17892,
+    "same_rank_ready_before_body_ms": {
+      "E": {
+        "n": 56,
+        "min": 3.74478,
+        "median": 7.30992,
+        "max": 24.4065
+      },
+      "G": {
+        "n": 3568,
+        "min": 0.53998,
+        "median": 3.5592245,
+        "max": 37.47094
+      }
+    },
+    "device_kernel_sum_ms": {
+      "E": {
+        "n": 56,
+        "min": 0.31896,
+        "median": 1.3098465,
+        "max": 1.63486
+      },
+      "G": {
+        "n": 3568,
+        "min": 0.10612,
+        "median": 0.8356399999999999,
+        "max": 3.8487
+      }
+    },
+    "endpoint_ms": {
+      "free": {
+        "TTFT_P90": 0.4609700000000885,
+        "makespan": 26.159459999998944
+      },
+      "one_launch": {
+        "TTFT_P90": 0.41561000000001513,
+        "makespan": 23.598470000000816
+      },
+      "half_exposed": {
+        "TTFT_P90": 0.20780500000000757,
+        "makespan": 11.799234999998589
+      }
+    },
+    "largest_rank_per_wave_ms": {
+      "free": {
+        "n": 227,
+        "min": 0.10024,
+        "median": 0.10736,
+        "max": 0.16394
+      },
+      "one_launch": {
+        "n": 227,
+        "min": 0.08892,
+        "median": 0.09591,
+        "max": 0.15372
+      },
+      "half_exposed": {
+        "n": 227,
+        "min": 0.04446,
+        "median": 0.047955,
+        "max": 0.07686
+      }
+    },
+    "matched_B1_graph_groups": 3,
+    "matched_B1_eager_groups": 2,
+    "ordinary_extrapolation": {
+      "chat-single": {
+        "free": [
+          {
+            "saved_ms": 4.0422199999999995,
+            "response_pct": 0.05864210850181158
+          },
+          {
+            "saved_ms": 4.147869999999999,
+            "response_pct": 0.15079018737626151
+          }
+        ],
+        "one_launch": [
+          {
+            "saved_ms": 3.48558,
+            "response_pct": 0.05056670852940821
+          },
+          {
+            "saved_ms": 3.57647,
+            "response_pct": 0.1300177154649442
+          }
+        ],
+        "half_exposed": [
+          {
+            "saved_ms": 1.74279,
+            "response_pct": 0.025283354264704103
+          },
+          {
+            "saved_ms": 1.788235,
+            "response_pct": 0.0650088577324721
+          }
+        ]
+      },
+      "code-single": {
+        "free": [
+          {
+            "saved_ms": 0.45011999999999996,
+            "response_pct": 0.0931296925252607
+          },
+          {
+            "saved_ms": 0.45011999999999996,
+            "response_pct": 0.0964666056022966
+          }
+        ],
+        "one_launch": [
+          {
+            "saved_ms": 0.39532,
+            "response_pct": 0.08179158901867517
+          },
+          {
+            "saved_ms": 0.39532,
+            "response_pct": 0.08472224857082533
+          }
+        ],
+        "half_exposed": [
+          {
+            "saved_ms": 0.19766,
+            "response_pct": 0.040895794509337585
+          },
+          {
+            "saved_ms": 0.19766,
+            "response_pct": 0.042361124285412666
+          }
+        ]
+      },
+      "chat-mixed": {
+        "free": [
+          {
+            "saved_ms": 7.133589999999999,
+            "response_pct": 0.1110121070213911
+          },
+          {
+            "saved_ms": 7.450539999999999,
+            "response_pct": 0.16067251766521337
+          }
+        ],
+        "one_launch": [
+          {
+            "saved_ms": 6.15315,
+            "response_pct": 0.09575461251889619
+          },
+          {
+            "saved_ms": 6.42582,
+            "response_pct": 0.1385742077035331
+          }
+        ],
+        "half_exposed": [
+          {
+            "saved_ms": 3.076575,
+            "response_pct": 0.047877306259448096
+          },
+          {
+            "saved_ms": 3.21291,
+            "response_pct": 0.06928710385176655
+          }
+        ]
+      },
+      "code-mixed": {
+        "free": [
+          {
+            "saved_ms": 1.6122699999999999,
+            "response_pct": 0.05169260680219359
+          },
+          {
+            "saved_ms": 1.5066199999999998,
+            "response_pct": 0.14276376041806868
+          }
+        ],
+        "one_launch": [
+          {
+            "saved_ms": 1.3951099999999999,
+            "response_pct": 0.044730022065664135
+          },
+          {
+            "saved_ms": 1.30422,
+            "response_pct": 0.1235848134316905
+          }
+        ],
+        "half_exposed": [
+          {
+            "saved_ms": 0.6975549999999999,
+            "response_pct": 0.022365011032832068
+          },
+          {
+            "saved_ms": 0.65211,
+            "response_pct": 0.06179240671584525
+          }
+        ]
+      },
+      "chat-return": {
+        "free": [
+          {
+            "saved_ms": 4.703639999999999,
+            "response_pct": 0.1561133718828964
+          },
+          {
+            "saved_ms": 4.91494,
+            "response_pct": 0.14884634093415958
+          }
+        ],
+        "one_launch": [
+          {
+            "saved_ms": 4.06268,
+            "response_pct": 0.1348399694026766
+          },
+          {
+            "saved_ms": 4.24446,
+            "response_pct": 0.12854121113205919
+          }
+        ],
+        "half_exposed": [
+          {
+            "saved_ms": 2.03134,
+            "response_pct": 0.0674199847013383
+          },
+          {
+            "saved_ms": 2.12223,
+            "response_pct": 0.06427060556602959
+          }
+        ]
+      },
+      "code-return": {
+        "free": [
+          {
+            "saved_ms": 0.7670699999999999,
+            "response_pct": 0.1254783634615433
+          },
+          {
+            "saved_ms": 0.7670699999999999,
+            "response_pct": 0.11785399585657633
+          }
+        ],
+        "one_launch": [
+          {
+            "saved_ms": 0.66799,
+            "response_pct": 0.10927072106675573
+          },
+          {
+            "saved_ms": 0.66799,
+            "response_pct": 0.10263116885321343
+          }
+        ],
+        "half_exposed": [
+          {
+            "saved_ms": 0.333995,
+            "response_pct": 0.054635360533377864
+          },
+          {
+            "saved_ms": 0.333995,
+            "response_pct": 0.05131558442660671
+          }
+        ]
+      }
+    }
+  },
+  "source_signature_key": "每个索引对应原始 cohort.signatures 中从零起的行；两个 cohort 分母不同。",
+  "limits": [
+    "已定价边界之外的同名签名不继承其收益。小签名若能消除其它读者或提交，按整组单独登记。",
+    "设备计价固定主机提交、其它流和各消费门槛。发布早于目标主体仅排除这些下游等待的直接缩短。主机调度改变和设备争用未量化。",
+    "主机只给实际绑定的 launch 和 aclnnInplaceCopy 计时，保留每组就绪信号。每波取最有利参与卡，假设节省沿后续波次完全传递。free 连替代提交也免费；one_launch 按同卡本波 launch 的中位数收一次；half_exposed 再按一半传递。未计 Python、CANN API 外工作及新增描述符。各情形为估算。",
+    "普通请求借冻结样本中同批量最有利的 TP8 组，使用六个真实请求两轮参照各自的验证次数与分母。一次与其它 prefill 重合时允许较贵的 eager 组。没有这些请求的元数据服务提速实测。"
+  ],
+  "new_inference_runs": 0,
+  "overall_complete": false,
+  "sources": {
+    "tools/price_mixed_fusion_edges.py": "11e40e9b4ec204aada12047bb300efb4f5c34e3cd787f9ce838ef2c5cb8612c0",
+    "tools/price_ordinary_embedding_paths.py": "eabb4c83d8b740cdf61ac5d6491e58174fae4a65d145a6513fb1d58a3345b7ef",
+    "full-review/CURRENT-OPERATOR-VALUE-SCREEN.json": "d96966a41a549c20a665b61bbf27bb85d9407cbc7a29639eb3fc3ca710d0a01b",
+    "full-review/METADATA-EXECUTION-MODE.json": "70ba36b8005b5b6d33d355bf28d57c4af421c6a768ad637292fb8437efbf7949",
+    "full-review/NATIVE-METADATA-REUSE-SCREEN.json": "0110dd3aad016a4f2a8e2ccab5c18da39727a05a2840ffe63970819a8cbed580",
+    "full-review/FUSION-SCOPE-RECONCILIATION.json": "239fbd4248e4f79a4a72688d21e6d6825102ac57dc5cdf4708cf690f77aefff3",
+    "full-review/runs/frozen-vocab-chains.json": "d655027c001310763cb9026b44e72d3b2a1210dbe21eb46e9dbcf23501ce3a17",
+    "full-review/runs/frozen-tiling-producers.json": "ca695f35fb3ae8e8664b5f67ab9e5e26962311516f76b48bdf634c59bcc7ed2b",
+    "full-review/runs/frozen-tiling-producers.json.gz": "c7b9d4db72ce49c7083f79fc8c98fa25c541596d4715c149cdcb158bfa8b4c0a",
+    "full-review/GRAPH-REQUEST-PREFIX-BUDGETS.json": "9794e03363db44e832bb2830d886b3e0d27bfbc9c6cc5afe63b14ce1e58cca82",
+    "full-review/ORDINARY-SERVING-GUARDS.json": "45ebb28aac22c3d28870ec132f4cb6fe8fec5dac620f710330680c5030a3b101",
+    "full-review/ORDINARY-TERMINAL-ROW-ESTIMATES.json": "42f9504b4b447bf5ea13e67615fabe05888fff44410e386e1a5d3cd0a826f542",
+    "full-review/runs/first-token-v168-protocol-bodies.json": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de",
+    ".cache/v168-pinned-replay-spans.json": "008414f0d02ebb1e14d3bd92276703713f65696e992773b86cabbf5901185f57",
+    "full-review/runs/joint168-request-endpoints.json.gz": "725c0b16b949d17402bbde4d6b80da0e676b3db91a3d939e478dad47132b222f",
+    "full-review/MOE-MERGE-HC-C8.json": "5abb1a0dc446482432dc8a845e4bc1e37875bc8f4365e0cb1aa87d2331decaab",
+    "full-review/MOE-MERGE-HC-NATIVE.json": "a4a2b1b14d2466a42485f63da05d190293ed8a2a86141b2f933d84803efe94b3",
+    "tools/screen_profile_fusion_boundaries.py": "47520e7be4172a2bb827bc3842a4c26df0877110c847ed157c74d3a6db140789"
+  }
+}
