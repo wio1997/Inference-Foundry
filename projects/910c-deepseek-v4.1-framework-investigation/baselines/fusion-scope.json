@@ -3,16 +3,16 @@
     "reference": "Reuse the stated estimate or test for its named component and scenario only.",
     "version_failed": "The tested numerical variant failed. Another algorithm needs a separate argument.",
     "outside": "This proposal only changes placement, scheduling or resource ownership as specified.",
-    "mixed": "Exclude scheduling/placement gains. Only a distinct change to operator work could enter.",
+    "mixed": "Exclude gains due to placement, scheduling, caching or row pruning alone. Only distinct operator work eliminated by fusion can enter.",
     "inactive": "No incremental work on this input/precision branch in the named workloads. Other scenarios remain conditional.",
     "contract": "Original branch contract and family references retained. No individual quantitative verdict assigned here."
   },
   "disposition_counts": {
-    "contract": 45,
-    "inactive": 22,
-    "mixed": 22,
+    "contract": 26,
+    "inactive": 24,
+    "mixed": 29,
     "outside": 4,
-    "reference": 80,
+    "reference": 90,
     "version_failed": 2
   },
   "families": {
@@ -1686,7 +1686,8 @@
       ],
       "family_sources": [
         "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
-        "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json"
+        "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json",
+        "DRAFT-STATE-HANDOFF-REQUESTS.json"
       ],
       "alternatives": [
         {
@@ -1720,12 +1721,16 @@
         {
           "id": "G15.A05",
           "proposal": "各层按SWA可见窗口与最终写者分别确定context需求。仅在后续读者和退回范围都已绑定时裁掉老行；联合投影以各层需求并集计价",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "裁过期行的收益单列。联合写入与原实现须使用相同的可见行及读者并集。冻结调度中仅五次 TP8 调用可能缩短长段，保留全部短验证行。"
         },
         {
           "id": "G15.A06",
           "proposal": "同一请求连续走设备纠正时，有效prefix单调。用纠正后的prefix定老行窗口，再单独用每层实际query槽匹配拒绝尾部。三层均无需求且其它观察者退休后才前移到共享main投影",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "裁过期行的收益单列。联合写入与原实现须使用相同的可见行及读者并集。冻结调度中仅五次 TP8 调用可能缩短长段，保留全部短验证行。"
         },
         {
           "id": "G15.A07",
@@ -1931,23 +1936,30 @@
       ],
       "family_sources": [
         "ACCEPTANCE-STATE-REMAP.json",
-        "BATCHED-SLOT-RESULT.json"
+        "BATCHED-SLOT-RESULT.json",
+        "DRAFT-STATE-HANDOFF-REQUESTS.json"
       ],
       "alternatives": [
         {
           "id": "G17.A01",
           "proposal": "联合打包typed输入与多平面copy/expand，依需求生成最终位置/ID/mask；现有copy-and-expand已经多输出，不能再计一次该融合",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "沿用现有六输出，再吸收已绑定的复制、长度算术和填充；设备工作全部免费仅省整批 2.64 ms。"
         },
         {
           "id": "G17.A02",
           "proposal": "多draft attention group时，input_ids/context_positions/query_positions/sample_indices写入相同公共bank；可一次生成公共面，并联合写各group独立slot映射",
-          "disposition": "contract"
+          "disposition": "inactive",
+          "source": "DRAFT-INPUT-METADATA-CONTRACTS.json",
+          "scope": "有明确配置的 70 次 EP0 first-pass 都只有一组，跨组公共输出没有重复。多组的独立 slot 表留在原合同。"
         },
         {
           "id": "G17.A03",
           "proposal": "按是否生成后续模型步，推迟位置gather与后置common block table clone。并行DSpark保留已经构造的step零分组表",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "未用的位置 gather 是死工作删除。block table clone 的生命周期与成本独立，未计入。"
         },
         {
           "id": "G17.A04",
@@ -1959,32 +1971,44 @@
         {
           "id": "G17.A05",
           "proposal": "五个采样索引面在均匀布局由行数确定，可常驻只读索引。无额外行时logits索引是连续前缀，满足别名合同可改view。混合prefill采用typed合包或紧凑(C_i,D_i)描述，draft ID可从当前输入直接按仿射位置取值",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "SPEC-INDEX-READERS-AND-TEMPLATE.json",
+          "scope": "67 次均匀布局共 335 个逻辑 copy 提交；模板复用属于预计算。仅后续消费端直接取 draft ID 或生成索引可能构成算子融合，实际 DMA 与时延未定。"
         },
         {
           "id": "G17.A06",
           "proposal": "小批量单program先读全参与行的旧computed，再写当前computed和独立accepted。171对照通过。大批量可用独立旧bank，或只快照被跨tile读写的旧行。",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "旧 seed/draft→本轮 token bank，接受状态→普通位置、seq_lens 与独立尾部，按同批请求联合计价。旧行须先读后写，保留混合批 CPU 区域。"
         },
         {
           "id": "G17.A07",
           "proposal": "当scheduled-count已到位时同时生成seq_lens并清独立尾部。普通位置可后续按同一computed生成。将位置也并入要区分24行解码和数千行混合负载。",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "旧 seed/draft→本轮 token bank，接受状态→普通位置、seq_lens 与独立尾部，按同批请求联合计价。旧行须先读后写，保留混合批 CPU 区域。"
         },
         {
           "id": "G17.A08",
           "proposal": "旧seed/draft按当前请求的独立后缀联合写。均匀Q=D+1可仿射生成目的位置；混合批仍保留CPU未覆盖区，旧映射可与接受计数纠正共用。",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "旧 seed/draft→本轮 token bank，接受状态→普通位置、seq_lens 与独立尾部，按同批请求联合计价。旧行须先读后写，保留混合批 CPU 区域。"
         },
         {
           "id": "G17.A09",
           "proposal": "最终同前缀clamp可吸收此前的-1清零。若进一步把clamp移到联合写入，须独立交付raw draft给提前读取的验证路径。",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "Equal、MaskedFill 和 Clip 三个任务都免费仅省整批 1.32 ms；若移入上游，提前校验读者仍需 raw ID。"
         },
         {
           "id": "G17.A10",
           "proposal": "上一轮seed/count发布可为旧owner同时生成computed加count。下一轮仍需映射、分支及接受数。与保留旧bank的方案对比额外发布量和ready时间。",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "scope": "提前生成属于排程。若复用算术，只能取已计入 remap 的同一笔工作；重排、旧行读取和补充发布依然存在。"
         },
         {
           "id": "G17.A11",
@@ -2070,7 +2094,9 @@
         {
           "id": "G18.A01",
           "proposal": "复用已有build_c2_ring_metadata，将整数域和匹配stride的非packed NPU路径也路由到现有多输出kernel；无需把cache ABI改成A5",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "C2-HELPER-C8.json",
+          "scope": "非 packed 接入现有多输出 C2 helper 的具体实现已有数值验收和冻结 C8；该轮未确立服务增益。"
         },
         {
           "id": "G18.A02",
@@ -2089,12 +2115,16 @@
         {
           "id": "G18.A04",
           "proposal": "CP非因果窗口按配对索引交付全局count切片，省去局部>=0和INT32归约；只在visible_len与实际索引宽度的裁剪、shape、dtype及行域合同满足时复用，否则由producer额外交付裁剪count或保留原归约",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "CP-SPARSE-DELIVERY.json",
+          "scope": "非因果索引与 count 的旧归约按命中行计价；长度要裁到真实索引宽度。一至三行旧归约的中位为 9.05–10.29 µs。直写持久输出还须满足各自的地址与就绪合同。"
         },
         {
           "id": "G18.A05",
           "proposal": "使实际Triton稀疏窗口producer直写持久indices和lengths两平面；现有helper的output/buffer参数会禁用Triton并继续copy，不能当作已实现的直写",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "CP-SPARSE-DELIVERY.json",
+          "scope": "非因果索引与 count 的旧归约按命中行计价；长度要裁到真实索引宽度。一至三行旧归约的中位为 9.05–10.29 µs。直写持久输出还须满足各自的地址与就绪合同。"
         },
         {
           "id": "G18.A06",
@@ -2120,12 +2150,16 @@
         {
           "id": "G18.A09",
           "proposal": "已知有效位置时合并cos/sin行查表，直接写原缓冲。先确定需要的RoPE配置和组，跨层复用后只对留下的pair计融合",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "ROPE-ROW-LOOKUP.json",
+          "scope": "同位置 cos/sin 双输出按同一代际查表；半宽表的容量须待所有完整表读者退役。输出和查表开销只计一次。"
         },
         {
           "id": "G18.A10",
           "proposal": "按全表读者分别比较保留原布局的双输出查表与半宽紧凑表。后者需适配C2 full-table ABI和图地址所有者",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "ROPE-ROW-LOOKUP.json",
+          "scope": "同位置 cos/sin 双输出按同一代际查表；半宽表的容量须待所有完整表读者退役。输出和查表开销只计一次。"
         },
         {
           "id": "G18.A11",
@@ -2135,12 +2169,16 @@
         {
           "id": "G18.A12",
           "proposal": "graph外producer与graph内producer分别部署，保留各group ready和buffer reusable前沿",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "METADATA-EXECUTION-MODE.json",
+          "scope": "改变图内外部署与 ready 时点单列，冻结样本的生产模式可查；净省算子须另指被替代的元数据计算。"
         },
         {
           "id": "G18.A13",
           "proposal": "在DCP copy-expand中按active_query且本rank拥有KV位置屏蔽block-table读取，仍为非owner输出slot=-1并产生其所需位置、ID和selector；相同请求算术可共享但输出谓词不同。仅在原合法地址域和等价写入/生命周期下成立，DCP1无此节省。",
-          "disposition": "contract"
+          "disposition": "inactive",
+          "source": "SPEC-INDEX-READERS-AND-TEMPLATE.json",
+          "scope": "已留存的 EP0 配置为 DCP1，该配置没有非 owner 跳读。其它 DCP 配置按原分支保留。"
         }
       ],
       "branch_cases": [
@@ -2229,7 +2267,9 @@
         {
           "id": "G19.A03",
           "proposal": "联合传递已就绪ID/count/logprob小结果；以请求commit前沿拆分通知与payload，不等待不相关读者",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+          "scope": "拆通知或提前主机提交单列；ID/count 的公共生产加速只复用原事件预算。可选 logprob 保留自己的读者。"
         },
         {
           "id": "G19.A04",
@@ -4144,24 +4184,29 @@
     "full-review/ATTENTION-SEND-REQUEST-ESTIMATES.json": "d57e07174aa90cd42fb2fc4326a5c9b43373b6ca643475dbc6af91cc8aa380d5",
     "full-review/BATCHED-SLOT-RESULT.json": "8e202f48b3d84a21694afbbb095ce133bf88fdf037fe8f0e333bd93f4024ba29",
     "full-review/BRANCH-COVERAGE-LEDGER.json": "f6911e8313afe149d4b4f994ac26e45ac5c725aabe1a8a611f6ed661dc86de2a",
+    "full-review/C2-HELPER-C8.json": "91dca9acb6490feea38add3a8cf29447ad76234fc4984ae81097a94dd4af7ab3",
     "full-review/C2-POOL-RING-OWNER.json": "d9e22c32bbd950c283bf7e8793583181b7eaa51c9d2ebfb8d5798186d38a831c",
     "full-review/C8-DRAFT-SUBMISSION-WAIT-BUDGET.json": "4f9c6055536f67c7bf50515ff9268005bdc9c1579f355a8fe52fe7cd3a833d00",
     "full-review/CLEAN-DSPARK-SCORE-VALUE.json": "ce3edb13f8e72d7c760663796717866222967f38b8a7c54c94228d81bf48decf",
     "full-review/CLEAN-TARGET-HEAD-VALUE.json": "8c527f80c409d7adb81271db1cf9de73167f8658161b4ed27c96730eda4de258",
     "full-review/CP-LENGTH-C8.json": "8e038b907f2b3bacd9beccace0a9c6d1433ce0ab9d26bdc4d64189a52840e436",
+    "full-review/CP-SPARSE-DELIVERY.json": "69bb9d514ed61879841aa56ccc5157c48d753b5e5499a670af0873e0f083d3a1",
     "full-review/DRAFT-ALLTOALL-PHASE-AND-ZERO-SEND.json": "936ae588d21be036597bb85d2b8030f18a794244a50e18c24c2aa41b377cacf4",
+    "full-review/DRAFT-INPUT-METADATA-CONTRACTS.json": "7511f9f0c1b3aadf9bbb3344defce640964aa36fed34c74305d29ee94c7ea2c6",
+    "full-review/DRAFT-STATE-HANDOFF-REQUESTS.json": "862723043d794ebb8888dcdd2d8c00fd6e2e64f773e8f62c19b788e1fd680335",
     "full-review/DSPARK-CHECKPOINT-PACKET-ESTIMATES.json": "fae303791299ddb7e8e36b30665993431c8d691c928bdd601f46486823d82348",
     "full-review/DSPARK-CONTEXT-FUSION-ESTIMATES.json": "7a3fed29f31a7f866879c724475ea5992c03df37303aff3e210bb58506ff02fe",
     "full-review/EMBEDDING-ENGRAM-FUSION-ESTIMATES.json": "4ba7f874359cd39796f26ec5dd2a6f12a0337fbf7162a06a5f300c049d8b699e",
     "full-review/EXPERT-SIBLING-TILE-REQUEST-ESTIMATES.json": "74443ef6d1a28451b65769a28201c57756c1abf8d0d7f5063861133f2281ef32",
     "full-review/FFN-MERGE-PREMIX-ESTIMATES.json": "24b7670864385dc3851ecaecdc5dc508909d301e9839421eab0acbd46237b563",
     "full-review/FROZEN-C8-MODALITY-ADMISSION.json": "b5860c46591c3e1e82782715ac607d9e78e55b8e4729e7bae49e6ed75c74db28",
-    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "690dadadb26cc67dcc7d9d72a3206f81571ee582b87faef2a897b5b4c7c0d24f",
+    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "38d6145c5ef4b7c153a027c463eced6fe8fbdba0d61e9882ee16bf68c8d59469",
     "full-review/HC-PAIRED-BOUNDARY-REQUESTS.json": "f25158211efe9c36af2e4aec01bd26526bc2e257c18801e51793fa2148901fa1",
     "full-review/HC-PRE-ROW-NORM-BARRIER-RESULT.json": "7db31d7d9a55f2bbd64943da944e300140c29538b5a1ad86b4772035c950504f",
     "full-review/JOINT-WORK-BOUNDS.json": "6b117f3f24bb5ee0a0d63a98d72e58f7b6ff96175c84683ee63667347265ac12",
     "full-review/MARKOV-OWNER-GROUPS.json": "941fbaa6e093a647b0ef6dff1274968256dc6b0c4287872d2a2b210308af3dab",
     "full-review/MC2-MASK-PROFILE.json": "9ec8f194292f60316e32ffb279c0795610cfed6fc9c04569b9b461ef7cdee5f8",
+    "full-review/METADATA-EXECUTION-MODE.json": "70ba36b8005b5b6d33d355bf28d57c4af421c6a768ad637292fb8437efbf7949",
     "full-review/MODULAR-MOE-ADMISSION.json": "731fad54ea59dad4a2ba8d75345134c6ebc9555da0a7c8d01b5b9b0526333049",
     "full-review/MODULE-FUSION-VALUE-ESTIMATES.json": "5ef92a13d0eaca2cc1dbe9d1e7a3d72b3d0acd8ff3d3d7d36c630cb5532547de",
     "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338",
@@ -4174,6 +4219,7 @@
     "full-review/RANDOM-SAMPLING-FUSION-ESTIMATES.json": "919218e94945f8f988b749aebdb6365df26736160bee19ede6afa7946dbc9f48",
     "full-review/RECEIVER-INVERSE-ROPE-SCREEN.json": "fa847b5b59e16ad3ca19ddfd12956baac2ccb97918e1dce18842ab8e543101b7",
     "full-review/REJECTION-RECOVERY-DOMAIN.json": "f4730f98983e6371ec1bf30c448011c114d4786961422673e927d557eb267c34",
+    "full-review/ROPE-ROW-LOOKUP.json": "0e34797cbc97d9e4b35d3ad7d7f576628846dc8306157c046676591aacdee0d7",
     "full-review/ROUTED-EXPERT-CONTRACTS.json": "c15c3de48413b3944fff53562f7e4d1c739aa66d7eb6cbc5b894c86be0cb6ca3",
     "full-review/ROUTED-EXPERT-HANDOFF-ESTIMATES.json": "69e94edbe705836e9464e8fd090b91ee22c949d06d8dcc2869c3582cd99afaff",
     "full-review/ROUTER-SCORE-DELIVERY-ESTIMATES.json": "37e6c74fae10aa8e6072c9dc339ae8040248749091403a848296dff7a7346802",
@@ -4184,12 +4230,13 @@
     "full-review/SMLA-SPLIT-DELIVERY.json": "9b1bec891579254810d33e46d504e73c6592f8df53c0a32a0fbe50c5f81b958f",
     "full-review/SPARSE-KV-RETENTION-REQUEST-ESTIMATES.json": "510f823cf81791e7a12a413f4739ee74ddcf43c47c830eeb982d3c64cfece004",
     "full-review/SPARSE-SELECTION-DELIVERY-ESTIMATES.json": "a173949eb5f21f03106448dc43f1d7beb0a8d327e45662d716cfe3fd54c9ef07",
+    "full-review/SPEC-INDEX-READERS-AND-TEMPLATE.json": "47a2af14509ffcc5cfd2e49efc62bd69b4cad9be4d0befc27796f474f9b11c1c",
     "full-review/TERMINAL-HEAD-DELIVERY-ESTIMATES.json": "6c22b216268672ffc5420d797f40a69044a53a0886b9976c9971d617c360a764",
     "full-review/VOCAB-SELECTION-FUSION-ESTIMATES.json": "674db8db41de46062a8c3c8c8f7a1fb3c4dbf4da38b5f0a3ee4bb6281ca75529",
     "full-review/runs/clean-native-profile-ea31701f9da0-result.json": "b2081df7e3874fd6c9aad8108a816c297daae3ec33421dc0dd9024029e2c89e6",
     "full-review/runs/ordinary-load-9144f2d04ace-result.json.gz": "42686163175d4fd4f0adfea7ce2ce8b76ac13bc463944a2b8d2e413cf5137dbf",
     "full-review/runs/prefill-request-steps.json": "43dff720802f11e4601a1897f895cdb02eb1db725af1c101518ddde0979bce3a",
-    "tools/reconcile_fusion_scope.py": "54b4deac1b67ac5ad91e6984fa4c3cd11dd63ac2fe4135f7d79775b56aae33d8"
+    "tools/reconcile_fusion_scope.py": "d2a145210dd581fed53061a97924c27f88fd815ac586b47e15e1dd5421ebfa69"
   },
   "limits": [
     "Case IDs are local to the frozen proposal list. Legacy source IDs and work units are separate.",

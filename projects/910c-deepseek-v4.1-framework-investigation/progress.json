@@ -1,21 +1,21 @@
 {
-  "updated_at_utc": "2026-11-08T02:26:34.547694+00:00",
-  "source_analysis_commit": "c710c98efe49baacecc6029111ee7a332fb76c8f",
+  "updated_at_utc": "2026-11-08T02:49:23.903460+00:00",
+  "source_analysis_commit": "7c7c812ecf088b0314a24179e1847b765f9ab808",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M10→M11 草稿输入与下一轮请求状态的共同写入",
+  "active_module": "M00→M02 输入广播与首层 mHC 的共同读取",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "沿 M10→M11 筛三层草稿输入与下一轮状态。先将已落地的 W1/W2、context KV、count/seed、slot 双输出和 26 项批写的预算登记为已占用，再给三层共享输入、请求映射与跨迭代 metadata 写入的真实新增部分计价。一次比较共用代际和读者，保留混合提示、纯解码、回滚与图银行分支。",
-    "decision": "验证后稠密拼行、有限 Top-K/排名、私有惩罚掩码和五步 W1/W2 查表投影均已有请求估价。原布局下的单项与已定价组降级。区分两批调用以及启用功能后的假设。",
+    "work": "回到输入和首层 mHC。把原有效行上的四路 embedding 广播、首个 HcPre 及保留残差的读者按同一预算筛查。先用已有 profile 和公共搬运成本估算能省的请求时间，若上限已小则整组归档。静态热词缓存、权重放置和分片调整均不列为独立融合。",
+    "decision": "下一轮状态发布的设备任务与主线程提交各有请求预算，当前负载下停止独立深查。按窗口裁剪草稿老行单列，只有相同行域上的额外算子读写可进入融合预算。",
     "source": {
-      "path": "full-review/SCORE-READER-AND-DRAFT-REQUESTS.json",
-      "sha256": "befdf6a89c59d66489f75814e50a10a60dd4bd06faa7391ba0d9da8ad52b94bf"
+      "path": "full-review/DRAFT-STATE-HANDOFF-REQUESTS.json",
+      "sha256": "862723043d794ebb8888dcdd2d8c00fd6e2e64f773e8f62c19b788e1fd680335"
     },
     "scope_ledger": {
       "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
-      "sha256": "dc4a9f81b411d1333d59632c5d017533d11aa45e9747e22bdff67f884abca18c"
+      "sha256": "23195ce97d2069a12b5a353a2d246fa0124c8e59c590dd4c9c254e07e3291197"
     }
   },
   "module_statuses": [
@@ -168,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "453 target TP8 calls in 227 scheduled waves, six ordinary workload geometries, separate metadata on 1104 rank calls.",
+    "performance_scope": "453 TP8 calls, 227 waves, 48 stack-bearing rank calls and six ordinary request geometries.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,16 +284,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M08/M09/M10, score output, penalties and the five conditioned W2 calls",
+    "scope": "M10/M11, two state producers and first-pass draft input",
     "sources": [
-      "score-readers.md",
-      "baselines/score-readers.json",
+      "draft-state-handoffs.md",
+      "baselines/draft-state-handoffs.json",
       "baselines/fusion-scope.json"
     ],
     "observations": [
-      "验证后可直接从 target 与 bonus 两个分数面按原接受位置读出，再融合有限 Top-K、所选 token 分数和并列排名。在 453 次 TP8 目标调用的冻结几何上，若全部启用有限 Top-K logprobs，这组写读预计省整批 7.99–15.98 ms。另有 1,104 条成对元数据明确关闭对外 logprobs 与惩罚，该批调用的这两项收益为零。",
-      "同时假设惩罚启用、prompt membership 全命中，合计估算最多省整批 24.53 ms（0.132%），六个普通请求的整段响应最高约 0.043%。",
-      "对五步 DSpark 逐波取最有利的卡，W2 全部免费也只省整批 36.86 ms；连同 W1 查表都免费仅省 39.57 ms（0.213%），六个普通请求最高约 0.268%。当前负载下无需继续查前驱 token 缓存命中率。"
+      "旧 seed 和 draft ID 写入本轮输入，接受状态生成位置和序列长度。冻结 C8 中，这两组已有设备任务全部免费仅省整批 25.03 ms（0.135%）。六个普通请求按单请求形状和各自验证次数估算，设备端对应的响应降幅最高 0.157%。",
+      "48 个有调用栈的 B4 样本可把 32 个设备任务归回主线程的 21 个调用。为两次替代提交留出成本后，若可省的主线程时间有一半／全部落在关键路径，冻结整批预计省 63.30／126.59 ms（0.34%／0.68%）。"
     ],
     "new_performance_measurements": 0
   },
@@ -322,11 +321,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/score-readers.json",
-      "result": "验证后可直接从 target 与 bonus 两个分数面按原接受位置读出，再融合有限 Top-K、所选 token 分数和并列排名。在 453 次 TP8 目标调用的冻结几何上，若全部启用有限 Top-K logprobs，这组写读预计省整批 7.99–15.98 ms。另有 1,104 条成对元数据明确关闭对外 logprobs 与惩罚，该批调用的这两项收益为零。 对五步 DSpark 逐波取最有利的卡，W2 全部免费也只省整批 36.86 ms；连同 W1 查表都免费仅省 39.57 ms（0.213%），六个普通请求最高约 0.268%。当前负载下无需继续查前驱 token 缓存命中率。"
+      "record": "baselines/draft-state-handoffs.json",
+      "result": "旧 seed 和 draft ID 写入本轮输入，接受状态生成位置和序列长度。冻结 C8 中，这两组已有设备任务全部免费仅省整批 25.03 ms（0.135%）。六个普通请求按单请求形状和各自验证次数估算，设备端对应的响应降幅最高 0.157%。 48 个有调用栈的 B4 样本可把 32 个设备任务归回主线程的 21 个调用。为两次替代提交留出成本后，若可省的主线程时间有一半／全部落在关键路径，冻结整批预计省 63.30／126.59 ms（0.34%／0.68%）。"
     },
-    "next": "沿 M10→M11 筛三层草稿输入与下一轮状态。先将已落地的 W1/W2、context KV、count/seed、slot 双输出和 26 项批写的预算登记为已占用，再给三层共享输入、请求映射与跨迭代 metadata 写入的真实新增部分计价。一次比较共用代际和读者，保留混合提示、纯解码、回滚与图银行分支。",
-    "decision": "验证后稠密拼行、有限 Top-K/排名、私有惩罚掩码和五步 W1/W2 查表投影均已有请求估价。原布局下的单项与已定价组降级。区分两批调用以及启用功能后的假设。",
+    "next": "回到输入和首层 mHC。把原有效行上的四路 embedding 广播、首个 HcPre 及保留残差的读者按同一预算筛查。先用已有 profile 和公共搬运成本估算能省的请求时间，若上限已小则整组归档。静态热词缓存、权重放置和分片调整均不列为独立融合。",
+    "decision": "下一轮状态发布的设备任务与主线程提交各有请求预算，当前负载下停止独立深查。按窗口裁剪草稿老行单列，只有相同行域上的额外算子读写可进入融合预算。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
@@ -356,6 +355,11 @@
     "C8_ceiling": "baselines/c8-prefix-ceiling.json"
   },
   "branch_coverage_index": "branch-coverage.md",
+  "operator_fusion_triage": [
+    "先固定路由结果、专家与权重分布、有效行和必要输出，写出生产者、消费者，以及融合后消失的计算、搬运或提交。纯放置、负载均衡及调度条目在此归档。",
+    "整组上限按实际命中频次和多层复用聚合到请求。低价值组的子项复用同一判断；跨出原组能消除新工作时再纳入。",
+    "只为能改变普通使用场景或目标负载排序的未知数查现有 profile；估值区间足以决策时结束排查。保留未命中分支和证据缺口。"
+  ],
   "fusion_admission": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
   "module_value_map": "module-value-map.md",
   "delivery_mode": "profile_based_candidate_discovery",
