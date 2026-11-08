@@ -1929,7 +1929,22 @@
         "Fine交换固定capacity，PCP交换同数N；稳定AG/RS地址、token0与尾padding、added词表offset分别保留。纯masked lookup可考虑直接写RS bank，尾fill消除仍需不可观察性及动态capture证明。",
         "图像span最终覆盖语言embedding中的占位行；可比较按互斥行域直写同一最终输入，保留原TP布局/通信、image cache窗口及所有读者。未知type不会被原span初始化，不能据此给任意type建立总写入等价。",
         "Ascend实际继承并调用GPUModelRunner._preprocess；旧profile在MM分支3588行正向绑定lookback上传。prompt-embed的lookup前safe-ID与lookup后保留旧embedding是不同义务，可联合producer但需保留requires_raw_input_tokens的独立ID输出、MM及collective次序。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "文本 embedding 与图外查表沿用原估值。新增多模态读者才重开。",
+        "modules": [
+          "M00",
+          "M02"
+        ],
+        "existing_sources": [
+          "EMBEDDING-SP-DELIVERY.json",
+          "MODULE-FUSION-VALUE-ESTIMATES.json",
+          "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "ORDINARY-EMBEDDING-FIXED-ROUTE.json"
+        ]
+      }
     },
     "G02": {
       "name": "HC跨层及旁路消费者",
@@ -1961,7 +1976,23 @@
         "有Engram时下一Pre依赖Engram更新后的hidden；aux取值在Engram之前",
         "首层onehot pre_mix与后续pre_mix不同",
         "attnPre的提前Y方案交独立F01审查，本轮不把它作为成立前提"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "优先比较",
+        "decision": "两处 Post→Pre 共读残差，与 Attention 首 token 在同一请求上计价。",
+        "modules": [
+          "M02",
+          "M04",
+          "M05",
+          "M07"
+        ],
+        "existing_sources": [
+          "HC-PAIRED-BOUNDARY-REQUESTS.json",
+          "HC-PRE-ROW-NORM-BARRIER-RESULT.json",
+          "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "JOINT-ATTENTION-FUSION-FRONTIERS.json"
+        ]
+      }
     },
     "G03": {
       "name": "Norm输出的多需求共同producer",
@@ -1990,7 +2021,20 @@
         "INT8/MXFP/无量化、LoRA、SP本地/全局行域分别处理",
         "共享RMS cast适配器实际服务FFN/router双输出；fallback及已有native源码见证均保留BF16舍入后展宽FP32。A3 capability+custom-op启用+符号注册共同选择，CANN9.1注释不是排除9.2的运行时守卫。",
         "norm bias分配、实际loaded标志与残差入口不同；保持原RMS舍入、bias顺序及残差输出。量化配置字典按身份缓存，不能把同对象原地更新当作新参数代。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "归一化与共享量化只计匹配的行、比例因子和舍入；两处 mHC 已归 G02。",
+        "modules": [
+          "M02",
+          "M03",
+          "M05",
+          "M06"
+        ],
+        "existing_sources": [
+          "ACTIVATION-QUANT-REQUEST-ESTIMATES.json"
+        ]
+      }
     },
     "G04": {
       "name": "按真实输入阶段联合投影",
@@ -2027,7 +2071,19 @@
         "补齐14个注意力入口及其读者/行域合同：QA与index-W共用local hidden，QB与index-Q共用原舍入QR。复用已有共享量化包通过及joined GEMM/strided RoPE反例，不能把wrapper覆盖重复记为新收益。",
         "Column等收集结果需保持group rank顺序；out_place包装器不保证复制输入，当前NPU communicator继承原地base all_reduce。直接local shard交付仍需实际边、全部读者和量化尺度域证据。",
         "CV拆分接口不等于完整Linear.forward：通信分支退回原forward；W8输出按weight_scale dtype，MX保留码/尺度格式、group及BF16输出。已有profile正向记录1665次W8量化和1665次matmul，数量相同不证明逐值配对或可共享。Column/Row的分片、rank0 bias和返回协议必须分别保持。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "QA/index-W 联合投影须有相同就绪点和可省的读写。",
+        "modules": [
+          "M03",
+          "M10"
+        ],
+        "existing_sources": [
+          "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "ATTENTION-QR-PROJECTION.json"
+        ]
+      }
     },
     "G05": {
       "name": "投影producer直接写旋转/量化/cache格式",
@@ -2063,7 +2119,20 @@
         "folded index每8行544B属于A5 mixed-quant candidate-source ABI，不能把A3每行INT8+FP16 scale的130B直接重解释为68B。cache classifier只需任一model_version匹配，不证明所有成员布局相同。",
         "嵌套legacy对象构造时indexer/compressor均为None、ratio0；外层V4.1后来创建的WK/compressor不会重绑定这些字段。旧cache producer未调用，不代表当前源层索引/压缩/state写入可删除；保留实际producer已有数值与发布证据。",
         "CP入口把query suffix与全局cache输入分别按各自metadata裁剪；本地query为空仍更新cache。packed cache的主流写入门控和不同RoPE切片保留。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "沿用旋转、量化、缓存发布和草稿三层估值，保持两流和旁路读者。",
+        "modules": [
+          "M03",
+          "M10"
+        ],
+        "existing_sources": [
+          "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "INDEX-CACHE-PUBLICATION.json",
+          "DSPARK-CONTEXT-FUSION-ESTIMATES.json"
+        ]
+      }
     },
     "G06": {
       "name": "C2的完成行、pool与ring状态联合设计",
@@ -2097,7 +2166,20 @@
         "奇/偶起点、残留历史、used_len=0、无效cache row、skip_ring_update分别处理",
         "完整行选择同时取决于slot、position奇偶、实际token范围",
         "空query不等于cache状态可丢弃"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "C2 投影与 pool/ring 的直接交付已低值；按查询分块另需实际可并行的第二组。",
+        "modules": [
+          "M03"
+        ],
+        "existing_sources": [
+          "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "C2-POOL-RING-OWNER.json",
+          "C2-COMMIT-ORDER.json",
+          "C2-SELECTION-PIPELINE-REQUESTS.json"
+        ]
+      }
     },
     "G07": {
       "name": "Indexer至attention的选择结果交付",
@@ -2144,7 +2226,24 @@
         "可选MTP TopK压缩使用输入容量L=ceil(T/TP)定义源owner和请求前缀目的owner；无本地接收行仍可能提供源行并必须参加SUM。非owner默认0保留owner的-1值。id(buffer)只去重同一对象，异对象view可能读到前轮写入；联合通信须保留别名依赖阶段。当前C8启用情况和收益未绑定。",
         "量化query要求prepared存在、尚无量化包、query存在且非空、cache容量>0；select保留candidate/filter/length及可选输出bank。布尔helper不等于无分支。",
         "prepare_indexer_indices已融合causal过滤、FP32位编码排序、padding及小规模length；重复合法ID仍重复保留，length数条目而非去重集合。大规模length走后续sum。直接最终writer需保留稳定bank与raw/block读者，不重复计价既有融合。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "优先比较",
+        "decision": "区分已测的四层 QLI 共用与长提示 SMLA 内部交付；关键未知为有效行与新访问速率。",
+        "modules": [
+          "M03"
+        ],
+        "existing_sources": [
+          "SPARSE-SELECTION-DELIVERY-ESTIMATES.json",
+          "INDEXER-CANDIDATE-PACKETS.json",
+          "INDEXER-ATTENTION-DELIVERY.json",
+          "QLI-ON-BATCHED-SLOT-C8.json",
+          "SMLA-PANEL-OCCUPANCY-SCREEN.json",
+          "C2-SELECTION-PIPELINE-REQUESTS.json",
+          "OPTIONAL-PATHS-AND-RAW-HEAD.json",
+          "JOINT-ATTENTION-FUSION-FRONTIERS.json"
+        ]
+      }
     },
     "G08": {
       "name": "attention至输出投影和通信的布局边界",
@@ -2190,7 +2289,23 @@
         "补齐PCP四个metadata导入边及嵌套DSA投影的权重切换。restore padding索引0会复制第0行，不能当零值删除。兼容层共享full-weight pool且key不含layer身份；常驻完整权重或双bank预取必须保留owner/weight代际、量化属性与最后读者，不能凭handles为空判已就绪。",
         "PCP仅在实际PCP metadata分支汇集并按restore索引恢复全局行；普通metadata回退无此操作。恢复索引可条件性并入cache投影或接收writer，但四个导入metadata helper及实际权重切换实现仍待绑定，不能计当前C8收益。",
         "reduce_scatter前后都用movedim(0,dim)；CPU反例否定任意高维轴等价，已测二维正常。保存的HCCL无shape字段，不能声称当前模型触发错误。producer直写通信布局需保持原合法轴、reduction数值和alias/readiness。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "优先比较",
+        "decision": "大 prefill 的 OA→OB 分块可能改善首 token；M24 走回退，大行须有可兑现的重叠。",
+        "modules": [
+          "M03",
+          "M04"
+        ],
+        "existing_sources": [
+          "ATTENTION-SEND-REQUEST-ESTIMATES.json",
+          "OA-OB-FUSION-REQUEST-ESTIMATES.json",
+          "OA-OB-SHARED-CUBE-SCREEN.json",
+          "RECEIVER-INVERSE-ROPE-SCREEN.json",
+          "SMLA-SPLIT-DELIVERY.json",
+          "JOINT-ATTENTION-FUSION-FRONTIERS.json"
+        ]
+      }
     },
     "G09": {
       "name": "路由选择、映射和dispatch packet",
@@ -2227,7 +2342,21 @@
         "32份已有profile将208次context写入关联到1400核；实际context的5/8核合计6.44–13.44us，不是服务收益。另有DP1的16次实际target前向各40次同形状mask padding，共640次/3200核；这是单独的跨层公共值机会，不按全模型所有层/所有迭代外推。",
         "目标/草稿MoE清单保留各层对象，最后一层只提供代表计数；这既不证明权重/布局相等，也不排除带独立输出的联合调度。占位层和dense层不在本地MoE清单，不等于全模型无工作。",
         "9种QuantType不能按单一is_quant统一dispatch和MLP融合：W4A16/MXFP权重量化但不dispatch量化，W4A8可dispatch量化但generic融合字段为假。frozen元数据仍保留tensor引用，不能据此跨代复用或删除写入。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "路由分数至 TopK/dispatch 的实际物化单列；改变专家放置不计。",
+        "modules": [
+          "M06"
+        ],
+        "existing_sources": [
+          "ROUTER-SCORE-DELIVERY-ESTIMATES.json",
+          "ROUTER-ID-GENERATION.json",
+          "MOE-ROUTER-BRANCHES.json",
+          "CLEAN-ROUTER-STAGE-VALUE.json",
+          "MC2-MASK-PROFILE.json"
+        ]
+      }
     },
     "G10": {
       "name": "shared/routed的共同输入与调度切分",
@@ -2293,6 +2422,22 @@
       "request_estimate": {
         "page": "ffn-merge-premix.md#routed-readers",
         "record": "baselines/routed-activation-readers.json"
+      },
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "固定路由的激活写读与共享输出合并已定价，现有 GMM 的组内行只计一次。",
+        "modules": [
+          "M05",
+          "M06",
+          "M07"
+        ],
+        "existing_sources": [
+          "ROUTED-EXPERT-HANDOFF-ESTIMATES.json",
+          "SHARED-MLP-FUSION-ESTIMATES.json",
+          "MOE-MERGE-HC-C8.json",
+          "FFN-MERGE-PREMIX-ESTIMATES.json",
+          "OPTIONAL-PATHS-AND-RAW-HEAD.json"
+        ]
       }
     },
     "G11": {
@@ -2357,7 +2502,23 @@
         "176条实际Transpose调用栈命中同步准备且提供持久bank；关闭overlap不排除最终直写。64条prefill最终copy与同stream前序Transpose配对，但M24 copy/尾零及完整迭代没有在缓存中关联齐；不能套用隔离3变1收益。CPU输入复用event也不等于设备bank最后读者退休。接入保持条件，转向其他分支。",
         "32个旧profile中176次Engram embed_gathered正向绑定all_gather末端Transpose；可优先核对WKV等消费者直接读取rank-major接收布局，保留head顺序、输出读者和数值边界。与owner路由/缓存命中同一工作不重复计价。",
         "prompt-only lookback全容量清-1后上传；当前请求窗口完全离开prompt时整bank为-1，但刚进入decode仍需prompt尾部。1个旧原始profile记录2次INT32[4,3] H2D API；连接ID为空，不能定量为DMA或C8收益。只复用该常量输入，不消除Engram历史cache写和fallback。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "Engram 的 gate、WKV、残差及公共输入沿用同负载估值；改变通信协议单列。",
+        "modules": [
+          "M00",
+          "M01",
+          "M02"
+        ],
+        "existing_sources": [
+          "ORDERED-ENGRAM-VALUE.json",
+          "CROSS-LAYER-HC-FUSION-ESTIMATES.json",
+          "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "ORDINARY-EMBEDDING-FIXED-ROUTE.json"
+        ]
+      }
     },
     "G12": {
       "name": "终层、aux与raw HC的需求驱动交付",
@@ -2398,6 +2559,21 @@
       "request_estimate": {
         "page": "target-readout-and-prompt-scores.md",
         "record": "baselines/target-readout-and-prompt-scores.json"
+      },
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "末层、aux 检查点和完整 raw 按真实读者归属，避免与词表头重复。",
+        "modules": [
+          "M07",
+          "M08",
+          "M10"
+        ],
+        "existing_sources": [
+          "TERMINAL-GUARD-BUDGETS.json",
+          "TERMINAL-COMPACT-FFN-SHADOW.json",
+          "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json"
+        ]
       }
     },
     "G13": {
@@ -2449,6 +2625,21 @@
       "request_estimate": {
         "page": "target-readout-and-prompt-scores.md",
         "record": "baselines/target-readout-and-prompt-scores.json"
+      },
+      "current_request_priority": {
+        "priority": "按需输出",
+        "decision": "冻结 greedy 交付已定价。启用提示评分后，按实际评分行、K 和通信块重估。",
+        "modules": [
+          "M08",
+          "M09",
+          "M10"
+        ],
+        "existing_sources": [
+          "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+          "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "SCORE-READER-AND-DRAFT-REQUESTS.json",
+          "OPTIONAL-PATHS-AND-RAW-HEAD.json"
+        ]
       }
     },
     "G14": {
@@ -2501,6 +2692,19 @@
       "request_estimate": {
         "page": "draft-state-handoffs.md#joined-ids",
         "record": "baselines/cross-iteration-ids.json"
+      },
+      "current_request_priority": {
+        "priority": "按需输出",
+        "decision": "验证 seed 和计数与 G17 合算。随机性、惩罚和返回分数改变输出需求。",
+        "modules": [
+          "M09",
+          "M11"
+        ],
+        "existing_sources": [
+          "RANDOM-SAMPLING-FUSION-ESTIMATES.json",
+          "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+          "SCORE-READER-AND-DRAFT-REQUESTS.json"
+        ]
       }
     },
     "G15": {
@@ -2535,7 +2739,19 @@
         "18原始控制+1新增控制+1数据谓词绑定角色、层身份和发布需求。每层None/empty slot在KV投影之后才返回；复用原M18-OP-15提前守卫候选，必须保留原生RoPE/量化及其他必需副作用。已有264对context/query writer包括39个无本地MLA层，不能按无query删除cache发布。",
         "context前缀按_context_count取值，None/list/tensor slot三种ABI保留；不能把query padding范围当context范围。双输出的logits/recycle可能不同，纯Python原函数已验证对象路由；直接KV/hidden交付仍须全部读者与副作用合同。",
         "通用RoPE全局bank的轴布局、首次table缓存和前缀更新独立约束；同位置的两个index_select可条件性合成一次配对读取，但旧MLA原生fixture不自动覆盖此通用途径。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "三路辅助状态与草稿 context KV 分别定价，同一份拼接只计一次。",
+        "modules": [
+          "M10"
+        ],
+        "existing_sources": [
+          "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+          "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json",
+          "DRAFT-STATE-HANDOFF-REQUESTS.json"
+        ]
+      }
     },
     "G16": {
       "name": "Markov串行决策与置信度预算调度",
@@ -2583,6 +2799,19 @@
       "request_estimate": {
         "page": "draft-state-handoffs.md#joined-ids",
         "record": "baselines/cross-iteration-ids.json"
+      },
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "五步 W2 保留前驱 ID。分数面与窄 ID 分开，下一轮输入引用 G17。",
+        "modules": [
+          "M09",
+          "M10"
+        ],
+        "existing_sources": [
+          "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+          "MARKOV-BIAS-CACHE.json",
+          "SCORE-READER-AND-DRAFT-REQUESTS.json"
+        ]
       }
     },
     "G17": {
@@ -2633,6 +2862,21 @@
       "request_estimate": {
         "page": "draft-state-handoffs.md#joined-ids",
         "record": "baselines/cross-iteration-ids.json"
+      },
+      "current_request_priority": {
+        "priority": "优先比较",
+        "decision": "稳定满批 slot 已实测；普通 B1 同时考虑 13/26 项参与卡及另一 DP。",
+        "modules": [
+          "M00",
+          "M11"
+        ],
+        "existing_sources": [
+          "ACCEPTANCE-STATE-REMAP.json",
+          "BATCHED-SLOT-RESULT.json",
+          "DRAFT-STATE-HANDOFF-REQUESTS.json",
+          "SINGLE-REQUEST-SLOT-BATCH-SCREEN.json",
+          "SLOT-BATCH-BY-POPULATION.json"
+        ]
       }
     },
     "G18": {
@@ -2682,7 +2926,22 @@
         "KV group内layer共享同一个slot bank，microbatch是切片视图。encoder-only零bank和普通block-table前缀都填padding=-1；mRoPE prompt/completion、cross-attention实际/捕获长度和last-index padding不能统一成一个默认值。",
         "固定NPU V1由实际profile及worker构造分支确认；其attention metadata和padding覆盖方法不回调对应GPUModelRunner基类实现。基类及内部helper的控制点按作用域排除，仍保留实际NPU覆盖路径与其他继承helper的独立审查。",
         "按配置选首个可执行primary，cache-only仍有元数据义务。保留group表/slot浅拷贝回退、选表之后滑窗、各builder索引及DCP准备顺序；只有DSpark+DCP1+PCP1可选executor且provider收集后一次submit。现有共享SAS缓存和G1不计重复收益。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "优先比较",
+        "decision": "slot 坐标和扁平索引双输出、批量提交分别按已有基线归因，与 G17 共用估值。",
+        "modules": [
+          "M00",
+          "M03",
+          "M11"
+        ],
+        "existing_sources": [
+          "MODULE-FUSION-VALUE-ESTIMATES.json",
+          "ROPE-ROW-LOOKUP.json",
+          "SINGLE-REQUEST-SLOT-BATCH-SCREEN.json",
+          "SLOT-BATCH-BY-POPULATION.json"
+        ]
+      }
     },
     "G19": {
       "name": "graph/RPC/输出的实际执行边界",
@@ -2731,6 +2990,19 @@
       "request_estimate": {
         "page": "draft-state-handoffs.md#joined-ids",
         "record": "baselines/cross-iteration-ids.json"
+      },
+      "current_request_priority": {
+        "priority": "复用估价",
+        "decision": "只给具名算子减少的提交与等待定价。换批和 B1 的状态主机收益仍未知。",
+        "modules": [
+          "M00",
+          "M09",
+          "M11"
+        ],
+        "existing_sources": [
+          "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+          "NEXT-INPUT-ID-PUBLICATION.json"
+        ]
       }
     },
     "G20": {
@@ -2763,7 +3035,19 @@
         "decode-only node来自KV角色/DecodeBench及recompute scheduler，不等于每个decode batch。接收上界必须保持rank-invariant容量和最坏expert集中度；selector允许进入后端本身不能证明物理buffer够用。",
         "EP gather/reduce helper绑定DP×PCP×SP行序、等长补零、真实行裁剪和不同fallback；producer直写与segmented consumer可条件性省副本，通信和中间非线性不能凭形状消除。",
         "隐式MoE层选择消耗并推进context cursor，合并调用要保留后续层身份；逻辑expert计数、量化mode/activation dtype/weight dtype和真实存储字段分别保持。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "固定布局",
+        "decision": "冷热专家和权重迁移归档。只有返回张量的生产者能直写读者时才计融合增量。",
+        "modules": [
+          "M06",
+          "M07"
+        ],
+        "existing_sources": [
+          "MOE-STRAIGHTLINE-AND-REDUCTION-CONTRACTS.json",
+          "ORDERED-RETURN-ENDPOINT-ESTIMATES.json"
+        ]
+      }
     },
     "G21": {
       "name": "视觉编码、空间投影与语言输入的共同交付",
@@ -2793,7 +3077,19 @@
         "已加载视觉模块与171源码hash均有正向证据；当前文本C8视觉执行未证明",
         "post-encoder padding不能前移为有效attention token；图像间softmax域独立",
         "32个已加载实例绑定16/16 heads、head64、scale0.125、FP8=False；MMEncoderAttention.enabled=True和NPU OOT分派选择FIA，继承TORCH_SDPA字段不能替代执行证据。RoPE先保留projection舍入，再升FP32旋转并转回。"
-      ]
+      ],
+      "current_request_priority": {
+        "priority": "本次无命中",
+        "decision": "八个冻结和六个普通文本请求没有图像；图像负载的算子合同保留，时延未知。",
+        "modules": [
+          "M00"
+        ],
+        "existing_sources": [
+          "VISION-ENCODER-CONTRACTS.json",
+          "VISION-PRIMITIVE-CONTRACTS.json",
+          "FROZEN-C8-MODALITY-ADMISSION.json"
+        ]
+      }
     }
   },
   "legacy_semantic_modules": {

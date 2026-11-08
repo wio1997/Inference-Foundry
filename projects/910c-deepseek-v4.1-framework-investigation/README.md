@@ -11,7 +11,7 @@
 | [四条条件提案的请求收益](four-mixed-fusion-edges.md) | 两层 Engram 合包、QLI 分数及八层 token 归并的收益门槛、草稿 OB 补齐、同波专家 GMM |
 | [融合收益归因与混合提案处置](fusion-attribution.md) | 37 条混合提案的复用、归档与条件项，以及普通 slot 的设备收益预算 |
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
-| [B1–B4 批写与最晚参与卡](slot-batch-by-population.md) | 正常更新时 13/26 项的实际分布、服务增量与普通请求门槛 |
+| [B1–B4 批写与最晚参与卡](slot-batch-by-population.md) | 13/26 项的实际分布，以及 Attention 和 slot 在普通请求的 153 个目标图波次上能否共同过线 |
 | [普通请求的输入与 slot 批写](ordinary-input-and-slot.md) | 固定通信的融合价值、真实 B1 与 24 行图、13/26 项分支及收益门槛 |
 | [Attention 融合的同批估算](joint-attention-frontiers.md) | 四项联合、QLI 净增量、普通代码首 token 与整批收益 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
