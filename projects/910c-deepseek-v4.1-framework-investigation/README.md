@@ -9,6 +9,7 @@
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
 | [按执行顺序查询分支台账](branch-coverage.md) | 12 个模块、21 个已登记分支族、360 条历史语义记录，以及每组对应的当前证据 |
+| [固定路由的两处中间结果](baselines/routed-expert-handoffs.json) | 路由专家的 FP16、INT8 中间写读和 C8 请求收益预算 |
 | [索引交付、暂存与两次矩阵读取](baselines/sparse-selection-delivery.json) | QLI 索引发布、38 层 SMLA 的稀疏读、临时缓冲和临界速率 |
 | [Attention 输入、旋转与缓存写入](baselines/attention-input-fusions.json) | Q/KV 实际汇合、C2 与索引发布、六个普通请求与冻结 C8 的联合收益 |
 | [OA 与 OB 的逐请求估算](baselines/oa-ob-fusion.json) | 固定权重分片和归约的搬运收益、流水敏感性和普通请求 |

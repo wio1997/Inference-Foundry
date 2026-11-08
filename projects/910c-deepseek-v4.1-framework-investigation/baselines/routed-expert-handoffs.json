@@ -1,0 +1,196 @@
+{
+  "scope": "Target W8A8 F21 internal handoffs, fixed expert IDs, rank ownership, weights, outputs and other service work.",
+  "source_hashes_matching_171": {
+    "dispatch_ffn_combine.h": "d2b5712ad97f7505233f340e18660627424e5e1fe4c33be68f8e34b51a479ab1",
+    "dispatch_ffn_combine_kernel.hpp": "7dcef4c08c4c47e38bdd01aef0dee997798658ee4d7b871c8e6c70f7ffe596ba",
+    "block_epilogue_pertoken_swiglu.hpp": "baaacd84dc4c29d5efe72b7c7bd3b0cac64db233bc9431bd6fb678390cf2a0ad"
+  },
+  "one_payload_copy_GB_s": 1202.6518781744107,
+  "one_write_one_read_payload_bytes_per_assignment": {
+    "FP16_gate_up": 9216,
+    "INT8_codes": 2304,
+    "scale_credited": 0
+  },
+  "source_contract": [
+    "The 4608 FP16 values are channel-scaled Cube output. Vector preserves the FP16 boundary, applies the input row scale, clamp, SwiGLU, full-width absmax and the original rounding. These operations already run in one epilogue.",
+    "The FP32 activation scale remains live at GMM2 output dequantization/combine for both return paths. GMM2 reads the INT8 activation. Neither GEMM, either scale operation nor an operator launch disappears.",
+    "An FP16 row spans 18 Cube output N tiles of 256 columns. Each gate half must meet its matching up half and the 2304-wide reduction must complete before requantization. The same INT8 row feeds 20 GMM2 output-column tiles; transfer to every reader must still be paid."
+  ],
+  "eager_peak_receiver_rows_summed_over_layers": {
+    "416": 132847,
+    "816": 264850,
+    "817": 263477,
+    "818": 393302
+  },
+  "eager_concentration_by_wave": {
+    "416": 0.16513399960222752,
+    "816": 0.16889220487705336,
+    "817": 0.16770865159384865,
+    "818": 0.16576556072560522
+  },
+  "graph": {
+    "captured": 227,
+    "scheduled": 223,
+    "peak_receiver_rows_summed_over_40_layers": {
+      "min": 552,
+      "median": 1932,
+      "max": 2064
+    }
+  },
+  "request_peak_assignment_rows": {
+    "TTFT_P90": [
+      661174,
+      1056423,
+      397697,
+      397697,
+      1056423,
+      1056423,
+      661174,
+      132847
+    ],
+    "makespan": [
+      1476087,
+      1479518,
+      1472533,
+      1478966,
+      1471033,
+      1479518,
+      1478161,
+      1467613
+    ]
+  },
+  "C8_reference_ms": {
+    "TTFT_P90": 1491.854839,
+    "makespan": 18590.769232
+  },
+  "C8_saved_ms": {
+    "GMM1_FP16_gate_up": {
+      "TTFT_P90": 8.095438542680313,
+      "makespan": 11.337643199542072
+    },
+    "activation_INT8_GMM2": {
+      "TTFT_P90": 2.023859635670078,
+      "makespan": 2.834410799885518
+    },
+    "both": {
+      "TTFT_P90": 10.119298178350391,
+      "makespan": 14.17205399942759
+    },
+    "both_half_exposed": {
+      "TTFT_P90": 5.059649089175309,
+      "makespan": 7.086026999713795
+    }
+  },
+  "one_percent_frontier": {
+    "max_one_payload_GB_s_full_exposure": {
+      "TTFT_P90": 815.7625421624512,
+      "makespan": 91.68016205947121
+    },
+    "extra_net_INT8_read_equivalents_per_row_needed_at_reference_full_exposure": {
+      "TTFT_P90": 4.742671010443555,
+      "makespan": 121.17907420301819
+    }
+  },
+  "ordinary_own_prompt_and_observed_graph_scenario": {
+    "chat-single": {
+      "own_prompt_tokens": 1019,
+      "saved_ms": {
+        "first_nonempty": 0.39564672609932894,
+        "response_end": 1.127162949510087
+      },
+      "response_percent_higher_of_two_references": 0.04097648006331097
+    },
+    "code-single": {
+      "own_prompt_tokens": 1464,
+      "saved_ms": {
+        "first_nonempty": 0.5881974084556669,
+        "response_end": 0.6277388259373295
+      },
+      "response_percent_higher_of_two_references": 0.13453264405701834
+    },
+    "chat-mixed": {
+      "own_prompt_tokens": 1018,
+      "saved_ms": {
+        "first_nonempty": 0.3952584564956986,
+        "response_end": 1.7198959421313955
+      },
+      "response_percent_higher_of_two_references": 0.037089930547911355
+    },
+    "code-mixed": {
+      "own_prompt_tokens": 2187,
+      "saved_ms": {
+        "first_nonempty": 0.8689163318804117,
+        "response_end": 1.1457062542520497
+      },
+      "response_percent_higher_of_two_references": 0.10856442446769758
+    },
+    "chat-return": {
+      "own_prompt_tokens": 1019,
+      "saved_ms": {
+        "first_nonempty": 0.41541743484016025,
+        "response_end": 1.3248700369183999
+      },
+      "response_percent_higher_of_two_references": 0.04397231267060168
+    },
+    "code-return": {
+      "own_prompt_tokens": 1464,
+      "saved_ms": {
+        "first_nonempty": 0.5881974084556669,
+        "response_end": 0.6672802434189922
+      },
+      "response_percent_higher_of_two_references": 0.10915461811103994
+    }
+  },
+  "five_native_route_vector_stage": [
+    {
+      "M": 416,
+      "layer": 9,
+      "median_core_stage_fraction": 0.02836341660391097
+    },
+    {
+      "M": 816,
+      "layer": 5,
+      "median_core_stage_fraction": 0.03586862098785673
+    },
+    {
+      "M": 817,
+      "layer": 32,
+      "median_core_stage_fraction": 0.029201232959682147
+    },
+    {
+      "M": 834,
+      "layer": 5,
+      "median_core_stage_fraction": 0.0370559543116796
+    },
+    {
+      "M": 834,
+      "layer": 16,
+      "median_core_stage_fraction": 0.02389408486516871
+    }
+  ],
+  "limits": [
+    "C8 assumes concurrent EP ranks and serial layer barriers. Grant the largest receiver at every layer, full exposure and zero replacement cost. The graph uses each actual rank/epoch and charges every scheduled start before the endpoint. A different critical receiver, cross-phase overlap or launch finishing after deadline reduces the credit.",
+    "Dense-copy rate and one effective read of each intermediate are calibrated assumptions, not hardware ceilings. Cache hits, inter-core forwarding, and repeated GMM2 tile reads determine real net traffic. Other readers still need the activation. The read-equivalent threshold counts extra eliminated off-chip reads NET of replacement deliveries.",
+    "Ordinary request counters lack receiver-level counts. Project the highest of the four observed eager peak concentration ratios onto the request’s own prompt. Other requests sharing a wave are excluded from its prompt. Charge each observed graph using the largest frozen graph sample. Timing denominators from both stock generations remain separate from that projection.",
+    "Native stage fractions are medians across instrumented Vector cores including flags, with concurrent Cube and EP work. They are neither exclusive activation time nor request savings. Credit from barriers, changing ownership or expert placement is outside this estimate.",
+    "Different dtypes, group quantization policies and draft experts have separate row and scale contracts. This screen does not transfer to them."
+  ],
+  "sources": {
+    "full-review/PREFILL-F21-READINESS.json": "189c309d264462d1d0c39e8d7b35191ae69123d029225eeba409039a980c3cff",
+    "full-review/PREFILL-OA-JOINT-ARRIVAL.json": "5c7b01aefd7603c2957b6cbb439e7f005471ccd5e4b3a5d505a1925bd2f7b550",
+    "full-review/F21-EXPERT-TILES-AND-CUTS.json": "ebc82e501a7fd3c73a872e5b0225349fdd99e5372b12bd8d9f92479035f802e1",
+    "full-review/runs/f21-input-routing-171-sources.json": "fe4590d8fa4938e6966ba3a02aa83fbb6297e6bd2a728a1407c7003a8d78bc8a",
+    "full-review/F21-PIPELINE-ROW-SEMANTICS.json": "0b9c0b6bd56af73aef5da09a57f1693f63232619336447ec632e8e667913667a",
+    "full-review/runs/moe-schedule-model-geometry.json": "54d75996eb50ccd2c85e9b09b3bf2c7e0d866b9923bf7cf47ad0aaf4c62b2096",
+    "full-review/PREFILL-EXPERT-PARTIAL-NATIVE.json": "62cb723ba84bc7a432175e1acf745e331ef36c2d94133a8daa3925b9fec957f6",
+    "full-review/ACTIVATION-QUANT-REQUEST-ESTIMATES.json": "dc00aab27c2a834e3198a04c6b11932c67d92ee5f7012b043fed9aabf1fcd5a3",
+    "full-review/ORDINARY-SERVING-GUARDS.json": "45ebb28aac22c3d28870ec132f4cb6fe8fec5dac620f710330680c5030a3b101",
+    "full-review/ORDINARY-TERMINAL-ROW-ESTIMATES.json": "42f9504b4b447bf5ea13e67615fabe05888fff44410e386e1a5d3cd0a826f542",
+    "full-review/GRAPH-REQUEST-PREFIX-BUDGETS.json": "9794e03363db44e832bb2830d886b3e0d27bfbc9c6cc5afe63b14ce1e58cca82",
+    "full-review/runs/joint168-qli-step-frontiers.json.gz": "f579eb8751f9e3ce075e7c840196f4c759b2b86f55757225b60f0368fdc7da32",
+    "full-review/runs/joint168-request-endpoints.json.gz": "725c0b16b949d17402bbde4d6b80da0e676b3db91a3d939e478dad47132b222f",
+    "tools/price_routed_expert_handoffs.py": "43468b0a9989394d8d300b792ab3c9a518ec1c9cbdf42eb96cdc76ba3c414309"
+  },
+  "new_NPU_work": false,
+  "overall_complete": false
+}
