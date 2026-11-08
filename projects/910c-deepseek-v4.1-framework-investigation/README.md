@@ -12,7 +12,7 @@
 | [融合收益归因与混合提案处置](fusion-attribution.md) | 37 条混合提案的复用、归档与条件项，以及普通 slot 的设备收益预算 |
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
 | [B1–B4 批写与最晚参与卡](slot-batch-by-population.md) | 13/26 项的实际分布，以及 Attention 和 slot 在普通请求的 153 个目标图波次上能否共同过线 |
-| [普通请求的输入与 slot 批写](ordinary-input-and-slot.md) | 固定通信的融合价值、真实 B1 与 24 行图、13/26 项分支及收益门槛 |
+| [普通请求的输入与 slot 批写](ordinary-input-and-slot.md) | 图外词嵌入复用、16 个 worker 的真实图入口与 13/26 项 slot 批写的单项门槛 |
 | [Attention 融合的同批估算](joint-attention-frontiers.md) | 四项联合、QLI 净增量、普通代码首 token 与整批收益 |
 | [融合候选与预计收益](fusion-candidates.md) | 具体算子、适用分支、普通请求与 C8 收益、批量排除及剩余范围 |
 | [按执行顺序查询分支台账](branch-coverage.md) | 12 个模块、21 个已登记分支族、360 条历史语义记录，以及每组对应的当前证据 |
