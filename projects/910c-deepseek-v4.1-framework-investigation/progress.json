@@ -1,21 +1,25 @@
 {
-  "updated_at_utc": "2026-11-08T04:28:48.991213+00:00",
-  "source_analysis_commit": "258e76b8bd285132f3b2b95ac1169d2c5025a7b4",
+  "updated_at_utc": "2026-11-08T04:52:23.733695+00:00",
+  "source_analysis_commit": "fc963b18a270db0383c56015bb10dd541de22fb7",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "固定放置的融合初筛与请求估算；下一项为 M00/M01 普通请求的 embedding 和 Engram 交付",
+  "active_module": "M00/M01 输入交付已按固定通信重算，M00/M11 按活跃请求数筛 slot 写入的端到端价值",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "按输入到输出的顺序复用分支台账。普通输入端优先复核 embedding 与 Engram 的 M6/M24 适用性，现有三组短形状计时与常见图形状会改变普通响应排序。先查六个请求是否已有按实际形状绑定的记录。已有资料不能区分时保留条件估算，转向下一项可改变排序的算子交付。",
-    "decision": "在固定路由和权重放置下，mHC、SMLA 与 OA→OB 的三处融合仅在长提示首 token 保留条件价值。专家冷热、副本和跨卡摆放归入历史。固定路由的已定价 MoE 中间面已按请求价值降级。",
+    "work": "用同一套 slot 生产者和读者的已有计时，按实际请求数与全局/本地有效行归并双输出与批写候选。优先核对 B1–B4 的常见命中条件、13/26 项在最迟就绪卡上各需省多少，形成可复用的负载门槛。已有数据足以降级的分支直接登记；找不到正常分支调用次数时保持条件估算。",
+    "decision": "固定通信协议时，词嵌入与两层 Engram 的普通响应按各自服务代际估算最高约 0.14%，能消去图外重复查表时约 0.62%。B4 的 26 项批写不命中真实 B1 本地入口；新增 B1 全局/本地输出的条件候选，保留 13 与 26 项和 skip/正常分支。",
     "source": {
-      "path": "full-review/JOINT-ATTENTION-FUSION-FRONTIERS.json",
-      "sha256": "5b98c424b9e655e3b85d952d306a69318ac57f43b01624cd7ffcbf0ed24a0a0b"
+      "path": "full-review/ORDINARY-EMBEDDING-FIXED-ROUTE.json",
+      "sha256": "0fb83c823a979ad15f57ea55bbd03116cf6fa926e6c8813177f5b2fe3b9315ed"
+    },
+    "slot_candidate": {
+      "path": "full-review/SINGLE-REQUEST-SLOT-BATCH-SCREEN.json",
+      "sha256": "03c5b0f96380f4887dffeb79ecae192f697dfa7371877a3d58fea04e522bd706"
     },
     "scope_ledger": {
       "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
-      "sha256": "49b77abe0a78c9e44b898de7a720138bf9a363b45f3c00be813b4e87f7f0b190"
+      "sha256": "4c4c2335e3daec6081227c367da50611819396d4a45885c8f99eb9a8657565bd"
     }
   },
   "module_statuses": [
@@ -168,7 +172,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Four prompt waves, 2560 rank/layer records, 223 scheduled graph waves and six ordinary request estimates.",
+    "performance_scope": "Six ordinary requests under three generations, per-engine verification counts, 446 frozen active target graph groups and a 48-record B1-shaped slot census.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,15 +288,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "Fixed-placement fusion triage with prompt and verification wave cutoffs",
+    "scope": "Ordinary target graph vs live inputs, fixed-route embedding fusion and B1 slot batch",
     "sources": [
-      "joint-attention-frontiers.md",
-      "baselines/joint-attention-frontiers.json",
-      "baselines/routed-expert-handoffs.json"
+      "ordinary-input-and-slot.md",
+      "baselines/ordinary-embedding-fixed-route.json",
+      "baselines/single-request-slot-batch.json"
     ],
     "observations": [
-      "同一批八请求、四个实际 carrier 上，把最终 FFN 与读出拆成七个已有计时的阶段。在固定原到达与同步模型下，128 种可改范围（含零改动）中有 94 种即使全省也达不到首 token P90 缩短 14.919 ms 的调查参考。若保留原计算直到专家返回，后续所有阶段全省也只有 14.853 ms，两者只差 0.065 ms。可以跳过该固定排程下的独立实验。更早消费者、不同到达或新的跨迭代排程应另算。",
-      "固定专家和权重，mHC 残差交付、SMLA 压缩 KV 读取与 OA→OB 分块交付同时生效，三个局部节省全部兑现时，冻结 C8 首 token P90 预计省 34.48–37.09 ms，整批仅省 38.81–41.55 ms。六个普通请求整段响应最高约 0.69%。只保留长提示首 token 条件项。"
+      "普通请求的目标图固定 24 行，171 次请求验证走图，2 次并入另一请求的 eager prefill。保留原 TP8 协议时，输入侧局部融合整段响应最高估算约 0.14%；图内结果还能取代图外查表时约 0.62%。",
+      "原 26 项 B4 批写要求本地实际请求数为四。B1 归档有 13 个全局写入加零个或 13 个非空本地写入。另设 B1 批写分支、借用 B4 的 0.961 ms 原生节省时，后续对话在两次原服务参考中预计缩短约 1.28%–1.37%。正常分支命中和实际收益仍未知。"
     ],
     "new_performance_measurements": 0
   },
@@ -321,11 +325,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/joint-attention-frontiers.json",
-      "result": "固定专家和权重，mHC 残差交付、SMLA 压缩 KV 读取与 OA→OB 分块交付同时生效，三个局部节省全部兑现时，冻结 C8 首 token P90 预计省 34.48–37.09 ms，整批仅省 38.81–41.55 ms。六个普通请求整段响应最高约 0.69%。只保留长提示首 token 条件项。"
+      "record": "ordinary-input-and-slot.md",
+      "result": "普通请求的目标图固定 24 行，171 次请求验证走图，2 次并入另一请求的 eager prefill。保留原 TP8 协议时，输入侧局部融合整段响应最高估算约 0.14%；图内结果还能取代图外查表时约 0.62%。 原 26 项 B4 批写要求本地实际请求数为四。B1 归档有 13 个全局写入加零个或 13 个非空本地写入。另设 B1 批写分支、借用 B4 的 0.961 ms 原生节省时，后续对话在两次原服务参考中预计缩短约 1.28%–1.37%。正常分支命中和实际收益仍未知。"
     },
-    "next": "按输入到输出的顺序复用分支台账。普通输入端优先复核 embedding 与 Engram 的 M6/M24 适用性，现有三组短形状计时与常见图形状会改变普通响应排序。先查六个请求是否已有按实际形状绑定的记录。已有资料不能区分时保留条件估算，转向下一项可改变排序的算子交付。",
-    "decision": "在固定路由和权重放置下，mHC、SMLA 与 OA→OB 的三处融合仅在长提示首 token 保留条件价值。专家冷热、副本和跨卡摆放归入历史。固定路由的已定价 MoE 中间面已按请求价值降级。",
+    "next": "用同一套 slot 生产者和读者的已有计时，按实际请求数与全局/本地有效行归并双输出与批写候选。优先核对 B1–B4 的常见命中条件、13/26 项在最迟就绪卡上各需省多少，形成可复用的负载门槛。已有数据足以降级的分支直接登记；找不到正常分支调用次数时保持条件估算。",
+    "decision": "固定通信协议时，词嵌入与两层 Engram 的普通响应按各自服务代际估算最高约 0.14%，能消去图外重复查表时约 0.62%。B4 的 26 项批写不命中真实 B1 本地入口；新增 B1 全局/本地输出的条件候选，保留 13 与 26 项和 skip/正常分支。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
