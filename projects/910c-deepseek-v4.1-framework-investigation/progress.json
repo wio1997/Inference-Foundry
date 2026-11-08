@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-08T00:56:35.804614+00:00",
-  "source_analysis_commit": "2035e826d456fe0cc88358a4875df48b599b22de",
+  "updated_at_utc": "2026-11-08T01:19:55.442155+00:00",
+  "source_analysis_commit": "3a7ddd199c7cdeab95eda48fd28948f20bd9e70e",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M00/M01 输入 embedding 与 Engram 的算子交付及重复写读",
+  "active_module": "全模型分支覆盖核对、已估价工作的去重与剩余高价值入口",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "回到模型输入顺序，把 G01 embedding 行交付和 G11 两层 Engram 的真实算子输出一次过筛。先从现有 profile 估算固定权重、固定命中条件下能免去的查表交付、投影尾部或 gate 中间写读，按首 token、整批和普通请求统一计价。不同输入或读者分开，已计的残差尾部只收一次；跳过权重放置、缓存命中率调查和单个小转换。",
-    "decision": "DSpark 三个早期辅助状态的跨层、跨卡打包与草稿端选行拼接按同一批请求联合降级。已计价的取行拼接不再重复相加，三次均值与下游 WKV 的预算各自独立。",
+    "work": "汇总 12 个执行模块和 21 个已登记分支族的剩余范围。优先对照候选、改写与证据台账，一次标出已估价、同一可省工作已覆盖、固定负载可凭输入或配置排除，以及会改变候选排序的缺口。先核对视觉与外部嵌入等条件，保留未覆盖的框架场景；只继续能增加独立收益的机制。",
+    "decision": "G01/G11 已按实际图内外读者计价。446 次双查表确认存在，图外结果可省仍受读者约束。单独输入交付和 gate 降级；组合在普通单请求的稀少形状下可超过排序参考，保留条件。",
     "source": {
-      "path": "full-review/DSPARK-CHECKPOINT-PACKET-ESTIMATES.json",
-      "sha256": "fae303791299ddb7e8e36b30665993431c8d691c928bdd601f46486823d82348"
+      "path": "full-review/EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+      "sha256": "4ba7f874359cd39796f26ec5dd2a6f12a0337fbf7162a06a5f300c049d8b699e"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 134,
+    "region_tables": 135,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Frozen eager checkpoint intervals, archived graph cost proxies, 453 active TP8 groups and six ordinary request projections.",
+    "performance_scope": "10,960 frozen embedding intervals, 446 active double target lookups, two Engram updates and six ordinary request projections.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,15 +280,16 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M07/M10/G12/G15",
+    "scope": "M00/M01/G01/G11 and M10 input",
     "sources": [
-      "baselines/dspark-checkpoint-packet.json",
+      "baselines/embedding-engram-fusion.json",
       "baselines/branch-coverage.json"
     ],
     "observations": [
-      "进入第 37、38、39 层前各生成一次 BF16 均值。可把结果直接写入同一张量的三个列区，在第三个结果就绪后让 TP8 做一次 AllGather，按原行数和顺序直接交给 DSpark 输入投影。三次通信变一次；每卡各有 3 行时，原、新方案都发送 92,160 B。保留主投影及其特征归集、转置和 RMS。已有六组样例在原投影行数下逐值一致，先按全行计算再选行有两组出现差异。",
-      "按冻结 C8 的 7 次 eager 和 446 次图调用计频，通信、取行和拼接都免费时，首 token P90 最多估算省 5.80 ms，整批最多估算省 38.91 ms。扣除一次合并传输，调优通信模型下首 token P90 为慢 1.55 至快 4.18 ms，整批省 8.02–31.27 ms（0.04%–0.17%）。六个普通请求按各自输入和验证次数估算，响应时间最高省 0.123%。",
-      "eager 使用冻结逐卡任务，图阶段的通信和拼接复用同形状样本，18 行拼接用插值。即使把图阶段的乐观毛收益翻倍、让替代通信免费，整批最多也只省 72.18 ms（0.39%）。要达到本次整批 1% 的排序参考，平均每个图迭代还需在原毛收益估算外再省约 659 µs。真正晚到的非填充选行、额外读者、SP 关闭和跳过草稿各有独立条件。"
+      "冻结负载的 446 次有效图调用都出现两次目标词嵌入：图外先按实际行数查表和 AllReduce，图内又按 24 行查表和 AllReduce。7 次有效 eager 目标调用各只有一条，后续草稿另用独立的词表。捕获时选择原始 ID 且回放时全为文本的路径，可以保留图内查表；前提是图外 embedding 缓冲区没有其它读者。混合图像、软提示、不同图入口和权重版本分别保留。",
+      "按导出时间戳对齐和调优通信估价，单独移除图外查表的 14 个设备算子及归约，冻结整批可省 14.39–31.05 ms。14 次计算提交的主机区间是 25.81–42.95 ms，不能与设备节省相加。再计入词嵌入对 SP 行的直接交付、两层 Engram 定向通信和 gate 中间写读，联合估算省 1.44–8.39 ms 首 token P90、30.73–94.89 ms 整批（0.17%–0.51%）。",
+      "图阶段 Engram 第 1 层 AllGather 最慢 rank 的耗时中位为约 1.15 ms；按导出时钟算，最后一个 rank 开始到最后一个 rank 结束的中位仅 19.32 µs，第 14 层为 19.26 µs。源码与原生任务绑定表明，UVA 查表已合并反量化，可省的是预清零、全行转置和实际出现的整表拷贝。将各头分片直接交给 SP 行所有者，每卡逻辑接收可降到原来的八分之一。两次 WKV 和旋转矩阵乘各有自己必须保留的输入。",
+      "逐图用 40 次 F21 交换约束时钟偏差，联合整批估算区间放宽至 16.07–247.18 ms（0.09%–1.33%）。六个普通请求按实际验证步数、用仅 3 组的单请求 M6 计时外推，响应收益最高 1.85%；改用 428 组常见 M24 计时，最高 0.28%。另一个乐观情景假设 gate 的向量阶段能净省一半，时间戳对齐下联合整批为 62.84–127.58 ms。保留联合条件项；单独的小转换降级。主机到下一次提交的宽区间包含其它工作。"
     ],
     "new_performance_measurements": 0
   },
@@ -317,11 +318,11 @@
     "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。 模块总耗时只用于定位。先给同一批可消除的工作算一次乐观请求预算，记录估价假设与能改变排序的临界值，再决定是否细看分支。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/dspark-checkpoint-packet.json",
-      "result": "按冻结 C8 的 7 次 eager 和 446 次图调用计频，通信、取行和拼接都免费时，首 token P90 最多估算省 5.80 ms，整批最多估算省 38.91 ms。扣除一次合并传输，调优通信模型下首 token P90 为慢 1.55 至快 4.18 ms，整批省 8.02–31.27 ms（0.04%–0.17%）。六个普通请求按各自输入和验证次数估算，响应时间最高省 0.123%。"
+      "record": "baselines/embedding-engram-fusion.json",
+      "result": "按导出时间戳对齐和调优通信估价，单独移除图外查表的 14 个设备算子及归约，冻结整批可省 14.39–31.05 ms。14 次计算提交的主机区间是 25.81–42.95 ms，不能与设备节省相加。再计入词嵌入对 SP 行的直接交付、两层 Engram 定向通信和 gate 中间写读，联合估算省 1.44–8.39 ms 首 token P90、30.73–94.89 ms 整批（0.17%–0.51%）。"
     },
-    "next": "回到模型输入顺序，把 G01 embedding 行交付和 G11 两层 Engram 的真实算子输出一次过筛。先从现有 profile 估算固定权重、固定命中条件下能免去的查表交付、投影尾部或 gate 中间写读，按首 token、整批和普通请求统一计价。不同输入或读者分开，已计的残差尾部只收一次；跳过权重放置、缓存命中率调查和单个小转换。",
-    "decision": "DSpark 三个早期辅助状态的跨层、跨卡打包与草稿端选行拼接按同一批请求联合降级。已计价的取行拼接不再重复相加，三次均值与下游 WKV 的预算各自独立。",
+    "next": "汇总 12 个执行模块和 21 个已登记分支族的剩余范围。优先对照候选、改写与证据台账，一次标出已估价、同一可省工作已覆盖、固定负载可凭输入或配置排除，以及会改变候选排序的缺口。先核对视觉与外部嵌入等条件，保留未覆盖的框架场景；只继续能增加独立收益的机制。",
+    "decision": "G01/G11 已按实际图内外读者计价。446 次双查表确认存在，图外结果可省仍受读者约束。单独输入交付和 gate 降级；组合在普通单请求的稀少形状下可超过排序参考，保留条件。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
