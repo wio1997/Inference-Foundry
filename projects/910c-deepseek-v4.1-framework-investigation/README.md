@@ -1,6 +1,6 @@
 # DeepSeek V4.1 Flash 推理框架算子优化排查
 
-本目录是持续更新的排查档案。固定 DeepSeek V4.1 Flash W8A8、DSpark、Engram、CANN 9.2、910C 及既定 C8 负载，以实际推理顺序组织算子优化分析。整体任务仍在进行。
+本目录是持续更新的排查档案。固定 DeepSeek V4.1 Flash W8A8、DSpark、Engram、CANN 9.2、910C 及既定 C8 负载，以实际推理顺序组织算子优化分析。整体任务已按用户要求暂停，详见[进度与暂停交接](STATUS-2026-11-08.md)。
 
 远端唯一发布位置：`wio1997/Inference-Foundry` 的 `910c-deepseek-v4.1-flash` 分支，`projects/910c-deepseek-v4.1-framework-investigation/`。该目录记录本次 171 分析，不覆盖同分支已有的 172 DeepInfer 结果或冻结 vLLM 基线。
 
