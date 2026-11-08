@@ -2,17 +2,17 @@
   "labels": {
     "reference": "Reuse the stated estimate or test for its named component and scenario only.",
     "version_failed": "The tested numerical variant failed. Another algorithm needs a separate argument.",
-    "outside": "This proposal only changes placement, scheduling or resource ownership as specified.",
+    "outside": "The proposal as specified only changes placement, scheduling, caching or resource ownership; no independent operator fusion is claimed.",
     "mixed": "Exclude gains due to placement, scheduling, caching or row pruning alone. Only distinct operator work eliminated by fusion can enter.",
     "inactive": "No incremental work on this input/precision branch in the named workloads. Other scenarios remain conditional.",
     "contract": "Original branch contract and family references retained. No individual quantitative verdict assigned here."
   },
   "disposition_counts": {
-    "contract": 26,
-    "inactive": 24,
-    "mixed": 29,
-    "outside": 4,
-    "reference": 90,
+    "contract": 11,
+    "inactive": 25,
+    "mixed": 33,
+    "outside": 9,
+    "reference": 95,
     "version_failed": 2
   },
   "families": {
@@ -29,7 +29,8 @@
       "family_sources": [
         "EMBEDDING-SP-DELIVERY.json",
         "MODULE-FUSION-VALUE-ESTIMATES.json",
-        "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json"
+        "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+        "INITIAL-HC-AND-ENGRAM-REQUESTS.json"
       ],
       "alternatives": [
         {
@@ -49,17 +50,23 @@
         {
           "id": "G01.A03",
           "proposal": "首层使用虚拟HC广播表示；HC的计算和residual读者按原通道顺序读取同一embedding，延后或消除repeat平面",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "scope": "目标先分 SP 行，草稿先 Tile 后分行。仅首个 HcPre 和 HcPost 都支持单行广播时能免去实体 HC 残差。按实际设备任务和两处读者计价，普通请求最高 0.081%。"
         },
         {
           "id": "G01.A04",
           "proposal": "draft将repeat后SP改为按本rank行范围生成HC，同时生成ID/mask/premix；target已经先SP，不能重复计同项",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "scope": "目标先分 SP 行，草稿先 Tile 后分行。仅首个 HcPre 和 HcPost 都支持单行广播时能免去实体 HC 残差。按实际设备任务和两处读者计价，普通请求最高 0.081%。"
         },
         {
           "id": "G01.A05",
           "proposal": "冻结权重下，对已证明只依赖embedding行与不可变首层初态的计算前缀，考虑预计算表或热缓存；保留raw embedding/aux读者，按权重、owner、数值模式及shape代际区分。先计新增容量/流量与命中率，不能把后续上下文相关层按token ID缓存。",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "scope": "只计首层输入固定时可替代的 Pre、RMS、系数、展开与残差交付。两种角色词表独立，预计算命中本身归缓存。全命中且替代免费仍只有整批 0.187%。"
         }
       ],
       "branch_cases": [
@@ -116,7 +123,8 @@
       ],
       "family_sources": [
         "HC-PAIRED-BOUNDARY-REQUESTS.json",
-        "HC-PRE-ROW-NORM-BARRIER-RESULT.json"
+        "HC-PRE-ROW-NORM-BARRIER-RESULT.json",
+        "INITIAL-HC-AND-ENGRAM-REQUESTS.json"
       ],
       "alternatives": [
         {
@@ -251,7 +259,9 @@
         {
           "id": "G04.A04",
           "proposal": "按SWA-only、C1、C2分开比较owner投影再汇集。稳态24→3行通过原生对照，混合1688→211行有位差。保留原M的owner占位变体可维持窄传输，仍需承担原GEMM计算量",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "SWA-C2-PROJECTED-TRANSPORT.json",
+          "scope": "owner 小 M 投影与交换单列。N24/N20 原生夹具一致，N1688→211 的两种 BF16 和两种 FP32 投影均有位差。原 M 占位保留完整 GEMM，只为确有省掉的交付单独计价。"
         },
         {
           "id": "G04.A05",
@@ -263,7 +273,9 @@
         {
           "id": "G04.A06",
           "proposal": "在命中MLP列投影的输入行all-gather路径时，若各rank输入量化规则相同且拥有完整量化行，可先量化本地行再gather INT8与scale，令原GEMM消费prepared packet。与原始BF16输入仍存活、按块量化或rank特有平滑参数的情况分别判定。",
-          "disposition": "contract"
+          "disposition": "inactive",
+          "source": "QUANT-ADAPTER-CONTRACTS.json",
+          "scope": "已留存 EP0 配置启用 shared-expert DP。指定构造下 shared 前缀在 MLP-column 选择前返回 size1，此处无 BF16 输入 gather 可与量化合并；其它配置保留 W47 合同。"
         }
       ],
       "branch_cases": [
@@ -1071,13 +1083,16 @@
       "family_sources": [
         "ORDERED-ENGRAM-VALUE.json",
         "CROSS-LAYER-HC-FUSION-ESTIMATES.json",
-        "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json"
+        "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+        "INITIAL-HC-AND-ENGRAM-REQUESTS.json"
       ],
       "alternatives": [
         {
           "id": "G11.A01",
           "proposal": "当前Engram overlap关闭：比较已有异步lookup按layer1/layer14就绪交付的调度变体，分别计host-UVA与HBM资源",
-          "disposition": "contract"
+          "disposition": "outside",
+          "source": "ENGRAM-PREPARATION-CONTRACTS.json",
+          "scope": "异步 lookup 或换缓冲来重叠两轮，仅改变排程与生命周期；两层按各自就绪交付给门控的算子边界另有预算。"
         },
         {
           "id": "G11.A02",
@@ -1089,7 +1104,9 @@
         {
           "id": "G11.A03",
           "proposal": "mask为假时裁旋转、K和gate统计，保留原FP32零乘V及残差舍入。分别比较活跃行WKV加不活跃行V，以及所有行V加活跃行K",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "scope": "保留 V、零乘、残差和舍入。按实际 padding 行和每层 TP8 最迟 RMS 交付重算，6 个普通请求中位样本的宽时钟估值最高 0.498%。有额外失活 token 的场景仍需其行域。"
         },
         {
           "id": "G11.A04",
@@ -1129,7 +1146,9 @@
         {
           "id": "G11.A09",
           "proposal": "同一table/head/hash/参数代际的重复lookup或WKV可批内共享；也可按内容与参数代际缓存跨迭代的去量化/投影结果，历史hash写入独立保留",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "CURRENT-ENGRAM-JOINT-CACHE-VALUE.json",
+          "scope": "全内容缓存的键须匹配两层各自的表、参数、精度与 owner 代际。相同位置或秩内等待没有命中收益；同批相同哈希的公共计算可按完整键和净读写单列。"
         },
         {
           "id": "G11.A10",
@@ -1141,22 +1160,30 @@
         {
           "id": "G11.A11",
           "proposal": "合并mask/hash/lookup输入扫描或生产时，保留独立的早期mask发布，或明确计价普通kernel完成事件造成的延迟；不能只按减少launch断定更快。",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "scope": "共享已有哈希计算、保持早期 mask 和 history 发布。直接交付给两个 lookup 最多少一写一读，每容量行 768 B；单纯索引缩窄最多是这笔的一半。"
         },
         {
           "id": "G11.A12",
           "proposal": "使用独立输出bank与匹配事件代际探索跨调用lookup重叠，每个新增bank至少2*C*sum(H_layer)+C逻辑字节；slot-history、accepted输入、表版本和collective顺序仍独立约束。",
-          "disposition": "contract"
+          "disposition": "outside",
+          "source": "ENGRAM-PREPARATION-CONTRACTS.json",
+          "scope": "异步 lookup 或换缓冲来重叠两轮，仅改变排程与生命周期；两层按各自就绪交付给门控的算子边界另有预算。"
         },
         {
           "id": "G11.A13",
           "proposal": "以实际容量证明为前提，比较不可变hash常量专门化、INT32索引交付与直接lookup消费；保留INT64乘/XOR/mod及地址计算，核对所有reader/图ABI。索引缩窄与整个缓冲消除不能重复计收益，也不重复计已有双层单launch共享。",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+          "scope": "共享已有哈希计算、保持早期 mask 和 history 发布。直接交付给两个 lookup 最多少一写一读，每容量行 768 B；单纯索引缩窄最多是这笔的一半。"
         },
         {
           "id": "G11.A14",
           "proposal": "在完整lookback bank已证全-1、无中间写入且本次所有prompt窗口仍未知时，复用该CPU/device值和稳定地址，省去重复发布；请求换位本身不改变常量bank。以源CPU start和prompt长度判断，保留cache历史写、bank替换、排队copy及最终reader生命周期。已看到48B复制API，尚无有效命中率或服务收益。",
-          "disposition": "contract"
+          "disposition": "outside",
+          "source": "INDEX-AND-NEXT-STEP-DELIVERY-CONTRACTS.json",
+          "scope": "维持全 -1 lookback bank 的跨轮复用属于缓存。以原提交和实际读者为依据，缓冲地址相同不能证明内容相同。"
         }
       ],
       "branch_cases": [
@@ -2013,7 +2040,9 @@
         {
           "id": "G17.A11",
           "proposal": "按请求/slot/参数/内容代际复用不变metadata，不按指针相同直接复用",
-          "disposition": "contract"
+          "disposition": "outside",
+          "source": "NATIVE-METADATA-REUSE-SCREEN.json",
+          "scope": "跨代复用不变元数据属于缓存，已有同代复用证据；地址相等不能证明内容未变。"
         }
       ],
       "branch_cases": [
@@ -2164,7 +2193,9 @@
         {
           "id": "G18.A11",
           "proposal": "共享相同qsl/count/ratio计划，按第一次consumer需要的波次分组，而非把全部metadata拖到一个晚完成kernel",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "CPU-PLAN-C8.json",
+          "scope": "CPU 共享计划可参考已有服务对照。改变提交波次仅归排程；设备发布器消除重复 slot 算术时只计原代际真实重复部分。"
         },
         {
           "id": "G18.A12",
@@ -2274,7 +2305,9 @@
         {
           "id": "G19.A04",
           "proposal": "静态参数packing/rotation/weight-layout预处理按参数代际缓存，启动成本与稳态分开统计",
-          "disposition": "contract"
+          "disposition": "outside",
+          "source": "QUANT-ADAPTER-CONTRACTS.json",
+          "scope": "按参数代际复用启动时的 packing 或 rotation 属于参数预计算。保留重新加载、量化比例和权重变化的失效条件。"
         }
       ],
       "branch_cases": [
@@ -4191,24 +4224,30 @@
     "full-review/CLEAN-TARGET-HEAD-VALUE.json": "8c527f80c409d7adb81271db1cf9de73167f8658161b4ed27c96730eda4de258",
     "full-review/CP-LENGTH-C8.json": "8e038b907f2b3bacd9beccace0a9c6d1433ce0ab9d26bdc4d64189a52840e436",
     "full-review/CP-SPARSE-DELIVERY.json": "69bb9d514ed61879841aa56ccc5157c48d753b5e5499a670af0873e0f083d3a1",
+    "full-review/CPU-PLAN-C8.json": "a33d3e0067d8d8e0461ef53ee296183970463d3331e054e54c2fe3a61b442319",
+    "full-review/CURRENT-ENGRAM-JOINT-CACHE-VALUE.json": "08bfcb693e66a4e87f09272746acb9e2edcb3b28e9fb534bbf8e3a17d771e7e9",
     "full-review/DRAFT-ALLTOALL-PHASE-AND-ZERO-SEND.json": "936ae588d21be036597bb85d2b8030f18a794244a50e18c24c2aa41b377cacf4",
     "full-review/DRAFT-INPUT-METADATA-CONTRACTS.json": "7511f9f0c1b3aadf9bbb3344defce640964aa36fed34c74305d29ee94c7ea2c6",
     "full-review/DRAFT-STATE-HANDOFF-REQUESTS.json": "862723043d794ebb8888dcdd2d8c00fd6e2e64f773e8f62c19b788e1fd680335",
     "full-review/DSPARK-CHECKPOINT-PACKET-ESTIMATES.json": "fae303791299ddb7e8e36b30665993431c8d691c928bdd601f46486823d82348",
     "full-review/DSPARK-CONTEXT-FUSION-ESTIMATES.json": "7a3fed29f31a7f866879c724475ea5992c03df37303aff3e210bb58506ff02fe",
     "full-review/EMBEDDING-ENGRAM-FUSION-ESTIMATES.json": "4ba7f874359cd39796f26ec5dd2a6f12a0337fbf7162a06a5f300c049d8b699e",
+    "full-review/ENGRAM-PREPARATION-CONTRACTS.json": "125fb98ef3f173eeec1e173736b45eebe977ab3c4e7ec7dbc5689366c8163034",
     "full-review/EXPERT-SIBLING-TILE-REQUEST-ESTIMATES.json": "74443ef6d1a28451b65769a28201c57756c1abf8d0d7f5063861133f2281ef32",
     "full-review/FFN-MERGE-PREMIX-ESTIMATES.json": "24b7670864385dc3851ecaecdc5dc508909d301e9839421eab0acbd46237b563",
     "full-review/FROZEN-C8-MODALITY-ADMISSION.json": "b5860c46591c3e1e82782715ac607d9e78e55b8e4729e7bae49e6ed75c74db28",
-    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "38d6145c5ef4b7c153a027c463eced6fe8fbdba0d61e9882ee16bf68c8d59469",
+    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "dffe209f1d699708783d8b3b2cdbf3b1728b79baf2bfc2c77e67fdc964c15d7b",
     "full-review/HC-PAIRED-BOUNDARY-REQUESTS.json": "f25158211efe9c36af2e4aec01bd26526bc2e257c18801e51793fa2148901fa1",
     "full-review/HC-PRE-ROW-NORM-BARRIER-RESULT.json": "7db31d7d9a55f2bbd64943da944e300140c29538b5a1ad86b4772035c950504f",
+    "full-review/INDEX-AND-NEXT-STEP-DELIVERY-CONTRACTS.json": "7cfdb7323f97be7c71c6db50ba671d83a6837a76dbc76dccd7fd06bbfef99c82",
+    "full-review/INITIAL-HC-AND-ENGRAM-REQUESTS.json": "0a2d4037dc9827ef9becb631a0d4a10e114d4a9c76dc20bcdabf9da160ee1660",
     "full-review/JOINT-WORK-BOUNDS.json": "6b117f3f24bb5ee0a0d63a98d72e58f7b6ff96175c84683ee63667347265ac12",
     "full-review/MARKOV-OWNER-GROUPS.json": "941fbaa6e093a647b0ef6dff1274968256dc6b0c4287872d2a2b210308af3dab",
     "full-review/MC2-MASK-PROFILE.json": "9ec8f194292f60316e32ffb279c0795610cfed6fc9c04569b9b461ef7cdee5f8",
     "full-review/METADATA-EXECUTION-MODE.json": "70ba36b8005b5b6d33d355bf28d57c4af421c6a768ad637292fb8437efbf7949",
     "full-review/MODULAR-MOE-ADMISSION.json": "731fad54ea59dad4a2ba8d75345134c6ebc9555da0a7c8d01b5b9b0526333049",
     "full-review/MODULE-FUSION-VALUE-ESTIMATES.json": "5ef92a13d0eaca2cc1dbe9d1e7a3d72b3d0acd8ff3d3d7d36c630cb5532547de",
+    "full-review/NATIVE-METADATA-REUSE-SCREEN.json": "0110dd3aad016a4f2a8e2ccab5c18da39727a05a2840ffe63970819a8cbed580",
     "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338",
     "full-review/OA-OB-SHARED-CUBE-SCREEN.json": "dec4073d6006e1794713683ab6ae97b4fbc047b01048b244f52fb3d8c739e213",
     "full-review/ORDERED-ENGRAM-VALUE.json": "1e4a7e4a8a5ae588e3771f7b1c122892353cf4828f873fc1761a1c4fd50a8cb3",
@@ -4216,6 +4255,7 @@
     "full-review/ORDERED-SAMPLING-DISPOSITIONS.json": "135303843047a8035d1dc38b8dc8f31b941849b015a8406c7e1f9dc3778dbdc6",
     "full-review/PROCESSOR-ROUTE-ORDER.json": "7eab9a6ff0cd47b89f321bef48307f00465462336f6ff5dd8b17a1f4043f7c9e",
     "full-review/QLI-REPEATED-SERVICE-C8.json": "10c3ca078a0177507c3fba325ed1efd2b97ba89c52f2b0d52d52f1321bd74707",
+    "full-review/QUANT-ADAPTER-CONTRACTS.json": "7292e241bd88ed7c7f769447b136b346d731d21f26ae91ca03b202c8799b7e98",
     "full-review/RANDOM-SAMPLING-FUSION-ESTIMATES.json": "919218e94945f8f988b749aebdb6365df26736160bee19ede6afa7946dbc9f48",
     "full-review/RECEIVER-INVERSE-ROPE-SCREEN.json": "fa847b5b59e16ad3ca19ddfd12956baac2ccb97918e1dce18842ab8e543101b7",
     "full-review/REJECTION-RECOVERY-DOMAIN.json": "f4730f98983e6371ec1bf30c448011c114d4786961422673e927d557eb267c34",
@@ -4231,12 +4271,13 @@
     "full-review/SPARSE-KV-RETENTION-REQUEST-ESTIMATES.json": "510f823cf81791e7a12a413f4739ee74ddcf43c47c830eeb982d3c64cfece004",
     "full-review/SPARSE-SELECTION-DELIVERY-ESTIMATES.json": "a173949eb5f21f03106448dc43f1d7beb0a8d327e45662d716cfe3fd54c9ef07",
     "full-review/SPEC-INDEX-READERS-AND-TEMPLATE.json": "47a2af14509ffcc5cfd2e49efc62bd69b4cad9be4d0befc27796f474f9b11c1c",
+    "full-review/SWA-C2-PROJECTED-TRANSPORT.json": "295b5139e5307e76ffec25843af38382656f326701e80390df89e4ae4c0e7472",
     "full-review/TERMINAL-HEAD-DELIVERY-ESTIMATES.json": "6c22b216268672ffc5420d797f40a69044a53a0886b9976c9971d617c360a764",
     "full-review/VOCAB-SELECTION-FUSION-ESTIMATES.json": "674db8db41de46062a8c3c8c8f7a1fb3c4dbf4da38b5f0a3ee4bb6281ca75529",
     "full-review/runs/clean-native-profile-ea31701f9da0-result.json": "b2081df7e3874fd6c9aad8108a816c297daae3ec33421dc0dd9024029e2c89e6",
     "full-review/runs/ordinary-load-9144f2d04ace-result.json.gz": "42686163175d4fd4f0adfea7ce2ce8b76ac13bc463944a2b8d2e413cf5137dbf",
     "full-review/runs/prefill-request-steps.json": "43dff720802f11e4601a1897f895cdb02eb1db725af1c101518ddde0979bce3a",
-    "tools/reconcile_fusion_scope.py": "d2a145210dd581fed53061a97924c27f88fd815ac586b47e15e1dd5421ebfa69"
+    "tools/reconcile_fusion_scope.py": "297a600b439f1455a38a237d64a58c547b0b3c3fa430983378f165b099b43cc5"
   },
   "limits": [
     "Case IDs are local to the frozen proposal list. Legacy source IDs and work units are separate.",

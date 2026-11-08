@@ -1,21 +1,21 @@
 {
-  "updated_at_utc": "2026-11-08T02:49:23.903460+00:00",
-  "source_analysis_commit": "7c7c812ecf088b0314a24179e1847b765f9ab808",
+  "updated_at_utc": "2026-11-08T03:12:04.685119+00:00",
+  "source_analysis_commit": "ad4d5071777468b965e761b4d73d01a48b99ffd2",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M00→M02 输入广播与首层 mHC 的共同读取",
+  "active_module": "M03 C2 池化与 ring、稀疏选择结果到 Attention",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "回到输入和首层 mHC。把原有效行上的四路 embedding 广播、首个 HcPre 及保留残差的读者按同一预算筛查。先用已有 profile 和公共搬运成本估算能省的请求时间，若上限已小则整组归档。静态热词缓存、权重放置和分片调整均不列为独立融合。",
-    "decision": "下一轮状态发布的设备任务与主线程提交各有请求预算，当前负载下停止独立深查。按窗口裁剪草稿老行单列，只有相同行域上的额外算子读写可进入融合预算。",
+    "work": "沿 M03 核对 C2 的 pool、ring 旧行和面向稀疏注意力的 selector。先在相同需求行与选中集合下估算算子交付、分块消费、可删除的中间面，再区分纯裁行、减容量和提前发射。优先用现有计时与普通请求排除小项，判断分块归并能否改进关键路径。",
+    "decision": "首层 HC 的两处读者、Engram 哈希交付、WKV→gate 与已知 padding 范围已有请求估价。对这些范围停止独立深查。实际需要额外失活 token 的业务另保留条件。",
     "source": {
-      "path": "full-review/DRAFT-STATE-HANDOFF-REQUESTS.json",
-      "sha256": "862723043d794ebb8888dcdd2d8c00fd6e2e64f773e8f62c19b788e1fd680335"
+      "path": "full-review/INITIAL-HC-AND-ENGRAM-REQUESTS.json",
+      "sha256": "0a2d4037dc9827ef9becb631a0d4a10e114d4a9c76dc20bcdabf9da160ee1660"
     },
     "scope_ledger": {
       "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
-      "sha256": "23195ce97d2069a12b5a353a2d246fa0124c8e59c590dd4c9c254e07e3291197"
+      "sha256": "6a2593893983b602922d440136ece1fa475d28dd7b968d3b151cae565d5c213f"
     }
   },
   "module_statuses": [
@@ -168,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "453 TP8 calls, 227 waves, 48 stack-bearing rank calls and six ordinary request geometries.",
+    "performance_scope": "453 scheduled target/draft TP8 calls, 18 padded graph groups at two Engram layer boundaries, six ordinary request projections.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,15 +284,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M10/M11, two state producers and first-pass draft input",
+    "scope": "M00/M01/M02/M10, embedding broadcast, initial mHC and the two Engram layers",
     "sources": [
-      "draft-state-handoffs.md",
-      "baselines/draft-state-handoffs.json",
+      "initial-hc-engram.md",
+      "baselines/initial-hc-engram.json",
       "baselines/fusion-scope.json"
     ],
     "observations": [
-      "旧 seed 和 draft ID 写入本轮输入，接受状态生成位置和序列长度。冻结 C8 中，这两组已有设备任务全部免费仅省整批 25.03 ms（0.135%）。六个普通请求按单请求形状和各自验证次数估算，设备端对应的响应降幅最高 0.157%。",
-      "48 个有调用栈的 B4 样本可把 32 个设备任务归回主线程的 21 个调用。为两次替代提交留出成本后，若可省的主线程时间有一半／全部落在关键路径，冻结整批预计省 63.30／126.59 ms（0.34%／0.68%）。"
+      "目标先分行再展开，草稿先展开再分行。首个 HcPre 与 HcPost 共同从原始 BF16 行读取，按冻结 453 次 TP8 调用估算，C8 整批缩短 15.88 ms（0.085%），六个普通请求的响应最高约 0.081%。",
+      "两层 Engram 在 padding 行跳过 K 和部分门控计算，保留 V 与残差。只看最有利的 rank，普通请求估算最高 1.04%；按真实 TP8 就绪时点和同波时钟约束，用 B1 样本中位外推最高 0.50%，改用其中最大样本为 0.64%。"
     ],
     "new_performance_measurements": 0
   },
@@ -321,11 +321,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/draft-state-handoffs.json",
-      "result": "旧 seed 和 draft ID 写入本轮输入，接受状态生成位置和序列长度。冻结 C8 中，这两组已有设备任务全部免费仅省整批 25.03 ms（0.135%）。六个普通请求按单请求形状和各自验证次数估算，设备端对应的响应降幅最高 0.157%。 48 个有调用栈的 B4 样本可把 32 个设备任务归回主线程的 21 个调用。为两次替代提交留出成本后，若可省的主线程时间有一半／全部落在关键路径，冻结整批预计省 63.30／126.59 ms（0.34%／0.68%）。"
+      "record": "baselines/initial-hc-engram.json",
+      "result": "目标先分行再展开，草稿先展开再分行。首个 HcPre 与 HcPost 共同从原始 BF16 行读取，按冻结 453 次 TP8 调用估算，C8 整批缩短 15.88 ms（0.085%），六个普通请求的响应最高约 0.081%。 两层 Engram 在 padding 行跳过 K 和部分门控计算，保留 V 与残差。只看最有利的 rank，普通请求估算最高 1.04%；按真实 TP8 就绪时点和同波时钟约束，用 B1 样本中位外推最高 0.50%，改用其中最大样本为 0.64%。"
     },
-    "next": "回到输入和首层 mHC。把原有效行上的四路 embedding 广播、首个 HcPre 及保留残差的读者按同一预算筛查。先用已有 profile 和公共搬运成本估算能省的请求时间，若上限已小则整组归档。静态热词缓存、权重放置和分片调整均不列为独立融合。",
-    "decision": "下一轮状态发布的设备任务与主线程提交各有请求预算，当前负载下停止独立深查。按窗口裁剪草稿老行单列，只有相同行域上的额外算子读写可进入融合预算。",
+    "next": "沿 M03 核对 C2 的 pool、ring 旧行和面向稀疏注意力的 selector。先在相同需求行与选中集合下估算算子交付、分块消费、可删除的中间面，再区分纯裁行、减容量和提前发射。优先用现有计时与普通请求排除小项，判断分块归并能否改进关键路径。",
+    "decision": "首层 HC 的两处读者、Engram 哈希交付、WKV→gate 与已知 padding 范围已有请求估价。对这些范围停止独立深查。实际需要额外失活 token 的业务另保留条件。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
