@@ -1,21 +1,21 @@
 {
-  "updated_at_utc": "2026-11-08T03:12:04.685119+00:00",
-  "source_analysis_commit": "ad4d5071777468b965e761b4d73d01a48b99ffd2",
+  "updated_at_utc": "2026-11-08T03:39:26.393475+00:00",
+  "source_analysis_commit": "c3538d6fdf7adf4db96680159d7891f82ab3a2f5",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 C2 池化与 ring、稀疏选择结果到 Attention",
+  "active_module": "M03 Attention 至 M06、M08，剩余四条算子合同的整组价值初筛",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "沿 M03 核对 C2 的 pool、ring 旧行和面向稀疏注意力的 selector。先在相同需求行与选中集合下估算算子交付、分块消费、可删除的中间面，再区分纯裁行、减容量和提前发射。优先用现有计时与普通请求排除小项，判断分块归并能否改进关键路径。",
-    "decision": "首层 HC 的两处读者、Engram 哈希交付、WKV→gate 与已知 padding 范围已有请求估价。对这些范围停止独立深查。实际需要额外失活 token 的业务另保留条件。",
+    "work": "按执行顺序复用现有索引、共享 MLP 和词表 profile，对剩余四条合同先整组估价。优先保留能消掉大中间面的算子链，例如 SMLA 的压缩 KV gather→QK/PV；沿用有效行数及相对速率的既有敏感性。仅在已有证据能改变排序时定点补查。",
+    "decision": "C2 和索引的具名直接交付按联合成本降级。冷热专家、权重副本、纯排程及 ring 容量只保留历史处置。只在能指明新增可消除工作且可能改变请求排序时重开。",
     "source": {
-      "path": "full-review/INITIAL-HC-AND-ENGRAM-REQUESTS.json",
-      "sha256": "0a2d4037dc9827ef9becb631a0d4a10e114d4a9c76dc20bcdabf9da160ee1660"
+      "path": "full-review/C2-SELECTION-PIPELINE-REQUESTS.json",
+      "sha256": "a6cc23204b41a4ca2f57a3bb97d45566275636a44afe017511dbedf19ccdbfb7"
     },
     "scope_ledger": {
       "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
-      "sha256": "6a2593893983b602922d440136ece1fa475d28dd7b968d3b151cae565d5c213f"
+      "sha256": "42a56e56620367b37083929e105ad7bfa4c008cc5c31e38a9861f05c952f9cd0"
     }
   },
   "module_statuses": [
@@ -168,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "453 scheduled target/draft TP8 calls, 18 padded graph groups at two Engram layer boundaries, six ordinary request projections.",
+    "performance_scope": "446 graph and seven eager scheduled TP8 targets; C2 and eight index source layers; six ordinary request projections.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,15 +284,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M00/M01/M02/M10, embedding broadcast, initial mHC and the two Engram layers",
+    "scope": "M03 C2, selection and first attention reader",
     "sources": [
-      "initial-hc-engram.md",
-      "baselines/initial-hc-engram.json",
+      "c2-selection-pipeline.md",
+      "baselines/c2-selection-pipeline.json",
       "baselines/fusion-scope.json"
     ],
     "observations": [
-      "目标先分行再展开，草稿先展开再分行。首个 HcPre 与 HcPost 共同从原始 BF16 行读取，按冻结 453 次 TP8 调用估算，C8 整批缩短 15.88 ms（0.085%），六个普通请求的响应最高约 0.081%。",
-      "两层 Engram 在 padding 行跳过 K 和部分门控计算，保留 V 与残差。只看最有利的 rank，普通请求估算最高 1.04%；按真实 TP8 就绪时点和同波时钟约束，用 B1 样本中位外推最高 0.50%，改用其中最大样本为 0.64%。"
+      "冻结 453 次 TP8 调用中，两处 C2 投影、pool/ring、RMS 和八层 QLI 到首个 Attention 的直接交付，按有利时钟和已有搬运速率合计估算省 0.353 ms 首 token P90 和 0.461 ms 整批。六个普通请求的响应降幅最高约 0.005%。",
+      "每序列四查询分块、最多四批交付时，图中 28,544 处均无第二个有效查询组。若每次额外交付花 2 µs，冻结首 token 降低 1% 需要兑现理想重叠的 96.9%–98.0%。流水收益单列。"
     ],
     "new_performance_measurements": 0
   },
@@ -321,11 +321,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/initial-hc-engram.json",
-      "result": "目标先分行再展开，草稿先展开再分行。首个 HcPre 与 HcPost 共同从原始 BF16 行读取，按冻结 453 次 TP8 调用估算，C8 整批缩短 15.88 ms（0.085%），六个普通请求的响应最高约 0.081%。 两层 Engram 在 padding 行跳过 K 和部分门控计算，保留 V 与残差。只看最有利的 rank，普通请求估算最高 1.04%；按真实 TP8 就绪时点和同波时钟约束，用 B1 样本中位外推最高 0.50%，改用其中最大样本为 0.64%。"
+      "record": "baselines/c2-selection-pipeline.json",
+      "result": "冻结 453 次 TP8 调用中，两处 C2 投影、pool/ring、RMS 和八层 QLI 到首个 Attention 的直接交付，按有利时钟和已有搬运速率合计估算省 0.353 ms 首 token P90 和 0.461 ms 整批。六个普通请求的响应降幅最高约 0.005%。 每序列四查询分块、最多四批交付时，图中 28,544 处均无第二个有效查询组。若每次额外交付花 2 µs，冻结首 token 降低 1% 需要兑现理想重叠的 96.9%–98.0%。流水收益单列。"
     },
-    "next": "沿 M03 核对 C2 的 pool、ring 旧行和面向稀疏注意力的 selector。先在相同需求行与选中集合下估算算子交付、分块消费、可删除的中间面，再区分纯裁行、减容量和提前发射。优先用现有计时与普通请求排除小项，判断分块归并能否改进关键路径。",
-    "decision": "首层 HC 的两处读者、Engram 哈希交付、WKV→gate 与已知 padding 范围已有请求估价。对这些范围停止独立深查。实际需要额外失活 token 的业务另保留条件。",
+    "next": "按执行顺序复用现有索引、共享 MLP 和词表 profile，对剩余四条合同先整组估价。优先保留能消掉大中间面的算子链，例如 SMLA 的压缩 KV gather→QK/PV；沿用有效行数及相对速率的既有敏感性。仅在已有证据能改变排序时定点补查。",
+    "decision": "C2 和索引的具名直接交付按联合成本降级。冷热专家、权重副本、纯排程及 ring 容量只保留历史处置。只在能指明新增可消除工作且可能改变请求排序时重开。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"

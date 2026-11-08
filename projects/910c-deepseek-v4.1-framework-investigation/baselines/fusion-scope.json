@@ -8,11 +8,11 @@
     "contract": "Original branch contract and family references retained. No individual quantitative verdict assigned here."
   },
   "disposition_counts": {
-    "contract": 11,
+    "contract": 4,
     "inactive": 25,
-    "mixed": 33,
-    "outside": 9,
-    "reference": 95,
+    "mixed": 37,
+    "outside": 10,
+    "reference": 97,
     "version_failed": 2
   },
   "families": {
@@ -427,7 +427,8 @@
       "family_sources": [
         "ATTENTION-INPUT-FUSION-REQUESTS.json",
         "C2-POOL-RING-OWNER.json",
-        "C2-COMMIT-ORDER.json"
+        "C2-COMMIT-ORDER.json",
+        "C2-SELECTION-PIPELINE-REQUESTS.json"
       ],
       "alternatives": [
         {
@@ -447,27 +448,37 @@
         {
           "id": "G06.A03",
           "proposal": "用实际index/longKV slot发布行的并集裁剪latent及后续计算。P减C的有效slot仍要交付经过原RMS/RoPE/量化的默认值",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+          "scope": "同一需求行下只计两次 FP32 投影到 pool/ring 与后续 RMS 的实际交付。删行需另证消费者和旧状态。有效页 used≤32 或所有完成端点均发布时，投影行均须保留。"
         },
         {
           "id": "G06.A04",
           "proposal": "用D=ring尾部所需投影行与可发布pool端点的当前输入对之并集裁剪FP32 WKV/Wgate。正常有效端点全部发布时D覆盖所有live行，used≤32时ring已保留全部live行",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+          "scope": "同一需求行下只计两次 FP32 投影到 pool/ring 与后续 RMS 的实际交付。删行需另证消费者和旧状态。有效页 used≤32 或所有完成端点均发布时，投影行均须保留。"
         },
         {
           "id": "G06.A05",
           "proposal": "TOKEN_ALIGNED的偶数前驱在同owner连续且回退≤5时可用3槽，允许零提交且回退≤6时用4槽。若等待接受数后才提交一槽，需在此前保留候选投影或另付重算，并处理跨图地址、恢复与旧ABI",
-          "disposition": "contract"
+          "disposition": "outside",
+          "source": "C2-RETENTION-HORIZON.json",
+          "scope": "按回退长度缩短 ring 属于状态容量；延迟提交需要保存投影或重算。容量本身没有算子融合收益。"
         },
         {
           "id": "G06.A06",
           "proposal": "六行奇数起点下，3槽先取旧前驱再更新；4槽无同owner覆盖。若物理范围和下一代读者均已绑定，可将更新与pool后的RMS并排提交，仍需预算共享资源",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+          "scope": "三槽或四槽先满足旧前驱的读取顺序。update 与 RMS 并行的时间单列，融合仅计保留原中间精度和状态后省掉的写读。"
         },
         {
           "id": "G06.A07",
           "proposal": "按物理slot做ring读写判定。单owner奇数起点且首对有需求时，used≥32会覆盖旧前驱槽。先按owner读取或快照，物理alias未解析时保留两阶段",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+          "scope": "pool 与 ring 共享尾行的读已按 10,872 个逐卡层估价。别名或下一代读写顺序未定时沿用原先后次序，未假设任意 owner 可并发。"
         }
       ],
       "branch_cases": [
@@ -506,7 +517,8 @@
         "INDEXER-CANDIDATE-PACKETS.json",
         "INDEXER-ATTENTION-DELIVERY.json",
         "QLI-ON-BATCHED-SLOT-C8.json",
-        "SMLA-PANEL-OCCUPANCY-SCREEN.json"
+        "SMLA-PANEL-OCCUPANCY-SCREEN.json",
+        "C2-SELECTION-PIPELINE-REQUESTS.json"
       ],
       "alternatives": [
         {
@@ -519,7 +531,9 @@
         {
           "id": "G07.A02",
           "proposal": "分块score/topK与结果归并流水；仅在有最终集合证书时允许attention提前消费",
-          "disposition": "contract"
+          "disposition": "mixed",
+          "source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+          "scope": "八个源层按完整查询分块；未完成键的 Top-K 仍可能变化。索引私有写读归融合，分块重叠、额外通知和 TP8 最迟就绪单列。"
         },
         {
           "id": "G07.A03",
@@ -552,7 +566,9 @@
         {
           "id": "G07.A07",
           "proposal": "空key分支合并多输出初始化；空Q优先早返回保持不写语义",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "C2-SELECTION-PIPELINE-REQUESTS.json",
+          "scope": "冻结正 DP 组有 80 处局部空 Q。源码先空 Q 返回，保留不写语义。非空 Q 且空 key 的多输出初始化另有条件，这批证据未绑定该条件的频次或收益。"
         },
         {
           "id": "G07.A08",
@@ -4219,6 +4235,8 @@
     "full-review/BRANCH-COVERAGE-LEDGER.json": "f6911e8313afe149d4b4f994ac26e45ac5c725aabe1a8a611f6ed661dc86de2a",
     "full-review/C2-HELPER-C8.json": "91dca9acb6490feea38add3a8cf29447ad76234fc4984ae81097a94dd4af7ab3",
     "full-review/C2-POOL-RING-OWNER.json": "d9e22c32bbd950c283bf7e8793583181b7eaa51c9d2ebfb8d5798186d38a831c",
+    "full-review/C2-RETENTION-HORIZON.json": "e2730618f0a8e497a3394aca3ef15c64bd670e643cd3592546f6681ac208b6e8",
+    "full-review/C2-SELECTION-PIPELINE-REQUESTS.json": "a6cc23204b41a4ca2f57a3bb97d45566275636a44afe017511dbedf19ccdbfb7",
     "full-review/C8-DRAFT-SUBMISSION-WAIT-BUDGET.json": "4f9c6055536f67c7bf50515ff9268005bdc9c1579f355a8fe52fe7cd3a833d00",
     "full-review/CLEAN-DSPARK-SCORE-VALUE.json": "ce3edb13f8e72d7c760663796717866222967f38b8a7c54c94228d81bf48decf",
     "full-review/CLEAN-TARGET-HEAD-VALUE.json": "8c527f80c409d7adb81271db1cf9de73167f8658161b4ed27c96730eda4de258",
@@ -4236,7 +4254,7 @@
     "full-review/EXPERT-SIBLING-TILE-REQUEST-ESTIMATES.json": "74443ef6d1a28451b65769a28201c57756c1abf8d0d7f5063861133f2281ef32",
     "full-review/FFN-MERGE-PREMIX-ESTIMATES.json": "24b7670864385dc3851ecaecdc5dc508909d301e9839421eab0acbd46237b563",
     "full-review/FROZEN-C8-MODALITY-ADMISSION.json": "b5860c46591c3e1e82782715ac607d9e78e55b8e4729e7bae49e6ed75c74db28",
-    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "dffe209f1d699708783d8b3b2cdbf3b1728b79baf2bfc2c77e67fdc964c15d7b",
+    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "ed87ac2e0f0569fe3542998d31881c1cfe86dc1ca18a2c278c9e5fdaafd832d5",
     "full-review/HC-PAIRED-BOUNDARY-REQUESTS.json": "f25158211efe9c36af2e4aec01bd26526bc2e257c18801e51793fa2148901fa1",
     "full-review/HC-PRE-ROW-NORM-BARRIER-RESULT.json": "7db31d7d9a55f2bbd64943da944e300140c29538b5a1ad86b4772035c950504f",
     "full-review/INDEX-AND-NEXT-STEP-DELIVERY-CONTRACTS.json": "7cfdb7323f97be7c71c6db50ba671d83a6837a76dbc76dccd7fd06bbfef99c82",
@@ -4277,7 +4295,7 @@
     "full-review/runs/clean-native-profile-ea31701f9da0-result.json": "b2081df7e3874fd6c9aad8108a816c297daae3ec33421dc0dd9024029e2c89e6",
     "full-review/runs/ordinary-load-9144f2d04ace-result.json.gz": "42686163175d4fd4f0adfea7ce2ce8b76ac13bc463944a2b8d2e413cf5137dbf",
     "full-review/runs/prefill-request-steps.json": "43dff720802f11e4601a1897f895cdb02eb1db725af1c101518ddde0979bce3a",
-    "tools/reconcile_fusion_scope.py": "297a600b439f1455a38a237d64a58c547b0b3c3fa430983378f165b099b43cc5"
+    "tools/reconcile_fusion_scope.py": "08fa13a7d3b61360cedf4b53e505a55ace8511eddfe8bc4e2e95105a446fc1f7"
   },
   "limits": [
     "Case IDs are local to the frozen proposal list. Legacy source IDs and work units are separate.",

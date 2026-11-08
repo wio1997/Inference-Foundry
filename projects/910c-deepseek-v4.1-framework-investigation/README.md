@@ -13,6 +13,7 @@
 | [三次检查点归集与草稿选行的联合估算](baselines/dspark-checkpoint-packet.json) | 原生均值、三次归集与按行交付 |
 | [末层输出到词表投影的实测区间和请求估算](baselines/terminal-head-delivery.json) | raw 读者、分片行数与连续区间上限 |
 | [路由分数、TopK 与分派入口](baselines/router-score-delivery.json) | 路由分数、同代 ID、关键路径与一次主机晚提交 |
+| [C2 投影、池化和选择到 Attention](c2-selection-pipeline.md) | 固定排程可省的直接交付、按查询分块的额外收益与条件 |
 | [首层四路展开和两层 Engram](initial-hc-engram.md) | 两处残差读者、哈希与投影中间面、真正制约 TP8 的 padding 交付 |
 | [草稿状态与下一轮输入](draft-state-handoffs.md) | 两处状态生产、已有多输出、主线程暴露与六个普通请求的估算 |
 | [验证后分数输出、惩罚与五步草稿投影](score-readers.md) | 有限 Top-K 的拼行、归一化与排名，W1/W2 缓存的请求收益范围 |
