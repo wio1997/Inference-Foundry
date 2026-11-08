@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-08T08:15:24.616477+00:00",
-  "source_analysis_commit": "56312b824f5635cf1229acbadd3d0f2ebf98bcc9",
+  "updated_at_utc": "2026-11-08T08:29:23.352735+00:00",
+  "source_analysis_commit": "30523fbf30b03727d77376273beba8f94734fc02",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "12 个模块及 21 族已按请求目标分级，普通请求的 Attention 与 slot 联合条件已定价",
+  "active_module": "M03 压缩 KV 的双读、分支覆盖与跨层面板复用已同请求计价",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "优先复核长提示 Attention 内可消除的两处交付：用已存的索引输出、已选 910C 的实际访存和行块合同，比较压缩 KV 直读与首段 PV 直写。着重检验第二次稀疏访问和非连续行的净成本能否改变首 token 排序；其余 21 族复用各自已登记处置。",
-    "decision": "12 模块与 21 族已有面向当前请求的优先级。普通负载两组 DP 的 153 个目标图波次中，135 个仅一组拥有请求。按归档 B1 组的较有利净收益、观察到的主机入口及相同后续耗时估算，Attention prefill 与后续 slot 批写联合，代码单请求和后续代码两轮都可能超过 1%，独立对话两轮均低于 1%。仍需区分主机入口与设备就绪。",
+    "work": "汇总目标与草稿实际解码周期仍未联合定价的具名算子工作，按请求截止波次去重，以整组乐观预算筛除低值项。先核对同一基线的词表选词、三层 context KV、窄 ID/下轮输入和现有 slot 批写的边界，保留代码短回复与较长对话两类场景。",
+    "decision": "M03 长提示每查询 256 个有效位置、原稀疏读与新写面板同速、搬运差额 50% 暴露时，QK/PV 两次直读须达原参考的 80.4%–80.6%，与首段 PV 直写一并才可达到冻结首 token 的 1%。让 30 个后续层共享原整理面板则须保持 96.0%–96.3% 读速率，首层再复制一次即降至约 12.8 ms。普通请求按同速模型降级。",
     "source": {
-      "path": "full-review/ORDINARY-ATTENTION-AND-SLOT-DECISIONS.json",
-      "sha256": "b930abbba5dc3ef6f2992abe007ce9eaf66f970a97ae8d99f9d4dde7adc764b3"
+      "path": "full-review/SMLA-KV-READER-COSTS.json",
+      "sha256": "adc1720319f016754e15b8b2332ec2a8f714d50b1f91d719066a1e647c26fe0d"
     }
   },
   "module_statuses": [
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "153 archived ordinary target graph waves on 16 ranks, 12 same-request stock endpoints and the frozen partial-wave limit. Host entry is a conditional arrival proxy.",
+    "performance_scope": "Existing 64 eager rank windows, 128 graph templates, frozen client schedule and six ordinary request envelopes. Two distinct archived native QLI output tensors, six fixture rows; no frozen selected-row distribution assumed measured.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -281,14 +281,13 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "12 模块与 21 族的优先级、普通请求 prefill Attention 与后续 slot",
+    "scope": "M03，分页压缩 KV 的 QK/PV 读取速率与同代跨层复用",
     "sources": [
-      "branch-coverage.md",
-      "slot-batch-by-population.md#ordinary-join",
-      "baselines/ordinary-attention-and-slot.json"
+      "smla-partial-handoffs.md#kv-readers",
+      "baselines/smla-kv-readers.json"
     ],
     "observations": [
-      "普通请求 153 个目标图波次中，135 个仅一组 DP 拥有请求。每个活跃 DP 批写净省 0.961 ms、两组主机图入口后的耗时相同时，prefill Attention 和后续 slot 合计，独立短代码两轮整段估算省 1.21%–1.38%，独立对话均低于 1%。"
+      "每查询 256 个有效位置、原稀疏读与面板同速时，QK、PV 的两次稀疏直读若同速，需达参考速率的 80.4%–80.6%，连同首段 PV 直写才可能使冻结首 token P90 缩短 1%。若跨层共享首次整理的 KV 面板，30 个后续层的读速率需达参考的 96.0%–96.3%。"
     ],
     "new_performance_measurements": 0
   },
@@ -316,11 +315,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "slot-batch-by-population.md#ordinary-join",
-      "result": "普通请求 153 个目标图波次中，135 个仅一组 DP 拥有请求。每个活跃 DP 批写净省 0.961 ms、两组主机图入口后的耗时相同时，prefill Attention 和后续 slot 合计，独立短代码两轮整段估算省 1.21%–1.38%，独立对话均低于 1%。"
+      "record": "smla-partial-handoffs.md#kv-readers",
+      "result": "每查询 256 个有效位置、原稀疏读与面板同速时，QK、PV 的两次稀疏直读若同速，需达参考速率的 80.4%–80.6%，连同首段 PV 直写才可能使冻结首 token P90 缩短 1%。若跨层共享首次整理的 KV 面板，30 个后续层的读速率需达参考的 96.0%–96.3%。"
     },
-    "next": "优先复核长提示 Attention 内可消除的两处交付：用已存的索引输出、已选 910C 的实际访存和行块合同，比较压缩 KV 直读与首段 PV 直写。着重检验第二次稀疏访问和非连续行的净成本能否改变首 token 排序；其余 21 族复用各自已登记处置。",
-    "decision": "12 模块与 21 族已有面向当前请求的优先级。普通负载两组 DP 的 153 个目标图波次中，135 个仅一组拥有请求。按归档 B1 组的较有利净收益、观察到的主机入口及相同后续耗时估算，Attention prefill 与后续 slot 批写联合，代码单请求和后续代码两轮都可能超过 1%，独立对话两轮均低于 1%。仍需区分主机入口与设备就绪。",
+    "next": "汇总目标与草稿实际解码周期仍未联合定价的具名算子工作，按请求截止波次去重，以整组乐观预算筛除低值项。先核对同一基线的词表选词、三层 context KV、窄 ID/下轮输入和现有 slot 批写的边界，保留代码短回复与较长对话两类场景。",
+    "decision": "M03 长提示每查询 256 个有效位置、原稀疏读与新写面板同速、搬运差额 50% 暴露时，QK/PV 两次直读须达原参考的 80.4%–80.6%，与首段 PV 直写一并才可达到冻结首 token 的 1%。让 30 个后续层共享原整理面板则须保持 96.0%–96.3% 读速率，首层再复制一次即降至约 12.8 ms。普通请求按同速模型降级。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
