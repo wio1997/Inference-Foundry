@@ -1,21 +1,21 @@
 {
-  "updated_at_utc": "2026-11-08T01:57:30.699453+00:00",
-  "source_analysis_commit": "409c7661a092ce1b0736090c0a8947e90ad3059f",
+  "updated_at_utc": "2026-11-08T02:10:30.212278+00:00",
+  "source_analysis_commit": "a768e8e2ac9320c57442668f4425d00ebdcb10e4",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M05/M06→M07 大 prefill 的专家合并、HcPost 与 premix 联合交付",
+  "active_module": "M08→M09→M10/M11 词表分数在验证、采样与草稿入口的读者",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "按模型顺序进入 M05/M06→M07 的共享与路由 FFN 合并、HcPost、下一层 premix。先复用 M3 服务对照，在大 prefill 的真实行域定价合并写入和下一层复用是否有新增收益。扣除与已有 Post→Pre 估算重复的残差读写，固定专家分布；整组不达排序参考即降级。",
-    "decision": "OA→OB 的 M24 单核本地整行方案降级。大 prefill 仅保留满足行块利用率的首 token 条件机会，16/32 行块移出当前 C8 方案。接收端逆旋转单项降级。G08 的 10 条和 G09 的 7 条均已有本表处置，保留未价部分。",
+    "work": "按 M08→M09→M10/M11 继续。优先在已有请求记录中判断词表分数穿过验证、惩罚/采样、草稿入口时，哪些共同读写跨出了已估价区间。常见启用分支共用一次成本，只有新增可消除工作能改变请求排序才细查；复用既有 4+1、raw 副本和计数/seed 的整段预算。",
+    "decision": "专家输出合并、共享 Down 与直接 premix 的读写作为一组降级。移出两条当前精度未执行的 modular 分支。对五条已有整段证据的词表或采样分支直接复用原有范围。",
     "source": {
-      "path": "full-review/OA-OB-SHARED-CUBE-SCREEN.json",
-      "sha256": "dec4073d6006e1794713683ab6ae97b4fbc047b01048b244f52fb3d8c739e213"
+      "path": "full-review/FFN-MERGE-PREMIX-ESTIMATES.json",
+      "sha256": "24b7670864385dc3851ecaecdc5dc508909d301e9839421eab0acbd46237b563"
     },
-    "related_evidence": {
-      "path": "full-review/RECEIVER-INVERSE-ROPE-SCREEN.json",
-      "sha256": "fa847b5b59e16ad3ca19ddfd12956baac2ccb97918e1dce18842ab8e543101b7"
+    "scope_ledger": {
+      "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
+      "sha256": "c65420c4af32a13bf36157c20ace7faca91432f3b1fcd0b26fd30f4184e9d787"
     }
   },
   "module_statuses": [
@@ -168,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Five frozen OA plans, 4367 paired PMU records out of 4424 eligible pairs, 64 frozen rank bodies and separate M24 graph samples.",
+    "performance_scope": "2560 bound rank-layer expert merges, four eager waves across 16 ranks, six ordinary request proxies and archived M3 service comparison.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,17 +284,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M03/M04/G08 shared AIC and receive prologue",
+    "scope": "M06/M07 fixed-expert merge through direct attention premix",
     "sources": [
-      "oa-ob-shared-cube.md",
-      "baselines/oa-ob-shared-cube.json",
-      "baselines/receiver-inverse-rope.json",
+      "ffn-merge-premix.md",
+      "baselines/ffn-merge-premix.json",
       "baselines/fusion-scope.json"
     ],
     "observations": [
-      "冻结 prefill 的 5 个大形状均由 OA 按 128 行 × 256 列分块，每行 1,024 个输出通道占四块，OB 每个点都要读取这四块。固定权重和 TP8，若由同一 Cube 核计算一组行的完整 OA 和 OB，权重经 L1→L0B，每组需 18 MiB 权重。即使准许 64 KiB 预驻留，24 行图的搬运下限仍为 81.64 µs，高于全部 2,560 次原生 OA＋OB，中位 67.00 µs。这个方案在 M24 跳过。",
-      "对较大的 prefill 保留条件机会。按形状选择行块、24 行走原实现并假设较短投影的一半可隐藏，在 1.8 GHz、计算和权重搬运都达到各自参考上限的 90% 时，冻结 C8 首 token P90 估算省 15.34–17.94 ms（1.03%–1.20%），整批约 0.08%–0.10%。若都只能达到 80%，首 token 仅省 8.20–10.80 ms。相同 50% 重叠下六个普通请求响应最高约 0.42%。",
-      "把发送端逆旋转交给接收端 OA，单独给旋转计算和新增系数传递零成本，同时保留原转置、填零、TP8 与投影。冻结首 token P90 最有利估算也只省 5.33 ms（0.36%），整批 42.27 ms（0.23%），六个普通请求响应最高 0.28%。该边界单独降级。"
+      "在 2,560 处 FFN 输出合并中，固定路由、分片和权重，单独把 BF16 加法并入 HcPost，最多可省一个 5,120 元素中间张量的写读。按两种实测搬运速率口径和跨卡时钟范围，冻结 C8 首 token P90 估算缩短 0.16–1.97 ms，最有利约 0.13%。",
+      "即使共享 Down 也就地交付，并让下一层 34 个直接入口各少读一次四路残差，这组三处读写的有利估算也只有首 token 7.30 ms（0.49%）、整批 7.30 ms（0.039%）。六个普通请求整段响应最高约 0.10%。三行形状走原图，既有 M3 改版整批中位比前后参照分别慢 0.31% 和 0.19%。这组降级。"
     ],
     "new_performance_measurements": 0
   },
@@ -320,14 +318,14 @@
     "fusion_scope": "historical_layout_or_routing"
   },
   "current_value_priority": {
-    "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。 模块总耗时只用于定位。先给同一批可消除的工作算一次乐观请求预算，记录估价假设与能改变排序的临界值，再决定是否细看分支。",
+    "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/oa-ob-shared-cube.json",
-      "result": "对较大的 prefill 保留条件机会。按形状选择行块、24 行走原实现并假设较短投影的一半可隐藏，在 1.8 GHz、计算和权重搬运都达到各自参考上限的 90% 时，冻结 C8 首 token P90 估算省 15.34–17.94 ms（1.03%–1.20%），整批约 0.08%–0.10%。若都只能达到 80%，首 token 仅省 8.20–10.80 ms。相同 50% 重叠下六个普通请求响应最高约 0.42%。"
+      "record": "baselines/ffn-merge-premix.json",
+      "result": "即使共享 Down 也就地交付，并让下一层 34 个直接入口各少读一次四路残差，这组三处读写的有利估算也只有首 token 7.30 ms（0.49%）、整批 7.30 ms（0.039%）。六个普通请求整段响应最高约 0.10%。三行形状走原图，既有 M3 改版整批中位比前后参照分别慢 0.31% 和 0.19%。这组降级。"
     },
-    "next": "按模型顺序进入 M05/M06→M07 的共享与路由 FFN 合并、HcPost、下一层 premix。先复用 M3 服务对照，在大 prefill 的真实行域定价合并写入和下一层复用是否有新增收益。扣除与已有 Post→Pre 估算重复的残差读写，固定专家分布；整组不达排序参考即降级。",
-    "decision": "OA→OB 的 M24 单核本地整行方案降级。大 prefill 仅保留满足行块利用率的首 token 条件机会，16/32 行块移出当前 C8 方案。接收端逆旋转单项降级。G08 的 10 条和 G09 的 7 条均已有本表处置，保留未价部分。",
+    "next": "按 M08→M09→M10/M11 继续。优先在已有请求记录中判断词表分数穿过验证、惩罚/采样、草稿入口时，哪些共同读写跨出了已估价区间。常见启用分支共用一次成本，只有新增可消除工作能改变请求排序才细查；复用既有 4+1、raw 副本和计数/seed 的整段预算。",
+    "decision": "专家输出合并、共享 Down 与直接 premix 的读写作为一组降级。移出两条当前精度未执行的 modular 分支。对五条已有整段证据的词表或采样分支直接复用原有范围。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
@@ -357,7 +355,7 @@
     "C8_ceiling": "baselines/c8-prefix-ceiling.json"
   },
   "branch_coverage_index": "branch-coverage.md",
-  "fusion_admission": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。 模块总耗时只用于定位。先给同一批可消除的工作算一次乐观请求预算，记录估价假设与能改变排序的临界值，再决定是否细看分支。",
+  "fusion_admission": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
   "module_value_map": "module-value-map.md",
   "delivery_mode": "profile_based_candidate_discovery",
   "candidate_list": "fusion-candidates.md"

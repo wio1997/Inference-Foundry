@@ -8,11 +8,11 @@
     "contract": "Original branch contract and family references retained. No individual quantitative verdict assigned here."
   },
   "disposition_counts": {
-    "contract": 73,
-    "inactive": 13,
+    "contract": 66,
+    "inactive": 15,
     "mixed": 18,
     "outside": 4,
-    "reference": 65,
+    "reference": 70,
     "version_failed": 2
   },
   "families": {
@@ -860,7 +860,8 @@
       "family_sources": [
         "ROUTED-EXPERT-HANDOFF-ESTIMATES.json",
         "SHARED-MLP-FUSION-ESTIMATES.json",
-        "MOE-MERGE-HC-C8.json"
+        "MOE-MERGE-HC-C8.json",
+        "FFN-MERGE-PREMIX-ESTIMATES.json"
       ],
       "alternatives": [
         {
@@ -916,8 +917,8 @@
           "id": "G10.A08",
           "proposal": "shared down或routed combine epilogue融合scale、merge和HC Post的可交付部分",
           "disposition": "reference",
-          "source": "MOE-MERGE-HC-C8.json",
-          "scope": "已有 M3 的 merge→HcPost 服务对照；其它行数、回传和 epilogue 保留条件。"
+          "source": "FFN-MERGE-PREMIX-ESTIMATES.json",
+          "scope": "固定原专家、权重和路由，只计 Down、merge、HcPost 与直接 premix 的分项和联合增量。M3 保留原图，路由专家返回缓存和可选 scale 的其它协议另计。"
         },
         {
           "id": "G10.A09",
@@ -929,12 +930,16 @@
         {
           "id": "G10.A10",
           "proposal": "把可选top-k乘法放入激活epilogue或GMM2输入端，保留原dtype/broadcast/乘法舍入结果、LoRA Down读者及before_gmm2事件语义；不能用输出端缩放代替。",
-          "disposition": "contract"
+          "disposition": "inactive",
+          "source": "ROUTED-EXPERT-CONTRACTS.json",
+          "scope": "4,472 个归档路由任务均使用 INT8 权重的 DispatchFFNCombine，这两条未量化 modular 路径中的可选 top-k 乘与 bias 转换未执行。保留实际 W8A8 路由权重操作。"
         },
         {
           "id": "G10.A11",
           "proposal": "仅当存在实际bias转换时，按权重generation预备FP32 bias并随加载/EPLB刷新；GMM已融合bias相加，无bias或已FP32时没有转换消除收益。",
-          "disposition": "contract"
+          "disposition": "inactive",
+          "source": "ROUTED-EXPERT-CONTRACTS.json",
+          "scope": "4,472 个归档路由任务均使用 INT8 权重的 DispatchFFNCombine，这两条未量化 modular 路径中的可选 top-k 乘与 bias 转换未执行。保留实际 W8A8 路由权重操作。"
         },
         {
           "id": "G10.A12",
@@ -1410,12 +1415,16 @@
         {
           "id": "G13.A05",
           "proposal": "确定性greedy验证可分块计算head行，在每个请求首次不匹配后停算后缀；保留bonus必需状态和可见分数，计入额外归并轮次及小M效率",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "CLEAN-TARGET-HEAD-VALUE.json",
+          "scope": "已有包含投影与选词的 112 个同段窗口，整段最高占本地周期 0.7042%。分块早拒的 4+1 只在该阶段内部适用，普通独占端点和其它请求分布保留条件。"
         },
         {
           "id": "G13.A06",
           "proposal": "五步验证按实测分布比较4+1与全算。bonus可在第一波保留原状态顺序，也可在早期无读者时与最后一块合算，或仅在全接受后单独算",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "CLEAN-TARGET-HEAD-VALUE.json",
+          "scope": "已有包含投影与选词的 112 个同段窗口，整段最高占本地周期 0.7042%。分块早拒的 4+1 只在该阶段内部适用，普通独占端点和其它请求分布保留条件。"
         },
         {
           "id": "G13.A07",
@@ -1517,12 +1526,16 @@
         {
           "id": "G14.A01",
           "proposal": "BR01/02按真实raw需求省副本；BR04单/双输出gather+cast作为较弱但适用更广的变体",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+          "scope": "仅复用匹配 raw 读者条件下 head 输出与选择阶段的预算。保留工作副本与 FP32 转换，重复行归属计一次。"
         },
         {
           "id": "G14.A02",
           "proposal": "target/bonus行分割在head gather输出布局内完成，保留working cast和原写入隔离；需要全分数的case保留相应次序与观察端口",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+          "scope": "仅复用匹配 raw 读者条件下 head 输出与选择阶段的预算。保留工作副本与 FP32 转换，重复行归属计一次。"
         },
         {
           "id": "G14.A03",
@@ -1532,7 +1545,9 @@
         {
           "id": "G14.A04",
           "proposal": "纯贪心且合法连续前缀、无discard时，拒绝producer可同时交付count与seed。通用两输出融合复用已有GPU discard面及原backup；两者替代同一条重算链",
-          "disposition": "contract"
+          "disposition": "reference",
+          "source": "ORDERED-SAMPLING-DISPOSITIONS.json",
+          "scope": "计数、seed 和 padded 输出共用同段全部免费最高占本地周期 0.082894% 的既有筛查；只有实际具备同代消费者时才可合并。"
         },
         {
           "id": "G14.A05",
@@ -4087,28 +4102,31 @@
     "full-review/C2-POOL-RING-OWNER.json": "d9e22c32bbd950c283bf7e8793583181b7eaa51c9d2ebfb8d5798186d38a831c",
     "full-review/C8-DRAFT-SUBMISSION-WAIT-BUDGET.json": "4f9c6055536f67c7bf50515ff9268005bdc9c1579f355a8fe52fe7cd3a833d00",
     "full-review/CLEAN-DSPARK-SCORE-VALUE.json": "ce3edb13f8e72d7c760663796717866222967f38b8a7c54c94228d81bf48decf",
+    "full-review/CLEAN-TARGET-HEAD-VALUE.json": "8c527f80c409d7adb81271db1cf9de73167f8658161b4ed27c96730eda4de258",
     "full-review/CP-LENGTH-C8.json": "8e038b907f2b3bacd9beccace0a9c6d1433ce0ab9d26bdc4d64189a52840e436",
     "full-review/DRAFT-ALLTOALL-PHASE-AND-ZERO-SEND.json": "936ae588d21be036597bb85d2b8030f18a794244a50e18c24c2aa41b377cacf4",
     "full-review/DSPARK-CHECKPOINT-PACKET-ESTIMATES.json": "fae303791299ddb7e8e36b30665993431c8d691c928bdd601f46486823d82348",
     "full-review/DSPARK-CONTEXT-FUSION-ESTIMATES.json": "7a3fed29f31a7f866879c724475ea5992c03df37303aff3e210bb58506ff02fe",
     "full-review/EMBEDDING-ENGRAM-FUSION-ESTIMATES.json": "4ba7f874359cd39796f26ec5dd2a6f12a0337fbf7162a06a5f300c049d8b699e",
     "full-review/EXPERT-SIBLING-TILE-REQUEST-ESTIMATES.json": "74443ef6d1a28451b65769a28201c57756c1abf8d0d7f5063861133f2281ef32",
+    "full-review/FFN-MERGE-PREMIX-ESTIMATES.json": "24b7670864385dc3851ecaecdc5dc508909d301e9839421eab0acbd46237b563",
     "full-review/FROZEN-C8-MODALITY-ADMISSION.json": "b5860c46591c3e1e82782715ac607d9e78e55b8e4729e7bae49e6ed75c74db28",
-    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "745e34a1e08c508a340a0c0c80c6d27abf2e3e85c9ec4efb5df23e3e9b83ab71",
+    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "e70c14e918c21f0655f025ae88dbbf909944ed574f97dcce4bd921a93f519e84",
     "full-review/HC-PAIRED-BOUNDARY-REQUESTS.json": "f25158211efe9c36af2e4aec01bd26526bc2e257c18801e51793fa2148901fa1",
     "full-review/HC-PRE-ROW-NORM-BARRIER-RESULT.json": "7db31d7d9a55f2bbd64943da944e300140c29538b5a1ad86b4772035c950504f",
     "full-review/JOINT-WORK-BOUNDS.json": "6b117f3f24bb5ee0a0d63a98d72e58f7b6ff96175c84683ee63667347265ac12",
     "full-review/MC2-MASK-PROFILE.json": "9ec8f194292f60316e32ffb279c0795610cfed6fc9c04569b9b461ef7cdee5f8",
     "full-review/MODULAR-MOE-ADMISSION.json": "731fad54ea59dad4a2ba8d75345134c6ebc9555da0a7c8d01b5b9b0526333049",
     "full-review/MODULE-FUSION-VALUE-ESTIMATES.json": "5ef92a13d0eaca2cc1dbe9d1e7a3d72b3d0acd8ff3d3d7d36c630cb5532547de",
-    "full-review/MOE-MERGE-HC-C8.json": "5abb1a0dc446482432dc8a845e4bc1e37875bc8f4365e0cb1aa87d2331decaab",
     "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338",
     "full-review/OA-OB-SHARED-CUBE-SCREEN.json": "dec4073d6006e1794713683ab6ae97b4fbc047b01048b244f52fb3d8c739e213",
     "full-review/ORDERED-ENGRAM-VALUE.json": "1e4a7e4a8a5ae588e3771f7b1c122892353cf4828f873fc1761a1c4fd50a8cb3",
     "full-review/ORDERED-RETURN-ENDPOINT-ESTIMATES.json": "9f23b62ce1c0f59686b572991678d2d3d67a571c16b416818e36a9e108081316",
+    "full-review/ORDERED-SAMPLING-DISPOSITIONS.json": "135303843047a8035d1dc38b8dc8f31b941849b015a8406c7e1f9dc3778dbdc6",
     "full-review/QLI-REPEATED-SERVICE-C8.json": "10c3ca078a0177507c3fba325ed1efd2b97ba89c52f2b0d52d52f1321bd74707",
     "full-review/RANDOM-SAMPLING-FUSION-ESTIMATES.json": "919218e94945f8f988b749aebdb6365df26736160bee19ede6afa7946dbc9f48",
     "full-review/RECEIVER-INVERSE-ROPE-SCREEN.json": "fa847b5b59e16ad3ca19ddfd12956baac2ccb97918e1dce18842ab8e543101b7",
+    "full-review/ROUTED-EXPERT-CONTRACTS.json": "c15c3de48413b3944fff53562f7e4d1c739aa66d7eb6cbc5b894c86be0cb6ca3",
     "full-review/ROUTED-EXPERT-HANDOFF-ESTIMATES.json": "69e94edbe705836e9464e8fd090b91ee22c949d06d8dcc2869c3582cd99afaff",
     "full-review/ROUTER-SCORE-DELIVERY-ESTIMATES.json": "37e6c74fae10aa8e6072c9dc339ae8040248749091403a848296dff7a7346802",
     "full-review/SHARED-EXPERT-OVERLAP-CONTRACTS.json": "5730baae4624c8ab1d889c7e4c62c4610e0e7a13266cc1b99c0d044d4b4a9ae0",
@@ -4121,7 +4139,7 @@
     "full-review/runs/clean-native-profile-ea31701f9da0-result.json": "b2081df7e3874fd6c9aad8108a816c297daae3ec33421dc0dd9024029e2c89e6",
     "full-review/runs/ordinary-load-9144f2d04ace-result.json.gz": "42686163175d4fd4f0adfea7ce2ce8b76ac13bc463944a2b8d2e413cf5137dbf",
     "full-review/runs/prefill-request-steps.json": "43dff720802f11e4601a1897f895cdb02eb1db725af1c101518ddde0979bce3a",
-    "tools/reconcile_fusion_scope.py": "db72839cc6bf3f8782cf3c572189af77a172f94126d7737be91f077bd6575dad"
+    "tools/reconcile_fusion_scope.py": "47d1018af71f50e1fb0252f10a724779d77191eb2c83d1e2a2e73fc18edaca7e"
   },
   "limits": [
     "Case IDs are local to the frozen proposal list. Legacy source IDs and work units are separate.",
