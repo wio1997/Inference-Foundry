@@ -1,21 +1,21 @@
 {
-  "updated_at_utc": "2026-11-08T01:39:18.246230+00:00",
-  "source_analysis_commit": "16d1130b1d1a5d89054ba9da2aa87a5f84e38e09",
+  "updated_at_utc": "2026-11-08T01:57:30.699453+00:00",
+  "source_analysis_commit": "409c7661a092ce1b0736090c0a8947e90ad3059f",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03/M04 固定权重下 OA→OB 分块融合的可实现重叠",
+  "active_module": "M05/M06→M07 大 prefill 的专家合并、HcPost 与 premix 联合交付",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "沿 M03→M04 核对同一卡上 OA→OB 分块传递的可实现重叠。先用现有 OA、OB 的分形状时长、Cube 运算量和共享资源约束检验首 token 超过 1% 的必要条件。用相同排程比较、保留中间 BF16 舍入；若已有数据足以降级即结束该分支。",
-    "decision": "固定专家、路由与权重后的 F21 内部写读独立降级；冷热专家和权重分布退出融合队列。SMLA 搬运融合保留长提示条件。175 条登记改写已给出本轮处置，尚缺独立收益的条目按请求价值推进。",
+    "work": "按模型顺序进入 M05/M06→M07 的共享与路由 FFN 合并、HcPost、下一层 premix。先复用 M3 服务对照，在大 prefill 的真实行域定价合并写入和下一层复用是否有新增收益。扣除与已有 Post→Pre 估算重复的残差读写，固定专家分布；整组不达排序参考即降级。",
+    "decision": "OA→OB 的 M24 单核本地整行方案降级。大 prefill 仅保留满足行块利用率的首 token 条件机会，16/32 行块移出当前 C8 方案。接收端逆旋转单项降级。G08 的 10 条和 G09 的 7 条均已有本表处置，保留未价部分。",
     "source": {
-      "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
-      "sha256": "f8f68f64186b000dc0f67a18523db9614276c4bdfeaec422cc2d45c26dfabb46"
+      "path": "full-review/OA-OB-SHARED-CUBE-SCREEN.json",
+      "sha256": "dec4073d6006e1794713683ab6ae97b4fbc047b01048b244f52fb3d8c739e213"
     },
     "related_evidence": {
-      "path": "full-review/SMLA-PANEL-OCCUPANCY-SCREEN.json",
-      "sha256": "521904ec7d21dc547192021ce43f1faeee8a2a3ba0b8ad1f6c302908d82ec50a"
+      "path": "full-review/RECEIVER-INVERSE-ROPE-SCREEN.json",
+      "sha256": "fa847b5b59e16ad3ca19ddfd12956baac2ccb97918e1dce18842ab8e543101b7"
     }
   },
   "module_statuses": [
@@ -168,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "175 existing alternatives, 210 source branch entries, text case manifests and 64 frozen eager / 128 archived graph windows for the panel sensitivity.",
+    "performance_scope": "Five frozen OA plans, 4367 paired PMU records out of 4424 eligible pairs, 64 frozen rank bodies and separate M24 graph samples.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -284,15 +284,17 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "12 modules, 21 listed branch families and M03 gather into QK/PV",
+    "scope": "M03/M04/G08 shared AIC and receive prologue",
     "sources": [
-      "scope-reconciliation.md",
-      "baselines/fusion-scope.json",
-      "baselines/smla-panel-occupancy.json"
+      "oa-ob-shared-cube.md",
+      "baselines/oa-ob-shared-cube.json",
+      "baselines/receiver-inverse-rope.json",
+      "baselines/fusion-scope.json"
     ],
     "observations": [
-      "21 个分支族的 175 条改写逐项归因。62 条可复用指定部分的估算或对照，16 条仅保留可独立归因的算子部分，4 条纯放置或分片退出融合队列，12 条在归档输入或固定精度下无对应工作，1 个具体版本有数值反例，80 条保留合同、尚未在本表单列收益。",
-      "SMLA 的稀疏 KV gather→QK/PV，按稀疏读与临时面同速、50% 搬运差额暴露，若每个有效查询都取同一长度，每行 321 个位置时冻结首 token P90 省 14.873–14.904 ms，322 个时省 14.9191–14.9504 ms，才越过 14.91855 ms 的 1% 参考。六个普通 prefill 的源索引采样末行有 128–274 个可见键，两个混合批中的三行调用另有 1,022、1,027 个。源索引可见键数不能直接当作 SMLA 实际取行数。"
+      "冻结 prefill 的 5 个大形状均由 OA 按 128 行 × 256 列分块，每行 1,024 个输出通道占四块，OB 每个点都要读取这四块。固定权重和 TP8，若由同一 Cube 核计算一组行的完整 OA 和 OB，权重经 L1→L0B，每组需 18 MiB 权重。即使准许 64 KiB 预驻留，24 行图的搬运下限仍为 81.64 µs，高于全部 2,560 次原生 OA＋OB，中位 67.00 µs。这个方案在 M24 跳过。",
+      "对较大的 prefill 保留条件机会。按形状选择行块、24 行走原实现并假设较短投影的一半可隐藏，在 1.8 GHz、计算和权重搬运都达到各自参考上限的 90% 时，冻结 C8 首 token P90 估算省 15.34–17.94 ms（1.03%–1.20%），整批约 0.08%–0.10%。若都只能达到 80%，首 token 仅省 8.20–10.80 ms。相同 50% 重叠下六个普通请求响应最高约 0.42%。",
+      "把发送端逆旋转交给接收端 OA，单独给旋转计算和新增系数传递零成本，同时保留原转置、填零、TP8 与投影。冻结首 token P90 最有利估算也只省 5.33 ms（0.36%），整批 42.27 ms（0.23%），六个普通请求响应最高 0.28%。该边界单独降级。"
     ],
     "new_performance_measurements": 0
   },
@@ -321,11 +323,11 @@
     "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。 模块总耗时只用于定位。先给同一批可消除的工作算一次乐观请求预算，记录估价假设与能改变排序的临界值，再决定是否细看分支。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/smla-panel-occupancy.json",
-      "result": "SMLA 的稀疏 KV gather→QK/PV，按稀疏读与临时面同速、50% 搬运差额暴露，若每个有效查询都取同一长度，每行 321 个位置时冻结首 token P90 省 14.873–14.904 ms，322 个时省 14.9191–14.9504 ms，才越过 14.91855 ms 的 1% 参考。六个普通 prefill 的源索引采样末行有 128–274 个可见键，两个混合批中的三行调用另有 1,022、1,027 个。源索引可见键数不能直接当作 SMLA 实际取行数。"
+      "record": "baselines/oa-ob-shared-cube.json",
+      "result": "对较大的 prefill 保留条件机会。按形状选择行块、24 行走原实现并假设较短投影的一半可隐藏，在 1.8 GHz、计算和权重搬运都达到各自参考上限的 90% 时，冻结 C8 首 token P90 估算省 15.34–17.94 ms（1.03%–1.20%），整批约 0.08%–0.10%。若都只能达到 80%，首 token 仅省 8.20–10.80 ms。相同 50% 重叠下六个普通请求响应最高约 0.42%。"
     },
-    "next": "沿 M03→M04 核对同一卡上 OA→OB 分块传递的可实现重叠。先用现有 OA、OB 的分形状时长、Cube 运算量和共享资源约束检验首 token 超过 1% 的必要条件。用相同排程比较、保留中间 BF16 舍入；若已有数据足以降级即结束该分支。",
-    "decision": "固定专家、路由与权重后的 F21 内部写读独立降级；冷热专家和权重分布退出融合队列。SMLA 搬运融合保留长提示条件。175 条登记改写已给出本轮处置，尚缺独立收益的条目按请求价值推进。",
+    "next": "按模型顺序进入 M05/M06→M07 的共享与路由 FFN 合并、HcPost、下一层 premix。先复用 M3 服务对照，在大 prefill 的真实行域定价合并写入和下一层复用是否有新增收益。扣除与已有 Post→Pre 估算重复的残差读写，固定专家分布；整组不达排序参考即降级。",
+    "decision": "OA→OB 的 M24 单核本地整行方案降级。大 prefill 仅保留满足行块利用率的首 token 条件机会，16/32 行块移出当前 C8 方案。接收端逆旋转单项降级。G08 的 10 条和 G09 的 7 条均已有本表处置，保留未价部分。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"

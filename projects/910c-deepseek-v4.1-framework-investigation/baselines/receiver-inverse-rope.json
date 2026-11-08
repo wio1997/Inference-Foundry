@@ -1,0 +1,127 @@
+{
+  "operator_edge": "InplacePartialRotaryMul before TP8 AllToAll -> OA receiver prologue; paid transpose, zero initialization, fixed collective and both projections.",
+  "per_rank_layer_branches": {
+    "real_full": 1720,
+    "zero_sender_receives_OA": 400,
+    "real_padded": 120,
+    "DP_without_output_A2A": 320
+  },
+  "C8_saved_ms": {
+    "TTFT_P90": [
+      {
+        "min": 4.839132000000063,
+        "median": 4.849892000000182,
+        "max": 4.874332000000095
+      },
+      {
+        "min": 5.294153000000051,
+        "median": 5.30491300000017,
+        "max": 5.329353000000083
+      }
+    ],
+    "makespan": [
+      {
+        "min": 39.818912000002456,
+        "median": 40.429542000001675,
+        "max": 41.81651200000124
+      },
+      {
+        "min": 40.2739330000004,
+        "median": 40.884562999999616,
+        "max": 42.27153299999918
+      }
+    ]
+  },
+  "reference_ms": {
+    "TTFT_P90": 1491.854839,
+    "makespan": 18590.769232
+  },
+  "M24_graph_ms": {
+    "rank_windows": 64,
+    "min": 0.15686,
+    "median": 0.15955,
+    "max": 0.16566
+  },
+  "ordinary": {
+    "chat-single": {
+      "eager_ms": 0.4433461538461539,
+      "own_steps_ms": 6.346696153846153,
+      "own_steps_percent_both_references": [
+        0.09207406931880907,
+        0.23072552955098882
+      ]
+    },
+    "code-single": {
+      "eager_ms": 0.5715384615384616,
+      "own_steps_ms": 1.0501884615384616,
+      "own_steps_percent_both_references": [
+        0.21728367661213344,
+        0.22506912851531463
+      ]
+    },
+    "chat-mixed": {
+      "eager_ms": 0.4433461538461539,
+      "own_steps_ms": 11.292746153846153,
+      "own_steps_percent_both_references": [
+        0.1757364166704523,
+        0.24353053012165785
+      ]
+    },
+    "code-mixed": {
+      "eager_ms": 0.6982634146341464,
+      "own_steps_ms": 2.9319634146341462,
+      "own_steps_percent_both_references": [
+        0.09400462202428864,
+        0.27782594315844195
+      ]
+    },
+    "chat-return": {
+      "eager_ms": 0.4433461538461539,
+      "own_steps_ms": 7.942196153846154,
+      "own_steps_percent_both_references": [
+        0.26360074787447474,
+        0.2405251816871326
+      ]
+    },
+    "code-return": {
+      "eager_ms": 0.5715384615384616,
+      "own_steps_ms": 1.2097384615384614,
+      "own_steps_percent_both_references": [
+        0.19789067799592125,
+        0.1858663637395477
+      ]
+    }
+  },
+  "eager_waves_ms": {
+    "416": [
+      0.8216600000000007,
+      0.8767390000000007
+    ],
+    "816": [
+      1.125014,
+      1.2447770000000002
+    ],
+    "817": [
+      1.141979999999999,
+      1.2797580000000006
+    ],
+    "818": [
+      1.1230380000000004,
+      1.265439
+    ]
+  },
+  "limits": [
+    "Counts full old rotary time and assumes no OA prologue cost, additional coefficient transfer, scratch, or new wait. Preserve the BF16 value before OA K reduction, permute cos/sin with each original token/head and write positive zero for invalid rows. Real receiver cost can erase the entire gain.",
+    "Zero-query senders keep their original zero packet/transpose and may be receivers. No credit to communication or casting. The same rotary work cannot be charged again to an SMLA sender epilogue. Combined OA/OB and this prologue must be evaluated on the same request endpoints.",
+    "Use the original method for clock intervals, including all potentially preceding graph epochs and per-shape graph min/median/max. Ordinary requests use same-size valid-row prompt proxies and observed verification counts; other shape distributions remain unpriced."
+  ],
+  "sources": {
+    "full-review/ATTENTION-SEND-REQUEST-ESTIMATES.json": "d57e07174aa90cd42fb2fc4326a5c9b43373b6ca643475dbc6af91cc8aa380d5",
+    "full-review/ATTENTION-OUTPUT-NATIVE.json": "99a3ae7251fada3b4d6f50d54a3d5333b56c00e26bce7591c21c3a3390aaa680",
+    "full-review/PREFILL-OA-JOINT-ARRIVAL.json": "5c7b01aefd7603c2957b6cbb439e7f005471ccd5e4b3a5d505a1925bd2f7b550",
+    "tools/price_attention_send_epilogue.py": "7c8da27839f4ca4755c939a4501f9a334a68f326790b34f319f5cec51a9f8d6e",
+    "tools/screen_receiver_inverse_rope.py": "78d96ad177cb908b938058a7882320b2a747f4e6857dc5ca1881da6a7f2ecec7"
+  },
+  "new_measurements": 0,
+  "overall_complete": false
+}
