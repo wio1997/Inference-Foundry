@@ -542,3 +542,11 @@ M00–M11当前范围已有一轮顺序优先级处置。26→1批量slot已完�
 使用[进度状态](progress.json)恢复当前动作；用[分析日志](analysis-log.jsonl)查看判断如何改变；用[证据索引](evidence-index.json)按路径、SHA256和来源Git版本查原始资料；用[证据摘要](evidence/summaries.json)查看主要结构化数值。服务器服务观察均带时间，不作为实时在线证明。
 
 原始模型、profile数据库、完整日志与编译产物仍在现有分析库/服务器。此专门目录只发布报告、小型摘要和溯源索引，不能把未发布的原始数据误称为已上传。
+
+<!-- THREE-MEGA-PERFORMANCE-20261109-START -->
+## 2026-11-09：三个megakernel净性能补价
+
+- **介绍**　K03的Cube尾部、K01的KV-ready前端、K02的SMLA输出producer，按实际可消工作和替代成本复算。
+- **到了哪里**　均待确认。仅离线模型；没有新增编译、NPU数值、原生性能或服务实测，旧暂停实验状态保留。
+- **结果**　τ20µs/h5µs、40层时：Up吞吐ρ1省0.600ms/周期（中位1.080%）；ρ0.9仅0.486ms（0.876%）。同一局部周期情景，不是整请求实测。 owner毛包络分为计算22.412ms、通信38.132ms；各50%暴露再扣额外5ms省25.272ms（旧TTFT尺度1.694%）。megakernel独立边际待定。 K256等速direct基准17.777ms；OA净增关键惩罚≤2.859ms才守住旧TTFT尺度1%。仅PV读速75%时余量0.883ms；两侧75%时基准仅13.827ms。 [完整分析](handoff/evidence/three-megakernel-performance.md)。
+<!-- THREE-MEGA-PERFORMANCE-20261109-END -->

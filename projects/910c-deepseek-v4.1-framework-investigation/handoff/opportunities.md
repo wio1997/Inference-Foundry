@@ -307,6 +307,16 @@
 
 </details>
 
+<!-- THREE-MEGA-PERFORMANCE-20261109-START -->
+### 2026-11-09 净性能补价
+
+- **介绍**　到KV-ready为止的行owner前端；本轮区分owner总收益与同owner基线下的megakernel边际。
+- **到了哪里**　待确认。离线条件模型已复算，没有新内核或设备/服务实测。
+- **结果**　owner毛包络分为计算22.412ms、通信38.132ms；各50%暴露再扣额外5ms省25.272ms（旧TTFT尺度1.694%）。megakernel独立边际待定。 保持KV-ready早截止、原BF16/FP32/HF32和读者；同owner多kernel先作基线，不能把owner收益重复归给fusion。50%情景额外成本余量15.354ms。
+
+[详细性能分析](evidence/three-megakernel-performance.md) · [输入](evidence/three-megakernel-inputs.json) · [结果](evidence/three-megakernel-performance.json)
+<!-- THREE-MEGA-PERFORMANCE-20261109-END -->
+
 ## K02
 
 **M03、M04 · SMLA direct/partial到inverse RoPE与可选OA send producer**
@@ -323,6 +333,16 @@
 - **证据**　[实现切口与公式](evidence/megakernel.md) · [逐窗口模型](evidence/megakernel-window-model.json)
 
 </details>
+
+<!-- THREE-MEGA-PERFORMANCE-20261109-START -->
+### 2026-11-09 净性能补价
+
+- **介绍**　SMLA direct/partial至可选OA-send producer；本轮给出reader降速和OA净新增成本的共同门槛。
+- **到了哪里**　待确认。离线条件模型已复算，没有新内核或设备/服务实测。
+- **结果**　K256等速direct基准17.777ms；OA净增关键惩罚≤2.859ms才守住旧TTFT尺度1%。仅PV读速75%时余量0.883ms；两侧75%时基准仅13.827ms。 先保护direct/partial速度与真实K；同窗测OA增量δ，保持KV容量/原rounding。2240MiB额外owner权重及另一cohort的0.214ms门槛不得直接加到direct收益。
+
+[详细性能分析](evidence/three-megakernel-performance.md) · [输入](evidence/three-megakernel-inputs.json) · [结果](evidence/three-megakernel-performance.json)
+<!-- THREE-MEGA-PERFORMANCE-20261109-END -->
 
 ## K03
 
@@ -341,6 +361,16 @@
 - **接续**　先量可用尾部与新增争用。关联 C13 的实现分支
 
 </details>
+
+<!-- THREE-MEGA-PERFORMANCE-20261109-START -->
+### 2026-11-09 净性能补价
+
+- **介绍**　把shared GateUp嵌入DFC Cube尾部；本轮将Up吞吐、其它开销、层覆盖和端点次数分账。
+- **到了哪里**　待确认。离线条件模型已复算，没有新内核或设备/服务实测。
+- **结果**　τ20µs/h5µs、40层时：Up吞吐ρ1省0.600ms/周期（中位1.080%）；ρ0.9仅0.486ms（0.876%）。同一局部周期情景，不是整请求实测。 先核τ/ρ/h/适用层数和关键迭代数；ρ已含Up降速，h不双扣。τ20/h5需ρ中位约0.9584；0.60ms/关键迭代到旧整批1%需310次完全暴露。
+
+[详细性能分析](evidence/three-megakernel-performance.md) · [输入](evidence/three-megakernel-inputs.json) · [结果](evidence/three-megakernel-performance.json)
+<!-- THREE-MEGA-PERFORMANCE-20261109-END -->
 
 ## K04
 
