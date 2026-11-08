@@ -2289,7 +2289,11 @@
         "85个函数按9份值/状态合同审查，含新准入的26个控制。PrivateUse1真实helper确认MC2/ALLTOALL/FUSED_MC2及SP-ALLGATHER的最终归约为identity；shared归约采用相反门控，仍须保留。merge进入HC时保留原BF16相加舍入、截断及可选zero-expert的后续加法。旧M3两任务同调用中位28.48us不是可保证收益。",
         "pad_rows=0仍走cat，条件性identity或producer直写可省物化但必须保留fresh-output和alias合同。零块cache键不含TP容量；高维fallback的F.pad轴与cat轴不同，不把2D固定配置结论推广到任意rank或拓扑变更。",
         "预SiLU裁剪与后SiLU裁剪不同；固定Triton Step在FP32中算完才转换，PyTorch路径中间低精度舍入。CPU反例否定无条件逐位等价；负limit还存在clamp顺序差异。默认alpha/beta路径与非默认参数分开，不能按名称合并激活。"
-      ]
+      ],
+      "request_estimate": {
+        "page": "ffn-merge-premix.md#routed-readers",
+        "record": "baselines/routed-activation-readers.json"
+      }
     },
     "G11": {
       "name": "Engram哈希、lookup、WKV与gate的数据面",
@@ -2390,7 +2394,11 @@
         "target与draft终层已有collapse-before-gather情况不同",
         "同M的三维gamma RMS调用在M24/1688有限样本逐位一致，但native内仍先Transpose再RmsNorm，不能算消除重排。自定义rank-aware RMS的原舍入/归约次序仍需独立接受。",
         "88次DSpark combine_hidden_states正向绑定main projection后的gather Transpose；直接layout consumer是现有aux/main交付的细化，不能把shared M或RMS reduction次序改动视作免费。"
-      ]
+      ],
+      "request_estimate": {
+        "page": "target-readout-and-prompt-scores.md",
+        "record": "baselines/target-readout-and-prompt-scores.json"
+      }
     },
     "G13": {
       "name": "词表head与分数可见性联合设计",
@@ -2437,7 +2445,11 @@
         "DSpark logits先RMSNorm，confidence读取原始hidden；目标compute_logits不再加RMSNorm。保留不同表示的全部读者，可双输出或按分支融合，不能共用已归一化hidden。",
         "bad-word比较可按相同history代际共享前缀并合并重复末token；每个draft位置使用自己的provisional history，不能复用一个committed mask。投机配置的processor构造在插件加载前返回MinTokens，普通配置仍保留自定义回调顺序。",
         "88 target、88 draft和16 dummy logits调用分别绑定gather末端Transpose。dummy与实际推理分开；rank-major score consumer与vocab owner/summary协议会重叠删除同一物化，保留全局词表顺序、ties、logprobs和其他分数读者。"
-      ]
+      ],
+      "request_estimate": {
+        "page": "target-readout-and-prompt-scores.md",
+        "record": "baselines/target-readout-and-prompt-scores.json"
+      }
     },
     "G14": {
       "name": "采样、拒绝与状态输出的统一区域",
@@ -2485,7 +2497,11 @@
         "has_tracked_requests是可变请求状态的布尔谓词；不能把一次空状态当成跨迭代关闭processor的证明。",
         "TopK输出保留sampled首列与可能重复的TopK列；rank仍扫描全词表并计>=。parse_output先过滤logprob，再discard token行，两种输出不能统一用最终mask；DEBUG也是有条件的张量读者。共用producer或分支融合需保留这些合同。",
         "复用上一轮计数合同，补齐wrapper的显式num_seqs=0、空history和contiguous分支。空history仍发布dense zero counts/mask；私有consumer可条件性直接用常量。kernel有stride参数不等于原生跨stride性能已验收。"
-      ]
+      ],
+      "request_estimate": {
+        "page": "draft-state-handoffs.md#joined-ids",
+        "record": "baselines/cross-iteration-ids.json"
+      }
     },
     "G15": {
       "name": "三层context KV联合投影与发布",
@@ -2563,7 +2579,11 @@
         "不同DSpark stage的main_proj/main_norm或norm/Markov可映射到同一首/末层参数；保持输入写入顺序或证明源值等价，Markov缓存必须绑定完成后的真实参数代际。",
         "Markov置信度输入可将Cat和FP32转换合为最终bank直写，保持原FP32投影与sigmoid/clamp顺序；条件逻辑省4*N*(H+R)字节。分段投影不能用两次GEMM相加擅改累计次序。当前保存配置关闭动态预算，不计当前负载收益。",
         "动态验证预算合法域满足sum(keep)=B*b，但b不是每请求上限。非刷新迭代且b=min_k或D时keep已完全确定；在概率bank无额外读者且head无必要副作用下可消除整个confidence/概率、cumprod和分配区域。刷新/中间预算仍保留真实数值及跨请求TopK tie分配。当前C8启用状态未独立绑定，不计实测收益。"
-      ]
+      ],
+      "request_estimate": {
+        "page": "draft-state-handoffs.md#joined-ids",
+        "record": "baselines/cross-iteration-ids.json"
+      }
     },
     "G17": {
       "name": "输入打包、接受计数与跨迭代重映射",
@@ -2609,7 +2629,11 @@
         "实际首步padding、dummy全容量slot清零与context前缀是不同状态域；_adjust_tensor的缩短/等长路径是切片，不能统一算物化copy。MM能力通过函数签名缓存，不运行尚未完成权重共享的embedding。",
         "首步已有六输出融合。可扩展到seed、设备长度/qsl和各自默认尾部；CPU已接受长度只加Q，不能再扣reject。context/query/seed使用不同范围与默认值。44条新审查控制共同约束分支专门化和多输出直写，不需逐if探针。",
         "31原始+5新增控制及8数据谓词按7份合同归并。host accepted换位需要旧值snapshot，新请求默认1；lookback未知为-1，positions尾0，input-role与raw-ID不同。共享owner描述符需各自代际/就绪约束，常量全-1值可在请求换位后继续相等。"
-      ]
+      ],
+      "request_estimate": {
+        "page": "draft-state-handoffs.md#joined-ids",
+        "record": "baselines/cross-iteration-ids.json"
+      }
     },
     "G18": {
       "name": "共享位置元数据与多输出producer",
@@ -2703,7 +2727,11 @@
         "相同正面分派证据排除固定路径的基类dummy实现；本轮93条基类guard均此前未收敛，包含初始89条清单之外的4条内嵌helper控制点。排除不是通用不可达，不允许据此删除NPU dummy、V2或显式base调用的状态义务。",
         "输入准备的None/event与try-finally分支已逐位置审查；保留旧异步H2D完成等待和异常出口record。共享主机源安全证明不代替设备图bank读者退休。",
         "updatable graph保留逐step/layer参数、DCP rank和首步角色；元数据共享需保留图地址及每代读者就绪。query/context尾部不同，缺少padding时原函数整体返回，不能无条件增加context清零。"
-      ]
+      ],
+      "request_estimate": {
+        "page": "draft-state-handoffs.md#joined-ids",
+        "record": "baselines/cross-iteration-ids.json"
+      }
     },
     "G20": {
       "name": "按expert就绪聚合与跨DP解耦",
