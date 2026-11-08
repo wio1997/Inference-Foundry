@@ -1,17 +1,21 @@
 {
-  "updated_at_utc": "2026-11-08T01:19:55.442155+00:00",
-  "source_analysis_commit": "3a7ddd199c7cdeab95eda48fd28948f20bd9e70e",
+  "updated_at_utc": "2026-11-08T01:39:18.246230+00:00",
+  "source_analysis_commit": "16d1130b1d1a5d89054ba9da2aa87a5f84e38e09",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "全模型分支覆盖核对、已估价工作的去重与剩余高价值入口",
+  "active_module": "M03/M04 固定权重下 OA→OB 分块融合的可实现重叠",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "汇总 12 个执行模块和 21 个已登记分支族的剩余范围。优先对照候选、改写与证据台账，一次标出已估价、同一可省工作已覆盖、固定负载可凭输入或配置排除，以及会改变候选排序的缺口。先核对视觉与外部嵌入等条件，保留未覆盖的框架场景；只继续能增加独立收益的机制。",
-    "decision": "G01/G11 已按实际图内外读者计价。446 次双查表确认存在，图外结果可省仍受读者约束。单独输入交付和 gate 降级；组合在普通单请求的稀少形状下可超过排序参考，保留条件。",
+    "work": "沿 M03→M04 核对同一卡上 OA→OB 分块传递的可实现重叠。先用现有 OA、OB 的分形状时长、Cube 运算量和共享资源约束检验首 token 超过 1% 的必要条件。用相同排程比较、保留中间 BF16 舍入；若已有数据足以降级即结束该分支。",
+    "decision": "固定专家、路由与权重后的 F21 内部写读独立降级；冷热专家和权重分布退出融合队列。SMLA 搬运融合保留长提示条件。175 条登记改写已给出本轮处置，尚缺独立收益的条目按请求价值推进。",
     "source": {
-      "path": "full-review/EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
-      "sha256": "4ba7f874359cd39796f26ec5dd2a6f12a0337fbf7162a06a5f300c049d8b699e"
+      "path": "full-review/FUSION-SCOPE-RECONCILIATION.json",
+      "sha256": "f8f68f64186b000dc0f67a18523db9614276c4bdfeaec422cc2d45c26dfabb46"
+    },
+    "related_evidence": {
+      "path": "full-review/SMLA-PANEL-OCCUPANCY-SCREEN.json",
+      "sha256": "521904ec7d21dc547192021ce43f1faeee8a2a3ba0b8ad1f6c302908d82ec50a"
     }
   },
   "module_statuses": [
@@ -164,7 +168,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "10,960 frozen embedding intervals, 446 active double target lookups, two Engram updates and six ordinary request projections.",
+    "performance_scope": "175 existing alternatives, 210 source branch entries, text case manifests and 64 frozen eager / 128 archived graph windows for the panel sensitivity.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,16 +284,15 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M00/M01/G01/G11 and M10 input",
+    "scope": "12 modules, 21 listed branch families and M03 gather into QK/PV",
     "sources": [
-      "baselines/embedding-engram-fusion.json",
-      "baselines/branch-coverage.json"
+      "scope-reconciliation.md",
+      "baselines/fusion-scope.json",
+      "baselines/smla-panel-occupancy.json"
     ],
     "observations": [
-      "冻结负载的 446 次有效图调用都出现两次目标词嵌入：图外先按实际行数查表和 AllReduce，图内又按 24 行查表和 AllReduce。7 次有效 eager 目标调用各只有一条，后续草稿另用独立的词表。捕获时选择原始 ID 且回放时全为文本的路径，可以保留图内查表；前提是图外 embedding 缓冲区没有其它读者。混合图像、软提示、不同图入口和权重版本分别保留。",
-      "按导出时间戳对齐和调优通信估价，单独移除图外查表的 14 个设备算子及归约，冻结整批可省 14.39–31.05 ms。14 次计算提交的主机区间是 25.81–42.95 ms，不能与设备节省相加。再计入词嵌入对 SP 行的直接交付、两层 Engram 定向通信和 gate 中间写读，联合估算省 1.44–8.39 ms 首 token P90、30.73–94.89 ms 整批（0.17%–0.51%）。",
-      "图阶段 Engram 第 1 层 AllGather 最慢 rank 的耗时中位为约 1.15 ms；按导出时钟算，最后一个 rank 开始到最后一个 rank 结束的中位仅 19.32 µs，第 14 层为 19.26 µs。源码与原生任务绑定表明，UVA 查表已合并反量化，可省的是预清零、全行转置和实际出现的整表拷贝。将各头分片直接交给 SP 行所有者，每卡逻辑接收可降到原来的八分之一。两次 WKV 和旋转矩阵乘各有自己必须保留的输入。",
-      "逐图用 40 次 F21 交换约束时钟偏差，联合整批估算区间放宽至 16.07–247.18 ms（0.09%–1.33%）。六个普通请求按实际验证步数、用仅 3 组的单请求 M6 计时外推，响应收益最高 1.85%；改用 428 组常见 M24 计时，最高 0.28%。另一个乐观情景假设 gate 的向量阶段能净省一半，时间戳对齐下联合整批为 62.84–127.58 ms。保留联合条件项；单独的小转换降级。主机到下一次提交的宽区间包含其它工作。"
+      "21 个分支族的 175 条改写逐项归因。62 条可复用指定部分的估算或对照，16 条仅保留可独立归因的算子部分，4 条纯放置或分片退出融合队列，12 条在归档输入或固定精度下无对应工作，1 个具体版本有数值反例，80 条保留合同、尚未在本表单列收益。",
+      "SMLA 的稀疏 KV gather→QK/PV，按稀疏读与临时面同速、50% 搬运差额暴露，若每个有效查询都取同一长度，每行 321 个位置时冻结首 token P90 省 14.873–14.904 ms，322 个时省 14.9191–14.9504 ms，才越过 14.91855 ms 的 1% 参考。六个普通 prefill 的源索引采样末行有 128–274 个可见键，两个混合批中的三行调用另有 1,022、1,027 个。源索引可见键数不能直接当作 SMLA 实际取行数。"
     ],
     "new_performance_measurements": 0
   },
@@ -318,11 +321,11 @@
     "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。 模块总耗时只用于定位。先给同一批可消除的工作算一次乐观请求预算，记录估价假设与能改变排序的临界值，再决定是否细看分支。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/embedding-engram-fusion.json",
-      "result": "按导出时间戳对齐和调优通信估价，单独移除图外查表的 14 个设备算子及归约，冻结整批可省 14.39–31.05 ms。14 次计算提交的主机区间是 25.81–42.95 ms，不能与设备节省相加。再计入词嵌入对 SP 行的直接交付、两层 Engram 定向通信和 gate 中间写读，联合估算省 1.44–8.39 ms 首 token P90、30.73–94.89 ms 整批（0.17%–0.51%）。"
+      "record": "baselines/smla-panel-occupancy.json",
+      "result": "SMLA 的稀疏 KV gather→QK/PV，按稀疏读与临时面同速、50% 搬运差额暴露，若每个有效查询都取同一长度，每行 321 个位置时冻结首 token P90 省 14.873–14.904 ms，322 个时省 14.9191–14.9504 ms，才越过 14.91855 ms 的 1% 参考。六个普通 prefill 的源索引采样末行有 128–274 个可见键，两个混合批中的三行调用另有 1,022、1,027 个。源索引可见键数不能直接当作 SMLA 实际取行数。"
     },
-    "next": "汇总 12 个执行模块和 21 个已登记分支族的剩余范围。优先对照候选、改写与证据台账，一次标出已估价、同一可省工作已覆盖、固定负载可凭输入或配置排除，以及会改变候选排序的缺口。先核对视觉与外部嵌入等条件，保留未覆盖的框架场景；只继续能增加独立收益的机制。",
-    "decision": "G01/G11 已按实际图内外读者计价。446 次双查表确认存在，图外结果可省仍受读者约束。单独输入交付和 gate 降级；组合在普通单请求的稀少形状下可超过排序参考，保留条件。",
+    "next": "沿 M03→M04 核对同一卡上 OA→OB 分块传递的可实现重叠。先用现有 OA、OB 的分形状时长、Cube 运算量和共享资源约束检验首 token 超过 1% 的必要条件。用相同排程比较、保留中间 BF16 舍入；若已有数据足以降级即结束该分支。",
+    "decision": "固定专家、路由与权重后的 F21 内部写读独立降级；冷热专家和权重分布退出融合队列。SMLA 搬运融合保留长提示条件。175 条登记改写已给出本轮处置，尚缺独立收益的条目按请求价值推进。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"

@@ -1,0 +1,4111 @@
+{
+  "labels": {
+    "reference": "Reuse the stated estimate or test for its named component and scenario only.",
+    "version_failed": "The tested numerical variant failed. Another algorithm needs a separate argument.",
+    "outside": "This proposal only changes placement, scheduling or resource ownership as specified.",
+    "mixed": "Exclude scheduling/placement gains. Only a distinct change to operator work could enter.",
+    "inactive": "No incremental work on this input/precision branch in the named workloads. Other scenarios remain conditional.",
+    "contract": "Original branch contract and family references retained. No individual quantitative verdict assigned here."
+  },
+  "disposition_counts": {
+    "contract": 80,
+    "inactive": 12,
+    "mixed": 16,
+    "outside": 4,
+    "reference": 62,
+    "version_failed": 1
+  },
+  "families": {
+    "G01": {
+      "modules": [
+        "M00",
+        "M02"
+      ],
+      "name": "embedding至首层的表示边界",
+      "work_units": [
+        "W01",
+        "W29"
+      ],
+      "family_sources": [
+        "EMBEDDING-SP-DELIVERY.json",
+        "MODULE-FUSION-VALUE-ESTIMATES.json",
+        "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G01.A01",
+          "proposal": "按owned-ID直接查表或写+0，并直接写通信/本rank目标布局",
+          "disposition": "reference",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "原 ID 查表和 SP 行交付只计同一条数据流一次。"
+        },
+        {
+          "id": "G01.A02",
+          "proposal": "STANDARD的完整embedding仅有SP本地数值读者时，可以用SUM ReduceScatter或词表owner直接交付。独立BF16权重也可按隐藏维分片，每设备权重字节不变，TP8 T24每rank收26.25KiB其他rank的特征",
+          "disposition": "reference",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "原 ID 查表和 SP 行交付只计同一条数据流一次。"
+        },
+        {
+          "id": "G01.A03",
+          "proposal": "首层使用虚拟HC广播表示；HC的计算和residual读者按原通道顺序读取同一embedding，延后或消除repeat平面",
+          "disposition": "contract"
+        },
+        {
+          "id": "G01.A04",
+          "proposal": "draft将repeat后SP改为按本rank行范围生成HC，同时生成ID/mask/premix；target已经先SP，不能重复计同项",
+          "disposition": "contract"
+        },
+        {
+          "id": "G01.A05",
+          "proposal": "冻结权重下，对已证明只依赖embedding行与不可变首层初态的计算前缀，考虑预计算表或热缓存；保留raw embedding/aux读者，按权重、owner、数值模式及shape代际区分。先计新增容量/流量与命中率，不能把后续上下文相关层按token ID缓存。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G01.B01",
+          "original": "TP1/TP>1、STANDARD/token-exchange/PCP×TP分别保留其通信"
+        },
+        {
+          "id": "G01.B02",
+          "original": "added词表有独立offset分支"
+        },
+        {
+          "id": "G01.B03",
+          "original": "None/provided mask、整除/尾padding、inputs_embeds/lookup均保留"
+        },
+        {
+          "id": "G01.B04",
+          "original": "虚拟HC需所有首层residual/aux读者兼容新表示"
+        },
+        {
+          "id": "G01.B05",
+          "original": "预计算/缓存必须等待实际依赖的所有分片及后处理就绪；loaded_params集合不是完成证书。重复stage名称可能覆盖同一参数，raw embedding与布局/owner代际分别保留。"
+        },
+        {
+          "id": "G01.B06",
+          "original": "32处词表控制和2处数据mask已绑定STANDARD、fine-grained、PCP×TP及replicated合同；逻辑shard rank/size不能代替实际通信group。已有64 target和48 draft链仅正向绑定STANDARD TP8，其他分支不由profile缺席排除。"
+        },
+        {
+          "id": "G01.B07",
+          "original": "Fine交换固定capacity，PCP交换同数N；稳定AG/RS地址、token0与尾padding、added词表offset分别保留。纯masked lookup可考虑直接写RS bank，尾fill消除仍需不可观察性及动态capture证明。"
+        },
+        {
+          "id": "G01.B08",
+          "original": "图像span最终覆盖语言embedding中的占位行；可比较按互斥行域直写同一最终输入，保留原TP布局/通信、image cache窗口及所有读者。未知type不会被原span初始化，不能据此给任意type建立总写入等价。"
+        },
+        {
+          "id": "G01.B09",
+          "original": "Ascend实际继承并调用GPUModelRunner._preprocess；旧profile在MM分支3588行正向绑定lookback上传。prompt-embed的lookup前safe-ID与lookup后保留旧embedding是不同义务，可联合producer但需保留requires_raw_input_tokens的独立ID输出、MM及collective次序。"
+        }
+      ]
+    },
+    "G02": {
+      "modules": [
+        "M02",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "name": "HC跨层及旁路消费者",
+      "work_units": [
+        "W01",
+        "W02",
+        "W41"
+      ],
+      "family_sources": [
+        "HC-PAIRED-BOUNDARY-REQUESTS.json",
+        "HC-PRE-ROW-NORM-BARRIER-RESULT.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G02.A01",
+          "proposal": "把Post舍入后的BF16结果直接交给下一Pre，同时发布供下一Post读取的残差；aux分支可同时交付同一代际的mean",
+          "disposition": "reference",
+          "source": "HC-PAIRED-BOUNDARY-REQUESTS.json",
+          "scope": "保留残差读者的 Post→Pre 交付已计价。整层残差驻留另需依据。"
+        },
+        {
+          "id": "G02.A02",
+          "proposal": "无旁路、aux、Engram和终层分别保留所需值；仅在残差跨Attention或FFN全程驻留、延迟重算或下游重组已证明时计入省去残差发布",
+          "disposition": "reference",
+          "source": "HC-PAIRED-BOUNDARY-REQUESTS.json",
+          "scope": "保留残差读者的 Post→Pre 交付已计价。整层残差驻留另需依据。"
+        },
+        {
+          "id": "G02.A03",
+          "proposal": "HcPre内部只为行平方和生成的Gram块可改为行归约，并保留混合投影、系数生成和全部输出；首先验证原split-K归约与HF32投影数值边界。此项计算消除独立于Post/Pre接口省读写，不按整个HcPre耗时计收益。",
+          "disposition": "version_failed",
+          "source": "HC-PRE-ROW-NORM-BARRIER-RESULT.json",
+          "scope": "已试直接行归约初次 eager 的两个 FP32 输出有位差；其它等价归约仍可按独立机制判断。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G02.B01",
+          "original": "有Engram时下一Pre依赖Engram更新后的hidden；aux取值在Engram之前"
+        },
+        {
+          "id": "G02.B02",
+          "original": "首层onehot pre_mix与后续pre_mix不同"
+        },
+        {
+          "id": "G02.B03",
+          "original": "attnPre的提前Y方案交独立F01审查，本轮不把它作为成立前提"
+        }
+      ]
+    },
+    "G03": {
+      "modules": [
+        "M02",
+        "M03",
+        "M05",
+        "M06"
+      ],
+      "name": "Norm输出的多需求共同producer",
+      "work_units": [
+        "W03"
+      ],
+      "family_sources": [
+        "ACTIVATION-QUANT-REQUEST-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G03.A01",
+          "proposal": "在一个行级区域完成RMS、原BF16舍入、对该舍入值的量化，并交付router所需FP32平面",
+          "disposition": "reference",
+          "source": "ACTIVATION-QUANT-REQUEST-ESTIMATES.json",
+          "scope": "只复用相同有效行、舍入和量化器的输出。"
+        },
+        {
+          "id": "G03.A02",
+          "proposal": "相同值代际、相同量化器的多个消费者共享PreparedLinearInput；不同量化器仍各自产生scale",
+          "disposition": "reference",
+          "source": "ACTIVATION-QUANT-REQUEST-ESTIMATES.json",
+          "scope": "只复用相同有效行、舍入和量化器的输出。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G03.B01",
+          "original": "residual/native融合norm和plain/bias分开"
+        },
+        {
+          "id": "G03.B02",
+          "original": "router读FP32、DQ读BF16，不能混成同一数值"
+        },
+        {
+          "id": "G03.B03",
+          "original": "INT8/MXFP/无量化、LoRA、SP本地/全局行域分别处理"
+        },
+        {
+          "id": "G03.B04",
+          "original": "共享RMS cast适配器实际服务FFN/router双输出；fallback及已有native源码见证均保留BF16舍入后展宽FP32。A3 capability+custom-op启用+符号注册共同选择，CANN9.1注释不是排除9.2的运行时守卫。"
+        },
+        {
+          "id": "G03.B05",
+          "original": "norm bias分配、实际loaded标志与残差入口不同；保持原RMS舍入、bias顺序及残差输出。量化配置字典按身份缓存，不能把同对象原地更新当作新参数代。"
+        }
+      ]
+    },
+    "G04": {
+      "modules": [
+        "M03",
+        "M10"
+      ],
+      "name": "按真实输入阶段联合投影",
+      "work_units": [
+        "W03",
+        "W04",
+        "W21",
+        "W42",
+        "W47"
+      ],
+      "family_sources": [
+        "ATTENTION-INPUT-FUSION-REQUESTS.json",
+        "ATTENTION-QR-PROJECTION.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G04.A01",
+          "proposal": "第一阶段本地QA和index-W可提前或联合，当前稳态的SWA KV走24行全局域。第二阶段共用原QR量化包，权重合并单列数值与输出布局门槛",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "同源读取和匹配的 QR 量化按组计价，独立投影的累加合同保留。"
+        },
+        {
+          "id": "G04.A02",
+          "proposal": "固定W8A8的800个index source层位可保留QB的INT8 qr和FP32 scale给index-Q；索引Q/K在投影和RoPE后的128维量化分别保留",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "同源读取和匹配的 QR 量化按组计价，独立投影的累加合同保留。"
+        },
+        {
+          "id": "G04.A03",
+          "proposal": "C2的Wkv/Wgate保持独立FP32输出。更宽单GEMM的原生对照出现位差，可另评保留各自归约的分组调度。与BF16/INT8保持独立边界",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "同源读取和匹配的 QR 量化按组计价，独立投影的累加合同保留。"
+        },
+        {
+          "id": "G04.A04",
+          "proposal": "按SWA-only、C1、C2分开比较owner投影再汇集。稳态24→3行通过原生对照，混合1688→211行有位差。保留原M的owner占位变体可维持窄传输，仍需承担原GEMM计算量",
+          "disposition": "contract"
+        },
+        {
+          "id": "G04.A05",
+          "proposal": "相同输入tile只读取一次，保持各权重、bias、输出dtype和每个独立GEMM的归约合同",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "同源读取和匹配的 QR 量化按组计价，独立投影的累加合同保留。"
+        },
+        {
+          "id": "G04.A06",
+          "proposal": "在命中MLP列投影的输入行all-gather路径时，若各rank输入量化规则相同且拥有完整量化行，可先量化本地行再gather INT8与scale，令原GEMM消费prepared packet。与原始BF16输入仍存活、按块量化或rank特有平滑参数的情况分别判定。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G04.B01",
+          "original": "query/cache元数据相同才可共享输入；CP本地query与全局cache不能视为同一矩阵"
+        },
+        {
+          "id": "G04.B02",
+          "original": "multistream已有share_quant需要去重；serial路径单独检查"
+        },
+        {
+          "id": "G04.B03",
+          "original": "C1/C2、source/consumer角色决定哪些投影真实存在"
+        },
+        {
+          "id": "G04.B04",
+          "original": "列合并保留每个输出的rank-local shard顺序；不能先拼全局权重再统一切分。TP、MLP TP、OTP、CP synthetic size1的owner不同，generic与DSV4自定义op的通信位置不同。"
+        },
+        {
+          "id": "G04.B05",
+          "original": "W8A8接收PreparedLinearInput时跳过量化，必须保留真实packet类型、输出dtype与scale维度；普通tuple不等于prepared接口。两个typed gather或单个打包gather有各自开销，不能只按字节声称加速。"
+        },
+        {
+          "id": "G04.B06",
+          "original": "冻结loader的stack表只有gate/up，fused_qkv_a_proj条件在该表下不可达；不能据注释声称QA/KV已融合。新的packing或预计算需单独证明消费者布局与舍入。"
+        },
+        {
+          "id": "G04.B07",
+          "original": "补齐14个注意力入口及其读者/行域合同：QA与index-W共用local hidden，QB与index-Q共用原舍入QR。复用已有共享量化包通过及joined GEMM/strided RoPE反例，不能把wrapper覆盖重复记为新收益。"
+        },
+        {
+          "id": "G04.B08",
+          "original": "Column等收集结果需保持group rank顺序；out_place包装器不保证复制输入，当前NPU communicator继承原地base all_reduce。直接local shard交付仍需实际边、全部读者和量化尺度域证据。"
+        },
+        {
+          "id": "G04.B09",
+          "original": "CV拆分接口不等于完整Linear.forward：通信分支退回原forward；W8输出按weight_scale dtype，MX保留码/尺度格式、group及BF16输出。已有profile正向记录1665次W8量化和1665次matmul，数量相同不证明逐值配对或可共享。Column/Row的分片、rank0 bias和返回协议必须分别保持。"
+        }
+      ]
+    },
+    "G05": {
+      "modules": [
+        "M03",
+        "M10"
+      ],
+      "name": "投影producer直接写旋转/量化/cache格式",
+      "work_units": [
+        "W04",
+        "W05",
+        "W23",
+        "W34",
+        "W35",
+        "W42"
+      ],
+      "family_sources": [
+        "ATTENTION-INPUT-FUSION-REQUESTS.json",
+        "INDEX-CACHE-PUBLICATION.json",
+        "DSPARK-CONTEXT-FUSION-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G05.A01",
+          "proposal": "QB尾64 RoPE作为投影epilogue，保留非旋转维",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "引用固定模型的旋转、量化和缓存交付组；查分支命中再用联合预算。"
+        },
+        {
+          "id": "G05.A02",
+          "proposal": "KV投影/norm/旋转/目标slot写入组成区域；index K同时交付INT8 key与FP16 scale",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "引用固定模型的旋转、量化和缓存交付组；查分支命中再用联合预算。"
+        },
+        {
+          "id": "G05.A03",
+          "proposal": "保留原生key DynamicQuant，用同一组坐标发布INT8 key和FP16 scale，直接转换到各自物理页。106六组通过；有效槽唯一性和长期读写仍需核对",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "引用固定模型的旋转、量化和缓存交付组；查分支命中再用联合预算。"
+        },
+        {
+          "id": "G05.A04",
+          "proposal": "WK读完pre-RoPE latent后拆开long KV与index K分支。可测试long发布与QLI并行，SMLA等两路完成",
+          "disposition": "mixed",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "改变两流先后次序单列；新增省算须给出少掉的投影或写入。"
+        },
+        {
+          "id": "G05.A05",
+          "proposal": "已观察到同一代槽视图的C1/C2源层可以共享槽有效性与唯一性证明。三个缓存面合写会增加QLI就绪依赖，按各自时间计价",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "引用固定模型的旋转、量化和缓存交付组；查分支命中再用联合预算。"
+        },
+        {
+          "id": "G05.A06",
+          "proposal": "query RoPE与128维量化合并，但保留query FP16 scale的原先round后再使用规则",
+          "disposition": "reference",
+          "source": "ATTENTION-INPUT-FUSION-REQUESTS.json",
+          "scope": "引用固定模型的旋转、量化和缓存交付组；查分支命中再用联合预算。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G05.B01",
+          "original": "Q/KV维度与scale格式不同"
+        },
+        {
+          "id": "G05.B02",
+          "original": "packed A5和普通910C cache为不同ABI"
+        },
+        {
+          "id": "G05.B03",
+          "original": "空本地query仍可能有全局KV/cache工作"
+        },
+        {
+          "id": "G05.B04",
+          "original": "cache是跨迭代可见状态，当前attention与未来读者都保留"
+        },
+        {
+          "id": "G05.B05",
+          "original": "folded index每8行544B属于A5 mixed-quant candidate-source ABI，不能把A3每行INT8+FP16 scale的130B直接重解释为68B。cache classifier只需任一model_version匹配，不证明所有成员布局相同。"
+        },
+        {
+          "id": "G05.B06",
+          "original": "嵌套legacy对象构造时indexer/compressor均为None、ratio0；外层V4.1后来创建的WK/compressor不会重绑定这些字段。旧cache producer未调用，不代表当前源层索引/压缩/state写入可删除；保留实际producer已有数值与发布证据。"
+        },
+        {
+          "id": "G05.B07",
+          "original": "CP入口把query suffix与全局cache输入分别按各自metadata裁剪；本地query为空仍更新cache。packed cache的主流写入门控和不同RoPE切片保留。"
+        }
+      ]
+    },
+    "G06": {
+      "modules": [
+        "M03"
+      ],
+      "name": "C2的完成行、pool与ring状态联合设计",
+      "work_units": [
+        "W05",
+        "W21",
+        "W23",
+        "W34",
+        "W35",
+        "W42"
+      ],
+      "family_sources": [
+        "ATTENTION-INPUT-FUSION-REQUESTS.json",
+        "C2-POOL-RING-OWNER.json",
+        "C2-COMMIT-ORDER.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G06.A01",
+          "proposal": "按物理页和特征tile，在一次launch内完成默认值、池化及全32槽更新，先读旧前驱再写。171六组逐位一致。RMS保持原BF16输入",
+          "disposition": "reference",
+          "source": "C2-POOL-RING-OWNER.json",
+          "scope": "池化与 ring 的共用写入有原生合同；提前 RMS 仅改变排程的部分单列。"
+        },
+        {
+          "id": "G06.A02",
+          "proposal": "独立评估提前RMS并行ring更新，与单次融合共用同一预算。池化和写回共用FP32 pair寄存器仍需对照",
+          "disposition": "reference",
+          "source": "C2-POOL-RING-OWNER.json",
+          "scope": "池化与 ring 的共用写入有原生合同；提前 RMS 仅改变排程的部分单列。"
+        },
+        {
+          "id": "G06.A03",
+          "proposal": "用实际index/longKV slot发布行的并集裁剪latent及后续计算。P减C的有效slot仍要交付经过原RMS/RoPE/量化的默认值",
+          "disposition": "contract"
+        },
+        {
+          "id": "G06.A04",
+          "proposal": "用D=ring尾部所需投影行与可发布pool端点的当前输入对之并集裁剪FP32 WKV/Wgate。正常有效端点全部发布时D覆盖所有live行，used≤32时ring已保留全部live行",
+          "disposition": "contract"
+        },
+        {
+          "id": "G06.A05",
+          "proposal": "TOKEN_ALIGNED的偶数前驱在同owner连续且回退≤5时可用3槽，允许零提交且回退≤6时用4槽。若等待接受数后才提交一槽，需在此前保留候选投影或另付重算，并处理跨图地址、恢复与旧ABI",
+          "disposition": "contract"
+        },
+        {
+          "id": "G06.A06",
+          "proposal": "六行奇数起点下，3槽先取旧前驱再更新；4槽无同owner覆盖。若物理范围和下一代读者均已绑定，可将更新与pool后的RMS并排提交，仍需预算共享资源",
+          "disposition": "contract"
+        },
+        {
+          "id": "G06.A07",
+          "proposal": "按物理slot做ring读写判定。单owner奇数起点且首对有需求时，used≥32会覆盖旧前驱槽。先按owner读取或快照，物理alias未解析时保留两阶段",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G06.B01",
+          "original": "ratio1和ratio2分开"
+        },
+        {
+          "id": "G06.B02",
+          "original": "奇/偶起点、残留历史、used_len=0、无效cache row、skip_ring_update分别处理"
+        },
+        {
+          "id": "G06.B03",
+          "original": "完整行选择同时取决于slot、position奇偶、实际token范围"
+        },
+        {
+          "id": "G06.B04",
+          "original": "空query不等于cache状态可丢弃"
+        }
+      ]
+    },
+    "G07": {
+      "modules": [
+        "M03"
+      ],
+      "name": "Indexer至attention的选择结果交付",
+      "work_units": [
+        "W06",
+        "W23",
+        "W31",
+        "W34",
+        "W43"
+      ],
+      "family_sources": [
+        "SPARSE-SELECTION-DELIVERY-ESTIMATES.json",
+        "INDEXER-CANDIDATE-PACKETS.json",
+        "INDEXER-ATTENTION-DELIVERY.json",
+        "QLI-ON-BATCHED-SLOT-C8.json",
+        "SMLA-PANEL-OCCUPANCY-SCREEN.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G07.A01",
+          "proposal": "在选中结果producer内直接生成最终indices/length/candidate格式，去掉中间selected平面",
+          "disposition": "reference",
+          "source": "SPARSE-SELECTION-DELIVERY-ESTIMATES.json",
+          "scope": "仅原索引准备与指定间隙已有整体预算，替换排序或长度计算保留适用分支。"
+        },
+        {
+          "id": "G07.A02",
+          "proposal": "分块score/topK与结果归并流水；仅在有最终集合证书时允许attention提前消费",
+          "disposition": "contract"
+        },
+        {
+          "id": "G07.A03",
+          "proposal": "candidate source直接发布块列表或兼容bitmap，分别核算eager候选拷贝和位置整理；mode2在有限分数合同下只计算候选键并重建原候选外fillers",
+          "disposition": "reference",
+          "source": "QLI-REPEATED-SERVICE-C8.json",
+          "scope": "仅同一候选成员表示的跨层转换有服务对照，分数计算及各层选择仍保留。"
+        },
+        {
+          "id": "G07.A04",
+          "proposal": "第20层一次发布共享位图，24/28/32/36层用同一候选成员关系生成各tile掩码，继续读各自index K和scale。保留列表时可双输出，固定source ABI时可独立转一次",
+          "disposition": "reference",
+          "source": "QLI-REPEATED-SERVICE-C8.json",
+          "scope": "仅同一候选成员表示的跨层转换有服务对照，分数计算及各层选择仍保留。"
+        },
+        {
+          "id": "G07.A05",
+          "proposal": "legacy SMLA仅用压缩位置前缀，确定没有其他读者时省压缩topk length的计数/写入；A5 packed继续交付length",
+          "disposition": "reference",
+          "source": "SPARSE-SELECTION-DELIVERY-ESTIMATES.json",
+          "scope": "仅原索引准备与指定间隙已有整体预算，替换排序或长度计算保留适用分支。"
+        },
+        {
+          "id": "G07.A06",
+          "proposal": "按共同KV源与index代际复用选中压缩KV tile，保留层间SWA、不同Q/score和实际tile读取；全合法位置均能进入TopK的分支才评估不打分直接交付",
+          "disposition": "reference",
+          "source": "SPARSE-KV-RETENTION-REQUEST-ESTIMATES.json",
+          "scope": "已有跨层相同 KV 读者预算。缓存驻留与层内 gather→QK/PV 的同一笔读不能重复计价。"
+        },
+        {
+          "id": "G07.A07",
+          "proposal": "空key分支合并多输出初始化；空Q优先早返回保持不写语义",
+          "disposition": "contract"
+        },
+        {
+          "id": "G07.A08",
+          "proposal": "可选MTP TopK压缩按真实输入owner和请求前缀owner直接交付，或对已证无依赖的兼容buffer合批通信；只写原local_num_reqs前缀并保持尾部，异view别名按原顺序分阶段。不要以无本地目的行跳过提供源行的rank，或用-1代替SUM中性0。当前工作负载收益未证实。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G07.A09",
+          "proposal": "仅在所有有效索引和另选内部sentinel都可由FP32精确表示时，比较数值转换排序与通用INT32位编码排序；保留chronological顺序、重复项、causal mask及稳定输出。它与直接最终index writer替代同一准备工作，转换成本和收益未知。",
+          "disposition": "reference",
+          "source": "SPARSE-SELECTION-DELIVERY-ESTIMATES.json",
+          "scope": "仅原索引准备与指定间隙已有整体预算，替换排序或长度计算保留适用分支。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G07.B01",
+          "original": "candidate source/filter与普通index source不同"
+        },
+        {
+          "id": "G07.B02",
+          "original": "Q0/K0、packed/普通、提供/新建output bank不同"
+        },
+        {
+          "id": "G07.B03",
+          "original": "2048键S2分组、128键Cube段与重排后的紧凑键是不同算力裁剪粒度；共享计算段仅在所有参与行均不需要时可跳"
+        },
+        {
+          "id": "G07.B04",
+          "original": "TopK512 token与candidate block集合不同"
+        },
+        {
+          "id": "G07.B05",
+          "original": "共享bank跨层复用仍有读者和代际"
+        },
+        {
+          "id": "G07.B06",
+          "original": "INT8 indexer query以完整128维head求amax，scale先舍入FP16再参与量化；BF16有限输入离线反例使交换顺序后的码96变95。packed_cache_ops路径调用另一量化器，空行、尾mask、原始Q读者及scale写入owner分别保留。"
+        },
+        {
+          "id": "G07.B07",
+          "original": "40层backbone只取43个ratio的前40项；38层长上下文已有4个KV源、8个TopK源。34次KV消费者复用和30次TopK消费者复用是现有行为，不再计为新增省算。"
+        },
+        {
+          "id": "G07.B08",
+          "original": "KV源20及index-K缓存服务20..39层，跨越24/28/32/36的TopK刷新。候选过滤跟随index_source>20，23层仍未过滤，24层才过滤。单个TopK共享buffer只持有当前代际，下一写者必须等待旧读者或使用独立bank。"
+        },
+        {
+          "id": "G07.B09",
+          "original": "旧_indexer_select_topk字面mask_mode3/cmp_ratio4/PA_BBND及其Hadamard helper不属于当前V4.1调用链，不能套用为实际QLI ABI或另计优化收益。已有800条实际QLI/cache链继续有效。"
+        },
+        {
+          "id": "G07.B10",
+          "original": "可选MTP TopK压缩使用输入容量L=ceil(T/TP)定义源owner和请求前缀目的owner；无本地接收行仍可能提供源行并必须参加SUM。非owner默认0保留owner的-1值。id(buffer)只去重同一对象，异对象view可能读到前轮写入；联合通信须保留别名依赖阶段。当前C8启用情况和收益未绑定。"
+        },
+        {
+          "id": "G07.B11",
+          "original": "量化query要求prepared存在、尚无量化包、query存在且非空、cache容量>0；select保留candidate/filter/length及可选输出bank。布尔helper不等于无分支。"
+        },
+        {
+          "id": "G07.B12",
+          "original": "prepare_indexer_indices已融合causal过滤、FP32位编码排序、padding及小规模length；重复合法ID仍重复保留，length数条目而非去重集合。大规模length走后续sum。直接最终writer需保留稳定bank与raw/block读者，不重复计价既有融合。"
+        }
+      ]
+    },
+    "G08": {
+      "modules": [
+        "M03",
+        "M04"
+      ],
+      "name": "attention至输出投影和通信的布局边界",
+      "work_units": [
+        "W04",
+        "W06",
+        "W19",
+        "W23",
+        "W43"
+      ],
+      "family_sources": [
+        "ATTENTION-SEND-REQUEST-ESTIMATES.json",
+        "OA-OB-FUSION-REQUEST-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G08.A01",
+          "proposal": "attention epilogue直接生成旋转后及通信发送布局；padding由最终producer一次写出",
+          "disposition": "reference",
+          "source": "ATTENTION-SEND-REQUEST-ESTIMATES.json",
+          "scope": "只复用当前活跃分支的逆旋转与发送写入，空侧仍可接收。"
+        },
+        {
+          "id": "G08.A02",
+          "proposal": "独立producer也可融合逆RoPE、发送补零和rank-major转置。TP1留在原in-place路径，零查询TP8可复用一个只读零缓冲前缀，实查询保留原BF16舍入。",
+          "disposition": "reference",
+          "source": "ATTENTION-SEND-REQUEST-ESTIMATES.json",
+          "scope": "只复用当前活跃分支的逆旋转与发送写入，空侧仍可接收。"
+        },
+        {
+          "id": "G08.A03",
+          "proposal": "SWA局部数据可早于索引就绪，但现有原生LSE加两份BF16输出合并有位差及稀疏空行问题。精确早启需要保留原生逐head累计和原mask/归一化合同。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G08.A04",
+          "proposal": "draft零查询分支可选择预先打包的只读零发送面，保持定长AllToAll、接收缓冲和输出规约。18个本地层位的ZerosLike与Transpose时长和中位数21.98µs，需验证跨层地址生命周期",
+          "disposition": "reference",
+          "source": "ATTENTION-SEND-REQUEST-ESTIMATES.json",
+          "scope": "只复用当前活跃分支的逆旋转与发送写入，空侧仍可接收。"
+        },
+        {
+          "id": "G08.A05",
+          "proposal": "按真实发送行域比较变长exchange。draft的混合TP8实例可协调省去零查询源的7个对端片段，每层少168KiB逻辑对端数据。各rank仍参与，在原偏移重建零片段后再投影及规约。单独核对backend零计数、图与通信组合同",
+          "disposition": "contract"
+        },
+        {
+          "id": "G08.A06",
+          "proposal": "按TP共享的真实行前缀联合裁剪所有发送尾部。EAGER的12/24行域可少672KiB对端逻辑负载，保留原顺序。若消费者支持紧凑行域，可连同OA/OB补零行一起裁剪，在OB尾部或规约交付中复原原输出合同。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G08.A07",
+          "proposal": "按权重owner比较OA前移、按panel流水及全本地投影。当前图执行域每TP rank的all-to-all逻辑输入192KiB，OA前移后为48KiB，但每层每rank完整OA额外需要56MiB BF16权重",
+          "disposition": "mixed",
+          "source": "OA-OB-FUSION-REQUEST-ESTIMATES.json",
+          "scope": "固定现有权重位置的投影分块可独立核算；迁移权重或投影 owner 的收益排除。"
+        },
+        {
+          "id": "G08.A08",
+          "proposal": "完整复制OA/OB可在query owner侧完成投影和本地合并，须复现原reduce-scatter归约与舍入，联合核算两套权重的容量和重复读取",
+          "disposition": "outside",
+          "source": "OA-OB-FUSION-REQUEST-ESTIMATES.json",
+          "scope": "复制 OA/OB 到不同 owner 属于权重分布方案。"
+        },
+        {
+          "id": "G08.A09",
+          "proposal": "OA/OB保持中间BF16的分块流水，OB结果按chunk直接进入规约/输出bank",
+          "disposition": "reference",
+          "source": "OA-OB-FUSION-REQUEST-ESTIMATES.json",
+          "scope": "保持两次投影和中间 BF16 舍入，分块重叠按条件计价。"
+        },
+        {
+          "id": "G08.A10",
+          "proposal": "比较接收侧inverse-RoPE与O投影prepared-input/prologue融合：按AllToAll的token/head置换同步映射cos/sin及有效行，保持逐元素native运算和投影量化前BF16边界。padding仍直接写正零，不能以零乘NaN系数代替。纯搬动位置不省算术；与发送epilogue/send-pack按同一中间面联合计价。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G08.B01",
+          "original": "TP1不需要交换；分别核算无padding、输入补零/拷贝、OB后copy及补零拼接"
+        },
+        {
+          "id": "G08.B02",
+          "original": "A5 MXFP和BF16路径不同"
+        },
+        {
+          "id": "G08.B03",
+          "original": "draft的18个TP8层位各为1个零查询rank和7个MLA rank，零发送rank仍有接收、投影与规约任务"
+        },
+        {
+          "id": "G08.B04",
+          "original": "full-weight/local-weight切换及异常finally不能丢失"
+        },
+        {
+          "id": "G08.B05",
+          "original": "V4.1 CP走自己的forward，仅在输出边借用legacy _forward_o_proj并直接调用restore_tp_heads；不能把legacy完整forward的full-weight切换当作已执行工作。其TP1/skip helper仍先做inverse RoPE；rank适配只建view，不证明任意stride合法。"
+        },
+        {
+          "id": "G08.B06",
+          "original": "DSAModules→包装器→DSAAttention→选中impl的参数转交已补证；目标与DSpark均进入V4.1 custom-op forward，base/CP在输出边借用legacy _forward_o_proj。真实SWA/权重postload/投影及exchange保持，旧整条forward不由对象存在而变成已执行工作。"
+        },
+        {
+          "id": "G08.B07",
+          "original": "6个新增量化provider的实际权重/scale布局及切换轴已绑定；MX奇数scale组的补齐对不能直接按分片拼接，DS wo_a按head-group交付。静态W8 compressed分支可条件性省去无读者quant_bias平面，须与整次gather消除去重。当前171的86个O投影权重标签均为FLOAT，不计这些替代量化格式的C8收益。"
+        },
+        {
+          "id": "G08.B08",
+          "original": "94个历史导航项已按11份作用约束绑定。CP权重切换显式克隆并重绑本地参数，与PCP默认别名不同；计初始化复制，旧存储可能释放，不能把克隆字节无条件算新增常驻容量或逐token收益。实际provider的权重/scale布局仍需补齐。"
+        },
+        {
+          "id": "G08.B09",
+          "original": "补齐PCP四个metadata导入边及嵌套DSA投影的权重切换。restore padding索引0会复制第0行，不能当零值删除。兼容层共享full-weight pool且key不含layer身份；常驻完整权重或双bank预取必须保留owner/weight代际、量化属性与最后读者，不能凭handles为空判已就绪。"
+        },
+        {
+          "id": "G08.B10",
+          "original": "PCP仅在实际PCP metadata分支汇集并按restore索引恢复全局行；普通metadata回退无此操作。恢复索引可条件性并入cache投影或接收writer，但四个导入metadata helper及实际权重切换实现仍待绑定，不能计当前C8收益。"
+        },
+        {
+          "id": "G08.B11",
+          "original": "reduce_scatter前后都用movedim(0,dim)；CPU反例否定任意高维轴等价，已测二维正常。保存的HCCL无shape字段，不能声称当前模型触发错误。producer直写通信布局需保持原合法轴、reduction数值和alias/readiness。"
+        }
+      ]
+    },
+    "G09": {
+      "modules": [
+        "M06"
+      ],
+      "name": "路由选择、映射和dispatch packet",
+      "work_units": [
+        "W07",
+        "W20"
+      ],
+      "family_sources": [
+        "ROUTER-SCORE-DELIVERY-ESTIMATES.json",
+        "ROUTER-ID-GENERATION.json",
+        "MOE-ROUTER-BRANCHES.json",
+        "CLEAN-ROUTER-STAGE-VALUE.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G09.A01",
+          "proposal": "router输出producer结合打分/topK或只交付选中摘要，保留所有观察端口",
+          "disposition": "reference",
+          "source": "ROUTER-SCORE-DELIVERY-ESTIMATES.json",
+          "scope": "固定路由结果，价格只含已绑定的分数、ID、中间写入。"
+        },
+        {
+          "id": "G09.A02",
+          "proposal": "hash文本行若tid2eid预先确定专家ID且权重只需选中分数，可把ID查表移到router投影前，只计算选中expert的dot/softplus/归一化；混合vision行仍走动态选择，分支可在联合kernel内按行处理",
+          "disposition": "contract"
+        },
+        {
+          "id": "G09.A03",
+          "proposal": "把路由ID的int64转换与-1映射到0合到ID布局producer或gating入口；同一batch的同一ID代际、对齐方式、owner、顺序和padding可共用路由专用bank，原始ID留给其他读者",
+          "disposition": "reference",
+          "source": "ROUTER-SCORE-DELIVERY-ESTIMATES.json",
+          "scope": "固定路由结果，价格只含已绑定的分数、ID、中间写入。"
+        },
+        {
+          "id": "G09.A04",
+          "proposal": "topK结果直接按dispatch所需dtype/逻辑到物理映射/权重写包，并保留EPLB计数或capture tap",
+          "disposition": "reference",
+          "source": "ROUTER-SCORE-DELIVERY-ESTIMATES.json",
+          "scope": "固定路由结果，价格只含已绑定的分数、ID、中间写入。"
+        },
+        {
+          "id": "G09.A05",
+          "proposal": "按容量和权重合同比较已存在的分段MC2与FusedMC2。分段路径暴露dispatch、GMM2、combine事件，同时新增中间结果和提交成本",
+          "disposition": "mixed",
+          "source": "MODULAR-MOE-ADMISSION.json",
+          "scope": "后端切换本身不计收益，仅可比较具名中间面与提交差额。"
+        },
+        {
+          "id": "G09.A06",
+          "proposal": "按(P=TP向上取整后的行数,N=有效前缀)复用相同MC2 mask内容，或用有退休合同的稳定bank/共同metadata producer交付；同值可跨模型只读共用，不同值须防止覆盖在途读者。只有受支持的consumer ABI才可改为直接count谓词。先从已有profile绑定每context一次的fill成本，不按MoE层数重复计价。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G09.A07",
+          "proposal": "对同一forward代际、TP rank、replace_allreduce分支、原始local行数及目标padded容量，复用一次prepare后的局部BOOL mask，保留所有层的输入与输出义务。已保存16次前向若保留首次padding，余39次关联核时合计0.573–0.663ms/本rank前向；仅为条件工作预算，仍需输入只读、别名/生命周期和实际关键路径证明。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G09.B01",
+          "original": "sqrtsoftplus/softmax、hash/text/vision分支不同；仅tid2eid或bias_vl存在时做ID预处理。ALLGATHER、MC2本地pad/split与额外SP纠正的布局合同分别保留"
+        },
+        {
+          "id": "G09.B02",
+          "original": "EPLB map、enable_force_eplb的确定性缓存表、force_load_balance随机分支、LoRA、V1/V2和通信不同"
+        },
+        {
+          "id": "G09.B03",
+          "original": "active sender=0不意味着receiver=0；padding不是可随意跳过的收发协议"
+        },
+        {
+          "id": "G09.B04",
+          "original": "28处forward选择控制及12个host例证绑定实际MoE后端/容量/有效行合同：EP关闭或EP1先AllGather，LoRA+EP先AlltoAll；固定A3 fused=1且EP<=32先FUSED_MC2，不受后续token容量阈值切换。模式名不等于native实现或目标/草稿workspace。"
+        },
+        {
+          "id": "G09.B05",
+          "original": "32份已有profile将208次context写入关联到1400核；实际context的5/8核合计6.44–13.44us，不是服务收益。另有DP1的16次实际target前向各40次同形状mask padding，共640次/3200核；这是单独的跨层公共值机会，不按全模型所有层/所有迭代外推。"
+        },
+        {
+          "id": "G09.B06",
+          "original": "目标/草稿MoE清单保留各层对象，最后一层只提供代表计数；这既不证明权重/布局相等，也不排除带独立输出的联合调度。占位层和dense层不在本地MoE清单，不等于全模型无工作。"
+        },
+        {
+          "id": "G09.B07",
+          "original": "9种QuantType不能按单一is_quant统一dispatch和MLP融合：W4A16/MXFP权重量化但不dispatch量化，W4A8可dispatch量化但generic融合字段为假。frozen元数据仍保留tensor引用，不能据此跨代复用或删除写入。"
+        }
+      ]
+    },
+    "G10": {
+      "modules": [
+        "M05",
+        "M06",
+        "M07"
+      ],
+      "name": "shared/routed的共同输入与调度切分",
+      "work_units": [
+        "W02",
+        "W03",
+        "W07",
+        "W20",
+        "W47"
+      ],
+      "family_sources": [
+        "ROUTED-EXPERT-HANDOFF-ESTIMATES.json",
+        "SHARED-MLP-FUSION-ESTIMATES.json",
+        "MOE-MERGE-HC-C8.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G10.A01",
+          "proposal": "当前fused MC2=1由选型强制关闭shared overlap，单独打开开关的变体已排除。显式共享调度或受支持的分段backend仍是条件方案，需分别计价和验收",
+          "disposition": "mixed",
+          "source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+          "scope": "把 shared 提前或改流单列。共同量化或联合输出只按真实少掉的计算、写入和提交计价。"
+        },
+        {
+          "id": "G10.A02",
+          "proposal": "相同输入、同量化/行域且两端支持外置scale时只DQ一次；当前dispatch_ffn_combine未暴露该scale输入，需另立prequantized协议，不能只重接现有API",
+          "disposition": "reference",
+          "source": "ACTIVATION-QUANT-REQUEST-ESTIMATES.json",
+          "scope": "保留路由与共享专家各自输入协议和舍入。"
+        },
+        {
+          "id": "G10.A03",
+          "proposal": "保留FusedMC2时，单独实现并验证受支持的shared调度协议；当前flag-only重叠开关已被配置禁用。可评估量化准备前移及gate-up按router就绪启动，activation/down遵守真实输入依赖；FusedMC2没有已证实的细粒度routed完成事件",
+          "disposition": "mixed",
+          "source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+          "scope": "把 shared 提前或改流单列。共同量化或联合输出只按真实少掉的计算、写入和提交计价。"
+        },
+        {
+          "id": "G10.A04",
+          "proposal": "选择分段MC2时，shared activation可对齐dispatch完成或GMM2前事件，down可对齐combine前事件。比较暴露就绪点的收益与分段新增I/O",
+          "disposition": "mixed",
+          "source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+          "scope": "把 shared 提前或改流单列。共同量化或联合输出只按真实少掉的计算、写入和提交计价。"
+        },
+        {
+          "id": "G10.A05",
+          "proposal": "仅把共享Down按输出列分片。Gate-Up和全行动态量化留在token owner，交换INT8与行scale，保留每列完整K归约，再回传BF16列并按原token布局合并。",
+          "disposition": "outside",
+          "source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+          "scope": "共享 Down 的列分片与重放置不产生固定分片下的融合增量。"
+        },
+        {
+          "id": "G10.A06",
+          "proposal": "在终层注意力及缓存写入结束后，按所有终层读者的行并集裁FFN。保留活跃raw、aux、PP和路由状态分支，并独立核对缩小M的原生精度。",
+          "disposition": "mixed",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "纯行裁剪单列；与终层融合比较时两边采用相同的需求行。"
+        },
+        {
+          "id": "G10.A07",
+          "proposal": "把shared作为始终执行的局部专家分支纳入新的联合MoE区域，按真实row/weight owner选择本地grouped-MLP或显式共享专家路由；routed原归约与shared独立累加并各自舍入后再merge，避免两个完整输出面",
+          "disposition": "mixed",
+          "source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+          "scope": "把 shared 提前或改流单列。共同量化或联合输出只按真实少掉的计算、写入和提交计价。"
+        },
+        {
+          "id": "G10.A08",
+          "proposal": "shared down或routed combine epilogue融合scale、merge和HC Post的可交付部分",
+          "disposition": "reference",
+          "source": "MOE-MERGE-HC-C8.json",
+          "scope": "已有 M3 的 merge→HcPost 服务对照；其它行数、回传和 epilogue 保留条件。"
+        },
+        {
+          "id": "G10.A09",
+          "proposal": "在合法未量化模块路径中，把GMM1的成对gate/up tile直接交给所选激活，保留原GMM舍入及激活前的LoRA更新；必要时保留双输出。现有supports_fused_activation=False只代表当前实现不支持。",
+          "disposition": "inactive",
+          "source": "ROUTED-EXPERT-HANDOFF-ESTIMATES.json",
+          "scope": "未量化 GMM 分支不适用于固定 W8A8 目标；W8A8 的真实 FP16/INT8 交付另有独立预算。"
+        },
+        {
+          "id": "G10.A10",
+          "proposal": "把可选top-k乘法放入激活epilogue或GMM2输入端，保留原dtype/broadcast/乘法舍入结果、LoRA Down读者及before_gmm2事件语义；不能用输出端缩放代替。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G10.A11",
+          "proposal": "仅当存在实际bias转换时，按权重generation预备FP32 bias并随加载/EPLB刷新；GMM已融合bias相加，无bias或已FP32时没有转换消除收益。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G10.A12",
+          "proposal": "为共享/路由分支的并发microbatch或跨迭代重叠建立显式输出与workspace bank及事件代际；只解除存储冲突，保留输入、参数、collective顺序及所有末端读者，不能把清空Python引用槽当成设备回收。",
+          "disposition": "mixed",
+          "source": "SHARED-EXPERT-OVERLAP-CONTRACTS.json",
+          "scope": "把 shared 提前或改流单列。共同量化或联合输出只按真实少掉的计算、写入和提交计价。"
+        },
+        {
+          "id": "G10.A13",
+          "proposal": "预裁剪激活可在consumer中直接读取两半并按原次序裁剪，条件性删除两个clamp输出和cat的物化接口；M行、每半D、元素e字节的逻辑接口上界8*e*M*D。GEMM epilogue还需保留原低精度边界及全部raw读者，与已有norm/quant/activation同一工作只计一次；无当前C8收益结论。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G10.A14",
+          "proposal": "在pad_rows=0且调用方不依赖fresh output或独立可写存储时跳过cat；或由producer写最终bank的有效行和所需零尾。与已有padding融合计同一物化，需实际调用比例、alias和关键路径证据。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G10.B01",
+          "original": "shared无/有、TP/SP/DP-only、复制/分片权重不同。已观测routed/shared 1023/816和211/3两类，须保留false padding mask和原SP裁剪"
+        },
+        {
+          "id": "G10.B02",
+          "original": "INT8/MXFP/SITU/普通MLP与LoRA不同"
+        },
+        {
+          "id": "G10.B03",
+          "original": "FP16分支的缩放方式不同于BF16；不能统一套routed_scale"
+        },
+        {
+          "id": "G10.B04",
+          "original": "事件包含buffer/队列生命周期和调度因素，需要分别核对"
+        },
+        {
+          "id": "G10.B05",
+          "original": "外层 tuple 的非FP16为 routed*scale+shared，FP16为 shared/scale+routed；tensor返回跳过外层合并与规约，保留runner协议。不能把当前ForeachAdd误记为tuple的muls_add。"
+        },
+        {
+          "id": "G10.B06",
+          "original": "未量化模块路径为GMM1→可选LoRA更新→所选激活→可选top-k乘法→GMM2→可选LoRA Down。apply_act_quant此时不量化；有bias时把scale移到Down后改变数学结果，无bias也不能跳过BF16舍入。"
+        },
+        {
+          "id": "G10.B07",
+          "original": "EPLB权重family的list/张量、专家顺序、可写别名、offset0、NPU格式和stride分别保留；逐专家clone不是原张量的共享view。LoRA的method-owned routing/context阻止未经改造的跨调用交错。"
+        },
+        {
+          "id": "G10.B08",
+          "original": "17条通信分支核对：post-dispatch及before_gmm2是shared activation调度起点，不是完整routed Y就绪事件；generic函数仍在combine之后才返回。不能把这些Python事件套成已保存fused任务的内部阶段。"
+        },
+        {
+          "id": "G10.B09",
+          "original": "MegaMoe对称buffer必须使用rank-invariant容量；decode采用最坏接收上界，prefill/mixed配置可能更小，平均profile负载不能证明最坏分布安全。重用buffer更新quant属性不等于重新分配。"
+        },
+        {
+          "id": "G10.B10",
+          "original": "通用shared包装器的CUDA-alike辅助流在Ascend OOT不适用，但不能由此排除单独的MK内部路径或AscendSharedExperts调度。禁用判定和DBO输出索引是property，每次选择按当前状态求值。"
+        },
+        {
+          "id": "G10.B11",
+          "original": "输出引用存在、输入就绪、输出就绪、最后读者结束是不同事实。output属性清槽并返回引用，不等待设备；两个DBO引用槽/事件对不等于两套独立底层workspace。NPU精细milestone用any，部分事件仍进入精细协议并暴露缺失边界。"
+        },
+        {
+          "id": "G10.B12",
+          "original": "32条runner/activation适配分支核对：active量化LoRA提前走专用路径；现有fused activation与模块化路径共守GMM2输入及scale边界。SITU的FP32计算、GELU近似、OAI布局、STEP固定limit7与默认SwiGLU原地clamp不能混用。"
+        },
+        {
+          "id": "G10.B13",
+          "original": "build_mlp_compute_input缺moe_config时实际使用默认激活参数，未按注释读取输入对象；SwiGLU alpha的or1.0还会把零替换为1。融合验收必须按实际参数来源和None/零语义。"
+        },
+        {
+          "id": "G10.B14",
+          "original": "mix_placement下shared gate/up按输出行、down按输入列拆到追加expert槽。回调可拒绝并继续查replica，多个slice合并成同一返回名称；权重形状相同不证明角色、完成时机或输出可并发。",
+          "scope_update": "此项描述 shared 权重切分和装载，归档为分布条件。"
+        },
+        {
+          "id": "G10.B15",
+          "original": "保留fused compute与单独设计shared调度仍是条件机会；当前配置确实禁用已有shared-overlap开关，不能通过缩小batch或旧generic callback声称已得到新的routed-Y就绪点。"
+        },
+        {
+          "id": "G10.B16",
+          "original": "显式HC入口已实现一次专家前缀、融合/原始两种末端处理。7种合成入口、21次输入代际图回放逐位一致，输入不变且每次前缀仅执行一次。M211、裁剪、无shared、最终变换和非连续分支均走原末端。服务未部署；实际16-worker门控、完整图与C8收益仍待验证。"
+        },
+        {
+          "id": "G10.B17",
+          "original": "最新完整服务证据：M3 merge＋HC 的 16-worker/640 层真实输入逐位比较和捕获命中通过，9 轮冻结 C8 文本与计数一致；前/候选/后参照中位数 15.919594/15.968390/15.938434 秒，未证实端到端加速。原服务已恢复，停止同实现追加试跑。早期接入待证状态由此限定结果更新，不扩展至其他形状、分支或全模型上限。",
+          "scope_update": "只复用 M3 的服务对照。该行的 merge→HC 改写未得到增益。"
+        },
+        {
+          "id": "G10.B18",
+          "original": "返回谓词显式覆盖通信归约、shared重叠和九种量化mode。运行时_fused_output_is_reduced不能仅凭capture时的Python值冻结；通用tuple分支不等于shared/routed无处理直通。"
+        },
+        {
+          "id": "G10.B19",
+          "original": "现有inner custom op已交付shared/routed双输出，源级可选一次prefix/两种epilogue。64个单卡replay各40次旧merge+HC合计1.09–1.21ms，占所定义部分执行段1.6%–4.0%；不是C8收益。直接返回旧tuple会再次进入缩放/归约分支；实际静态门控、hooks与图生命周期未验证，保留条件候选。"
+        },
+        {
+          "id": "G10.B20",
+          "original": "保留BF16 merge舍入的HC4融合在5组原生fixture逐位一致；删舍入对照61440值失败。M3局部native/retiled/fused中位22.34/19.56/4.72us，M211小幅改善、M1023融合反而变慢，不能全shape替换。4472条原始DB校正blockDim为STRING_IDS外键，实际M3 blockNum=3。实际输出ABI、读者、图生命周期及C8收益仍未验收。"
+        },
+        {
+          "id": "G10.B21",
+          "original": "85个函数按9份值/状态合同审查，含新准入的26个控制。PrivateUse1真实helper确认MC2/ALLTOALL/FUSED_MC2及SP-ALLGATHER的最终归约为identity；shared归约采用相反门控，仍须保留。merge进入HC时保留原BF16相加舍入、截断及可选zero-expert的后续加法。旧M3两任务同调用中位28.48us不是可保证收益。"
+        },
+        {
+          "id": "G10.B22",
+          "original": "pad_rows=0仍走cat，条件性identity或producer直写可省物化但必须保留fresh-output和alias合同。零块cache键不含TP容量；高维fallback的F.pad轴与cat轴不同，不把2D固定配置结论推广到任意rank或拓扑变更。"
+        },
+        {
+          "id": "G10.B23",
+          "original": "预SiLU裁剪与后SiLU裁剪不同；固定Triton Step在FP32中算完才转换，PyTorch路径中间低精度舍入。CPU反例否定无条件逐位等价；负limit还存在clamp顺序差异。默认alpha/beta路径与非默认参数分开，不能按名称合并激活。"
+        }
+      ]
+    },
+    "G11": {
+      "modules": [
+        "M00",
+        "M01",
+        "M02"
+      ],
+      "name": "Engram哈希、lookup、WKV与gate的数据面",
+      "work_units": [
+        "W08",
+        "W24",
+        "W48"
+      ],
+      "family_sources": [
+        "ORDERED-ENGRAM-VALUE.json",
+        "CROSS-LAYER-HC-FUSION-ESTIMATES.json",
+        "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G11.A01",
+          "proposal": "当前Engram overlap关闭：比较已有异步lookup按layer1/layer14就绪交付的调度变体，分别计host-UVA与HBM资源",
+          "disposition": "contract"
+        },
+        {
+          "id": "G11.A02",
+          "proposal": "固定q.float()*k.float()按层与参数代际预计算。共用旋转矩阵的FP32版，单次gate保留一份展宽hidden供旋转和残差共读",
+          "disposition": "reference",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "只计实际查表交付与 gate 读写；WKV 和 mask 的必要计算保留。"
+        },
+        {
+          "id": "G11.A03",
+          "proposal": "mask为假时裁旋转、K和gate统计，保留原FP32零乘V及残差舍入。分别比较活跃行WKV加不活跃行V，以及所有行V加活跃行K",
+          "disposition": "contract"
+        },
+        {
+          "id": "G11.A04",
+          "proposal": "lookup直接写最终owned输出/发送布局并覆盖全部默认区域；避免先全零再全覆盖",
+          "disposition": "reference",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "只计实际查表交付与 gate 读写；WKV 和 mask 的必要计算保留。"
+        },
+        {
+          "id": "G11.A05",
+          "proposal": "SP用按token owner的AllToAll代替头分片全量gather再取本地行，保持原DP交换、head顺序、BF16值和非整除补零；非SP及其他整面读者保留原交付",
+          "disposition": "reference",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "只计实际查表交付与 gate 读写；WKV 和 mask 的必要计算保留。"
+        },
+        {
+          "id": "G11.A06",
+          "proposal": "按共同TP组比较两层合包与各自ready；按head分片WKV可将每层每卡的独立矩阵由300MiB减到37.5MiB，另计25,600列部分和、数值规约与跨卡交付",
+          "disposition": "mixed",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "合包或公共输入可单列；WKV 前移、换卡与缓存命中的收益不计入融合。"
+        },
+        {
+          "id": "G11.A07",
+          "proposal": "TP8按token owner组做输出列分片。每个输出点保留完整K维归约，按原列序发回BF16 K/V后运行原gate。双设备同卡组每卡每层的跨卡唯一输入为54KiB，与直送token owner相同，每设备WKV权重由300MiB减至150MiB，新增卡内流量需计价",
+          "disposition": "outside",
+          "source": "ORDERED-ENGRAM-VALUE.json",
+          "scope": "权重列切分和异地投影属于权重分布。"
+        },
+        {
+          "id": "G11.A08",
+          "proposal": "lookup就绪后可提前WKV，保留隐藏状态到gate的依赖；同资源串行前移只改变排程，memo命中和WKV省算力另计",
+          "disposition": "mixed",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "合包或公共输入可单列；WKV 前移、换卡与缓存命中的收益不计入融合。"
+        },
+        {
+          "id": "G11.A09",
+          "proposal": "同一table/head/hash/参数代际的重复lookup或WKV可批内共享；也可按内容与参数代际缓存跨迭代的去量化/投影结果，历史hash写入独立保留",
+          "disposition": "contract"
+        },
+        {
+          "id": "G11.A10",
+          "proposal": "WKV输出tile直接进入gate统计与residual，旋转/不旋转分别实现；已有unrotated fused gate去重",
+          "disposition": "reference",
+          "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+          "scope": "只计实际查表交付与 gate 读写；WKV 和 mask 的必要计算保留。"
+        },
+        {
+          "id": "G11.A11",
+          "proposal": "合并mask/hash/lookup输入扫描或生产时，保留独立的早期mask发布，或明确计价普通kernel完成事件造成的延迟；不能只按减少launch断定更快。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G11.A12",
+          "proposal": "使用独立输出bank与匹配事件代际探索跨调用lookup重叠，每个新增bank至少2*C*sum(H_layer)+C逻辑字节；slot-history、accepted输入、表版本和collective顺序仍独立约束。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G11.A13",
+          "proposal": "以实际容量证明为前提，比较不可变hash常量专门化、INT32索引交付与直接lookup消费；保留INT64乘/XOR/mod及地址计算，核对所有reader/图ABI。索引缩窄与整个缓冲消除不能重复计收益，也不重复计已有双层单launch共享。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G11.A14",
+          "proposal": "在完整lookback bank已证全-1、无中间写入且本次所有prompt窗口仍未知时，复用该CPU/device值和稳定地址，省去重复发布；请求换位本身不改变常量bank。以源CPU start和prompt长度判断，保留cache历史写、bank替换、排队copy及最终reader生命周期。已看到48B复制API，尚无有效命中率或服务收益。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G11.B01",
+          "original": "BF16/INT8/FP8 storage、scale uint8特殊码、UVA/device/CPU、TP/DP分开"
+        },
+        {
+          "id": "G11.B02",
+          "original": "dead mask、token mask、empty local heads/tokens仍保留规范值与通信"
+        },
+        {
+          "id": "G11.B03",
+          "original": "跨Engram层参数和表不同，不能按相同ID合并"
+        },
+        {
+          "id": "G11.B04",
+          "original": "图外NONE/FULL异步准备可保留TP/DP通信；同图捕获producer另要求slotless、无SP、PP1和所有表TP1/DP1。后者限制不能用于排除TP8图外overlap。"
+        },
+        {
+          "id": "G11.B05",
+          "original": "mask先于hash和表通信发布，SP在mask拷贝前等待；每层lookup在DP/TP交付及tail清零后单独发布。失败/跳过消费者仍须retire或finally join，record_stream只保护分配器生命周期。"
+        },
+        {
+          "id": "G11.B06",
+          "original": "所有graph key共享一套capacity输出bank；事件分key不等于存储分bank。token_indices只减少交付行，源码在其之前仍计算完整输入history/hash。"
+        },
+        {
+          "id": "G11.B07",
+          "original": "62条表构造/加载/lookup分支已归并。构造、注册、checkpoint变换与reload属于表代际开销，不得乘以decode轮数计为推理收益；查表内已有decode和ownership置零融合。"
+        },
+        {
+          "id": "G11.B08",
+          "original": "共享host表按相同TP分片组共享物理backing，各rank仍有自己的注册与device pointer映射；effective EDP1已省去逐步DP lookup交换，不能再记一次删除收益。"
+        },
+        {
+          "id": "G11.B09",
+          "original": "BF16无scale、INT8/FP32和MXFP8/E8M0保留不同数值边界。code和scale必须来自同一选中index并成对发布；FP8转INT8重定量路径不是native FP8等价数据。"
+        },
+        {
+          "id": "G11.B10",
+          "original": "35处hash/请求映射/cache谓词按5组合同归并：当前chunk优先于已知lookback，dead阻断沿shift累积；历史cache保存mapped token/dead_id而非最终hash，56条T24链先写cache再hash。跨层共享源读取仍保留独立INT64滚动值和head参数。"
+        },
+        {
+          "id": "G11.B11",
+          "original": "再核对15条原始和8条新增hash/UVA分支。请求索引已有一份跨层共享；slot-cache写入先于fallback读者，结果缓存命中不消除历史更新。分离request search是现有实现选择，不是数学不可融合证明。"
+        },
+        {
+          "id": "G11.B12",
+          "original": "UVA的INT32 ID已在设备内拓宽，没有额外host cast可删。空行返回不写output，pad尾部、global vocab边界和chunk pointer保持各自合同。"
+        },
+        {
+          "id": "G11.B13",
+          "original": "收紧错误恢复结论：unregister失败保留alias，但free失败在成功unregister及alias清空之后，源码无独立注册状态；不能泛称所有close失败均可安全重试。未注入故障，也未声称当前服务发生此问题。"
+        },
+        {
+          "id": "G11.B14",
+          "original": "冻结C8：3前参照+1排除计时的诊断+3overlap+3后参照均通过文本/负载检查；16worker确认图外FULL路径，原服务已恢复。候选中位15.898秒位于前后参照波动中，当前未建立服务加速；停止追加该flag变体样本。"
+        },
+        {
+          "id": "G11.B15",
+          "original": "Engram embed.scale→weight_scale_inv在此处仅改名并转交原payload，没有执行倒数。具体scale方向/格式属于所选loader与消费者；不可凭名字折叠。"
+        },
+        {
+          "id": "G11.B16",
+          "original": "固定token映射/hash/layout的24处分支已归并为8份合同。归一化token、raw token、完整ngram、table/head/row、投影行及gate输入是不同等价域；相同compressed词表大小不能证明相同映射，也不能跨到原始embedding/首层缓存。"
+        },
+        {
+          "id": "G11.B17",
+          "original": "9个host例证独立核验48个prime与累计offset，两层总行数384006168/384016682恰好符合配置。prime按层序号分配，RNG按实际layer ID播种；head_dim只改物理payload，不能让无关hash缓存一并失效。"
+        },
+        {
+          "id": "G11.B18",
+          "original": "INT32可容纳当前合法hash行号，但row*256寻址需要展宽。双层hash缓冲逻辑384B/token可条件性缩至192B/token；T24只少4608B存储，不据此启动服务试验。完整adapter/graph ABI与数值lowering仍待证。"
+        },
+        {
+          "id": "G11.B19",
+          "original": "lookback_depth来自当前Engram hash对象；没有hash才返回0。普通decode、相同token ID或缓存命中不自动消除历史输入和代际义务。"
+        },
+        {
+          "id": "G11.B20",
+          "original": "原生测试确认最终bank直写可把M24的Transpose+Memcpy+尾零合为1个kernel；5类Engram输入各2代完整bank逐位一致，含空输入、单行和head裁剪。M0走原生清零，TP1原本direct路径无重复信用。真实HCCL、最大prefill及graph读者接入仍开放。"
+        },
+        {
+          "id": "G11.B21",
+          "original": "零token与零head不同；原dequant rows=0返回给定output，不保证非空padding已初始化。dead-token可条件性省token_map读取，保留合法地址、重复slot和所有原store。V2 lookback按max容量写-1尾部，padded行还读取state0长度。"
+        },
+        {
+          "id": "G11.B22",
+          "original": "Engram可用、overlap可用和producer可捕获是不同合取条件；slot-cache、SP、PP及每层DP/TP分别约束代际。配置阶段hash/prime选择不能重复记为每token收益。"
+        },
+        {
+          "id": "G11.B23",
+          "original": "176条实际Transpose调用栈命中同步准备且提供持久bank；关闭overlap不排除最终直写。64条prefill最终copy与同stream前序Transpose配对，但M24 copy/尾零及完整迭代没有在缓存中关联齐；不能套用隔离3变1收益。CPU输入复用event也不等于设备bank最后读者退休。接入保持条件，转向其他分支。"
+        },
+        {
+          "id": "G11.B24",
+          "original": "32个旧profile中176次Engram embed_gathered正向绑定all_gather末端Transpose；可优先核对WKV等消费者直接读取rank-major接收布局，保留head顺序、输出读者和数值边界。与owner路由/缓存命中同一工作不重复计价。"
+        },
+        {
+          "id": "G11.B25",
+          "original": "prompt-only lookback全容量清-1后上传；当前请求窗口完全离开prompt时整bank为-1，但刚进入decode仍需prompt尾部。1个旧原始profile记录2次INT32[4,3] H2D API；连接ID为空，不能定量为DMA或C8收益。只复用该常量输入，不消除Engram历史cache写和fallback。"
+        }
+      ]
+    },
+    "G12": {
+      "modules": [
+        "M07",
+        "M08",
+        "M10"
+      ],
+      "name": "终层、aux与raw HC的需求驱动交付",
+      "work_units": [
+        "W02",
+        "W40",
+        "W41",
+        "W42"
+      ],
+      "family_sources": [
+        "TERMINAL-GUARD-BUDGETS.json",
+        "TERMINAL-COMPACT-FFN-SHADOW.json",
+        "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+        "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G12.A01",
+          "proposal": "HC Post可同时交付aux mean或终层collapse结果，保留原取值时点",
+          "disposition": "reference",
+          "source": "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json",
+          "scope": "三个检查点的交付、投影输入选行共用同一份数据，保留 norm/raw 独立读者。"
+        },
+        {
+          "id": "G12.A02",
+          "proposal": "三处aux按token主序写入同一包，最后一次汇集得到连续三路。padded保持完整行前缀，可提前同M主投影；拒绝计数和query选择仍在采样后。",
+          "disposition": "reference",
+          "source": "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json",
+          "scope": "三个检查点的交付、投影输入选行共用同一份数据，保留 norm/raw 独立读者。"
+        },
+        {
+          "id": "G12.A03",
+          "proposal": "非padded保留实际拒绝后行选择。固定计数collective的成本按最繁忙owner的唯一行数计；改M的提前投影已有BF16位差。",
+          "disposition": "reference",
+          "source": "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json",
+          "scope": "三个检查点的交付、投影输入选行共用同一份数据，保留 norm/raw 独立读者。"
+        },
+        {
+          "id": "G12.A04",
+          "proposal": "在所有归一化读者的有序行并集已知时，先选行再collapse/norm。48条稳态head均需要全部24行，混合prefill才有裁行空间。",
+          "disposition": "reference",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "按原末层归约与所需 raw/归一化读者计价；只跳过无消费者的发布。"
+        },
+        {
+          "id": "G12.A05",
+          "proposal": "若raw HC仍要全量汇集，可只汇集选中行的4个FP32 premix系数，再从原raw面选行做collapse和RMS。",
+          "disposition": "reference",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "按原末层归约与所需 raw/归一化读者计价；只跳过无消费者的发布。"
+        },
+        {
+          "id": "G12.A06",
+          "proposal": "无raw需求时本地collapse再TP8 gather，或再将RMS移至gather前。171用原算子跨行重分区逐位相同；保持原gamma、eps及BF16舍入。",
+          "disposition": "reference",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "按原末层归约与所需 raw/归一化读者计价；只跳过无消费者的发布。"
+        },
+        {
+          "id": "G12.A07",
+          "proposal": "可将最终Post按tile交付给顺序FP32 collapse。保留各路Post BF16舍入，两种重关联树在普通输入也出现位差。",
+          "disposition": "reference",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "按原末层归约与所需 raw/归一化读者计价；只跳过无消费者的发布。"
+        },
+        {
+          "id": "G12.A08",
+          "proposal": "复用F26条件分支：仅禁用无观察者的raw快照写时保留gather与collapse顺序；剩余raw观察者关闭后选择本地collapse再gather；raw仍需要时可合包两份gather或直接发布raw目标缓冲",
+          "disposition": "reference",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "按原末层归约与所需 raw/归一化读者计价；只跳过无消费者的发布。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G12.B01",
+          "original": "有无_mtp_hidden_buffer、aux层集合、SP/非SP不同"
+        },
+        {
+          "id": "G12.B02",
+          "original": "aux位于本层Engram之前"
+        },
+        {
+          "id": "G12.B03",
+          "original": "target与draft终层已有collapse-before-gather情况不同"
+        },
+        {
+          "id": "G12.B04",
+          "original": "同M的三维gamma RMS调用在M24/1688有限样本逐位一致，但native内仍先Transpose再RmsNorm，不能算消除重排。自定义rank-aware RMS的原舍入/归约次序仍需独立接受。"
+        },
+        {
+          "id": "G12.B05",
+          "original": "88次DSpark combine_hidden_states正向绑定main projection后的gather Transpose；直接layout consumer是现有aux/main交付的细化，不能把shared M或RMS reduction次序改动视作免费。"
+        }
+      ]
+    },
+    "G13": {
+      "modules": [
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "name": "词表head与分数可见性联合设计",
+      "work_units": [
+        "W09",
+        "W12",
+        "W14",
+        "W28",
+        "W32",
+        "W36",
+        "W37",
+        "W40"
+      ],
+      "family_sources": [
+        "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+        "TERMINAL-HEAD-DELIVERY-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G13.A01",
+          "proposal": "恒等前缀可用视图交付输入行，要求布局、写入与跨次图缓冲生命周期允许共享存储",
+          "disposition": "reference",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "复用固定行域的 head 输入与末层边界预算。"
+        },
+        {
+          "id": "G13.A02",
+          "proposal": "非恒等索引可尝试直接按索引读取head tile，保持重排、重复、边界检查和原行算术；单独计仍需要物化的读者",
+          "disposition": "reference",
+          "source": "TERMINAL-HEAD-DELIVERY-ESTIMATES.json",
+          "scope": "复用固定行域的 head 输入与末层边界预算。"
+        },
+        {
+          "id": "G13.A03",
+          "proposal": "只需选择结果的case：每卡在原舍入/processor之后产生best(value,global-ID)，只交换摘要",
+          "disposition": "reference",
+          "source": "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+          "scope": "局部分数与全局胜者用同一套归并，保留 raw/logprob 观察者。"
+        },
+        {
+          "id": "G13.A04",
+          "proposal": "贪心选择用排序后的FP32位序和原列ID打包。无restore每行一个INT64键。需restore时可在一次MAX归约中用两键；所有rank已知thinking覆盖列时用同一键的优先位完成全行判定",
+          "disposition": "reference",
+          "source": "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+          "scope": "局部分数与全局胜者用同一套归并，保留 raw/logprob 观察者。"
+        },
+        {
+          "id": "G13.A05",
+          "proposal": "确定性greedy验证可分块计算head行，在每个请求首次不匹配后停算后缀；保留bonus必需状态和可见分数，计入额外归并轮次及小M效率",
+          "disposition": "contract"
+        },
+        {
+          "id": "G13.A06",
+          "proposal": "五步验证按实测分布比较4+1与全算。bonus可在第一波保留原状态顺序，也可在早期无读者时与最后一块合算，或仅在全接受后单独算",
+          "disposition": "contract"
+        },
+        {
+          "id": "G13.A07",
+          "proposal": "将processor拆为CPU状态规划/小数据包与数值处理/原时点提交；MinTokens结构化恢复额外交付全行-inf谓词和原始stop候选，thinking的1e9覆盖保持最后优先级",
+          "disposition": "contract"
+        },
+        {
+          "id": "G13.A08",
+          "proposal": "普通/bonus 先恢复再 penalty，拒绝 target 先 penalty 再恢复。按分支冻结恢复谓词和候选比较，停词表可共享，行掩码、分数和平面输出分别保留",
+          "disposition": "contract"
+        },
+        {
+          "id": "G13.A09",
+          "proposal": "保留完整raw需求时仍可融合head epilogue处理/选行，并独立保留raw输出",
+          "disposition": "contract"
+        },
+        {
+          "id": "G13.A10",
+          "proposal": "有限topK/指定token/logprob case比较局部候选+全局统计协议；全词表返回case仍需完整分数",
+          "disposition": "contract"
+        },
+        {
+          "id": "G13.A11",
+          "proposal": "penalty启用case按请求/历史代际维护prompt membership与已提交token计数，重用不可变prompt面；把计数查询与score处理/局部摘要融合，保留bonus临时历史和拒绝回滚",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G13.B01",
+          "original": "raw/processed、soft_cap/scale、penalty/badword/thinking state、allGreedy/mixed/random、logprob_token_ids分别绑定"
+        },
+        {
+          "id": "G13.B02",
+          "original": "tie、NaN、padding词表、vocab映射及rank顺序必须匹配"
+        },
+        {
+          "id": "G13.B03",
+          "original": "score shard ownership和token shard ownership不是同一个维度"
+        },
+        {
+          "id": "G13.B04",
+          "original": "target/draft独立head与vision/text偏置保持各自参数域；PP本地缺失不是全局死值。sink的CP整份与TP分头装载也不能按同shape互换。"
+        },
+        {
+          "id": "G13.B05",
+          "original": "PCP词表列按TP-major/PCP-minor编号，PCP→TP gather与倒序不同；fine head已有单次packed all-to-all，末尾interleave可与兼容消费者融合。disable_tp先于head前缀分类，复制Markov头不参与该词表通信。"
+        },
+        {
+          "id": "G13.B06",
+          "original": "指定token logprob仍返回全词表排名；实际batched_count_greater_than用>=，平分计入。FP32舍入可把不同logits变为相同logprob，不能仅凭单调性把排名改为原logits比较。可复用sampled列gather或直接交付选定输出，但保留归一化、完整排名和可见矩形默认值。"
+        },
+        {
+          "id": "G13.B07",
+          "original": "目标FP32最终writer可把M24重排+Cast合为1个kernel；两种布局覆盖全部65536种BF16编码，与CANN输出逐位一致。纯移位在254种NaN编码上失败；保留实际浮点转换。只有目标分支的FP32需求及全部raw/processor读者被证明后才可接入，不能应用于draft Markov BF16计算。"
+        },
+        {
+          "id": "G13.B08",
+          "original": "复用已有FP32 log_softmax、含平分的>= rank统计、TopK严格小于阈值mask与RNG合同；wrapper不构成额外算子，不重复计原生融合收益。"
+        },
+        {
+          "id": "G13.B09",
+          "original": "DSpark logits先RMSNorm，confidence读取原始hidden；目标compute_logits不再加RMSNorm。保留不同表示的全部读者，可双输出或按分支融合，不能共用已归一化hidden。"
+        },
+        {
+          "id": "G13.B10",
+          "original": "bad-word比较可按相同history代际共享前缀并合并重复末token；每个draft位置使用自己的provisional history，不能复用一个committed mask。投机配置的processor构造在插件加载前返回MinTokens，普通配置仍保留自定义回调顺序。"
+        },
+        {
+          "id": "G13.B11",
+          "original": "88 target、88 draft和16 dummy logits调用分别绑定gather末端Transpose。dummy与实际推理分开；rank-major score consumer与vocab owner/summary协议会重叠删除同一物化，保留全局词表顺序、ties、logprobs和其他分数读者。"
+        }
+      ]
+    },
+    "G14": {
+      "modules": [
+        "M09",
+        "M11"
+      ],
+      "name": "采样、拒绝与状态输出的统一区域",
+      "work_units": [
+        "W09",
+        "W10",
+        "W11",
+        "W12",
+        "W13",
+        "W22",
+        "W28",
+        "W30",
+        "W36",
+        "W37",
+        "W44"
+      ],
+      "family_sources": [
+        "RANDOM-SAMPLING-FUSION-ESTIMATES.json",
+        "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G14.A01",
+          "proposal": "BR01/02按真实raw需求省副本；BR04单/双输出gather+cast作为较弱但适用更广的变体",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A02",
+          "proposal": "target/bonus行分割在head gather输出布局内完成，保留working cast和原写入隔离；需要全分数的case保留相应次序与观察端口",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A03",
+          "proposal": "greedy行与random行分别专门化或受控执行，将processor/argmax/reject及sentinel输出延伸融合",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A04",
+          "proposal": "纯贪心且合法连续前缀、无discard时，拒绝producer可同时交付count与seed。通用两输出融合复用已有GPU discard面及原backup；两者替代同一条重算链",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A05",
+          "proposal": "随机恢复/entropy/block verify保留概率/RNG读者，可合并多次分数遍历而不擅自删除随机draw",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A06",
+          "proposal": "随机验证先产实际恢复行，再只对这些行做残差归约。单请求融合与按词表切 tile 两条路线分别核算，保留原 q 所有者及 RNG 消费",
+          "disposition": "inactive",
+          "source": "RANDOM-SAMPLING-FUSION-ESTIMATES.json",
+          "scope": "仅随机恢复和普通随机 TopK/TopP 改写在这两组全贪心用户请求上无请求收益。其它模式保留其原估算。"
+        },
+        {
+          "id": "G14.A07",
+          "proposal": "纯贪心可以在早退前挡住无读者的 entropy 概率。synthetic 标准分支用 uniform/conditional rate 先选行，其余分支需精确 draft 列概率及已启用的 entropy",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A08",
+          "proposal": "Ascend普通随机可按p是否存在分派。双启用保留原始概率上的两个阈值并合并写回，仅TopK用有界选择替换全词表排序。通用PyTorch仅TopK从原始logits选第k值。保留各自的平分及别名语义",
+          "disposition": "inactive",
+          "source": "RANDOM-SAMPLING-FUSION-ESTIMATES.json",
+          "scope": "仅随机恢复和普通随机 TopK/TopP 改写在这两组全贪心用户请求上无请求收益。其它模式保留其原估算。"
+        },
+        {
+          "id": "G14.A09",
+          "proposal": "MinP 可按行跳过零阈值，连续活跃行直接原位写。整行归约和掩码可做联合 producer，必须保留原概率舍入及 MinP 后的 TopP 输入状态",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A10",
+          "proposal": "惩罚consumer已读取output_bin_counts，可在内部由count>0取得membership，省掉私有output_mask生成与传递，同时保留全部score输出和原运算次序。条件逻辑接口减少6*R*V字节，必须绑定启用路径/同调用profile及原生验收；与增量history和score融合的同一工作只计一次。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G14.A11",
+          "proposal": "私有penalty路径对静态空history直接提供zero count/membership，或在原生stride合同成立时让counter读取原非连续history以避开contiguous副本；保留API必需输出及原FP32运算次序。与history缓存和已有mask消除重叠，当前工作负载成本未绑定。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G14.B01",
+          "original": "allGreedy/allRandom/mixed、actual_n1/一般spec长、synthetic、entropy/block、ngram/full draft probs不同"
+        },
+        {
+          "id": "G14.B02",
+          "original": "MinP 在普通和 bonus 的随机阶段执行。DSpark 准入允许 0 < min_p <= 1e-5，target 验证走单独的 processor 及约束函数。按当前 FP32 阈值选择活动行，保持请求顺序"
+        },
+        {
+          "id": "G14.B03",
+          "original": "可选raw/processed/logprob与指定token需求是独立维度"
+        },
+        {
+          "id": "G14.B04",
+          "original": "discard、非法ID、无有效token与backup seed分别处理"
+        },
+        {
+          "id": "G14.B05",
+          "original": "普通随机分别覆盖无过滤、Ascend原始概率、通用PyTorch与条件可达的Triton单核。CUDA拆分路径在NPU排除"
+        },
+        {
+          "id": "G14.B06",
+          "original": "41条采样分派控制按正向平台合同归并：Ascend OOT排除CUDA/CPU/XPU构造分支，AITER由is_enabled的if_aiter_supported装饰器及ROCm判定排除；不能只按函数名字断言不适用。"
+        },
+        {
+          "id": "G14.B07",
+          "original": "HAS_TRITON仍可允许monolithic warmup注册，CUDA-alike split注册被平台排除；注册不等于原生编译通过或实际调用。已有1104条all-greedy完成记录仅在该cohort不承担普通随机filter开销。"
+        },
+        {
+          "id": "G14.B08",
+          "original": "请求状态更新、bias发布及分类的17处分支归并为5份合同。单向移动是有序破坏性转移，稀疏源缺失仍删除旧目标；新增无效果请求也须清理该行旧状态。共同row-plan必须表示请求身份、代际、有效性及完整move组合。"
+        },
+        {
+          "id": "G14.B09",
+          "original": "batch_update=None只表示批次组成未变，MinTokens仍根据共享输出列表的当前长度清除到期状态。既有bias/mask索引已按dirty复用，不能再次当作新收益；可继续评估共同owner-plan、直接行消费与多输出mask/restore。"
+        },
+        {
+          "id": "G14.B10",
+          "original": "helper实际added→removed→moved；接口文档removed→added→moved。正常builder会消耗复用的removed槽，交换顺序需要索引不交或等价证明。9个冻结源码host例证只验证这些状态边界，不代替NPU/服务收益。"
+        },
+        {
+          "id": "G14.B11",
+          "original": "12原始+4新增控制及22数据谓词按6份合同归并。-1转V、token<V、请求累计区间、first-mismatch的2*S以及旧输出后缀分别有不同语义。实际上界谓词不排除其他负数；拒绝fallback只改前缀/接受bonus，删除默认填充须完整producer覆盖所有可见位置。"
+        },
+        {
+          "id": "G14.B12",
+          "original": "has_tracked_requests是可变请求状态的布尔谓词；不能把一次空状态当成跨迭代关闭processor的证明。"
+        },
+        {
+          "id": "G14.B13",
+          "original": "TopK输出保留sampled首列与可能重复的TopK列；rank仍扫描全词表并计>=。parse_output先过滤logprob，再discard token行，两种输出不能统一用最终mask；DEBUG也是有条件的张量读者。共用producer或分支融合需保留这些合同。"
+        },
+        {
+          "id": "G14.B14",
+          "original": "复用上一轮计数合同，补齐wrapper的显式num_seqs=0、空history和contiguous分支。空history仍发布dense zero counts/mask；私有consumer可条件性直接用常量。kernel有stride参数不等于原生跨stride性能已验收。"
+        }
+      ]
+    },
+    "G15": {
+      "modules": [
+        "M10"
+      ],
+      "name": "三层context KV联合投影与发布",
+      "work_units": [
+        "W04",
+        "W23",
+        "W24",
+        "W26",
+        "W27",
+        "W33",
+        "W41"
+      ],
+      "family_sources": [
+        "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+        "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G15.A01",
+          "proposal": "共用context输入tile，按layer拼接或分组投影三个WKV输出",
+          "disposition": "reference",
+          "source": "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+          "scope": "三层相同输入、旋转查表和槽发布复用联合估算。"
+        },
+        {
+          "id": "G15.A02",
+          "proposal": "每个512维layer输出独立norm/RoPE并写其layer-owned cache slot，避免三次大输入读取与临时面",
+          "disposition": "reference",
+          "source": "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+          "scope": "三层相同输入、旋转查表和槽发布复用联合估算。"
+        },
+        {
+          "id": "G15.A03",
+          "proposal": "用现有layer_names只准备本次所需RoPE配置，同一key/group/positions跨三层共用一份cos/sin；保留图缓冲生命周期及非法位置处理",
+          "disposition": "reference",
+          "source": "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+          "scope": "三层相同输入、旋转查表和槽发布复用联合估算。"
+        },
+        {
+          "id": "G15.A04",
+          "proposal": "单group、同block size时只转换一次legacy slot坐标；保留三份写入。RoPE就地更新后，满足连续布局及别名合同时直接交付整行，省后续slice/concat",
+          "disposition": "reference",
+          "source": "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+          "scope": "三层相同输入、旋转查表和槽发布复用联合估算。"
+        },
+        {
+          "id": "G15.A05",
+          "proposal": "各层按SWA可见窗口与最终写者分别确定context需求。仅在后续读者和退回范围都已绑定时裁掉老行；联合投影以各层需求并集计价",
+          "disposition": "contract"
+        },
+        {
+          "id": "G15.A06",
+          "proposal": "同一请求连续走设备纠正时，有效prefix单调。用纠正后的prefix定老行窗口，再单独用每层实际query槽匹配拒绝尾部。三层均无需求且其它观察者退休后才前移到共享main投影",
+          "disposition": "contract"
+        },
+        {
+          "id": "G15.A07",
+          "proposal": "context assembly和slot mapping按group联合生成；空context快速路径保留",
+          "disposition": "reference",
+          "source": "DSPARK-CONTEXT-FUSION-ESTIMATES.json",
+          "scope": "三层相同输入、旋转查表和槽发布复用联合估算。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G15.B01",
+          "original": "空context/positions/slot、packed/普通cache分别处理"
+        },
+        {
+          "id": "G15.B02",
+          "original": "每层weights、norm、cache、slot和metadata group均独立"
+        },
+        {
+          "id": "G15.B03",
+          "original": "source guard当前有在projection之后的case，不能把错误/状态动作无条件越过"
+        },
+        {
+          "id": "G15.B04",
+          "original": "18原始控制+1新增控制+1数据谓词绑定角色、层身份和发布需求。每层None/empty slot在KV投影之后才返回；复用原M18-OP-15提前守卫候选，必须保留原生RoPE/量化及其他必需副作用。已有264对context/query writer包括39个无本地MLA层，不能按无query删除cache发布。"
+        },
+        {
+          "id": "G15.B05",
+          "original": "context前缀按_context_count取值，None/list/tensor slot三种ABI保留；不能把query padding范围当context范围。双输出的logits/recycle可能不同，纯Python原函数已验证对象路由；直接KV/hidden交付仍须全部读者与副作用合同。"
+        },
+        {
+          "id": "G15.B06",
+          "original": "通用RoPE全局bank的轴布局、首次table缓存和前缀更新独立约束；同位置的两个index_select可条件性合成一次配对读取，但旧MLA原生fixture不自动覆盖此通用途径。"
+        }
+      ]
+    },
+    "G16": {
+      "modules": [
+        "M09",
+        "M10"
+      ],
+      "name": "Markov串行决策与置信度预算调度",
+      "work_units": [
+        "W14",
+        "W15",
+        "W16",
+        "W25",
+        "W49"
+      ],
+      "family_sources": [
+        "VOCAB-SELECTION-FUSION-ESTIMATES.json",
+        "MARKOV-BIAS-CACHE.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G16.A01",
+          "proposal": "Markov bias epilogue做原dtype的base+bias及best摘要，避免全corrected logits写回；需raw/probs时保留该输出",
+          "disposition": "reference",
+          "source": "CLEAN-DSPARK-SCORE-VALUE.json",
+          "scope": "固定 GEMM 的分数选择接口已有预算。confidence 拼接须以实际读者另算。"
+        },
+        {
+          "id": "G16.A02",
+          "proposal": "先独立消除greedy步骤的全分数写回和重复切片，让同一BF16 corrected tile直接进入argmax；随后比较base head直接交付step-major与ID列直传",
+          "disposition": "reference",
+          "source": "CLEAN-DSPARK-SCORE-VALUE.json",
+          "scope": "固定 GEMM 的分数选择接口已有预算。confidence 拼接须以实际读者另算。"
+        },
+        {
+          "id": "G16.A03",
+          "proposal": "复用逐步已计算的W1 embeddings供confidence，按需要直接写固定bank；去重其第二次lookup",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A04",
+          "proposal": "confidence的concat/FP32 cast、投影输出sigmoid/clamp、survival及threshold统计按区域合并；原生TopK可先保留，仅融合前后kernel",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A05",
+          "proposal": "比较vocab本地Markov分片与每步小摘要collective，和当前一次大词表gather后本地五步的成本",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A06",
+          "proposal": "以request为owner路由base词表分片，整条五步链在owner执行，末尾发布IDs。比较单owner、多个request owner和词表分片的时延、精度与容量",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A07",
+          "proposal": "每个request也可分配给2卡或4卡小组。按原词表片号路由，组内每步AllGather一个BF16分数和本片ID组成的INT32包，恢复原全局列后比较",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A08",
+          "proposal": "有保守的原生舍入后score上下界时先认证胜者，已认证可跳W2或仅算候选；不能认证时完整原路径，概率分支保留分数需求",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A09",
+          "proposal": "按前驱token与参数、精度及shape代际缓存BF16 bias。整步全命中时以lookup和原BF16加法及选择替代W2。未命中可保留原整步计算，另计紧凑miss的代价。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A10",
+          "proposal": "以额外工作换依赖轮次：对有限候选前驱提前计算后续bias/选择，提交时只采纳真实命中分支，未覆盖前驱执行原路径；必须计入推测命中率、额外Cube/带宽与资源竞争",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A11",
+          "proposal": "预算移到设备状态仅作为独立协议候选：保持更新间隔、计数和host观察；不默认删除周期.item同步",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A12",
+          "proposal": "with_markov且输入BF16一致时，把Cat与FP32转换合为最终projection输入bank直写；保留原linear和转换NaN语义。若endpoint策略已消除整个confidence，不再重复记此收益。",
+          "disposition": "reference",
+          "source": "CLEAN-DSPARK-SCORE-VALUE.json",
+          "scope": "固定 GEMM 的分数选择接口已有预算。confidence 拼接须以实际读者另算。"
+        },
+        {
+          "id": "G16.A13",
+          "proposal": "分段输入的confidence projection可进一步避免FP32拼接bank，但必须保持原累计与输出合同；两次GEMM再相加不是已证明的数值等价。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G16.A14",
+          "proposal": "在不刷新预算且budget位于min_k或D端点时，若概率/置信度中间bank无额外读者且生成器无必要副作用，直接发布常量keep并保留计数器；整段死计算消除与confidence/survival融合互斥计同一工作。中间budget不能按平均b截断每请求。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G16.B01",
+          "original": "有无with_markov、dynamic_spec、vocab映射、probabilistic draft不同"
+        },
+        {
+          "id": "G16.B02",
+          "original": "DSpark/DFlash使用不同confidence定义"
+        },
+        {
+          "id": "G16.B03",
+          "original": "interval未到/到达、B0、budget0/正、min_k边界、TopK平分和持久buffer都保留"
+        },
+        {
+          "id": "G16.B04",
+          "original": "当前step选择的token进入下一step W1，存在真实串行依赖"
+        },
+        {
+          "id": "G16.B05",
+          "original": "不同DSpark stage的main_proj/main_norm或norm/Markov可映射到同一首/末层参数；保持输入写入顺序或证明源值等价，Markov缓存必须绑定完成后的真实参数代际。"
+        },
+        {
+          "id": "G16.B06",
+          "original": "Markov置信度输入可将Cat和FP32转换合为最终bank直写，保持原FP32投影与sigmoid/clamp顺序；条件逻辑省4*N*(H+R)字节。分段投影不能用两次GEMM相加擅改累计次序。当前保存配置关闭动态预算，不计当前负载收益。"
+        },
+        {
+          "id": "G16.B07",
+          "original": "动态验证预算合法域满足sum(keep)=B*b，但b不是每请求上限。非刷新迭代且b=min_k或D时keep已完全确定；在概率bank无额外读者且head无必要副作用下可消除整个confidence/概率、cumprod和分配区域。刷新/中间预算仍保留真实数值及跨请求TopK tie分配。当前C8启用状态未独立绑定，不计实测收益。"
+        }
+      ]
+    },
+    "G17": {
+      "modules": [
+        "M00",
+        "M11"
+      ],
+      "name": "输入打包、接受计数与跨迭代重映射",
+      "work_units": [
+        "W13",
+        "W17",
+        "W22",
+        "W25",
+        "W26",
+        "W27",
+        "W38",
+        "W39",
+        "W48",
+        "W49"
+      ],
+      "family_sources": [
+        "ACCEPTANCE-STATE-REMAP.json",
+        "BATCHED-SLOT-RESULT.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G17.A01",
+          "proposal": "联合打包typed输入与多平面copy/expand，依需求生成最终位置/ID/mask；现有copy-and-expand已经多输出，不能再计一次该融合",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A02",
+          "proposal": "多draft attention group时，input_ids/context_positions/query_positions/sample_indices写入相同公共bank；可一次生成公共面，并联合写各group独立slot映射",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A03",
+          "proposal": "按是否生成后续模型步，推迟位置gather与后置common block table clone。并行DSpark保留已经构造的step零分组表",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A04",
+          "proposal": "先验证两输出seed/count融合以保留count回传前沿。四输出可再合并padded索引和拒绝数，需比较回传和草稿准备的先后；两种方案都保留原采样token面供异步输出。",
+          "disposition": "reference",
+          "source": "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+          "scope": "count/seed 提交和下一轮等待须按同一代际定价。"
+        },
+        {
+          "id": "G17.A05",
+          "proposal": "五个采样索引面在均匀布局由行数确定，可常驻只读索引。无额外行时logits索引是连续前缀，满足别名合同可改view。混合prefill采用typed合包或紧凑(C_i,D_i)描述，draft ID可从当前输入直接按仿射位置取值",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A06",
+          "proposal": "小批量单program先读全参与行的旧computed，再写当前computed和独立accepted。171对照通过。大批量可用独立旧bank，或只快照被跨tile读写的旧行。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A07",
+          "proposal": "当scheduled-count已到位时同时生成seq_lens并清独立尾部。普通位置可后续按同一computed生成。将位置也并入要区分24行解码和数千行混合负载。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A08",
+          "proposal": "旧seed/draft按当前请求的独立后缀联合写。均匀Q=D+1可仿射生成目的位置；混合批仍保留CPU未覆盖区，旧映射可与接受计数纠正共用。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A09",
+          "proposal": "最终同前缀clamp可吸收此前的-1清零。若进一步把clamp移到联合写入，须独立交付raw draft给提前读取的验证路径。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A10",
+          "proposal": "上一轮seed/count发布可为旧owner同时生成computed加count。下一轮仍需映射、分支及接受数。与保留旧bank的方案对比额外发布量和ready时间。",
+          "disposition": "contract"
+        },
+        {
+          "id": "G17.A11",
+          "proposal": "按请求/slot/参数/内容代际复用不变metadata，不按指针相同直接复用",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G17.B01",
+          "original": "new/resume/reorder/discard、prev<0、prev_drafts=0、draft/no-draft不同"
+        },
+        {
+          "id": "G17.B02",
+          "original": "源重复与目的重复、跨行/跨plane别名需要原顺序"
+        },
+        {
+          "id": "G17.B03",
+          "original": "CPU fallback、异步接受count晚到、取消/释放不能吞掉"
+        },
+        {
+          "id": "G17.B04",
+          "original": "n_mtp_layers显式0会回退3，不是零层网络；层数与本次投机token horizon/K0分开。首尾属性别名不会产生额外main projection/head执行；SP融合还需保留分片前的context.is_padding更新。"
+        },
+        {
+          "id": "G17.B05",
+          "original": "13原始+11新增控制及32数据谓词按共同代际归并。DSpark copy-expand本来已是六输出融合；RoPE位置、KV线性位置、hidden mask、拒绝mask与owner mask不等价，可共用多输出producer而不能直接共用一个布尔值。原始EAGLE CANN接口需独立完整输出合同。"
+        },
+        {
+          "id": "G17.B06",
+          "original": "QLI metadata全部输入、CPU拒绝修正和CPU/device双份query offsets均为共享/直写的约束。零导航缺口不代表所有导入边或设备读者已覆盖。"
+        },
+        {
+          "id": "G17.B07",
+          "original": "Engram V2 FULL图与Python pending路径分别保留；prepare成功后才清pending，finish显式退休，异常时调用base finally。None/reset和主机返回都不是设备最后读者完成证明。"
+        },
+        {
+          "id": "G17.B08",
+          "original": "MM receiver cache、prompt_embed直接上传、实际编码和cache发布是不同状态路径；返回空list仍可能有设备传输。共用owner计划需保留图像/占位/embedding三个坐标域。"
+        },
+        {
+          "id": "G17.B09",
+          "original": "空批次仍推进动态预算计数器，刷新空批次先清counter再保留旧budget；不能无条件跳过。新增显式survival>=threshold数据谓词按原FP32数值、>=边界、item与host状态发布审查。"
+        },
+        {
+          "id": "G17.B10",
+          "original": "实际首步padding、dummy全容量slot清零与context前缀是不同状态域；_adjust_tensor的缩短/等长路径是切片，不能统一算物化copy。MM能力通过函数签名缓存，不运行尚未完成权重共享的embedding。"
+        },
+        {
+          "id": "G17.B11",
+          "original": "首步已有六输出融合。可扩展到seed、设备长度/qsl和各自默认尾部；CPU已接受长度只加Q，不能再扣reject。context/query/seed使用不同范围与默认值。44条新审查控制共同约束分支专门化和多输出直写，不需逐if探针。"
+        },
+        {
+          "id": "G17.B12",
+          "original": "31原始+5新增控制及8数据谓词按7份合同归并。host accepted换位需要旧值snapshot，新请求默认1；lookback未知为-1，positions尾0，input-role与raw-ID不同。共享owner描述符需各自代际/就绪约束，常量全-1值可在请求换位后继续相等。"
+        }
+      ]
+    },
+    "G18": {
+      "modules": [
+        "M00",
+        "M03",
+        "M11"
+      ],
+      "name": "共享位置元数据与多输出producer",
+      "work_units": [
+        "W17",
+        "W18",
+        "W21",
+        "W26",
+        "W33",
+        "W35",
+        "W38",
+        "W45",
+        "W46",
+        "W51"
+      ],
+      "family_sources": [
+        "MODULE-FUSION-VALUE-ESTIMATES.json",
+        "ROPE-ROW-LOOKUP.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G18.A01",
+          "proposal": "复用已有build_c2_ring_metadata，将整数域和匹配stride的非packed NPU路径也路由到现有多输出kernel；无需把cache ABI改成A5",
+          "disposition": "contract"
+        },
+        {
+          "id": "G18.A02",
+          "proposal": "现有batch缓存命中时，父builder不读取新计算的local seq_lens值，可消除该次五任务与后缀上传；保留miss和其他局部字段，另行核对命中频率与原生调用合同",
+          "disposition": "reference",
+          "source": "CP-LENGTH-C8.json",
+          "scope": "CP 长度生成的不同实现共用相同工作，单纯复用与设备融合收益分开记。"
+        },
+        {
+          "id": "G18.A03",
+          "proposal": "CP本地长度的Sub/Clamp/Greater/Fill/Select合成一个INT32算子，保留设备seq_lens、causal后缀和空query判定；相同输入代际的跨层builder可先共享一次结果",
+          "disposition": "reference",
+          "source": "CP-LENGTH-C8.json",
+          "scope": "CP 长度生成的不同实现共用相同工作，单纯复用与设备融合收益分开记。"
+        },
+        {
+          "id": "G18.A04",
+          "proposal": "CP非因果窗口按配对索引交付全局count切片，省去局部>=0和INT32归约；只在visible_len与实际索引宽度的裁剪、shape、dtype及行域合同满足时复用，否则由producer额外交付裁剪count或保留原归约",
+          "disposition": "contract"
+        },
+        {
+          "id": "G18.A05",
+          "proposal": "使实际Triton稀疏窗口producer直写持久indices和lengths两平面；现有helper的output/buffer参数会禁用Triton并继续copy，不能当作已实现的直写",
+          "disposition": "contract"
+        },
+        {
+          "id": "G18.A06",
+          "proposal": "本地长度也可由上游接受状态更新双输出，或移入metadata消费者。先验收输入就绪和所有读者，noncausal仍须保留空行归零",
+          "disposition": "reference",
+          "source": "CP-LENGTH-C8.json",
+          "scope": "CP 长度生成的不同实现共用相同工作，单纯复用与设备融合收益分开记。"
+        },
+        {
+          "id": "G18.A07",
+          "proposal": "按相同源位置/请求边界/代际合并商余与mask计算，一次写ring/mask/slot/rope多平面；指定共享面的唯一writer，保留各物理owner和最早consumer就绪",
+          "disposition": "reference",
+          "source": "MODULE-FUSION-VALUE-ESTIMATES.json",
+          "scope": "实际已有对照的 slot 双输出仅在匹配分支适用；其它元数据的独立读者保留。"
+        },
+        {
+          "id": "G18.A08",
+          "proposal": "共享线性原始槽的 C1/C2 可复用一次页号商余并交付四个原地址。171 原生对照通过；也可把坐标解码移入原始槽生产者或仅存活的缓存写入者",
+          "disposition": "reference",
+          "source": "MODULE-FUSION-VALUE-ESTIMATES.json",
+          "scope": "实际已有对照的 slot 双输出仅在匹配分支适用；其它元数据的独立读者保留。"
+        },
+        {
+          "id": "G18.A09",
+          "proposal": "已知有效位置时合并cos/sin行查表，直接写原缓冲。先确定需要的RoPE配置和组，跨层复用后只对留下的pair计融合",
+          "disposition": "contract"
+        },
+        {
+          "id": "G18.A10",
+          "proposal": "按全表读者分别比较保留原布局的双输出查表与半宽紧凑表。后者需适配C2 full-table ABI和图地址所有者",
+          "disposition": "contract"
+        },
+        {
+          "id": "G18.A11",
+          "proposal": "共享相同qsl/count/ratio计划，按第一次consumer需要的波次分组，而非把全部metadata拖到一个晚完成kernel",
+          "disposition": "contract"
+        },
+        {
+          "id": "G18.A12",
+          "proposal": "graph外producer与graph内producer分别部署，保留各group ready和buffer reusable前沿",
+          "disposition": "contract"
+        },
+        {
+          "id": "G18.A13",
+          "proposal": "在DCP copy-expand中按active_query且本rank拥有KV位置屏蔽block-table读取，仍为非owner输出slot=-1并产生其所需位置、ID和selector；相同请求算术可共享但输出谓词不同。仅在原合法地址域和等价写入/生命周期下成立，DCP1无此节省。",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G18.B01",
+          "original": "causal/noncausal、CP空本地query、实际/填充token不同"
+        },
+        {
+          "id": "G18.B02",
+          "original": "C1/C2、SWA/index/long/cache-kind不同"
+        },
+        {
+          "id": "G18.B03",
+          "original": "skip ring update、空请求、full graph/eager、A5 backend/普通不同"
+        },
+        {
+          "id": "G18.B04",
+          "original": "显式/自动稀疏索引、逻辑/物理索引、visible_len是否超过实际width、Triton长度Nx1与fallback长度N不同"
+        },
+        {
+          "id": "G18.B05",
+          "original": "现有helper准入补丁的冻结C8完成：10组文本和固定负载通过，16worker真实调用命中且5个元数据输出逐位一致；3层诊断包装在计时前移除。服务收益按独立C8结果判断，不以局部38→2核代替，也不与CP百分比相加。原服务已恢复。"
+        },
+        {
+          "id": "G18.B06",
+          "original": "排除旧_compute_compressor_metadata适配器不等于排除选中builder中的共同metadata helper。precomputed命中仍有group/stage就绪合同，已有CP/C2真实builder、原生及服务证据不受这个调用路径排除影响。"
+        },
+        {
+          "id": "G18.B07",
+          "original": "标准slot转换把任意负线性slot的两个INT32坐标都恢复为-1；packed分支仍传线性slot，预制坐标分支不重新转换。共用producer需相同group/block/value代际，并保留每层独立cache写入。"
+        },
+        {
+          "id": "G18.B08",
+          "original": "DCP非owner当前仍按query mask读取block table再写slot=-1；仅屏蔽该非owner读取是条件变体，其他query输出仍需发布。合法表/slot域、原生行为及价值未验证，DCP1没有该项收益。Part1完整复制context含拒绝尾行，不能凭接受数删除未来cache写。"
+        },
+        {
+          "id": "G18.B09",
+          "original": "图qsl仅原地扩展NPU尾部，CPU侧创建新副本；无padding、None actual count和prefill保持原对象。PCP replicated与sharded slot映射不同；dummy共享清理需证明同一bank/代际且保留发布事件，不能记成当前C8每token收益。"
+        },
+        {
+          "id": "G18.B10",
+          "original": "KV group内layer共享同一个slot bank，microbatch是切片视图。encoder-only零bank和普通block-table前缀都填padding=-1；mRoPE prompt/completion、cross-attention实际/捕获长度和last-index padding不能统一成一个默认值。"
+        },
+        {
+          "id": "G18.B11",
+          "original": "固定NPU V1由实际profile及worker构造分支确认；其attention metadata和padding覆盖方法不回调对应GPUModelRunner基类实现。基类及内部helper的控制点按作用域排除，仍保留实际NPU覆盖路径与其他继承helper的独立审查。"
+        },
+        {
+          "id": "G18.B12",
+          "original": "按配置选首个可执行primary，cache-only仍有元数据义务。保留group表/slot浅拷贝回退、选表之后滑窗、各builder索引及DCP准备顺序；只有DSpark+DCP1+PCP1可选executor且provider收集后一次submit。现有共享SAS缓存和G1不计重复收益。"
+        }
+      ]
+    },
+    "G19": {
+      "modules": [
+        "M00",
+        "M09",
+        "M11"
+      ],
+      "name": "graph/RPC/输出的实际执行边界",
+      "work_units": [
+        "W18",
+        "W22",
+        "W24",
+        "W51"
+      ],
+      "family_sources": [
+        "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+        "NEXT-INPUT-ID-PUBLICATION.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G19.A01",
+          "proposal": "合法地把稳定控制量编译专门化、把多个小producer纳入一个capture区域，减少host launch和重复update",
+          "disposition": "mixed",
+          "source": "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+          "scope": "图捕获、bank 退休和主机等待不自动转化为 kernel 融合节省。"
+        },
+        {
+          "id": "G19.A02",
+          "proposal": "按输出bank拆分target和draft的复用退休条件。EP0的139次跨角色交接未发现producer输出重叠，观察到的输出bank已有分离。保持同角色前次读者、共用输入和捕获事件代际，只有设备先后证明release已在inputs_ready内时才折叠对应wait",
+          "disposition": "mixed",
+          "source": "C8-DRAFT-SUBMISSION-WAIT-BUDGET.json",
+          "scope": "图捕获、bank 退休和主机等待不自动转化为 kernel 融合节省。"
+        },
+        {
+          "id": "G19.A03",
+          "proposal": "联合传递已就绪ID/count/logprob小结果；以请求commit前沿拆分通知与payload，不等待不相关读者",
+          "disposition": "contract"
+        },
+        {
+          "id": "G19.A04",
+          "proposal": "静态参数packing/rotation/weight-layout预处理按参数代际缓存，启动成本与稳态分开统计",
+          "disposition": "contract"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G19.B01",
+          "original": "capture/warmup/replay/update/eager、失败fallback、异常finally不同"
+        },
+        {
+          "id": "G19.B02",
+          "original": "async output、cancel/resume、流式边界和rank输出不同"
+        },
+        {
+          "id": "G19.B03",
+          "original": "需要动态值的控制不能只按初次capture值冻结"
+        },
+        {
+          "id": "G19.B04",
+          "original": "26处旧DSA控制按一条正向构造/调用证明归并：4处初始化、22处未进入的旧逐步方法或局部helper。补取171两个源码文件仅作参数转交与硬件谓词证据；无新NPU/服务实验，缺profile字段不作为排除依据。"
+        },
+        {
+          "id": "G19.B05",
+          "original": "forward context持有全局reserved MC2 mask的slice view，退出上下文不恢复bytes或退休设备读者。早期selector DP max、后期padding DP max、actual行数和PCP max是不同来源；跨上下文融合/重叠需同代计数与mask bank合同。"
+        },
+        {
+          "id": "G19.B06",
+          "original": "同一-1结果的拒绝与容量mask可合并最终写入，但position>=L清0和seq_len>L重置1必须分开。复用已有20192例递推证明和真实调用关联；固定parallel DSpark不进入该串行区域。已保存70调用前缀为G1，不能记跨group公共写消除收益。"
+        },
+        {
+          "id": "G19.B07",
+          "original": "MX持久buffer地址稳定不能保证已复制gather输入或完整权重池新鲜。reload需退休读者、恢复正确本地布局、更新重复/复制元数据及代际；奇数组scale逆变换存在元素数反例。不得仅凭supports_weight_switch认定跨层或跨迭代驻留安全。"
+        },
+        {
+          "id": "G19.B08",
+          "original": "WeightSwitch.wait在异常时仍清空handles；switch_weight只set_别名而不等待。嵌套checkpoint分片临时改V2参数rank后finally恢复，前向TP group不变；非零轴gather_input和repeat副本在权重更新时需重新发布。34个函数、88个控制按8份共享合同审查，旧forward/cache入口有正向V4.1排除证据。"
+        },
+        {
+          "id": "G19.B09",
+          "original": "返回的backend类是base/CP/PCP真实实现，不是cache-only None。模型返回EngramModelState正向选择V2 provider，但保存C8绑定V1；新增合法条件路径不等于当前执行成本。"
+        },
+        {
+          "id": "G19.B10",
+          "original": "新增40个ReturnPredicate控制点均逐源条件归属。FULL dummy metadata、capture对齐、错误恢复、draft容量及cache格式谓词分别保留；stable-buffer的update_graph_params空实现不证明metadata值不变。"
+        },
+        {
+          "id": "G19.B11",
+          "original": "RPC在output_rank过滤前执行；无返回rank仍参与计算/通信/状态。异步get_output可能晚于模型返回，主机队列顺序不是device reader完成证据。启动/诊断流程按共享生命周期合同覆盖，不加每token收益。"
+        },
+        {
+          "id": "G19.B12",
+          "original": "9个基类控制被NPU覆盖正向排除；capture_model则由NPU显式调用基类，不能排除。encoder manager在该context内替换为Ascend实现。计时context在finally同步，计时值不是独立图像成本。"
+        },
+        {
+          "id": "G19.B13",
+          "original": "32份已保存profile绑定DSpark直接forward分支，但do_not_compile/正在编译是析取条件，不能据此排除其他模式或外层ACL图。63个控制点按shape、缓存代际、隐藏is_padding和输出bank审查；分区context在异常/嵌套/条件变化时不保证恢复，4个隔离Python用例绑定控制语义。仅作为融合落地约束，不计当前故障或收益。"
+        },
+        {
+          "id": "G19.B14",
+          "original": "实际worker保留上一代PP send完成、异步receive后处理和输出/connector状态分支；零scheduled token仍调用runner。PP1和当前模型forward不证明可用的多stage PP。compile/warmup、capture、ATB、HOST_UVA绑核与seed重置是启动合同，不能计作推理内收益。"
+        },
+        {
+          "id": "G19.B15",
+          "original": "FULL才调用该图参数更新wrapper，保留primary backend、update_stream和逐代metadata。dummy profile直调模型与非profile runnable分开；16条已保存dummy logits重排不计正式请求收益。"
+        },
+        {
+          "id": "G19.B16",
+          "original": "相同正面分派证据排除固定路径的基类dummy实现；本轮93条基类guard均此前未收敛，包含初始89条清单之外的4条内嵌helper控制点。排除不是通用不可达，不允许据此删除NPU dummy、V2或显式base调用的状态义务。"
+        },
+        {
+          "id": "G19.B17",
+          "original": "输入准备的None/event与try-finally分支已逐位置审查；保留旧异步H2D完成等待和异常出口record。共享主机源安全证明不代替设备图bank读者退休。"
+        },
+        {
+          "id": "G19.B18",
+          "original": "updatable graph保留逐step/layer参数、DCP rank和首步角色；元数据共享需保留图地址及每代读者就绪。query/context尾部不同，缺少padding时原函数整体返回，不能无条件增加context清零。"
+        }
+      ]
+    },
+    "G20": {
+      "modules": [
+        "M06",
+        "M07"
+      ],
+      "name": "按expert就绪聚合与跨DP解耦",
+      "work_units": [
+        "W20"
+      ],
+      "family_sources": [
+        "MOE-STRAIGHTLINE-AND-REDUCTION-CONTRACTS.json",
+        "ORDERED-RETURN-ENDPOINT-ESTIMATES.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G20.A01",
+          "proposal": "在每个expert owner按layer/权重代际和精度聚合已就绪请求行，让一块权重服务多个请求，再按原token/专家顺序返回",
+          "disposition": "mixed",
+          "source": "ORDERED-RETURN-ENDPOINT-ESTIMATES.json",
+          "scope": "批次聚合、提前调度不计。只保留能少一次专家返回物化或归约读写的子问题，维持原 topK 求和次序。"
+        },
+        {
+          "id": "G20.A02",
+          "proposal": "分开处理满块和尾块。已到齐的整块可提早提交；专家的预期行数低于块宽时，确认收齐就用尾块路径。按原token与topK槽回填",
+          "disposition": "mixed",
+          "source": "ORDERED-RETURN-ENDPOINT-ESTIMATES.json",
+          "scope": "批次聚合、提前调度不计。只保留能少一次专家返回物化或归约读写的子问题，维持原 topK 求和次序。"
+        },
+        {
+          "id": "G20.A03",
+          "proposal": "用有界的请求与owner队列交付专家结果，按每token原topK顺序合并。比较细粒度ready路径与大prefill批处理，保留队列信用和异常退休",
+          "disposition": "mixed",
+          "source": "ORDERED-RETURN-ENDPOINT-ESTIMATES.json",
+          "scope": "批次聚合、提前调度不计。只保留能少一次专家返回物化或归约读写的子问题，维持原 topK 求和次序。"
+        },
+        {
+          "id": "G20.A04",
+          "proposal": "为高频专家复制权重并按原expert ID选择物理副本。以本地常驻容量换跨卡流量，保留EPLB逻辑ID与observer语义",
+          "disposition": "outside",
+          "source": "EXPERT-SIBLING-TILE-REQUEST-ESTIMATES.json",
+          "scope": "复制热门专家或改变放置，固定专家、权重和路由后可归给本项融合的增量为零。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G20.B01",
+          "original": "有发送无接收、无发送有接收、长prefill与短decode同时就绪分别建模"
+        },
+        {
+          "id": "G20.B02",
+          "original": "复用仅在同一层、同一权重代际和同一量化合同下有效"
+        },
+        {
+          "id": "G20.B03",
+          "original": "同一请求的后继迭代依赖已提交token。独立请求可聚合，推测工作须有提交和回退合同"
+        },
+        {
+          "id": "G20.B04",
+          "original": "decode-only node来自KV角色/DecodeBench及recompute scheduler，不等于每个decode batch。接收上界必须保持rank-invariant容量和最坏expert集中度；selector允许进入后端本身不能证明物理buffer够用。"
+        },
+        {
+          "id": "G20.B05",
+          "original": "EP gather/reduce helper绑定DP×PCP×SP行序、等长补零、真实行裁剪和不同fallback；producer直写与segmented consumer可条件性省副本，通信和中间非线性不能凭形状消除。",
+          "scope_update": "同一 EP 返回路径内，生产者直写和分段消费者仍是算子交付条件。专家副本不进入此预算。"
+        },
+        {
+          "id": "G20.B06",
+          "original": "隐式MoE层选择消耗并推进context cursor，合并调用要保留后续层身份；逻辑expert计数、量化mode/activation dtype/weight dtype和真实存储字段分别保持。"
+        }
+      ]
+    },
+    "G21": {
+      "modules": [
+        "M00"
+      ],
+      "name": "视觉编码、空间投影与语言输入的共同交付",
+      "work_units": [
+        "W50"
+      ],
+      "family_sources": [
+        "VISION-ENCODER-CONTRACTS.json",
+        "VISION-PRIMITIVE-CONTRACTS.json",
+        "FROZEN-C8-MODALITY-ADMISSION.json"
+      ],
+      "alternatives": [
+        {
+          "id": "G21.A01",
+          "proposal": "按真实device/dtype及网格代际缓存cos/sin，避免实际存在的重复转换",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A02",
+          "proposal": "Norm/QKV投影与双输出RoPE布局交付联合，保留V和原生舍入",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A03",
+          "proposal": "残差Add/Norm和跨block交付共用producer，保留后续残差读者",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A04",
+          "proposal": "跨图批量线性计算，attention保持每图独立归一化与RoPE坐标",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A05",
+          "proposal": "aligner投影直接按channel-major空间tile地址读原encoder结果并掩码补零，消除pad/unfold物化",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A06",
+          "proposal": "Swiglu/GELU producer与后续投影分块配合，保持各自数值合同",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A07",
+          "proposal": "按分支发布image span/cache/final-input所需输出，省去无读者的覆盖行和中间面",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A08",
+          "proposal": "相同图像/权重代际的TP参与者比较单owner计算后交付与复制计算，不能仅按hash或shape认定相同",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        },
+        {
+          "id": "G21.A09",
+          "proposal": "同一图像32层共享两份已展开full64 FP32 cos/sin，或让consumer直接读half系数；两种方案替代相同展开工作。可条件性移除2*(L-1)*N*head_dim个FP32元素写，保留每层读取和同代际readonly合同。",
+          "disposition": "inactive",
+          "source": "FROZEN-C8-MODALITY-ADMISSION.json",
+          "scope": "两组请求均未提供图像，图像专属工作本次为零。文本 wrapper/词嵌入仍按 G01 单列。其它图像负载有独立读者。"
+        }
+      ],
+      "branch_cases": [
+        {
+          "id": "G21.B01",
+          "original": "13函数和3个显式控制已纳入；直线算子链同样审查，不以if数量决定覆盖"
+        },
+        {
+          "id": "G21.B02",
+          "original": "已加载视觉模块与171源码hash均有正向证据；当前文本C8视觉执行未证明",
+          "scope_update": "已加载视觉模块。冻结请求与普通请求均为纯文本，由请求构造正向排除图像专属工作。"
+        },
+        {
+          "id": "G21.B03",
+          "original": "post-encoder padding不能前移为有效attention token；图像间softmax域独立"
+        },
+        {
+          "id": "G21.B04",
+          "original": "32个已加载实例绑定16/16 heads、head64、scale0.125、FP8=False；MMEncoderAttention.enabled=True和NPU OOT分派选择FIA，继承TORCH_SDPA字段不能替代执行证据。RoPE先保留projection舍入，再升FP32旋转并转回。"
+        }
+      ]
+    }
+  },
+  "modules_in_execution_order": {
+    "M00": [
+      "G01",
+      "G11",
+      "G17",
+      "G18",
+      "G19",
+      "G21"
+    ],
+    "M01": [
+      "G11"
+    ],
+    "M02": [
+      "G01",
+      "G02",
+      "G03",
+      "G11"
+    ],
+    "M03": [
+      "G03",
+      "G04",
+      "G05",
+      "G06",
+      "G07",
+      "G08",
+      "G18"
+    ],
+    "M04": [
+      "G02",
+      "G08"
+    ],
+    "M05": [
+      "G02",
+      "G03",
+      "G10"
+    ],
+    "M06": [
+      "G03",
+      "G09",
+      "G10",
+      "G20"
+    ],
+    "M07": [
+      "G02",
+      "G10",
+      "G12",
+      "G20"
+    ],
+    "M08": [
+      "G12",
+      "G13"
+    ],
+    "M09": [
+      "G13",
+      "G14",
+      "G16",
+      "G19"
+    ],
+    "M10": [
+      "G04",
+      "G05",
+      "G12",
+      "G13",
+      "G15",
+      "G16"
+    ],
+    "M11": [
+      "G14",
+      "G17",
+      "G18",
+      "G19"
+    ]
+  },
+  "source_control_inventory": {
+    "original_total": 2968,
+    "original_exact_prior_review_count": 1101,
+    "original_exact_added_review_count": 1867,
+    "original_unreconciled_count": 0,
+    "new_control_total": 1008,
+    "new_control_exact_review_count": 1008,
+    "new_control_unreconciled_count": 0,
+    "data_predicate_total": 290,
+    "data_predicate_exact_review_count": 290,
+    "data_predicate_unreconciled_count": 0
+  },
+  "semantic_rows": 360,
+  "older_rows_without_later_links": 198,
+  "frozen_C8": {
+    "case_count": 8,
+    "warmup_count": 2,
+    "input_sha256": "755b823003b4d200a4590424a245cdfb484d9b8c3d0b5225a7a058790b87e8c8",
+    "clean_profile_arms": [
+      "profile",
+      "reference",
+      "restored"
+    ],
+    "request_file_sha256": "7863f18d0f0ac87fd158b773f181b9abb81a528245ed3e1d8a1dfcbcdf4dc404",
+    "client_sha256": "57d0a8d241a8ae2e18ee4640fea83c84326e3f2cfbceac7c01d83a7d37f9d4a9",
+    "temperature": 0,
+    "prompt_kind": "text string"
+  },
+  "ordinary": {
+    "client": "9144f2d04ace715147e63988701605caecf031f6:probes/ordinary_load/client.py",
+    "client_sha256": "eba6f84d50b0784810c56f37cdd2f8d4fcd7a1ef27d6a3d61fcea9510b3e5a3b",
+    "fields": [
+      "ignore_eos",
+      "max_tokens",
+      "model",
+      "prompt",
+      "stream",
+      "stream_options",
+      "temperature"
+    ],
+    "temperature": 0,
+    "prompt_kind": "text token IDs, pinned build_inputs and token_ids",
+    "source_lines": [
+      [
+        32,
+        34
+      ],
+      [
+        37,
+        56
+      ],
+      [
+        85,
+        114
+      ]
+    ],
+    "unique_cases": 6,
+    "stages_by_service_arm": {
+      "stock": [
+        "chat-mixed",
+        "chat-return",
+        "chat-single",
+        "code-mixed",
+        "code-return",
+        "code-single"
+      ],
+      "observed": [
+        "chat-mixed",
+        "chat-return",
+        "chat-single",
+        "code-mixed",
+        "code-return",
+        "code-single"
+      ],
+      "recovered-stock": [
+        "chat-mixed",
+        "chat-return",
+        "chat-single",
+        "code-mixed",
+        "code-return",
+        "code-single"
+      ]
+    }
+  },
+  "work_units": [
+    {
+      "id": "W01",
+      "regions": [
+        "G01",
+        "G02"
+      ],
+      "value_generation": "first-layer HC representation of each embedding row",
+      "retained_demand": "Original HC/residual/aux readers and one-hot pre_mix; virtual layout requires compatible consumers."
+    },
+    {
+      "id": "W02",
+      "regions": [
+        "G02",
+        "G10",
+        "G12"
+      ],
+      "value_generation": "each specific HC Post output before its next consumer set",
+      "retained_demand": "Delayed residual at the next Post, aux-before-Engram, Engram-updated hidden, raw HC and final collapse demands are distinct."
+    },
+    {
+      "id": "W03",
+      "regions": [
+        "G03",
+        "G04",
+        "G10"
+      ],
+      "value_generation": "same rounded normalized activation and same quantizer input",
+      "retained_demand": "FP32 router output, BF16 output, scales and all bias/residual readers."
+    },
+    {
+      "id": "W04",
+      "regions": [
+        "G04",
+        "G05",
+        "G08",
+        "G15"
+      ],
+      "value_generation": "projection output tile and its downstream layout",
+      "retained_demand": "Distinct QA/qr readiness, Q/K/source RoPE, layer-owned cache output and OA->OB BF16 rounding."
+    },
+    {
+      "id": "W05",
+      "regions": [
+        "G06",
+        "G05"
+      ],
+      "value_generation": "C2 pooled default/completed rows and later projected-key rows",
+      "retained_demand": "All ring-state updates, physical owner snapshot, published cache rows and default output read by any remaining consumer."
+    },
+    {
+      "id": "W06",
+      "regions": [
+        "G07",
+        "G08"
+      ],
+      "value_generation": "selected index/candidate result consumed by attention",
+      "retained_demand": "Final chronological set, live lengths and candidate order/ties. Keep empty-Q no-write semantics and the candidate output on both graph and eager routes."
+    },
+    {
+      "id": "W07",
+      "regions": [
+        "G09",
+        "G10"
+      ],
+      "value_generation": "router score/topK/mapped expert dispatch packet",
+      "retained_demand": "EPLB/capture observers, expert ownership, per-token scales, routing weights and collective ordering."
+    },
+    {
+      "id": "W08",
+      "regions": [
+        "G11"
+      ],
+      "value_generation": "Engram constant parameter products and per-key lookup/projected values",
+      "retained_demand": "Parameter/version invalidation, owned/unowned default rows and mutable hash-history writes; host-UVA is a separate resource."
+    },
+    {
+      "id": "W09",
+      "regions": [
+        "G13",
+        "G14"
+      ],
+      "value_generation": "target logits and processed selection for one sampling generation",
+      "retained_demand": "MinTokens restoration, final thinking overwrite, all requested raw/processed/logprob outputs and native RNG side effects."
+    },
+    {
+      "id": "W10",
+      "regions": [
+        "G14"
+      ],
+      "value_generation": "target Float raw clone (BR01)",
+      "retained_demand": "Independent parent gather, processors/state and raw/entropy readers when enabled."
+    },
+    {
+      "id": "W11",
+      "regions": [
+        "G14"
+      ],
+      "value_generation": "bonus independent raw Float cast (BR02) with BF16 input",
+      "retained_demand": "Bonus processing and state commits occur in the original order."
+    },
+    {
+      "id": "W12",
+      "regions": [
+        "G13",
+        "G14"
+      ],
+      "value_generation": "prompt/output history summary for each request and provisional sampling stage",
+      "retained_demand": "Request identity, reorder, bonus provisional append, rejection rollback, repeated-token integer counts, V sentinel and saturation domain."
+    },
+    {
+      "id": "W13",
+      "regions": [
+        "G14",
+        "G17"
+      ],
+      "value_generation": "accepted/rejected IDs, sentinel rows, valid count and next-seed",
+      "retained_demand": "The same sampled plane reaches async output. Preserve original count-index seed rule, all sentinels, discard/backup, count D2H and downstream optimistic CPU state. Treat earlier count-ready and later padded-ready as separate timing obligations."
+    },
+    {
+      "id": "W14",
+      "regions": [
+        "G13",
+        "G16"
+      ],
+      "value_generation": "DSpark base draft scores before Markov correction",
+      "retained_demand": "Common ordered rows/seeds, per-step corrected global-ID decision, target/draft vocabulary map and optional probabilities."
+    },
+    {
+      "id": "W15",
+      "regions": [
+        "G16"
+      ],
+      "value_generation": "each predecessor-token Markov bias and corrected-score generation",
+      "retained_demand": "Bias BF16 rounding before add, original add rounding, ties/NaNs and chosen-ID dependency."
+    },
+    {
+      "id": "W16",
+      "regions": [
+        "G16"
+      ],
+      "value_generation": "W1 embeddings also consumed by confidence/policy when enabled",
+      "retained_demand": "Current dynamic_spec=None has no demonstrated saving here; other legal configurations retain confidence and scheduler state."
+    },
+    {
+      "id": "W17",
+      "regions": [
+        "G17",
+        "G18"
+      ],
+      "value_generation": "common DSpark input and metadata plans per request/group generation",
+      "retained_demand": "G=1 yields no cross-group saving; request/slot generations, snapshot-before-write and group-ready events remain."
+    },
+    {
+      "id": "W18",
+      "regions": [
+        "G18",
+        "G19"
+      ],
+      "value_generation": "C2 metadata producer operations and host launches per submit",
+      "retained_demand": "All five output banks, stride/index eligibility, source-input ready, per-group ready and buffer-reuse fences."
+    },
+    {
+      "id": "W19",
+      "regions": [
+        "G08"
+      ],
+      "value_generation": "BF16 attention-output tile at the CP query owner",
+      "retained_demand": "Retain per-group OA BF16 rounding, OB partial reduction and query ownership. Preserve zero-only senders and ragged input/output padding."
+    },
+    {
+      "id": "W20",
+      "regions": [
+        "G09",
+        "G10",
+        "G20"
+      ],
+      "value_generation": "per-expert assignments and their rounded routed contributions",
+      "retained_demand": "Receiver work, logical expert identity, original topK reduction, scale/activation, completion and retirement must be preserved across the queue."
+    },
+    {
+      "id": "W21",
+      "regions": [
+        "G04",
+        "G06",
+        "G18"
+      ],
+      "value_generation": "C2 current projections and physical ring predecessor generation",
+      "retained_demand": "Retain P-minus-C transformed defaults, matched index codes and scales, all retained FP32 ring writes and old predecessor reads. Physical byte-range owners and retirement remain explicit."
+    },
+    {
+      "id": "W22",
+      "regions": [
+        "G14",
+        "G17",
+        "G19"
+      ],
+      "value_generation": "five typed speculation index planes for one exact scheduled row layout",
+      "retained_demand": "Current input token contents, signed index and int64 gather semantics, mixed scheduling, graph readers and source DMA lifetime."
+    },
+    {
+      "id": "W23",
+      "regions": [
+        "G05",
+        "G06",
+        "G07",
+        "G08",
+        "G15"
+      ],
+      "value_generation": "selected compressed KV tiles for a common KV source and index generation",
+      "retained_demand": "Preserve each layer Q/SWA and softmax, all physical cache write/retire effects, and the precise key generation and selection order."
+    },
+    {
+      "id": "W24",
+      "regions": [
+        "G11",
+        "G15",
+        "G19"
+      ],
+      "value_generation": "Engram BF16 head-owner payload delivered to token owners",
+      "retained_demand": "Retain the correct request rows, head ownership and order, DP exchange, zero/padding and all live output observers. Price receive rearrangement, graph events and physical transport."
+    },
+    {
+      "id": "W25",
+      "regions": [
+        "G16",
+        "G17"
+      ],
+      "value_generation": "Markov predecessor and published draft ID columns",
+      "retained_demand": "Original recurrence, draft-ID/target-ID mapping, output views, per-step probabilities and current seed handoff."
+    },
+    {
+      "id": "W26",
+      "regions": [
+        "G15",
+        "G17",
+        "G18"
+      ],
+      "value_generation": "context RoPE table lookups, legacy slot conversion and normalized KV reassembly",
+      "retained_demand": "Preserve rotary rounding and config/group identity, invalid slots, live view readers and three cache stores. Keep the packed direct-slot branch separate."
+    },
+    {
+      "id": "W27",
+      "regions": [
+        "G15",
+        "G17"
+      ],
+      "value_generation": "context rows with a current or later draft cache reader",
+      "retained_demand": "Respect current SWA visibility, overwrite order, all local/peer/future readers, remaps and rollback. Preserve full publication when retirement is unknown."
+    },
+    {
+      "id": "W28",
+      "regions": [
+        "G13",
+        "G14"
+      ],
+      "value_generation": "target head rows needed by deterministic greedy verification",
+      "retained_demand": "Original replacement, all-accepted bonus, padding, state update/reader order, target hidden and KV effects. Charge the new head chunks and collective rounds."
+    },
+    {
+      "id": "W29",
+      "regions": [
+        "G01"
+      ],
+      "value_generation": "untied BF16 vocabulary embedding delivery to the original SP token owner",
+      "retained_demand": "Original vocabulary validity, added-row offset, row padding, finite SUM equivalence, feature order and every nonembedding ID/mask/position reader."
+    },
+    {
+      "id": "W30",
+      "regions": [
+        "G14"
+      ],
+      "value_generation": "filtered FP32 logits for an ordinary random call",
+      "retained_demand": "Original branch-specific probability or logit basis, cutoff ties, output layout and alias, then the original rounded post-filter normalization, RNG and optional score readers."
+    },
+    {
+      "id": "W31",
+      "regions": [
+        "G07"
+      ],
+      "value_generation": "one candidate membership generation consumed by four QLI owners",
+      "retained_demand": "Same row and block generation, original ordered list when live, and four distinct index K/scale values. A 2048-key or 128-key score cut requires actual empty-tile occupancy and the finite filler contract."
+    },
+    {
+      "id": "W32",
+      "regions": [
+        "G13"
+      ],
+      "value_generation": "selected BF16 target-hidden rows delivered to the head",
+      "retained_demand": "Original head weights and arithmetic, output vocabulary transport and sampler, every surviving raw/selected hidden reader, row identity/order, index errors and graph-buffer lifetime."
+    },
+    {
+      "id": "W33",
+      "regions": [
+        "G15",
+        "G18"
+      ],
+      "value_generation": "one live cos/sin RoPE pair for ordered positions and a full configuration key",
+      "retained_demand": "Retain two FP32 coefficient outputs, sign and downstream rounding, config/group and owner, valid-index semantics, graph addresses and C2 full-table compatibility."
+    },
+    {
+      "id": "W34",
+      "regions": [
+        "G05",
+        "G06",
+        "G07"
+      ],
+      "value_generation": "index-key/scale publication and long-KV delivery from one compressed source generation",
+      "retained_demand": "Original CANN key DQ, BF16 latent before WK, independent index and long slots, two cache visibility edges and SMLA join, C2 ring/default effects and packed/folded ownership."
+    },
+    {
+      "id": "W35",
+      "regions": [
+        "G05",
+        "G06",
+        "G18"
+      ],
+      "value_generation": "both C1/C2 coordinate and flat views for one common linear slot generation",
+      "retained_demand": "Same raw slot group and current generation, independent local/global planes, actual C2 validity, four stable addresses where read, invalid sentinels and old C2 ring/state and cache-store obligations."
+    },
+    {
+      "id": "W36",
+      "regions": [
+        "G13",
+        "G14"
+      ],
+      "value_generation": "processor row intervals and the state generation seen by each score route",
+      "retained_demand": "Keep separate target and bonus row predicates, score-return and penalties order, committed history epochs, finite restoration, sparse overwrites and conditional state changes."
+    },
+    {
+      "id": "W37",
+      "regions": [
+        "G13",
+        "G14"
+      ],
+      "value_generation": "probability and recovery rows demanded after random speculative verification",
+      "retained_demand": "Preserve standard first reject versus block last legal prefix, backend rounding, q and uniform draws, entropy/probability/raw-score readers and prior greedy output. Saved all-greedy workload does not execute it."
+    },
+    {
+      "id": "W38",
+      "regions": [
+        "G17",
+        "G18"
+      ],
+      "value_generation": "cross-iteration computed/accepted correction and position/length readers",
+      "retained_demand": "Retain previous-owner snapshot, independent computed/accepted destinations, actual checked indices, CPU fallback and source-ready sequence generation."
+    },
+    {
+      "id": "W39",
+      "regions": [
+        "G17"
+      ],
+      "value_generation": "next-iteration seed/draft overlay and padded model-input cleanup",
+      "retained_demand": "Use distinct raw verifier and cleaned model-input generations. Keep per-request CPU gaps, stride, untouched capacity, PP readiness and conditional prompt/embed copies."
+    },
+    {
+      "id": "W40",
+      "regions": [
+        "G12",
+        "G13"
+      ],
+      "value_generation": "terminal HC raw or collapsed SP delivery and normalized head input",
+      "retained_demand": "Retain final Post BF16 rounding, FP32 sequential four-term collapse and BF16 output before RMS. Keep live aux/head/PP readers and collective ordering."
+    },
+    {
+      "id": "W41",
+      "regions": [
+        "G02",
+        "G12",
+        "G15"
+      ],
+      "value_generation": "three checkpoint aux planes and DSpark main projection readiness",
+      "retained_demand": "Preserve checkpoint order and pre-Engram generation, full padded prefix, rejection-dependent query state, unchanged native M and the main feature gather and RMS."
+    },
+    {
+      "id": "W42",
+      "regions": [
+        "G04",
+        "G05",
+        "G06",
+        "G12"
+      ],
+      "value_generation": "normalized hidden broadcast or narrow cache projection carriers",
+      "retained_demand": "Keep local Q/Index paths, exact BF16/FP32 projected rows, global C2 pool/ring metadata and output reduction. Same-M masked owner fallback keeps dense FLOPs."
+    },
+    {
+      "id": "W43",
+      "regions": [
+        "G07",
+        "G08"
+      ],
+      "value_generation": "SWA and compressed attention states before one headwise output",
+      "retained_demand": "Preserve physical key selection, native denominator behavior, per-head state, one sink contribution, original rounding and separate metadata readiness."
+    },
+    {
+      "id": "W44",
+      "regions": [
+        "G14"
+      ],
+      "value_generation": "FP32 MinP probabilities and invalid mask for ordinary or bonus random logits",
+      "retained_demand": "Same request permutation and source temperature generation, exact comparison and alias, post-MinP normalization for TopP, RNG lane order and score consumers."
+    },
+    {
+      "id": "W45",
+      "regions": [
+        "G18"
+      ],
+      "value_generation": "one generation of CP-local authoritative sequence lengths",
+      "retained_demand": "Keep device lengths after rejection, current local query offsets and staged suffix, causal mode, empty-query zero semantics, all metadata readers and graph address lifetimes."
+    },
+    {
+      "id": "W47",
+      "regions": [
+        "G04",
+        "G10"
+      ],
+      "value_generation": "Identical row-local input quantization on the selected custom MLP column all-gather route",
+      "retained_demand": "Full original input rows at the quantizing owner, exact rounded values/scales, original per-output weight shards, gathered row order, bias protocol and all raw input readers. No current C8 route or native benefit is asserted."
+    },
+    {
+      "id": "W48",
+      "regions": [
+        "G11",
+        "G17"
+      ],
+      "value_generation": "prompt-only lookback input bank for one runner publication",
+      "retained_demand": "Exact CPU start/prompt window, full padding defaults, CPU and device bank value/write epoch, stable graph pointer and reader retirement; keep generated-token history cache updates and hash fallback."
+    },
+    {
+      "id": "W49",
+      "regions": [
+        "G16",
+        "G17"
+      ],
+      "value_generation": "one dynamic verification policy generation: confidence/probability, survival and per-request keep allocation",
+      "retained_demand": "Exact method inputs/casts/rounding, counter cadence including empty batches, host refresh/item, per-request allocation, persistent INT32 bank readiness and other probability/head effects; W16 lookup counted separately once."
+    },
+    {
+      "id": "W50",
+      "regions": [
+        "G21"
+      ],
+      "value_generation": "one image vision and spatial-projector generation under a fixed image/weight/configuration domain",
+      "retained_demand": "Per-image bidirectional attention, exact RoPE/norm/activation and rounding, post-encoder padding, cached image windows and all final-input readers."
+    },
+    {
+      "id": "W46",
+      "regions": [
+        "G18"
+      ],
+      "value_generation": "one CP-local nonnegative-entry count for an explicit noncausal sparse-index slice",
+      "retained_demand": "Keep the global visible-length output distinct from the clipped count when required, the N x 1 INT32 local count layout, explicit matrices with holes, row ownership, persistent graph addresses and producer readiness."
+    },
+    {
+      "id": "W51",
+      "regions": [
+        "G18",
+        "G19"
+      ],
+      "value_generation": "one generation of the CP CPU token-intersection plan and host tiling bounds",
+      "retained_demand": "Exact CPU query/length contents, dtype, counts, causal and TP-partition domain; private cache values and existing batch owner; per-builder fixed-address query buffers/copies, physical group slots, global namespaces and deferred readers."
+    }
+  ],
+  "relations": [
+    {
+      "kind": "CP_LENGTH_SHARING_AND_FUSION",
+      "plans": [
+        "G18.cp_length_cache_hit_elision",
+        "G18.cp_length_shared_generation",
+        "G18.cp_length_fusion",
+        "G18.cp_length_producer_epilogue",
+        "G18.cp_length_consumer_decode"
+      ],
+      "condition": "Same request order, sequence-length generation, CP partition and causal contract; preserve local/global and target/draft epoch boundaries.",
+      "rule": "Remove existing batch-cache-hit dead producers first, then share certified identical generations before charging the retained five-task fusion. Producer or consumer fusion overlaps the same temporary arrays. Host submission and observed device gaps are not additive kernel or service savings."
+    },
+    {
+      "kind": "SMLA_EARLY_WINDOW_VS_INDEX_ERASURE",
+      "plans": [
+        "G08.SWA_early_partial",
+        "G08.SMLA_LSE_split",
+        "G07.final_index_delivery",
+        "G07.score_select_pipeline"
+      ],
+      "condition": "Only index-source sites have a same-layer QLI edge. Valid split preserves native masks and arithmetic.",
+      "rule": "Do not add hidden QLI wait to eliminated QLI work. Recompute readiness after faster index selection, and charge partial state and any layout/metadata work."
+    },
+    {
+      "kind": "C2_FULL_STATE_FUSION_VS_RING_PARALLELISM",
+      "plans": [
+        "G06.owner_pool_ring",
+        "G06.reschedule_ring_update",
+        "G06.retention_horizon",
+        "G06.paired_pool_ring_loads"
+      ],
+      "condition": "Certify physical slot ownership, old predecessor readiness and retained state visibility. Fused completion includes its ring write tail.",
+      "rule": "Charge the same old update and zero work once. Compare one fused launch against the split variant with earlier RMS. Compact/deferred commit compete for ring writes, and unchanged tuple allocation can retain the old page size."
+    },
+    {
+      "kind": "ONE_RAW_HIDDEN_BROADCAST_BUDGET",
+      "plans": [
+        "G04.cache_owner_projection",
+        "G05.projected_cache_gather",
+        "G06.C2_projected_packet",
+        "G15.aux_SWA_copack"
+      ],
+      "condition": "Original full-hidden readers must all be satisfied by owner-local branches and typed delivery. Projection rounding depends on shape.",
+      "rule": "Each layer has one raw input gather credit. C2 joined FP32 GEMM is a separate failed precision gate. If old-M fallback is selected, only the transport delta remains before scratch and pack costs."
+    },
+    {
+      "kind": "SHARED_QR_PACKET_VS_JOINED_OUTPUT",
+      "plans": [
+        "G04.qr_quant_CSE",
+        "G04.QB_indexQ_joint",
+        "G04.QA_indexW_joint",
+        "G05.producer_rope_cache"
+      ],
+      "condition": "Both 910C W8A8 projections consume the same rounded QR and quantizer. Joined N changes tiling and output pitch.",
+      "rule": "Count the second quantization once. Shared prepared input retains original two outputs. A joined or grouped producer must preserve output-specific precision and price any RoPE-driven copies."
+    },
+    {
+      "kind": "PADDED_AUX_PREFIX_AND_LATE_QUERY_SPLIT",
+      "plans": [
+        "G12.aux_checkpoint_packet",
+        "G12.aux_same_M_early_projection",
+        "G12.aux_late_owner_select",
+        "G15.aux_SWA_copack",
+        "G15.context_KV"
+      ],
+      "condition": "Padded selector is the same current prefix, while query choice and rejected counts remain late. Nonpadded uses the late selector.",
+      "rule": "Compare all-checkpoint packet with per-checkpoint SWA co-pack as alternatives. Keep the local feature gather. Count earlier main projection as scheduling, and price any work or precision change under a different M separately."
+    },
+    {
+      "kind": "TERMINAL_VALUE_AND_DELIVERY_BUDGET",
+      "plans": [
+        "G12.terminal_raw_pack",
+        "G12.local_collapse",
+        "G12.local_collapse_and_norm",
+        "G12.Post_collapse",
+        "G13.normalized_row_demand"
+      ],
+      "condition": "Same terminal raw and normalized generations. Raw reader and rank order determine whether the narrow gather applies.",
+      "rule": "One raw-to-collapsed traffic delta. Local norm and local collapse each remove their own duplicated row work. Count a removed Post plane only with W02 and remove selected rows only once."
+    },
+    {
+      "kind": "RAW_DRAFT_BEFORE_CLAMP",
+      "plans": [
+        "G17.request_owned_id_overlay",
+        "G17.affine_id_overlay",
+        "G17.id_cleanup",
+        "G17.raw_and_clean_id_outputs",
+        "G17.spec_index_template",
+        "G17.remap_snapshot"
+      ],
+      "condition": "The pinned verifier reads raw draft IDs before cleanup. Previous-owner maps can be shared while branch participation differs.",
+      "rule": "A single downstream clamp absorbs the earlier -1 cleanup only after the raw gather. A two-output early writer must preserve raw drafts and charge its removed gather, ID overlay and cleanup boundaries once."
+    },
+    {
+      "kind": "SAME_REMAP_ONE_BUDGET",
+      "plans": [
+        "G17.remap_snapshot",
+        "G17.remap_seq_epilogue",
+        "G17.previous_owner_precompute",
+        "G18.remap_position_plan",
+        "G17.seed_count_only"
+      ],
+      "condition": "Use the same previous-owner generation. Separately check count-copy, scheduled-count and position readiness.",
+      "rule": "Count seed work and remap work separately. Each remap variant replaces the same snapshot chain. Price only the position/seq work the chosen variant absorbs and keep the existing slot kernel as baseline."
+    },
+    {
+      "kind": "STRONGER_PLAN_SUBSUMES_REMOVED_INTERFACES",
+      "plans": [
+        "G13.distributed_summary",
+        "G14.BR01",
+        "G14.BR02",
+        "G14.BR04"
+      ],
+      "condition": "Same target/bonus value generation, score outputs truly dead under the processor-aware summary protocol.",
+      "rule": "Rebuild the working-score DAG for the strongest plan; do not add weaker-plan byte savings."
+    },
+    {
+      "kind": "PRODUCER_FUSION_AND_CONTENT_CACHE_COMPOSE_BY_MISS",
+      "plans": [
+        "G16.epilogue",
+        "G16.bias_cache"
+      ],
+      "condition": "Native numerical equivalence class and parameter generation match.",
+      "rule": "Whole-step hits avoid W2; a native miss still needs the full-width weight plane. Price one miss schedule and real same-step co-occurrence. The measured compact mixed path has a reassembly penalty. A common epilogue changes the residual add/selection cost for both branches."
+    },
+    {
+      "kind": "LAYOUT_PROTOCOL_CHOICE",
+      "plans": [
+        "G16.vocab_shard",
+        "G16.bias_cache"
+      ],
+      "condition": "Cache ownership must follow score/weight ownership.",
+      "rule": "A replicated cache follows existing one-gather protocol; a sharded cache changes capacity and per-step collectives. These are distinct costed variants."
+    },
+    {
+      "kind": "WORK_FOR_LATENCY_TRADE",
+      "plans": [
+        "G16.speculative_predecessors",
+        "G16.epilogue"
+      ],
+      "condition": "Every committed real predecessor must have an exact result or execute the original fallback.",
+      "rule": "Extra candidate work can remove some dependency waits; it can also slow Cube/HBM contention. Five old GEMM calls are not a universal lower bound."
+    },
+    {
+      "kind": "DISJOINT_STATE_REQUIRED",
+      "plans": [
+        "G13.penalty_history",
+        "G17.plan_cache",
+        "G11.content_cache"
+      ],
+      "condition": "History/request/slot generations differ from immutable parameter/table generations.",
+      "rule": "Sharing pointers or shapes does not authorize reuse; preserve update, rollback, retirement and cancellation."
+    },
+    {
+      "kind": "SCHEDULING_NOT_ADDITIVE_WORK",
+      "plans": [
+        "G10.overlap",
+        "G11.overlap",
+        "G18.existing_C2_helper"
+      ],
+      "condition": "Readiness, workspace and shared Cube/vector/HBM/host-UVA/collective resources.",
+      "rule": "Overlap may hide a producer saving already outside the critical path. Re-schedule the joint DAG instead of adding wait intervals and kernel-time savings."
+    },
+    {
+      "kind": "SAME_BOUNDARY_SINGLE_BUDGET",
+      "plans": [
+        "G02.Post_Pre",
+        "G10.merge_Post",
+        "G12.Post_collapse"
+      ],
+      "condition": "Same layer/sublayer/token output with its complete reader set.",
+      "rule": "One removed HC write cannot be counted in three regions; side outputs survive separately."
+    },
+    {
+      "kind": "ALREADY_IMPLEMENTED_BASELINE",
+      "plans": [
+        "G11.unrotated_gate",
+        "G17.copy_expand_multioutput"
+      ],
+      "condition": "Pinned current native implementation is selected.",
+      "rule": "Treat existing fused work as baseline. Only newly removed boundaries, work or improved scheduling are incremental."
+    },
+    {
+      "kind": "RETIREMENT_VS_PRODUCER_REWRITE",
+      "plans": [
+        "G18.existing_C2_helper",
+        "G19.bank_retirement",
+        "G19.producer_capture"
+      ],
+      "condition": "Keep source generation and graph event ordering. Split retirement by the actual bank ownership and surviving consumer spans.",
+      "rule": "Bank retirement changes dependencies, while the helper changes producer work. Recompute one critical path after both changes. Extra banks trade capacity for same-role overlap and must be tied to captured addresses."
+    },
+    {
+      "kind": "WEIGHT_UNION_VS_ROW_WORK",
+      "plans": [
+        "G11.wkv_weight_shard",
+        "G13.verify_prefix_head",
+        "G16.bias_cache",
+        "G20.expert_batch"
+      ],
+      "condition": "Same direct dense arithmetic, unchanged weight generation, with an explicit local HBM/on-chip residency boundary.",
+      "rule": "Price distinct required weights once in the joint window. Full-vocabulary row pruning retains the head matrix. A remaining direct W2 miss retains the W2 matrix. Weight sharding and expert batching change the union, plus distinct communication or scheduling obligations. MAC and byte cuts use max absent required serialization."
+    },
+    {
+      "kind": "TEMPORAL_RESIDENCY_VS_EXPERT_REUSE",
+      "plans": [
+        "G20.expert_batch",
+        "G20.static_hot_expert_residency",
+        "G20.dynamic_expert_residency",
+        "G09.rank_local_route_reuse"
+      ],
+      "condition": "Use the same physical layer-expert identities and original dependency order.",
+      "rule": "Dynamic and static residency budget the same reads. If legal independent-request grouping or a new expert placement changes uses, rebuild intervals and include extra storage and communication. Transport-only deduplication need not change weight demand."
+    },
+    {
+      "kind": "QUANT_CSE_AND_OVERLAP_SHARE_READY_BUDGET",
+      "plans": [
+        "G03.norm_quant",
+        "G04.qr_quant_CSE",
+        "G10.overlap"
+      ],
+      "condition": "Exact rounded tensor generation, per-row scale, retained readers and resource order.",
+      "rule": "QB/index-Q duplicate quantization uses disjoint old task IDs from existing local cuts. FFN shared DQ is already entirely hidden in the modeled F21-exclusive overlap across 2560 graph sites. Moving DQ into the norm changes producer work and may move the router release. Recompute that dependency."
+    },
+    {
+      "kind": "C2_RETENTION_AND_PROJECTION_LIVENESS",
+      "plans": [
+        "G06.retention_horizon",
+        "G06.projection_liveness",
+        "G06.owner_snapshot",
+        "G06.reschedule_ring_update"
+      ],
+      "condition": "Ratio-2 predecessor-only reader, bounded rollback, same serialized page owner.",
+      "rule": "Three slots introduce a same-owner six-row WAR at odd starts; four do not. Price ordering and staging before choosing the layout. A shorter view alone does not lower a SWA-dominated allocation. Recompute the retained projection union and price either update rescheduling, compaction or post-commit publication on the new graph. Do not claim the same old update as separate savings."
+    },
+    {
+      "kind": "SELECTION_PACKET_CHOICE_AND_NORMALIZED_SCORE_GUARD",
+      "plans": [
+        "G13.distributed_summary",
+        "G13.packed_max",
+        "G13.score_live_epilogue"
+      ],
+      "condition": "Same score generation, original processing order and only selected-ID readers for the packed selection plan.",
+      "rule": "A one-word or two-word packet replaces the same full-vocabulary delivery. For live logprob/rank observers preserve normalized FP32 equality and native TopK ties. A raw-logit comparison may have a different tie-inclusive rank."
+    },
+    {
+      "kind": "EMBEDDING_OWNER_AND_HC_MATERIALIZATION",
+      "plans": [
+        "G01.embedding_dense_RS",
+        "G01.embedding_sparse_owner",
+        "G01.embedding_hidden_shard",
+        "G01.virtual_HC"
+      ],
+      "condition": "STANDARD SP rows, compatible original readers and exact vocabulary/value semantics.",
+      "rule": "Choose one embedding transport. It can compose with a local Tile or virtual HC, but both local padding and virtual output must not claim the same removed Tile/Pad surface. Target already tiles locally."
+    },
+    {
+      "kind": "RETURN_PLACEMENT_AND_NATIVE_ARITHMETIC",
+      "plans": [
+        "G20.return_slot_packet",
+        "G20.return_accumulator_owner",
+        "G20.rank_input_packet",
+        "G20.card_input_packet",
+        "G10.merge_Post"
+      ],
+      "condition": "Maintain expert BF16 results, original slots and weights, separate FP32 multiply/add and final BF16 round.",
+      "rule": "Repacking raw slots changes packet overhead only. One relocated whole-row accumulator can change return volume and peak load, while adding a final delivery. Input fanout has a separate payload, with coupled topology and readiness. A fused merge/Post must still consume the rounded routed result and preserve raw observers."
+    },
+    {
+      "kind": "NESTED_FANOUT_AND_RETURN_ROUNDING",
+      "plans": [
+        "G20.rank_input_packet",
+        "G20.card_input_packet",
+        "G20.expert_replica",
+        "G09.route_packet_with_eplb",
+        "G10.joint_shared_routed"
+      ],
+      "condition": "Post-mask physical expert IDs and owner map, equal per-row quantized input, and all routed metadata live.",
+      "rule": "Rank sharing and card sharing remove overlapping activation copies. Card sharing adds intra-card delivery. Placement, changed route multiplicity and a new quantization ABI require re-evaluating fanout. Input sharing leaves expert computation and original return reduction intact."
+    },
+    {
+      "kind": "ROUTER_BRANCH_PARTITION_AND_STATE_ORDER",
+      "plans": [
+        "G09.fixed_table_selected_dot",
+        "G09.router_summary",
+        "G09.grouped_fallback_score_packet",
+        "G09.route_packet_with_eplb",
+        "G09.dispatch_packet"
+      ],
+      "condition": "Partition fixed-table text, dynamic text/vision, and grouped fallback by the exact branch predicates.",
+      "rule": "Price only one score producer per row. A selected dot already removes its unselected logit planes. Keep logical capture, original token ordinal and padded recording gates ahead of the physical dispatch packet. An old all-row dynamic sort remains the comparator for the no-table v168 cohort."
+    },
+    {
+      "kind": "NEW_JOINT_MOE_PROTOCOL;NOT_API_REWIRING",
+      "plans": [
+        "G09.dispatch_packet",
+        "G10.shared_routed_quant",
+        "G10.joint_shared_routed",
+        "G10.merge_Post"
+      ],
+      "condition": "Actual row/weight owners, per-branch activation/scale and independent routed/shared rounding must be retained; unchanged dispatch_ffn_combine has no external per-token input activation scale.",
+      "rule": "Model local shared-expert grouped work or an explicit always-executed shared route, preserve the original routed accumulation, round routed/shared separately and merge at the common output owner. Price added shared traffic, grouped scheduling and occupancy; do not treat a K+1 unordered sum as the original computation."
+    },
+    {
+      "kind": "ROUTER_ID_GENERATION_VS_LAYER_SPECIFIC_ROUTE",
+      "plans": [
+        "G09.id_generation_reuse",
+        "G09.route_packet_with_eplb",
+        "G09.fixed_table_selected_dot",
+        "G09.dispatch_packet"
+      ],
+      "condition": "Same forward-generation ID values, dtype, owner, alignment and sentinel contract.",
+      "rule": "Charge one ID producer plus its publication when hoisting. An inline normalization can only erase the remaining producer work. Keep each layer score/selected result and physical placement, count, capture and RNG obligations."
+    },
+    {
+      "kind": "TERMINAL_FFN_ROW_UNION_AND_PREMIX_DELIVERY",
+      "plans": [
+        "G10.terminal_FFN_rows",
+        "G12.selected_collapse",
+        "G12.selected_premix",
+        "G12.local_collapse",
+        "G13.head_prefix"
+      ],
+      "condition": "Union all active normalized rows. Preserve raw readers, pre-layer aux, KV and routed state.",
+      "rule": "With required raw HC, retain its full work and price compact coefficients or compact normalized values as alternatives. Use TP*max owner rows for fixed packets and the true union for ragged delivery. Later speculative acceptance cannot retroactively remove the original target hidden or state work."
+    },
+    {
+      "kind": "SHARED_DOWN_RESIDENCY_VS_EXCHANGE_AND_SUBMISSION",
+      "plans": [
+        "G10.overlap",
+        "G10.shared_down_output_stripes",
+        "G10.shared_routed_quant",
+        "G10.merge_Post"
+      ],
+      "condition": "Same quantized row and row scale. Preserve original output columns, BF16 boundary and token owner.",
+      "rule": "Down-only stripes preserve full K, but charge INT8 input exchange and BF16 column return. Retained-M and packed-M shapes compete. Recompute the ready graph before crediting overlap. A producer-side merge can consume returned stripes only after both original branch values are ready."
+    },
+    {
+      "kind": "COMMUNICATION_VS_WEIGHT_RESIDENCY",
+      "plans": [
+        "G08.direct_pack",
+        "G08.attention_send_epilogue",
+        "G08.zero_send_bank",
+        "G08.OA_before_exchange",
+        "G08.local_OA_OB"
+      ],
+      "condition": "Same CP token owner and TP group. Preserve all projection and reduction arithmetic.",
+      "rule": "Price one send producer per branch. Direct pack, attention epilogue and the zero send bank affect the same old send preparation work. OA relocation reduces the logical payload and adds resident weights. Fully local OA/OB can remove both collectives under the numerical contract and pays both weight replication costs."
+    },
+    {
+      "kind": "ROW_DOMAIN_RESTRICTION_ACROSS_EXCHANGE_AND_PROJECTION",
+      "plans": [
+        "G08.zero_send_bank",
+        "G08.variable_peer_counts",
+        "G08.projection_row_specialization",
+        "G08.OA_before_exchange"
+      ],
+      "condition": "Ranks share the same CP count generation. Preserve source order, BF16 OA and OB boundaries and reduction arithmetic.",
+      "rule": "Fixed-count zero bank changes only the sender preparation. Full row compaction subsumes zero-source segment elision. Price OA and OB only for the old rows that reach those kernels. Recompute the product of retained rows and feature width when moving OA, and price any separately materialized zero restore once."
+    },
+    {
+      "kind": "SERIAL_TAIL_RESCHEDULE_OR_ERASE",
+      "plans": [
+        "G10.overlap",
+        "G10.staged_MC2",
+        "G10.merge_Post",
+        "G20.expert_batch"
+      ],
+      "condition": "Same routed/shared generation and output owner. Observed shared_M can differ from routed_M.",
+      "rule": "Use the same ready graph for overlap and merge elimination. Recompute shared scheduling and routed completion after changing the communication protocol. Do not add an old wait interval as removed work."
+    },
+    {
+      "kind": "INDEX_TEMPLATE_HIT_OR_MISS",
+      "plans": [
+        "G17.spec_metadata_pack",
+        "G17.spec_descriptor",
+        "G17.spec_index_template",
+        "G13.identity_head_view"
+      ],
+      "condition": "Same ordered scheduled ends and draft counts, typed consumers, device, readiness and ownership.",
+      "rule": "For a template hit count one resident allocation. For a miss price one packing or descriptor plan. The mutable packet needs a reader fence after the head/sampler/draft consumers. Identity head views and direct current-value draft gathers have distinct alias or consumption conditions."
+    },
+    {
+      "kind": "QLI_LOCAL_WORK_AND_TP_PEER_RELEASE",
+      "plans": [
+        "G07.mode2_bitmap",
+        "G07.candidate_direct_publish",
+        "G08.attention_layout",
+        "G08.variable_peer_counts"
+      ],
+      "condition": "Use the same QLI generation, SMLA output and eight original collective participants.",
+      "rule": "Recompute each rank send readiness and the latest peer. Local QLI work and a shifted wait cannot both be credited. A payload change has its own physical transport and ordering constraints."
+    },
+    {
+      "kind": "CANDIDATE_SCOPE_AND_KV_REUSE",
+      "plans": [
+        "G07.candidate_direct_publish",
+        "G07.mode2_bitmap",
+        "G07.mode2_finite_prune",
+        "G07.selected_KV_residency"
+      ],
+      "condition": "Candidate blocks, QLI keys and MLA compressed KV are separately owned values. Fixed candidate membership survives several different layer queries.",
+      "rule": "Candidate-packet elision and score pruning can compose if original outside fillers survive. Do not credit both bitmap and pruning for removing the same old mask work. Price four QLI key owners separately from shared MLA KV; only the membership can be shared without a new key equivalence proof."
+    },
+    {
+      "kind": "OWNER_ROUTING_VS_READY_AND_WEIGHT_SHARD",
+      "plans": [
+        "G11.token_owner_a2a",
+        "G11.two_layer_packet",
+        "G11.wkv_weight_shard",
+        "G11.wkv_output_shard",
+        "G11.lookup_overlap"
+      ],
+      "condition": "SP row ownership and head order agree with current WKV inputs and table generation.",
+      "rule": "Choose feature delivery, K-axis partial reduction, or output stripes with full-K local dots. The last changes feature fanout and BF16 output exchange while keeping the original reduction axis. Layer packet combination changes early layer-1 readiness. Rebuild the ready graph before crediting any overlap."
+    },
+    {
+      "kind": "ENGRAM_GATE_PARAMETER_AND_ROW_DEMAND",
+      "plans": [
+        "G11.constant_precompute",
+        "G11.hidden_cast_reuse",
+        "G11.inactive_key_elision",
+        "G11.WKV_gate",
+        "G11.content_cache"
+      ],
+      "condition": "Preserve original FP32 gate arithmetic, BF16 WKV and residual boundaries, and the mask and lookup generations.",
+      "rule": "Inactive rows retain V and the residual. Gate epilogue absorbs the same removed casts and intermediates. Price inactive-key elision on rows that still run WKV after caching and choose one computation order per output. Keep cross-stream scheduling and extended hidden lifetime separate from removed work."
+    },
+    {
+      "kind": "MARKOV_LAYOUT_AND_OWNER_COMPOSITION",
+      "plans": [
+        "G16.no_score_writeback",
+        "G16.step_major",
+        "G16.epilogue",
+        "G16.request_owner",
+        "G16.owner_subgroups",
+        "G16.vocab_shard"
+      ],
+      "condition": "The corrected score has the required rounded value and no surviving full-bank reader in the selected case.",
+      "rule": "The epilogue subsumes the same removed bank writeback. Base delivery can emit step-major directly. Pick one request owner group size and price its ingress, five-step recurrence, and final ID publication together. Do not add the endpoint reductions to the intermediate group."
+    },
+    {
+      "kind": "CONTEXT_METADATA_AND_ROW_DOMAIN",
+      "plans": [
+        "G15.rope_select",
+        "G15.rope_share",
+        "G15.slot_share",
+        "G15.cache_epilogue",
+        "G15.swa_window_liveness",
+        "G15.context_overwrite"
+      ],
+      "condition": "Original RoPE keys/positions, legacy slot owners and every active cache consumer are bound.",
+      "rule": "Shared RoPE already removes the unused-key work. Decide the row domain first; retire an old window or a guaranteed replaced suffix on each layer. Charge each removed row once, and use the union of surviving layer and bank demands before crediting main projection. A direct cache epilogue may then subsume reassembly or coordinate work."
+    },
+    {
+      "kind": "CACHE_PAIR_SUBSUMPTION_AND_FORK_JOIN",
+      "plans": [
+        "G05.index_key_dual_store",
+        "G05.key_producer_fusion",
+        "G05.long_kv_qli_overlap",
+        "G07.mode2_finite_prune"
+      ],
+      "condition": "Preserve original pre-rotation WK input, published generations, and QLI and SMLA readiness.",
+      "rule": "Price the dual publisher or a larger exact key producer for the same old tasks. Recompute the long-KV versus QLI/prepare fork after any QLI work reduction and charge events and vector contention."
+    },
+    {
+      "kind": "MINP_ACTIVE_ROWS_AND_LATER_CUTOFF_GENERATION",
+      "plans": [
+        "G14.minp_direct_row",
+        "G14.minp_index_pack",
+        "G14.minp_row_epilogue",
+        "G14.minp_joined_cutoff",
+        "G14.ascend_combined_cutoff_mask"
+      ],
+      "condition": "Use the typed thresholds for the current request permutation and preserve score routes.",
+      "rule": "Skipping and local fusion remove overlapping probability and mask work on inactive rows. A joined cutoff must account for the post-MinP normalized generation and removes each logit boundary once. The indexed pack charges both gather and original-order writeback."
+    },
+    {
+      "kind": "FILTER_BRANCH_SPECIALIZATION_AND_SUBSUMPTION",
+      "plans": [
+        "G14.ascend_combined_cutoff_mask",
+        "G14.ascend_bounded_k",
+        "G14.upstream_bounded_k",
+        "G14.filter_and_selector_epilogue"
+      ],
+      "condition": "Use the pinned backend and p presence. A capped call must prove all k lanes safe before launch.",
+      "rule": "The dual-filter and TopK-only timings apply to disjoint calls. A wider epilogue absorbs the mask boundary once and must retain exact post-mask arithmetic, RNG and score readers."
+    },
+    {
+      "kind": "REJECTION_DEMAND_BEFORE_PROBABILITY_AND_RECOVERY",
+      "plans": [
+        "G14.deferred_recovery",
+        "G14.request_recovery_fusion",
+        "G14.recovery_vocab_tiles",
+        "G14.random_probability_rows",
+        "G14.BR01",
+        "G13.verify_prefix_head"
+      ],
+      "condition": "Choose the real verifier branch and score readers, then preserve RNG state, accepted prefix and final replacement.",
+      "rule": "Price one recovery implementation on the selected rows. Softmax or entropy removal needs a separate reader and numerical proof, and a raw backup with a live entropy reader cannot be credited again. Keep greedy row-demand pruning outside the random probability domain."
+    },
+    {
+      "kind": "PROCESSOR_ROUTE_STATE_AND_PACKET_SUBSUMPTION",
+      "plans": [
+        "G14.request_stop_intervals",
+        "G14.marker_suffix_plan",
+        "G13.route_specific_score_summary",
+        "G13.distributed_summary"
+      ],
+      "condition": "Use the original history revision, penalty/restore order and required outputs for each route.",
+      "rule": "One common stop table may supply different row masks. Keep raw/full-score readers and preserve state commit order. Charge a shared per-row restore reduction once if it is emitted with distributed scores."
+    },
+    {
+      "kind": "SLOT_PLANE_PUBLICATION_OR_DECODE",
+      "plans": [
+        "G18.dual_ratio_slot_planes",
+        "G18.raw_slot_producer_epilogue",
+        "G05.consumer_slot_decode"
+      ],
+      "condition": "Same common raw slot and corrected positions. Preserve required typed aliases and graph owners.",
+      "rule": "Choose one producer for each surviving plane. Do not count C2 slot tasks again in a ring or key publisher saving. Moving calculation into a cache writer is separate from certifying physical slot uniqueness."
+    },
+    {
+      "kind": "COORDINATE_REUSE_VS_CACHE_PUBLICATION_JOIN",
+      "plans": [
+        "G05.index_key_dual_store",
+        "G05.long_kv_qli_overlap",
+        "G05.shared_coord_three_store",
+        "G18.slot_certificate"
+      ],
+      "condition": "Shared coordinate view, group and generation, independent destination planes and certified writable slots.",
+      "rule": "Reuse one coordinate preparation/certificate. For T24 the three-plane proposal removes only one more 192-byte coordinate read over pair publication. Compare the saved store launch with delaying QLI until the long branch is ready. Reprice both from the same surviving C2 publication rows."
+    },
+    {
+      "kind": "ROPE_DEMAND_BEFORE_PAIR_LOOKUP",
+      "plans": [
+        "G15.rope_select",
+        "G15.rope_share",
+        "G18.rope_paired_lookup",
+        "G18.rope_compact_table"
+      ],
+      "condition": "Equal full config, group and ordered coordinate values, with both output channels and their owner retained.",
+      "rule": "First remove unused configs and share equal pair generations. Compare direct paired lookup only on the remaining pairs. Count compact table residency separately from per-call index work and shared context W26."
+    },
+    {
+      "kind": "HEAD_ROW_DOMAIN_BEFORE_INPUT_SELECTION",
+      "plans": [
+        "G13.verify_prefix_head",
+        "G13.identity_head_view",
+        "G13.indexed_head_load"
+      ],
+      "condition": "Original ordered head input rows and every separately live hidden reader are preserved.",
+      "rule": "Recompute row selection after changing head demand. Use at most one removal of the old input gather. Count resident index metadata copies and score transport separately."
+    },
+    {
+      "kind": "TARGET_HEAD_ROW_DEMAND_BEFORE_SCORE_TRANSPORT",
+      "plans": [
+        "G13.verify_prefix_head",
+        "G13.distributed_summary",
+        "G14.score_row_layout",
+        "G14.raw_backup",
+        "G14.bonus_raw_cast"
+      ],
+      "condition": "Actual accepted prefix and full score/state readers are respected for each request.",
+      "rule": "First choose the evaluated head rows and bonus policy using the prefix histogram. Price one summary or score-live route on those rows. Summary-only selection subsumes the same eliminated score splits and raw copies. Charge extra rounds and any repeated full head weight reads. Request-wave counts alone do not determine batch launches."
+    },
+    {
+      "kind": "DEPENDENCY_SPECIFIC_PARAMETER_GENERATIONS_FOR_REUSE",
+      "plans": [
+        "G01.row_prefix_precompute_or_cache",
+        "G03.prepared_quantized_input",
+        "G11.parameter_product_or_row_cache",
+        "G16.Markov_bias_cache",
+        "G10.expert_weight_residency"
+      ],
+      "condition": "Exact dependency values and required shard/chunk completion, numerical class, backend layout and physical owner are known; reader retirement is preserved.",
+      "rule": "Track actual accepted writes and final transforms, not loaded-name cardinality. Invalidate affected value caches on dependency changes; layout/owner relocation may require republishing without changing logical values. Share the generation proof and charge rebuild/capacity/transport once; loading already paid at startup is not a per-token saving."
+    },
+    {
+      "kind": "FIRST_ROW_PREFIX_CACHE_VS_FUSION_AND_TRANSPORT",
+      "plans": [
+        "G01.row_prefix_precompute_or_cache",
+        "G01.virtual_HC",
+        "G03.norm_quant_fusion",
+        "G04.first_projection_preparation",
+        "G01.owner_direct_delivery"
+      ],
+      "condition": "Only a proved row-local first-layer prefix with compatible parameter/adapter, owner, dtype/shape and numerical generations; retain raw/residual/aux and padding branches.",
+      "rule": "Count the same matched first-layer tasks once. A hit trades them for stored payload/read and possibly transport; a miss pays refill. Charge extra cache/table capacity, parameter-shard placement and communication. Do not extend the budget to context-dependent later layers or add overlapping fused/precomputed variants."
+    },
+    {
+      "kind": "OVERLAPS;QUANTIZATION_AND_TRANSPORT_REPRESENTATION",
+      "members": [
+        "G04.mlp_quantized_input_gather",
+        "G04.shared_input",
+        "G03.norm_quant",
+        "G10.shared_routed_quant"
+      ],
+      "constraint": "Charge one eliminated quantization evaluation and one changed packet per value generation. Raw-input readers may retain the old gather. Row-local quantization cannot be moved across K-split transport using a different amax domain."
+    },
+    {
+      "kind": "BRANCH_CONDITIONAL;MATERIALIZATION_EDGE_ACCOUNTING",
+      "members": [
+        "G10.unquantized_gateup_activation",
+        "G10.activation_topk_down",
+        "G10.bias_generation_preparation",
+        "G09.staged_MC2",
+        "G10.joint_shared_routed"
+      ],
+      "constraint": "Bind the same selected expert/activation/weight generation. Nested GMM1/activation/top-k/Down regions charge each removed write/read edge once. Bias preparation is load/update-generation work and has zero per-call conversion credit when bias is absent or already FP32. These modular unquantized edges are not separately measured inside the saved INT8 fused tasks."
+    },
+    {
+      "kind": "SHARED_BUFFER_GENERATIONS;SEPARATE_KV_AND_TOPK_LIFETIMES",
+      "members": [
+        "G07.direct_indices",
+        "G07.candidate_direct_publish",
+        "G07.selected_KV_residency",
+        "G08.attention_layout",
+        "G05.index_key_dual_store"
+      ],
+      "constraint": "The same KV source can outlive several TopK generations. A next TopK writer must preserve the previous generation readers of the shared buffer, while KV/index-K and candidate state retain their own longer reader sets. Early publication requires dependency readiness and separate banking when generations overlap."
+    },
+    {
+      "kind": "SEPARATE_PUBLICATION;BANK_LIFETIME",
+      "members": [
+        "G11.lookup_overlap",
+        "G11.mask_hash_lookup_fusion",
+        "G11.two_layer_packet",
+        "G11.lookup_overlap_banks",
+        "G11.content_cache"
+      ],
+      "constraint": "Mask readiness, each layer lookup readiness, allocator ownership and final retirement are different edges. Combining producers can delay early consumers; bank duplication removes only storage conflicts and cannot erase slot-history or collective-order dependencies. Do not add their ideal overlap and byte-elision gains."
+    },
+    {
+      "kind": "CONSUMER_SPECIFIC_IDENTITY_AND_GENERATIONS",
+      "members": [
+        "G01.row_prefix_cache",
+        "G11.content_cache",
+        "G11.mask_hash_lookup_fusion",
+        "G11.hash_layout_specialization"
+      ],
+      "constraint": "Raw token, compressed token, full hash history, final table row, projected row and context-dependent gate each have different equality and generation keys. Share only at the consumer equivalence level actually proved."
+    },
+    {
+      "kind": "OVERLAPPING_BYTE_ELISION",
+      "members": [
+        "G11.compact_hash_ids",
+        "G11.mask_hash_lookup_fusion",
+        "G11.content_cache"
+      ],
+      "constraint": "INT32 hash transport, direct consumption and elimination/cache of the same hash output are overlapping alternatives. Count a materialization once; zero added credit where already eliminated."
+    },
+    {
+      "kind": "PERMUTATION_COMMUTES_WITH_ROW_LOCAL_TRANSFORM_UNDER_OWNERED_COEFFICIENTS",
+      "members": [
+        "G08.attention_epilogue_send",
+        "G08.rope_send_pack",
+        "G08.receiver_rope_projection",
+        "G08.full_weight_projection"
+      ],
+      "constraint": "Choose rotation/packing/projection placement jointly. Preserve coefficient and row-validity ownership, native numeric boundaries and all surviving readers. Required exchange payload is unchanged by rotation relocation alone; count erased intermediates once."
+    },
+    {
+      "kind": "NATIVE_DISPATCH_AND_DUAL_OUTPUT_BOUNDARY",
+      "members": [
+        "G03.norm_multioutput",
+        "G10.shared_prepared_input",
+        "G08.receiver_rope_projection"
+      ],
+      "constraint": "An available capability or named API is insufficient for new shape/stride/quant ABI acceptance. Preserve rounded value identity, separate reader lifetimes and active selected call paths; no new independent work unit."
+    },
+    {
+      "kind": "SELECTED_METHOD_REPRESENTATION_AND_VALIDITY_GENERATIONS",
+      "members": [
+        "G09.mc2_prefix_mask_generation",
+        "G09.modular_vs_fused",
+        "G10.shared_routed_schedule",
+        "G19.cross_iteration_banks"
+      ],
+      "constraint": "Coordinate backend, model-owned state, count domain, mask generation and collective order before composition. Same mode or context lifetime is insufficient. Identical mask bytes may be shared read-only; different generations need retirement or separate banks. Count fill elimination once."
+    },
+    {
+      "kind": "ROLE_AND_DESTINATION_DEMAND_BEFORE_COMMON_PREPARATION",
+      "members": [
+        "G15.context_KV",
+        "G15.context_row_prune",
+        "G15.shared_RoPE",
+        "G18.slot_metadata",
+        "G09.dispatch_packet"
+      ],
+      "contract": "Determine layer/output/state demand before pricing shared preparation. Other consumers can keep a common producer live; panel elimination overlaps slot/RoPE/projection savings. Distinct parameters do not rule out joint scheduling."
+    },
+    {
+      "kind": "DISTINCT_ROW_DEFAULTS_WITH_SHARED_GENERATION",
+      "members": [
+        "G17.shared_row_publication",
+        "G18.slot_metadata",
+        "G18.dcp_owner_table_read",
+        "G07.mtp_owner_compaction_delivery"
+      ],
+      "contract": "Share generation and address arithmetic while preserving each output's predicate/default and owner. Identical slots/positions/shapes do not imply equivalent values; object identity dedup is weaker than storage-alias independence. Existing producer-elision and direct-consumer plans compete for the same removed work."
+    },
+    {
+      "kind": "SAME_HISTORY_AND_SCORE_GENERATION_PARTIAL_FUSION",
+      "members": [
+        "G13.penalty_history",
+        "G14.penalty_output_membership",
+        "G14.process_select",
+        "G14.specific_logprob_delivery"
+      ],
+      "contract": "Derive private membership without deleting score observers. History caching/direct score processing may remove the same mask and counts construction, so charge union of removed work. Ragged metadata can be shared only for the same request/stage generation; local fusion survives when whole-score elimination is disallowed."
+    },
+    {
+      "kind": "LOOKBACK_VALUE_REUSE_RETAINS_HASH_HISTORY",
+      "members": [
+        "G11.constant_prompt_lookback",
+        "G11.hash_cache_publication",
+        "G17.input_publication"
+      ],
+      "contract": "A reused unknown prompt window can avoid only that input-bank publication. Current-chunk/mapped-token cache updates and hash fallback remain. Share owner plans only where generations match; equal all -1 complete buffers may be reused across owner permutations without falsely requiring identical requests."
+    },
+    {
+      "kind": "INPUT_ROLE_DEFAULTS_AND_DIRECT_DELIVERY",
+      "members": [
+        "G01.role_aware_embedding_delivery",
+        "G01.direct_embedding_bank",
+        "G07.bounded_index_sort_keys",
+        "G07.direct_prepared_output",
+        "G14.penalty_output_membership"
+      ],
+      "contract": "Each direct producer replaces only its own interface and retains other readers. Representation specialization, preparation deletion and constant/mask elision can overlap; distinct index, raw-ID, embedding and history generations are not Cartesian fusion pairs."
+    },
+    {
+      "kind": "DYNAMIC_POLICY_ENDPOINT_AND_CONFIDENCE_FUSION",
+      "members": [
+        "W16",
+        "W49",
+        "W28"
+      ],
+      "contract": "Endpoint elimination subsumes the same confidence/survival/allocation fusion. Count W16 embedding reuse once, and do not separately add the target-row budget effect already priced in verification demand."
+    },
+    {
+      "kind": "RECEIVE_PERMUTATION_FINAL_BANK_AND_ZERO_TAIL",
+      "members": [
+        "G11.rank_major_consumer",
+        "G11.final_bank_writer",
+        "G11.lookup_direct_write",
+        "G11.content_cache"
+      ],
+      "contract": "A direct final writer removes only the actually materialized intermediate interface. Required lookup/collective values, zero tails and bank readiness remain; cache-hit elimination and owner delivery overlap with this work."
+    },
+    {
+      "kind": "RECEIVE_PERMUTATION_FP32_SCORE_AND_VALUE_ENCODING",
+      "members": [
+        "G13.rank_major_consumer",
+        "G13.target_FP32_writer",
+        "G14.score_processing",
+        "G16.vocab_shard"
+      ],
+      "contract": "Preserve the original BF16-to-FP32 conversion including NaN mapping, prior BF16 transforms and optional readers. Distributed/owner summaries can subsume this same full-score interface; draft Markov BF16 semantics are separate."
+    },
+    {
+      "kind": "SUBSUMES",
+      "plans": [
+        "G08.PCP_full_weight_residency",
+        "G08.PCP_live_quant_metadata"
+      ],
+      "condition": "The same reconstruction is fully removed by a valid resident generation.",
+      "rule": "Do not also count omission of auxiliary planes from that eliminated gather."
+    },
+    {
+      "kind": "SUBSUMES",
+      "plans": [
+        "G08.PCP_full_weight_residency",
+        "G08.PCP_weight_prefetch_banks"
+      ],
+      "condition": "The same per-owner reconstruction is fully eliminated by a valid resident generation.",
+      "rule": "Do not also count overlap of that eliminated gather as a separate saving."
+    },
+    {
+      "kind": "SUBSUMES",
+      "plans": [
+        "G16.endpoint_policy_elision",
+        "G16.confidence_input_pack",
+        "G16.segmented_confidence_projection"
+      ],
+      "condition": "Non-refresh endpoint policy with no surviving confidence/probability observer or producer side effect.",
+      "rule": "If the whole confidence region is eliminated, do not add its avoided Cat/Cast/projection work again."
+    },
+    {
+      "kind": "OVERLAPS",
+      "plans": [
+        "G16.confidence_input_pack",
+        "G16.segmented_confidence_projection"
+      ],
+      "condition": "Same confidence input/value generation.",
+      "rule": "A segmented projection already removes the packed input; do not sum both interface-byte reductions."
+    },
+    {
+      "kind": "requires",
+      "plans": [
+        "G10.merge_Post"
+      ],
+      "condition": "Retain pre-merge shared reduction, selected post-merge truncation/zero-expert addition and original rounded branch merge; use invocation-matched final-reduction identity.",
+      "evidence": "full-review/MOE-STRAIGHTLINE-AND-REDUCTION-CONTRACTS.json",
+      "scope": "Pinned source and matching communication mode; native arithmetic/lifetime/performance still conditional."
+    },
+    {
+      "kind": "VISION_COEFFICIENT_REUSE_AND_DIRECT_QKV_DELIVERY",
+      "members": [
+        "W50",
+        "G21.projection_rotary_delivery",
+        "G21.shared_coefficients",
+        "G19.graph_bank_retirement"
+      ],
+      "contract": "Shared full coefficients and half-coefficient consumers compete for the same expansion work; count their union. Direct QKV delivery retains three precision boundaries and graph/live readers. No new independent work unit."
+    },
+    {
+      "kind": "PADDING_AND_OUTPUT_RETIREMENT_REFINEMENT",
+      "members": [
+        "G10.shared_input",
+        "G17.shared_input_publication",
+        "G19.graph_bank_retirement",
+        "G20.expert_ready_tiles"
+      ],
+      "contract": "Pad elimination/direct final writes compete for the same materialization. Preserve implicit layer identity/cursor and async readers. Startup and tracing work add no independent per-token budget."
+    },
+    {
+      "kind": "MULTIMODAL_CACHE_WINDOW_AND_DISJOINT_INPUT_PRODUCERS",
+      "members": [
+        "G01.embedding",
+        "G17.shared_input_publication",
+        "G18.positions_and_slots",
+        "G19.graph_bank_retirement",
+        "G21.image_to_language_delivery"
+      ],
+      "contract": "A common request/generation plan may serve several output planes, but cache retention, position coordinates and tail defaults remain distinct. Charge removed image/text publication once."
+    },
+    {
+      "kind": "HISTORY_GENERATION_AND_DISTINCT_SCORE_TOKEN_OUTPUTS",
+      "members": [
+        "G13.penalty_history",
+        "G14.process_select",
+        "G14.specific_logprob_delivery",
+        "G17.shared_input_publication"
+      ],
+      "contract": "Share predicate/row plans only for identical request/history generations; keep logprob-before-token-discard and diagnostic observers. Refines existing score/publication work, so do not add the same masks/TopK/gathers twice."
+    },
+    {
+      "kind": "COMPILED_CALL_SHAPE_CACHE_AND_BANK_ADMISSION",
+      "members": [
+        "G19.graph_bank_retirement",
+        "G17.shared_input_publication"
+      ],
+      "contract": "Refine existing capture/compilation generation and output-bank requirements; no independent arithmetic budget or cost addition."
+    },
+    {
+      "kind": "STARTUP_AND_ITERATION_PUBLICATION_DOMAINS",
+      "members": [
+        "G11.HOST_UVA",
+        "G17.shared_input_publication",
+        "G19.graph_bank_retirement"
+      ],
+      "contract": "Keep startup pinning/capture/seed state separate from per-iteration generation and peer readiness. No new independent arithmetic budget."
+    },
+    {
+      "kind": "DRAFT_DUMMY_REAL_AND_AUXILIARY_GENERATIONS",
+      "members": [
+        "W17",
+        "W18",
+        "W25",
+        "W39"
+      ],
+      "contract": "Share metadata planning or direct output generation while preserving context/query/bank domains and independent logits/recycle consumers. Dummy initialization and real request work are separate cohorts; no duplicate work-unit or service credit."
+    },
+    {
+      "kind": "INPUT_SOURCE_AND_DEVICE_BANK_GENERATIONS",
+      "members": [
+        "G11.final_bank_writer",
+        "G17.shared_input_publication",
+        "G19.graph_bank_retirement"
+      ],
+      "contract": "Reuse the same source/reader generation proof; host H2D input safety does not replace device final-reader retirement. No new work unit or service gain."
+    },
+    {
+      "kind": "DRAFT_ROW_PLAN_AND_MULTI_OUTPUT_DEFAULTS",
+      "members": [
+        "W13",
+        "W17",
+        "W18",
+        "W39"
+      ],
+      "contract": "Direct seed/length/qsl/padding, shared group plans and metadata producer fusion overlap on request/generation work. Preserve distinct typed ranges, per-group table/slot values and CPU mirrors; count eliminated work once."
+    },
+    {
+      "kind": "NEW_VISION_REGION_AND_SHARED_INPUT_DELIVERY",
+      "members": [
+        "W50",
+        "G21.vision_encoding",
+        "G01.embedding",
+        "G17.shared_input_publication"
+      ],
+      "contract": "W50 covers distinct conditional image computation. Direct span/cache/input delivery and skipped overwritten text embeddings share publication work with G01/G17; charge the union, never add both full budgets. No current C8 vision execution or gain is established."
+    },
+    {
+      "kind": "COLLECTIVE_RECEIVE_LAYOUT_AND_VALUE_OWNER",
+      "members": [
+        "G11.rank_major_consumer",
+        "G12.rank_major_consumer",
+        "G13.rank_major_consumer",
+        "G16.request_owner"
+      ],
+      "contract": "Direct receive-layout consumption, owner routing and full-gather elimination overlap on the same receive/transposition work. Preserve group rank/row order, score/activation rounding, raw readers and graph-bank lifetimes; retain alternate outputs where needed."
+    },
+    {
+      "kind": "ACTIVATION_MODE_AND_ROUNDING_BEFORE_EPILOGUE",
+      "members": [
+        "G10.preclamp_activation_delivery",
+        "G10.GEMM_activation_epilogue",
+        "G03.norm_quant",
+        "G04.typed_CV_packet"
+      ],
+      "contract": "Share loads/packing or specialize a fused producer while retaining selected mode, intermediate precision and typed scale/output boundary. A required raw/rounded reader limits deletion, not every partial or multi-output fusion; count removed interfaces once."
+    },
+    {
+      "kind": "SHARD_LOCAL_HANDOFF_WITH_TYPED_QUANTIZATION",
+      "members": [
+        "G04.local_linear_handoff",
+        "G04.producer_transport",
+        "G10.shared_routed_quant"
+      ],
+      "contract": "A concrete compatible producer/consumer edge can avoid materialization or communication; preserve group order, gate/up pairing, local K-scale basis, rank0 bias and full-output readers. Interface compatibility is necessary but not proof that the removable communication exists in C8."
+    },
+    {
+      "kind": "GLOBAL_MASK_GENERATION_AND_LOCAL_PREPARED_VALUE_REUSE",
+      "members": [
+        "G09.mc2_prefix_mask_generation",
+        "G09.mc2_prepared_mask_reuse",
+        "G09.dispatch_packet"
+      ],
+      "contract": "One immutable local prepared mask may serve multiple layers only within compatible value/owner/generation domains. Direct final-format production and repeated-pad elimination overlap on the same prepared outputs. Consumer input mutation/alias, graph addresses and final readers remain explicit gates."
+    },
+    {
+      "kind": "OUTPUT_REFERENCE_VS_READINESS;INVOCATION_BANK_OWNERSHIP",
+      "members": [
+        "G10.shared_routed_schedule",
+        "G10.shared_output_banks",
+        "G10.merge_consumer_delivery"
+      ],
+      "constraint": "A Python output slot can be cleared before device readers retire. Match producer/input/output events, DBO index and final readers by invocation generation; additional banks cost capacity and do not remove data/parameter/collective dependencies. Shared/routed merge preserves each branch numerical boundary."
+    },
+    {
+      "kind": "OVERLAPS;SAME_COUNT_DEMAND",
+      "members": [
+        "G18.cp_sparse_paired_count_slice",
+        "G18.cp_sparse_producer_clipped_count",
+        "G18.cp_sparse_retained_count_reduction"
+      ],
+      "condition": "Same CP-local rows and explicit logical-index matrix.",
+      "rule": "Choose the applicable representation for one count demand; do not add three ideal savings. Raw visible_len can exceed index width, so unconditional reuse has a helper-level counterexample."
+    },
+    {
+      "kind": "INTERACTS;SHARED_METADATA_SCHEDULE",
+      "members": [
+        "G18.cp_sparse_paired_count_slice",
+        "G18.cp_length_cache_hit_elision",
+        "G18.sparse_direct_banks"
+      ],
+      "condition": "The same request generation, global/local namespaces and metadata consumers.",
+      "rule": "Count reduction, length production and index-bank copies are distinct work but share preparation and publication. Preserve real dependency stages and measure the joint critical path; task costs across ranks or iterations are not additive wall-clock savings."
+    },
+    {
+      "kind": "CPU_PLAN_SHARING_COMPOSES_WITH_DISTINCT_DEVICE_PUBLICATION",
+      "plans": [
+        "G18.cpu_plan_shared_generation",
+        "G18.cp_length_cache_hit_elision",
+        "G18.dual_ratio_slot_planes",
+        "G19.producer_capture"
+      ],
+      "condition": "Preserve the accepted CP-slot source and each device destination. CPU input equality and current batch ownership must be established independently of equal shapes.",
+      "rule": "W51 is a retained host-input producer, distinct from W45 authoritative device lengths and W35 physical slot outputs. Price incremental service behavior against the accepted combination; do not add its host elapsed or any publication gap to prior percentages. A capture rewrite must account for the same producer once."
+    },
+    {
+      "kind": "SAME_C1_PUBLICATION_DIFFERENT_ALIAS_AND_SCHEDULE",
+      "plans": [
+        "G18.dual_ratio_slot_planes",
+        "G18.C1_global_plane_view",
+        "G18.C1_delayed_dual_bank_writer"
+      ],
+      "condition": "Current12global and12local C1writers per prefix give an optimistic12pair cap; actual same-group cache-state matching remains to be bound. Alias changes require old-reader lifetime admission; delayed dual-bank production requires no intervening global-slot consumer and retained local-write timing.",
+      "rule": "One W35 publication budget. Do not count21SWA builder calls as21removed writers, add enclosing CP/parent time, or extend C1 proof to C2/packed layouts."
+    },
+    {
+      "kind": "OVERLAPPING_PRODUCER_BOUNDARIES",
+      "plans": [
+        "G04.cache_owner_projection",
+        "G04.owner_cache_preprocessing",
+        "G05.projected_cache_gather"
+      ],
+      "condition": "The larger owner-side route also moves SWA/C1 normalization and SWA rotation. C1unrotated index-key input and global C2pool/ring stay live.",
+      "rule": "One W42budget; do not add projection-only and extended old-work unions. Retain Q/Cube ordering, full typed transport and required outputs when pricing replacement."
+    }
+  ],
+  "overlapping_request_budgets": [
+    {
+      "families": "G01/G11",
+      "source": "EMBEDDING-ENGRAM-FUSION-ESTIMATES.json",
+      "rule": "图内外查表、SP 行交付及两层 Engram 的同一组请求只能取一次联合差额。"
+    },
+    {
+      "families": "G02/G12",
+      "source": "HC-PAIRED-BOUNDARY-REQUESTS.json",
+      "rule": "跨层与两处 mHC 边界共享同一 Post 残差和 Y，按实际读者取并集。"
+    },
+    {
+      "families": "G07/G08",
+      "source": "SMLA-PANEL-OCCUPANCY-SCREEN.json",
+      "rule": "QLI 成员转换、索引准备和 SMLA 私有 KV 临时面是三个边界。对同一 KV 读取的替代方案只计一次。"
+    },
+    {
+      "families": "G09/G10/G20",
+      "source": "ROUTED-EXPERT-HANDOFF-ESTIMATES.json",
+      "rule": "固定原专家、路由和权重；只给两处私有张量写读计价，独立路由阶段不含在此预算。"
+    },
+    {
+      "families": "G12/G15",
+      "source": "DSPARK-CHECKPOINT-PACKET-ESTIMATES.json",
+      "rule": "三层辅助状态合包与草稿输入拼接使用联合请求预算。"
+    },
+    {
+      "families": "G17/G18",
+      "source": "BATCHED-SLOT-RESULT.json",
+      "rule": "26 项批写与 slot 双输出使用不同服务基线，组合增量必须来自相同基线。"
+    }
+  ],
+  "sources": {
+    "full-review/ACTIVATION-QUANT-REQUEST-ESTIMATES.json": "dc00aab27c2a834e3198a04c6b11932c67d92ee5f7012b043fed9aabf1fcd5a3",
+    "full-review/ATTENTION-INPUT-FUSION-REQUESTS.json": "22eac811497df41b1e84f7a471b5c8be766d2461f356ca89b8405afd99130d5f",
+    "full-review/ATTENTION-SEND-REQUEST-ESTIMATES.json": "d57e07174aa90cd42fb2fc4326a5c9b43373b6ca643475dbc6af91cc8aa380d5",
+    "full-review/BATCHED-SLOT-RESULT.json": "8e202f48b3d84a21694afbbb095ce133bf88fdf037fe8f0e333bd93f4024ba29",
+    "full-review/BRANCH-COVERAGE-LEDGER.json": "f6911e8313afe149d4b4f994ac26e45ac5c725aabe1a8a611f6ed661dc86de2a",
+    "full-review/C2-POOL-RING-OWNER.json": "d9e22c32bbd950c283bf7e8793583181b7eaa51c9d2ebfb8d5798186d38a831c",
+    "full-review/C8-DRAFT-SUBMISSION-WAIT-BUDGET.json": "4f9c6055536f67c7bf50515ff9268005bdc9c1579f355a8fe52fe7cd3a833d00",
+    "full-review/CLEAN-DSPARK-SCORE-VALUE.json": "ce3edb13f8e72d7c760663796717866222967f38b8a7c54c94228d81bf48decf",
+    "full-review/CP-LENGTH-C8.json": "8e038b907f2b3bacd9beccace0a9c6d1433ce0ab9d26bdc4d64189a52840e436",
+    "full-review/DSPARK-CHECKPOINT-PACKET-ESTIMATES.json": "fae303791299ddb7e8e36b30665993431c8d691c928bdd601f46486823d82348",
+    "full-review/DSPARK-CONTEXT-FUSION-ESTIMATES.json": "7a3fed29f31a7f866879c724475ea5992c03df37303aff3e210bb58506ff02fe",
+    "full-review/EMBEDDING-ENGRAM-FUSION-ESTIMATES.json": "4ba7f874359cd39796f26ec5dd2a6f12a0337fbf7162a06a5f300c049d8b699e",
+    "full-review/EXPERT-SIBLING-TILE-REQUEST-ESTIMATES.json": "74443ef6d1a28451b65769a28201c57756c1abf8d0d7f5063861133f2281ef32",
+    "full-review/FROZEN-C8-MODALITY-ADMISSION.json": "b5860c46591c3e1e82782715ac607d9e78e55b8e4729e7bae49e6ed75c74db28",
+    "full-review/FUSION-BRANCH-DECISION-INDEX.json": "eb9ecb0db6f514d3cc78863eaf34fdbcd52f23addc7de951ed36ec3761f60913",
+    "full-review/HC-PAIRED-BOUNDARY-REQUESTS.json": "f25158211efe9c36af2e4aec01bd26526bc2e257c18801e51793fa2148901fa1",
+    "full-review/HC-PRE-ROW-NORM-BARRIER-RESULT.json": "7db31d7d9a55f2bbd64943da944e300140c29538b5a1ad86b4772035c950504f",
+    "full-review/JOINT-WORK-BOUNDS.json": "6b117f3f24bb5ee0a0d63a98d72e58f7b6ff96175c84683ee63667347265ac12",
+    "full-review/MODULAR-MOE-ADMISSION.json": "731fad54ea59dad4a2ba8d75345134c6ebc9555da0a7c8d01b5b9b0526333049",
+    "full-review/MODULE-FUSION-VALUE-ESTIMATES.json": "5ef92a13d0eaca2cc1dbe9d1e7a3d72b3d0acd8ff3d3d7d36c630cb5532547de",
+    "full-review/MOE-MERGE-HC-C8.json": "5abb1a0dc446482432dc8a845e4bc1e37875bc8f4365e0cb1aa87d2331decaab",
+    "full-review/OA-OB-FUSION-REQUEST-ESTIMATES.json": "62b3e405b1332d6d7d24f11a393596cfcf5ed6b0b1fdc226309b3d891cb49338",
+    "full-review/ORDERED-ENGRAM-VALUE.json": "1e4a7e4a8a5ae588e3771f7b1c122892353cf4828f873fc1761a1c4fd50a8cb3",
+    "full-review/ORDERED-RETURN-ENDPOINT-ESTIMATES.json": "9f23b62ce1c0f59686b572991678d2d3d67a571c16b416818e36a9e108081316",
+    "full-review/QLI-REPEATED-SERVICE-C8.json": "10c3ca078a0177507c3fba325ed1efd2b97ba89c52f2b0d52d52f1321bd74707",
+    "full-review/RANDOM-SAMPLING-FUSION-ESTIMATES.json": "919218e94945f8f988b749aebdb6365df26736160bee19ede6afa7946dbc9f48",
+    "full-review/ROUTED-EXPERT-HANDOFF-ESTIMATES.json": "69e94edbe705836e9464e8fd090b91ee22c949d06d8dcc2869c3582cd99afaff",
+    "full-review/ROUTER-SCORE-DELIVERY-ESTIMATES.json": "37e6c74fae10aa8e6072c9dc339ae8040248749091403a848296dff7a7346802",
+    "full-review/SHARED-EXPERT-OVERLAP-CONTRACTS.json": "5730baae4624c8ab1d889c7e4c62c4610e0e7a13266cc1b99c0d044d4b4a9ae0",
+    "full-review/SMLA-PANEL-OCCUPANCY-SCREEN.json": "521904ec7d21dc547192021ce43f1faeee8a2a3ba0b8ad1f6c302908d82ec50a",
+    "full-review/SPARSE-KV-RETENTION-REQUEST-ESTIMATES.json": "510f823cf81791e7a12a413f4739ee74ddcf43c47c830eeb982d3c64cfece004",
+    "full-review/SPARSE-SELECTION-DELIVERY-ESTIMATES.json": "a173949eb5f21f03106448dc43f1d7beb0a8d327e45662d716cfe3fd54c9ef07",
+    "full-review/TERMINAL-HEAD-DELIVERY-ESTIMATES.json": "6c22b216268672ffc5420d797f40a69044a53a0886b9976c9971d617c360a764",
+    "full-review/VOCAB-SELECTION-FUSION-ESTIMATES.json": "674db8db41de46062a8c3c8c8f7a1fb3c4dbf4da38b5f0a3ee4bb6281ca75529",
+    "full-review/runs/clean-native-profile-ea31701f9da0-result.json": "b2081df7e3874fd6c9aad8108a816c297daae3ec33421dc0dd9024029e2c89e6",
+    "full-review/runs/ordinary-load-9144f2d04ace-result.json.gz": "42686163175d4fd4f0adfea7ce2ce8b76ac13bc463944a2b8d2e413cf5137dbf",
+    "full-review/runs/prefill-request-steps.json": "43dff720802f11e4601a1897f895cdb02eb1db725af1c101518ddde0979bce3a",
+    "tools/reconcile_fusion_scope.py": "aa0c0a3970c128e03687d52192c2c5331e6a8bdf9fa772b3d7cf51d29abbc1e4"
+  },
+  "limits": [
+    "Case IDs are local to the frozen proposal list. Legacy source IDs and work units are separate.",
+    "A family source or source-control reconciliation is not a per-branch request estimate. Branch notes may cover multiple predicates.",
+    "The two workload manifests exclude incremental image work and externally supplied embedding requests, not the multimodal wrapper on text, internal embeddings or all stochastic operations inside a model.",
+    "The historical work units and relations are nonexclusive references, not disjoint time bins. No portfolio percentages are summed."
+  ],
+  "new_NPU_work": false,
+  "overall_complete": false
+}
