@@ -8,7 +8,7 @@
 |---|---|
 | [压缩 Attention 的首段 FP32 交付](smla-partial-handoffs.md) | 首块直写、KV 面板净流量、长提示首 token 与普通请求的不同收益 |
 | [从热点定位实际可省的算子工作](profile-boundary-audit.md) | 96 个局部热点签名、固定 MoE 布局的对照、Attention 元数据发布与真实读者 |
-| [四条条件提案的请求收益](four-mixed-fusion-edges.md) | 两层 Engram 合包、QLI 分数与列表、草稿 OB 补齐、同波专家 GMM |
+| [四条条件提案的请求收益](four-mixed-fusion-edges.md) | 两层 Engram 合包、QLI 分数及八层 token 归并的收益门槛、草稿 OB 补齐、同波专家 GMM |
 | [融合收益归因与混合提案处置](fusion-attribution.md) | 37 条混合提案的复用、归档与条件项，以及普通 slot 的设备收益预算 |
 | [按模型执行顺序的价值表](module-value-map.md) | 12 个模块分别筛查环节价值、融合算子、适用分支和剩余空间 |
 | [B1–B4 批写与最晚参与卡](slot-batch-by-population.md) | 正常更新时 13/26 项的实际分布、服务增量与普通请求门槛 |

@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-08T06:35:15.796556+00:00",
-  "source_analysis_commit": "a8de93dbff7ebbdee9a6590307104cabf528bfde",
+  "updated_at_utc": "2026-11-08T06:49:18.008956+00:00",
+  "source_analysis_commit": "6b87d7d2aa0ae2f02d69ac81e4e1fefc0ac0a676",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M03 压缩 Attention 的滑窗 PV 首段写入、概率和压缩 KV 交付已估值",
+  "active_module": "M03 的 QLI token 选择及跨块归并已按八层和实际输出分支复核",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "沿执行顺序核对剩余有价值的算子边界。优先用已有 QLI 非候选生产层的原生计数与分阶段归档，判断打分与局部选择融合能否达到已有净减核时门槛。已有估值直接引用，缺计数即保留条件后转下组；仅当固定路由、放置、权重与输入后仍能指出额外可消工作才重开。",
-    "decision": "M03 压缩 Attention 已找到首段 PV 的 FP32 原样复制。按每查询 256 个有效压缩位置、50% 关键路径暴露计，首段单项约省 5.93 ms；与压缩 KV 面板一并消除时，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约 0.12%，六个普通请求整段最高约 0.256%。仅保留长提示首 token 的条件候选。已核对 SDK 概率搬运仍经过 GM。",
+    "work": "将相同冻结请求上仍保留的长提示融合项按层的最晚参与卡和必经通信统一核算。先对 M02→M03→M04 的真实候选联合估算，去重 KV 面板，加入新识别的 PV 首段直写，并把 QLI 打分与归并的条件分量单列。复用同一时间轴后向后续模块推进；纯专家放置、已降级的小区间不再分拆研究。",
+    "decision": "冻结 C8 的 2、8、14、20 层 QLI 整核同时免费也至多省 14.26 ms 首 token、127.40 ms 整批，整组降级。四消费层截短 token 归并只在占核时约 29.8% / 48.3%（局部耗时减 75% 情景）时足以过首 token / 整批 1%。800 个任务的整核计数无法证明该占比。普通 C1 在六请求估算中降级。",
     "source": {
-      "path": "full-review/SMLA-INTERNAL-HANDOFF-ESTIMATES.json",
-      "sha256": "b000a89c33c3ecf923b121e221fd45209bd0a4eaf65f84838cf5f0ad6b456244"
+      "path": "full-review/QLI-TOKEN-MERGE-VALUE.json",
+      "sha256": "d619d7b1de143a8271265fa91efd9c48656a73f8ef82e574cd8082512ca31acb"
     }
   },
   "module_statuses": [
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "M03 compressed attention: first-partial identity, probability staging and KV-panel net traffic. Four eager and 223 graph waves, six ordinary requests, zero new measurements.",
+    "performance_scope": "QLI token accumulation by candidate role, 800 archived native counter joins and 227 frozen active waves. Six ordinary requests priced with existing fixture timings.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,13 +280,13 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M03 压缩 Attention 的首段 PV、概率与 KV 交付",
+    "scope": "M03 的 QLI 分支预算与 token Top-K 跨块归并",
     "sources": [
-      "smla-partial-handoffs.md",
-      "baselines/smla-inner-handoffs.json"
+      "four-mixed-fusion-edges.md",
+      "baselines/qli-token-merge.json"
     ],
     "observations": [
-      "压缩 Attention 的滑窗首块会原样复制 FP32 部分结果。合并这次交付和已有的压缩 KV 面板消除后，按 256 个有效位置、50% 搬运差额暴露估算，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约省 0.12%，六个普通请求整段最高约 0.256%。仅列为长提示首 token 条件候选。"
+      "冻结 C8 中，第 2、8、14、20 层的 QLI 即使整核免费，合计也只够首 token P90 14.26 ms（0.956%）、整批 127.40 ms（0.685%）。已将仅覆盖这四层的 token 排序改写降级。其余四个候选消费层只截短跨块归并时，若局部耗时按记录数缩短 75%，需有 29.8% / 48.3% 的原核时可归给这一步，才可能分别达到首 token / 整批的 1%。"
     ],
     "new_performance_measurements": 0
   },
@@ -315,11 +315,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "smla-partial-handoffs.md",
-      "result": "压缩 Attention 的滑窗首块会原样复制 FP32 部分结果。合并这次交付和已有的压缩 KV 面板消除后，按 256 个有效位置、50% 搬运差额暴露估算，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约省 0.12%，六个普通请求整段最高约 0.256%。仅列为长提示首 token 条件候选。"
+      "record": "four-mixed-fusion-edges.md#qli-token",
+      "result": "冻结 C8 中，第 2、8、14、20 层的 QLI 即使整核免费，合计也只够首 token P90 14.26 ms（0.956%）、整批 127.40 ms（0.685%）。已将仅覆盖这四层的 token 排序改写降级。其余四个候选消费层只截短跨块归并时，若局部耗时按记录数缩短 75%，需有 29.8% / 48.3% 的原核时可归给这一步，才可能分别达到首 token / 整批的 1%。"
     },
-    "next": "沿执行顺序核对剩余有价值的算子边界。优先用已有 QLI 非候选生产层的原生计数与分阶段归档，判断打分与局部选择融合能否达到已有净减核时门槛。已有估值直接引用，缺计数即保留条件后转下组；仅当固定路由、放置、权重与输入后仍能指出额外可消工作才重开。",
-    "decision": "M03 压缩 Attention 已找到首段 PV 的 FP32 原样复制。按每查询 256 个有效压缩位置、50% 关键路径暴露计，首段单项约省 5.93 ms；与压缩 KV 面板一并消除时，冻结 C8 首 token P90 约省 17.77–17.81 ms（1.19%），整批约 0.12%，六个普通请求整段最高约 0.256%。仅保留长提示首 token 的条件候选。已核对 SDK 概率搬运仍经过 GM。",
+    "next": "将相同冻结请求上仍保留的长提示融合项按层的最晚参与卡和必经通信统一核算。先对 M02→M03→M04 的真实候选联合估算，去重 KV 面板，加入新识别的 PV 首段直写，并把 QLI 打分与归并的条件分量单列。复用同一时间轴后向后续模块推进；纯专家放置、已降级的小区间不再分拆研究。",
+    "decision": "冻结 C8 的 2、8、14、20 层 QLI 整核同时免费也至多省 14.26 ms 首 token、127.40 ms 整批，整组降级。四消费层截短 token 归并只在占核时约 29.8% / 48.3%（局部耗时减 75% 情景）时足以过首 token / 整批 1%。800 个任务的整核计数无法证明该占比。普通 C1 在六请求估算中降级。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"

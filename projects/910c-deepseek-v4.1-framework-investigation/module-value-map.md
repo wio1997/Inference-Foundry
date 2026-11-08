@@ -19,6 +19,8 @@
 | [M10 DSpark 草稿](modules/M10.md) | decode 草稿整段中位 4.00 ms，约占本地周期 7.31%。这包括必须保留的专家、投影和注意力。 | 三路辅助状态 Index → ConcatD → 草稿输入投影可少写中间张量。64 个逐卡窗口仅 40 个有三次取行，16 个仅拼接，8 个两者均无。净省一半，P90 约改善 0.54–0.88 ms。三层专家保留时，单独免除已识别计算也仅约 6.66 ms。该打包链降级。[估算](baselines/profile-fusion-estimates.json) · [跨卡边界](baselines/draft-arrival-budget.json) 五个有依赖的 W2 逐步保留，合并各步内部的切片、校正与选词，整批约省 28.10–29.75 ms。[按调用去重的词表估算](baselines/vocab-selection-fusion.json) 三层 context 归一化、旋转与写缓存按一半可省设备工作计，整批约省 27.94–30.82 ms。[逐形状、请求与提交时间](baselines/draft-context-fusion.json) 三个早期检查点直接写入一次归集的输入，连同选行拼接估算省 8.02–31.27 ms 整批，降级。[三次检查点归集与草稿选行的联合估算](baselines/dspark-checkpoint-packet.json) [分数输出、私有惩罚与五步投影](score-readers.md) [下一轮输入与状态发布](draft-state-handoffs.md) [首层四路展开与 Engram](initial-hc-engram.md) [可选路径、完整分数与宽张量](optional-paths-and-raw-head.md) |
 | [M11 下一迭代交付](modules/M11.md) | 相邻迭代的长间隙含重叠 CPU、设备工作和等待。实际反复执行的 slot 坐标与扁平映射写入能直接定位。 | **先把同一输入的二维坐标和一维 slot 合成双输出，再把符合条件的 26 项写入批量提交。** 在同轮 CP 单项基线上，双输出增加 5.43% 整批耗时降幅。更后面的 CP＋双输出 slot＋CPU 计划基线上，26→1 增量为 3.39% / 2.22%。大形状、压缩比、无效行和未匹配的图缓冲区须单列。[双输出](baselines/module-fusion-estimates.json) · [批量调用](modules/M11.md) 按上一步有效计数就绪和下一个 slot 读者重新定价，M10 主机提交对 C8 整批的条件预算为 10.07–12.94 ms。[真实等待与请求预算](baselines/draft-submit-waits.json)[逐形状、请求与提交时间](baselines/draft-context-fusion.json) [下一轮输入与状态发布](draft-state-handoffs.md) |
 
+M03 的八个 QLI 层已按候选角色分别估价。前四层联合降级，后四层跨块归并保留占比条件。[算子分支和普通请求估值](four-mixed-fusion-edges.md#qli-token)
+
 ## 这轮调整了什么
 
 37 条混合提案已按固定布局重新处置。四条条件边界按 M01、M03、M04、M06 排列，后续只查能改变排序的可省工作。[融合归因与处置](fusion-attribution.md)
