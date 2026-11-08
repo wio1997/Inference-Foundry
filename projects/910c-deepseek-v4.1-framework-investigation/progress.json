@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-08T07:23:36.324763+00:00",
-  "source_analysis_commit": "568e7c388b34b95b27f3d38deff1e93c776212d7",
+  "updated_at_utc": "2026-11-08T07:38:30.309941+00:00",
+  "source_analysis_commit": "1750044d7c7d0df77d0f2d711a67eeef67b187de",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M06 固定路由的单核激活交付已按实际读者和请求预算降级",
+  "active_module": "M07–M09 已按同波目标投影及可选提示词评分分别筛查",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "沿执行顺序复用 M07 输出、M08 词表头、M09 验证与采样的读者及请求预算。用 greedy、采样、返回分数分支筛查还有没有未计过的跨边界计算或写读；只有联合收益可改变排序的分支才单列。",
-    "decision": "固定专家路由和权重，目标 GMM2 的 20 个列块每核最多承接 3 次同一激活读取。单核交付的乐观冻结首 token P90 估算为 3.04 ms，连前一处 FP16 写读共 11.13 ms（0.75%），普通整段最高 0.148%。该组停止深查。跨核只保留长提示下的净节省门槛。",
+    "work": "按序核对 M09 验证、M10 草稿和 M11 下一轮输入的共同生产者与消费者，复用已绑定的接受计数、草稿 ID、设备选词和主机提交时点。先给跨迭代整组估价，仅保留能改变实际请求排序的增量。独立的下一步缓存或权重布局不进入融合队列。",
+    "decision": "M07–M09 在 453 次 TP8 调用上合算，固定头矩阵乘且两侧全部免费，冻结首 token P90 只有 14.933 ms、整批 0.830%；具名读出及宽分数拷贝全省为 0.547% 首 token。普通 1,464 token 输入若开启有限 K=5 提示分数，单次本地融合约省 0.79–2.20 ms，与分片摘要合计 2.42–4.82 ms；原请求无命中。",
     "source": {
-      "path": "full-review/ROUTED-ACTIVATION-READERS.json",
-      "sha256": "73fa077a5e88e9f9bc6599d91d889e132b563b87a091bb08a2c7d609836e1671"
+      "path": "full-review/TARGET-READOUT-AND-PROMPT-SCORES.json",
+      "sha256": "47ed1a8a0e3c5c516ad1acff3a0879fa262c73e20ae65c5feb8ce9307a64c352"
     }
   },
   "module_statuses": [
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Target W8A8 activation to GMM2. Reused 40-layer receiver budgets and six ordinary requests with two references. Read-only source hashes on 171.",
+    "performance_scope": "227 frozen target waves, 453 TP8 calls; current end-to-end gate for greedy. Separate finite prompt score scenarios on six ordinary input shapes and archived collective/copy rates.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -281,13 +281,13 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M06 固定路由的激活与 GMM2 交付",
+    "scope": "M07–M09 同波 greedy 区间与可选提示词评分",
     "sources": [
-      "ffn-merge-premix.md",
-      "baselines/routed-activation-readers.json"
+      "target-readout-and-prompt-scores.md",
+      "baselines/target-readout-and-prompt-scores.json"
     ],
     "observations": [
-      "固定路由与权重，GMM2 的 20 个输出列块共用一行 INT8 激活。当前分块下，向单个 Cube 核直接交付最多省 3 次逻辑整行读取。连同前一处 FP16 中间结果的写读都免费，按归档搬运速率与请求频次，冻结 C8 首 token P90 估算省 11.13 ms（0.75%），整批省 15.59 ms（0.084%）。单核交付结束深查。"
+      "末层 HcPost 到词表头、词表头到 greedy 验证两段在 453 次 TP8 调用上合计，即使两段都免费，冻结 C8 首 token P90 也只省 14.933 ms，整批省 0.83%。单独返回有限提示词分数时，1,464 个 token、K=5、一次评分的本地归一化与选择融合约省 0.79–2.20 ms，再用跨卡摘要合计约 2.42–4.82 ms。此分支在原请求关闭。"
     ],
     "new_performance_measurements": 0
   },
@@ -315,11 +315,11 @@
     "method": "固定输入、路由、权重放置和并行配置，先指明生产者、消费者以及实际可消除的读写、计算或提交。只能靠迁移权重、冷热专家重分配或改排程获得的收益直接移出融合队列。混合方案只估同一布局下的融合增量。按实际命中和关键路径聚合整组，扣除替代开销、保留其他读者；低于价值参考的组及已覆盖子项共用一次处置。只为会改变排序的证据缺口定点查询。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "ffn-merge-premix.md#routed-readers",
-      "result": "固定路由与权重，GMM2 的 20 个输出列块共用一行 INT8 激活。当前分块下，向单个 Cube 核直接交付最多省 3 次逻辑整行读取。连同前一处 FP16 中间结果的写读都免费，按归档搬运速率与请求频次，冻结 C8 首 token P90 估算省 11.13 ms（0.75%），整批省 15.59 ms（0.084%）。单核交付结束深查。"
+      "record": "target-readout-and-prompt-scores.md",
+      "result": "末层 HcPost 到词表头、词表头到 greedy 验证两段在 453 次 TP8 调用上合计，即使两段都免费，冻结 C8 首 token P90 也只省 14.933 ms，整批省 0.83%。单独返回有限提示词分数时，1,464 个 token、K=5、一次评分的本地归一化与选择融合约省 0.79–2.20 ms，再用跨卡摘要合计约 2.42–4.82 ms。此分支在原请求关闭。"
     },
-    "next": "沿执行顺序复用 M07 输出、M08 词表头、M09 验证与采样的读者及请求预算。用 greedy、采样、返回分数分支筛查还有没有未计过的跨边界计算或写读；只有联合收益可改变排序的分支才单列。",
-    "decision": "固定专家路由和权重，目标 GMM2 的 20 个列块每核最多承接 3 次同一激活读取。单核交付的乐观冻结首 token P90 估算为 3.04 ms，连前一处 FP16 写读共 11.13 ms（0.75%），普通整段最高 0.148%。该组停止深查。跨核只保留长提示下的净节省门槛。",
+    "next": "按序核对 M09 验证、M10 草稿和 M11 下一轮输入的共同生产者与消费者，复用已绑定的接受计数、草稿 ID、设备选词和主机提交时点。先给跨迭代整组估价，仅保留能改变实际请求排序的增量。独立的下一步缓存或权重布局不进入融合队列。",
+    "decision": "M07–M09 在 453 次 TP8 调用上合算，固定头矩阵乘且两侧全部免费，冻结首 token P90 只有 14.933 ms、整批 0.830%；具名读出及宽分数拷贝全省为 0.547% 首 token。普通 1,464 token 输入若开启有限 K=5 提示分数，单次本地融合约省 0.79–2.20 ms，与分片摘要合计 2.42–4.82 ms；原请求无命中。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"

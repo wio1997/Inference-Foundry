@@ -24,6 +24,7 @@
 | [C2 投影、池化和选择到 Attention](c2-selection-pipeline.md) | 固定排程可省的直接交付、按查询分块的额外收益与条件 |
 | [首层四路展开和两层 Engram](initial-hc-engram.md) | 两处残差读者、哈希与投影中间面、真正制约 TP8 的 padding 交付 |
 | [草稿状态与下一轮输入](draft-state-handoffs.md) | 两处状态生产、已有多输出、主线程暴露与六个普通请求的估算 |
+| [末层读出、词表投影与提示词评分](target-readout-and-prompt-scores.md) | 冻结 greedy 的联合上限、可选有限 K 的本地与跨卡融合、通信盈亏平衡行数 |
 | [验证后分数输出、惩罚与五步草稿投影](score-readers.md) | 有限 Top-K 的拼行、归一化与排名，W1/W2 缓存的请求收益范围 |
 | [FFN 输出合并、HcPost 与下一层 premix](ffn-merge-premix.md) | 固定专家分布下的中间写读与 GMM2 的 20 个列块读者 |
 | [OA、OB 的共享 Cube 与接收端旋转](oa-ob-shared-cube.md) | 逐卡矩阵与搬运预算、分块门槛和不同形状的处置 |
