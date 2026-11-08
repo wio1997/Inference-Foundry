@@ -1,17 +1,17 @@
 {
-  "updated_at_utc": "2026-11-08T00:06:42.715746+00:00",
-  "source_analysis_commit": "38623b79412161735ad01da13154f41d74d316c5",
+  "updated_at_utc": "2026-11-08T00:23:13.572089+00:00",
+  "source_analysis_commit": "8bd06598a9c46b54a3ae51cbd5dca50d030e3e16",
   "status": "ACTIVE_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "M06 路由分数交付与分派输入的请求预算",
+  "active_module": "M07→M08 末层读出交付给词表及 DSpark 的增量",
   "overall_complete": false,
   "numeric_model_ceiling": null,
   "next_action": {
-    "work": "M06 路由分数投影→选分与分派输入先查已有请求预算。复用已筛过的 decode 合并段；prefill 只给实际可省的分数交付、选分或提交计价。一组的乐观预算若仍低则连同子项降级，跳到执行顺序中下一个有独立可省工作的缺口。",
-    "decision": "目标 W8A8 路由专家的 FP16 和 INT8 中间写读按同一模型联合筛除。冻结 C8 的一次写读估算合计 0.68% 首 token 和 0.076% 整批。保留净重读或有效带宽明显变化的重开条件。纯专家放置和权重分布从融合排查队列移出。",
+    "work": "进入 M07→M08 的末层 HcPost、collapse、RMS 和 head 输入交付。复用已存五段全省 14.853 ms 的筛查，跳过该范围全部子集；只核对真实选中行直接交给词表投影或 DSpark 读者是否有这五段以外、可按请求计价的增量。",
+    "decision": "M06 的动态路由分数交付、同代 ID 复用和 TopK 准备在冻结与普通请求估算下整体降级。已定位一处 11.712 ms 的晚提交，单列敏感性。固定表分支保留适用条件，分派首阶段保留净省比例门槛。",
     "source": {
-      "path": "full-review/ROUTED-EXPERT-HANDOFF-ESTIMATES.json",
-      "sha256": "69e94edbe705836e9464e8fd090b91ee22c949d06d8dcc2869c3582cd99afaff"
+      "path": "full-review/ROUTER-SCORE-DELIVERY-ESTIMATES.json",
+      "sha256": "37e6c74fae10aa8e6072c9dc339ae8040248749091403a848296dff7a7346802"
     }
   },
   "module_statuses": [
@@ -134,7 +134,7 @@
     "calibration_plan": "baselines/calibration-plan.json",
     "status": "EXISTING_EVIDENCE_REUSED_CALIBRATION_INCOMPLETE",
     "operator_types": 83,
-    "region_tables": 131,
+    "region_tables": 132,
     "new_NPU_work_this_update": false,
     "new_native_performance_comparisons": 0,
     "new_native_cache_preparations": 0,
@@ -164,7 +164,7 @@
     "copy_calls": 1920,
     "archived_8rank_layer_pairs": 280,
     "copied_weight_modes_priced": 3,
-    "performance_scope": "Historical receiver rows, native activation-stage fractions, and two private routed expert handoffs priced on C8 plus ordinary requests.",
+    "performance_scope": "Frozen router scores and TopK, a native ID-reuse reference, one matched host launch gap, and six ordinary request projections.",
     "historical_TP8_calibration": {
       "pilot_output_checks": 544,
       "excluded_partial_cohorts": 1,
@@ -280,15 +280,16 @@
     "service_speedup": null
   },
   "latest_profile_analysis": {
-    "scope": "M06/G10",
+    "scope": "M06/G09",
     "sources": [
-      "baselines/routed-expert-handoffs.json",
+      "baselines/router-score-delivery.json",
       "baselines/branch-coverage.json"
     ],
     "observations": [
-      "在 171 的目标 W8A8 路由专家里，第一组矩阵乘把每条分派的 4,608 个 FP16 值写入工作区。Vector 在同一内核内完成逐行缩放、截断、SwiGLU、absmax 和 INT8 量化，再把 2,304 个 INT8 交给第二组矩阵乘。FP32 行 scale 还供输出反量化使用。固定专家和权重位置，可省的是这两份私有中间结果的写读。",
-      "按已测连续拷贝速率 1.203 TB/s，每层都取 16 卡中分派行数最多的卡，并假设每份中间结果各一次写读完全暴露、替代交付免费，冻结 C8 首 token P90 两处分别省 8.10 和 2.02 ms，合计 10.12 ms（0.68%）。整批合计 14.17 ms（0.076%）。将冻结负载的路由集中度外推到六个普通请求自身的提示词，计入观察到的图迭代，响应估算最高约 0.135%。",
-      "两处一起降级。若重用面板在第二组矩阵乘的 20 个输出列块间产生额外片外重读，需扣除新交付给各块的代价。在相同带宽和全暴露假设下，每条分派还需额外净省约 4.74 次整行 INT8 读取，才达到首 token P90 的 1%。等价地，仅一次写读的情形需要有效拷贝带宽降至约 816 GB/s 或更低。五组已存原生计数中，SwiGLU 连同同步标志占各 Vector 核计时的中位为 2.4%–3.7%，包含与 Cube 并行的时间。"
+      "目标模型每次前向的 40 层可复用同一份对齐及处理过 -1 的 token ID。每层仍需自己的 FP32 投影、按图像哨兵选偏置并输出 6 个专家和权重。已绑定的 158,928 次目标与草稿路由均未传固定专家表。171 调用传 out_flag=False，第三个输出的形状不能作为省下一整张分数写回的证据。",
+      "40 层同代 ID 复用已有隔离原生对照，中位省 231.13 µs，三次同代比较各有 40 层一致；跨代误用时 40 层均不匹配。把该图耗时和实际 eager 分支合计，冻结 C8 整批估算省 52.82–52.95 ms（0.28%）。投影直接交付分数、复用 ID、另省一次有效行的 6 个专家号写读，在已有带宽下首 token P90 合计估算省 1.65–1.85 ms，整批省 51.05–67.01 ms，六个普通请求的响应估算最高 0.40%。这些方案的收益重叠。",
+      "固定路由矩阵乘和后续专家服务，把投影到分派入口间的设备算子时间全部抹去并免去投影结果写入，冻结首 token P90 估算省 7.00–8.39 ms。只有把间隙也全部抹去，这个范围才升到 20.99–25.77 ms。在 M416、第 27 层、rank 6 的 11.712 ms 间隙里，设备只记录一个 20 ns 事件，下一条 Cast 的主机 launch 在前一个矩阵乘结束后 11.690 ms 才开始。保留这一次延迟、其余间隙全部免去时只省 9.50–14.05 ms，仍低于 14.92 ms。归档未记录主机产生这次晚提交的原因。",
+      "若把选分与分派首阶段进一步合并，先假设 TopK 自身净省一半且 ID 可复用；在 M416、816、817 同形状的阶段计数上，按有利时钟，还要净省首阶段约 95% 才能达到首 token 的 1%。以 M834 近似缺少同形状阶段计时的 M818，则需约 69%–74%。该阶段还含掩码、排序、量化、打包和同步。单独的排序耗时未取得，未将此机制列为优先候选。"
     ],
     "new_performance_measurements": 0
   },
@@ -317,11 +318,11 @@
     "method": "优先写出生产算子、消费算子或同源读者，以及融合后实际消失的中间张量、计算或提交。保持专家分布、权重位置和其余排程相同，只给该变化计收益。然后用已有 profile 按分支、频次、关键路径折到请求。纯放置、复制、缓存驻留或调度只留历史记录。低收益的整组与其子集共用结论；空白分支保留待定。 模块总耗时只用于定位。先给同一批可消除的工作算一次乐观请求预算，记录估价假设与能改变排序的临界值，再决定是否细看分支。",
     "screen": "baselines/fusion-priority.json",
     "completed_comparison": {
-      "record": "baselines/routed-expert-handoffs.json",
-      "result": "按已测连续拷贝速率 1.203 TB/s，每层都取 16 卡中分派行数最多的卡，并假设每份中间结果各一次写读完全暴露、替代交付免费，冻结 C8 首 token P90 两处分别省 8.10 和 2.02 ms，合计 10.12 ms（0.68%）。整批合计 14.17 ms（0.076%）。将冻结负载的路由集中度外推到六个普通请求自身的提示词，计入观察到的图迭代，响应估算最高约 0.135%。"
+      "record": "baselines/router-score-delivery.json",
+      "result": "40 层同代 ID 复用已有隔离原生对照，中位省 231.13 µs，三次同代比较各有 40 层一致；跨代误用时 40 层均不匹配。把该图耗时和实际 eager 分支合计，冻结 C8 整批估算省 52.82–52.95 ms（0.28%）。投影直接交付分数、复用 ID、另省一次有效行的 6 个专家号写读，在已有带宽下首 token P90 合计估算省 1.65–1.85 ms，整批省 51.05–67.01 ms，六个普通请求的响应估算最高 0.40%。这些方案的收益重叠。"
     },
-    "next": "M06 路由分数投影→选分与分派输入先查已有请求预算。复用已筛过的 decode 合并段；prefill 只给实际可省的分数交付、选分或提交计价。一组的乐观预算若仍低则连同子项降级，跳到执行顺序中下一个有独立可省工作的缺口。",
-    "decision": "目标 W8A8 路由专家的 FP16 和 INT8 中间写读按同一模型联合筛除。冻结 C8 的一次写读估算合计 0.68% 首 token 和 0.076% 整批。保留净重读或有效带宽明显变化的重开条件。纯专家放置和权重分布从融合排查队列移出。",
+    "next": "进入 M07→M08 的末层 HcPost、collapse、RMS 和 head 输入交付。复用已存五段全省 14.853 ms 的筛查，跳过该范围全部子集；只核对真实选中行直接交给词表投影或 DSpark 读者是否有这五段以外、可按请求计价的增量。",
+    "decision": "M06 的动态路由分数交付、同代 ID 复用和 TopK 准备在冻结与普通请求估算下整体降级。已定位一处 11.712 ms 的晚提交，单列敏感性。固定表分支保留适用条件，分派首阶段保留净省比例门槛。",
     "grouped_screens": [
       "baselines/draft-fixed-expert.json",
       "baselines/mhc-iteration-cost.json"
