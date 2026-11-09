@@ -1,0 +1,246 @@
+{
+  "status": "PARTIAL_METADATA_HOST_JOINT_PRODUCER_REVIEW",
+  "whole_chain_complete": false,
+  "precision": "EVERY_REPLACEMENT_PRIMITIVE_BITWISE_IDENTICAL",
+  "identity": {
+    "path": "audit/execution-search/metadata-host-execution-identity.json",
+    "sha256": "05a6e76fcc125e4814fc43b20073e35336a7030a76b88c0e3db956ae921a45b4",
+    "sources": 13
+  },
+  "reviewed_ranges": [
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "ranges": [
+        [
+          825,
+          885
+        ],
+        [
+          2548,
+          2620
+        ],
+        [
+          3250,
+          3270
+        ],
+        [
+          3325,
+          3432
+        ],
+        [
+          3449,
+          3907
+        ],
+        [
+          6120,
+          6150
+        ],
+        [
+          6487,
+          6493
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "ranges": [
+        [
+          31,
+          106
+        ],
+        [
+          226,
+          357
+        ],
+        [
+          366,
+          429
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "ranges": [
+        [
+          1013,
+          1114
+        ],
+        [
+          1782,
+          1915
+        ],
+        [
+          1960,
+          2035
+        ],
+        [
+          2389,
+          2488
+        ],
+        [
+          2560,
+          2650
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "ranges": [
+        [
+          52,
+          95
+        ],
+        [
+          112,
+          185
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "ranges": [
+        [
+          879,
+          927
+        ],
+        [
+          929,
+          1010
+        ],
+        [
+          1325,
+          1424
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/utils.py",
+      "ranges": [
+        [
+          1304,
+          1361
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ascend_forward_context.py",
+      "ranges": [
+        [
+          373,
+          425
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/device_metadata.py",
+      "ranges": [
+        [
+          46,
+          155
+        ]
+      ]
+    }
+  ],
+  "CPU_group_source": {
+    "runtime_path": "/vllm-workspace/vllm/vllm/distributed/parallel_state.py",
+    "ranges": [
+      [
+        342,
+        359
+      ],
+      [
+        492,
+        522
+      ],
+      [
+        2052,
+        2058
+      ],
+      [
+        2188,
+        2204
+      ]
+    ],
+    "frozen_pairs": [
+      [
+        0,
+        8
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        3,
+        11
+      ],
+      [
+        4,
+        12
+      ],
+      [
+        5,
+        13
+      ],
+      [
+        6,
+        14
+      ],
+      [
+        7,
+        15
+      ]
+    ],
+    "backend": "CPU Gloo; eight two-rank DP groups, not one sixteen-rank allreduce"
+  },
+  "actual_coordination": {
+    "target": "_determine_batch_execution_and_padding -> CPU DP packed counts/modes all_reduce -> min graph mode / role-dependent padding -> redispatch",
+    "draft": "Actual AscendDSparkProposer.set_inputs_first_pass returns B*num_query_per_req; current sample_from_anchor K5 means5B. GPU rejected counts alter positions/lengths, not padded query count.",
+    "skip": "Dense/KV-consumer/hierarchy/MegaMoe guards are distinct; frozen target/draft MoE with no KV consumer does not take dense/consumer skip.",
+    "counterexample": "Target bucket24 does not imply draft24: B4→20, B1→5; sample_from_anchor=False uses K+1 instead. Dummy min/reordered/K0/skip paths need matching collectives."
+  },
+  "candidates": [
+    {
+      "name": "Explicit target+draft DP packet, not target bucket reuse",
+      "status": "待确认",
+      "protocol": "At first DP coordination exchange epoch/role/target local count and mode, actual B/Q and future draft query count, active/dummy/skip eligibility. Keep target min-mode/padding and draft max-count rules distinct. Reuse only if all participants agree; otherwise all take the same original later collective exactly once.",
+      "gaps": [
+        "complete empty-DP/dummy/K0/input-fits/error/abort role sequence",
+        "source-known counts do not imply positions/slots/lengths known early",
+        "matched all-rank CPU collective overhead vs peer readiness; no numerical gain from erasing wait"
+      ]
+    },
+    {
+      "name": "Same-generation global/local BatchFrame plus group resource assembly",
+      "status": "待确认，值得深入",
+      "protocol": "One immutable local plan and one global plan per runner build dictionary; preserve canonical batch owner and device/CPU values. Share CP range/qsl/suffix/length views/maxima only across compatible same-generation calls. Keep each resource block table, slot mapping, compressor state and native task frontiers distinct; materialize original per-group results.",
+      "incremental_work": "CP length elision and CPU plan already have historical coverage. New increment must remove remaining view/result/config/parent assembly or grouped publication; 25 duplicate H2D removals alone are not the entire parent gain.",
+      "gaps": [
+        "full scalar/tensor/alias observer contract including callback closures",
+        "device metadata last-read/reuse for V1 eager/full/dummy and empty query",
+        "exact native primitive bytes, graph stable addresses and descriptor assembly cost"
+      ]
+    },
+    {
+      "name": "Shape-only cached return object or metadata mini graph",
+      "status": "已停止（该原样方案）",
+      "reason": "B/graph bucket alone omits seq_lens/max lengths, query partition, actual/causal counts, physical tables/slots and per-invocation reset/publish side effects. V1 FULL still submits producers on the host with external events, not V2 captured producers. A correct graph update/explicit frame protocol remains separate and pending."
+    },
+    {
+      "name": "Device-only metadata/DMA micro fusion in old residual cohort",
+      "status": "已停止同一独立1%局部预算",
+      "reason": "Old112-period all-native-prefix-free fraction max0.8183775%; retain host/submission. This does not prune the larger host joint producer, other workloads, or claim a C8 universal bound."
+    }
+  ],
+  "history_qualification": "metadata-host-history-qualification.json",
+  "net_price": "metadata-host-net-price.json",
+  "V1_mode_correction": "Actual V1 constructs DeviceMetadataExecutor(capture_producers=False), builds/submits every invocation, FULL passes batch_descriptor for external events, and _model_forward finally calls release. TargetDeviceMetadata.finish/capture_producers=True describes a different path; do not borrow its all-task join as V1 proof.",
+  "new_NPU_work": 0,
+  "service_requests": 0,
+  "remote_writes": [],
+  "next_action": "Trace every BatchFrame observer and V1 producer release/last-read before a concrete grouped metadata implementation. Keep the explicit DP packet role/empty/error and Gloo net-cost gaps; do not repeat CPU-plan or credit its historical gain twice. Then continue final-layer attention/FFN row-demand producer and remaining input/embedding/Engram paths."
+}

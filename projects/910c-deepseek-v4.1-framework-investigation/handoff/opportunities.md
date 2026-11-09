@@ -1,9 +1,24 @@
 # 融合优化逐项说明
 
-<!-- INPUT-STAGING-20261110-START -->
-## 2026-11-10 输入原保护与条件 dead-backup（全图未完成）
+<!-- METADATA-HOST-20261110-START -->
+## 当前前沿：metadata与host联合交付（loop-015）
 
-**Goal ACTIVE；loop-014 EVALUATING；每个替换原语逐位一致。**
+**Goal ACTIVE；loop-014 PIVOTED（限定结论），loop-015 EVALUATING；全链路未扫全。每个替换原语逐位一致。**
+
+- **介绍**：从target DP协调、global/local metadata，经实际DSpark query到producer/consumer，先核早知字段与整段净值。
+- **到了哪里**：13源SHA；DP为8组[r,r+8]CPU Gloo pair。实际DSpark override返回B×Q（冻结Q5），不能复用target24桶；GPU reject后的length/slot仍晚知。CP同代batch可共享，但global/local域及每资源physical state分开。V1每次host submit、FULL用external event、finally release，不能借V2全task finish证明V1末读。
+- **结果**：旧CP/CPU-plan renderer精确重放，21项profile输入hash核对；已有方案不重复认领，旧文本验收不满足逐位门槛。同代BatchFrame+group组装/发布**待确认，值得深入**。原样shape-only返回缓存/mini graph已停止；device-only小预算不剪较大host方案。
+- **净模型**：保留两个parent builder、每组return、first producer。旧B4诊断组件毛预算1.689–2.490ms；f=.5/rho=.5/h=.25ms时条件净.79357ms/迭代，C8整批.969%、P90.266%；rho1时1.83714ms、2.243%/.616%。这是有利情景而非matched实测。无暴露的负收益保留。原C8串行敏感性到整批1%需净.81898ms/wave，P90需2.98371ms；首输出一次另列，不多认异步下一波。
+- **下一处**：BatchFrame observer/alias/closure和V1 release到实际末读，再决定具体grouped实现；DP packet保留empty/dummy/K0/input-fits/error序列及Gloo净成本缺口。其后回末层attention/FFN row-demand和剩余输入/embedding/Engram。新NPU0、推理0、新profile0、远端写入0，无部署变化。
+
+[完整判断](evidence/metadata-host-review.md) · [具体联合协议](evidence/metadata-batch-frame-protocol.md) · [有成本净模型与请求门槛](evidence/metadata-host-net-price.json) · [源码与缺口前沿](evidence/metadata-host-frontier.json)
+
+<!-- METADATA-HOST-20261110-END -->
+
+<!-- INPUT-STAGING-20261110-START -->
+## 上一段：输入原保护与条件 dead-backup（loop-014已PIVOTED）
+
+**Goal ACTIVE；loop-014 PIVOTED（限定结论）；每个替换原语逐位一致。**
 
 - **介绍**：继续沿物理 CPU 源追 H2D 末读，判断提前输出真正需要的代次边界。
 - **到了哪里**：21份源码身份核对。继承的 synchronize_input_prep 在 target 准备前等待、结束后记录，覆盖 block table、zeroer 和 target CPU 源；已知晚到持久源为 proposer backup INT32[4]（每卡16B），CP qsl/suffix 为本次新结果。device metadata 另有 stage/join/reuse。
