@@ -2,6 +2,7 @@
 """One fixed M416 primitive admission test, not DFC concurrency or model timing."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import statistics
 import struct
@@ -40,6 +41,12 @@ def main():
         sup_fp32=sup.float()
         result['scale_semantics']='checkpoint F32 -> loaded params_dtype BF16 for Up/Down; activation weight_scale_fp32 = loaded BF16 -> F32'
         result['offsets_all_zero']={n:bool((load(n+'.weight_offset')==0).all()) for n in ['w1','w2','w3']}
+        contract=Path('opapi-contract.json')
+        if contract.exists():
+            opapi=json.loads(contract.read_text())
+            assert os.environ.get('ASCEND_CUSTOM_OPP_PATH')==opapi['custom_opp_path']
+            assert hashlib.sha256(Path(opapi['library']).read_bytes()).hexdigest()==opapi['sha256']
+            result['opapi_contract']=opapi
         torch.ops.load_library('/vllm-workspace/vllm-ascend/vllm_ascend/vllm_ascend_C.cpython-312-aarch64-linux-gnu.so')
         gen=torch.Generator().manual_seed(20261109)
         x=torch.randn((416,5120),generator=gen).to(torch.bfloat16).npu()

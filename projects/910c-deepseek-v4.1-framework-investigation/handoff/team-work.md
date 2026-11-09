@@ -1,5 +1,7 @@
 # 171 融合算子团队开发清单
 
+**当前增量**：SMLA按真实选中KV/partial大交付判断，direct或跨层panel+首partial保留具体K/速率/逐位与生命周期门槛；不要以首partial单项低值剪联合范围。shared M416以服务custom绑定a3为准，a2只有其独立进程资格，整个DFC共驻尚未测。[SMLA](evidence/smla-execution-review.md) · [服务shared原语](evidence/shared-4cube-service-gate-summary.json)。全图当前续扫Engram。
+
 **MoE当前开发门槛**：完整shared4/8已有M416真实权重、正确BF16 scale逐位与actual BlockDim限定事实；下一开发缺口为真实DFC共驻/争用、其它M/40层逐位及图/格式设置。前缀裁剪/deferred返回融合需保留舍入和arena末读。原样空credit变体已有native价值失败，不重做。全链路独立扫描现进SMLA实际kernel。[原语门槛](evidence/shared-fourcube-primitive-gate.md) · [返回消费者](evidence/moe-return-consumers.md)。
 
 

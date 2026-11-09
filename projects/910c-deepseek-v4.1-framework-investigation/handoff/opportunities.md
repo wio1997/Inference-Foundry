@@ -10,6 +10,14 @@
 
 [原语事实/缺口](evidence/shared-fourcube-primitive-gate.md) · [返回判断/停止依据](evidence/moe-return-consumers.md)
 
+## SMLA与服务激活实现的独立增量
+
+- **介绍**　从真实自带包和QK/softmax/PV读者形成KV交付+首partial联合parent，补齐shared实际激活实现门槛。
+- **到了哪里**　C1/C2快pair/大步长回退的不同顺序有8个原helper CPU case；30组成本已匹配。a3服务custom实际对象打开，M416八输出字节0且发核4/8。
+- **结果**　SMLA联合K256/512情景有1.219%/2.031%条件信用，保留K/速率/逐位与生命周期，非预计收益。shared仍只准入单M416原语，DFC共驻待确认；a2实现资格已补充。下一段Engram继续。
+
+[完整判断](evidence/smla-execution-review.md) · [服务门槛](evidence/shared-4cube-service-gate-summary.json)
+
 ## C01
 
 **M00、M11 · 未变block表跳过/增量发布**

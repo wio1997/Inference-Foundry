@@ -1,0 +1,116 @@
+{
+  "status": "SERVICE_CUSTOM_ACTIVATION_BOUND_M416_PRIMITIVE_GATE_PASSED_ONLY",
+  "case": {
+    "layer": 0,
+    "M": 416,
+    "seed": 20261109,
+    "weight": "real frozen shared",
+    "scale": "checkpoint F32 -> loaded params_dtype BF16 for Up/Down; activation weight_scale_fp32 = loaded BF16 -> F32"
+  },
+  "opapi_contract": {
+    "custom_opp_path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer:/usr/local/python3.12.13/lib/python3.12/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/usr/local/python3.12.13/lib/python3.12/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib",
+    "library": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so",
+    "sha256": "5e7735b6b84626596a5eb7ac6e4b2a028fa227ee8f267f435ca6cd5f4928fbea"
+  },
+  "opened_activation_object": {
+    "path": "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/dequant_swiglu_quant/DequantSwigluQuant_5aec45b26e36306ef5a8aab7ae151294.o",
+    "sha256": "d1e2aee6e808cebec6f899d823d61560d587db2c105b2946a8e9a88cf1ca8e5d"
+  },
+  "observed_file_opens": [
+    "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/dequant_swiglu_quant/DequantSwigluQuant_5aec45b26e36306ef5a8aab7ae151294.o",
+    "/vllm-workspace/vllm-ascend/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/dequant_swiglu_quant/DequantSwigluQuant_5aec45b26e36306ef5a8aab7ae151294.json"
+  ],
+  "checks": {
+    "DQ": {
+      "byte_differences": 0,
+      "elements": 2129920,
+      "dtype": "torch.int8",
+      "finite": true
+    },
+    "DQ_scale": {
+      "byte_differences": 0,
+      "elements": 416,
+      "dtype": "torch.float32",
+      "finite": true
+    },
+    "Up_INT32": {
+      "byte_differences": 0,
+      "elements": 1916928,
+      "dtype": "torch.int32",
+      "finite": true
+    },
+    "Activation_INT8": {
+      "byte_differences": 0,
+      "elements": 958464,
+      "dtype": "torch.int8",
+      "finite": true
+    },
+    "Activation_scale": {
+      "byte_differences": 0,
+      "elements": 416,
+      "dtype": "torch.float32",
+      "finite": true
+    },
+    "Down_BF16_same_input": {
+      "byte_differences": 0,
+      "elements": 2129920,
+      "dtype": "torch.bfloat16",
+      "finite": true
+    },
+    "NZ_Up_to_limited_ND": {
+      "byte_differences": 0,
+      "elements": 1916928,
+      "dtype": "torch.int32",
+      "finite": true
+    },
+    "NZ_Down_to_limited_ND_same_input": {
+      "byte_differences": 0,
+      "elements": 2129920,
+      "dtype": "torch.bfloat16",
+      "finite": true
+    }
+  },
+  "kernel_details": [
+    {
+      "Name": "aclnnDynamicQuantV2_DynamicQuant_DynamicQuant",
+      "Block Num": "8",
+      "Mix Block Num": "0",
+      "Input Data Types": "DT_BF16",
+      "Input Shapes": "\"416,5120\""
+    },
+    {
+      "Name": "aclnnQuantMatmulV5_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "Block Num": "4",
+      "Mix Block Num": "0",
+      "Input Data Types": "INT8;INT8;DT_BF16",
+      "Input Shapes": "\"416,5120;5120,4608;4608\""
+    },
+    {
+      "Name": "DequantSwigluQuant",
+      "Block Num": "8",
+      "Mix Block Num": "0",
+      "Input Data Types": "INT32;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED",
+      "Input Shapes": "\"416,4608;4608;416;;;;\""
+    },
+    {
+      "Name": "aclnnQuantMatmulV5_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "Block Num": "4",
+      "Mix Block Num": "4",
+      "Input Data Types": "INT8;INT8;DT_BF16;FLOAT",
+      "Input Shapes": "\"416,2304;2304,5120;5120;416\""
+    }
+  ],
+  "prior_a2_qualification": "native-shared-4cube-a2/qualification.json",
+  "timing": "Collected under process-local open observation; no comparison to old a2, DFC or service; raw numbers retained only.",
+  "new_service_requests": 0,
+  "DFC_concurrency": false,
+  "whole_chain_complete": false,
+  "pending": [
+    "other M/forty-layer/real-input per-primitive coverage",
+    "actual DFC20/40 co-residency and contention",
+    "graph/private-format settings and request net gain"
+  ],
+  "evidence_sha256": "f5f76fc1981f26b47ffd51ac86224696ad97d6a06f093798953a1ea9cc3e2c45",
+  "logger_source_sha256": "996c69d6952ff66f1147c5ccc82bd03cb5639be5f163fc57e391bf226af624ba"
+}

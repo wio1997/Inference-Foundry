@@ -1,5 +1,21 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+<!-- SMLA-SERVICE-GATE-20261109-START -->
+## 当前独立前沿：SMLA联合交付与服务实际激活门槛
+
+**全链路仍进行中；每个替换原语逐位一致。当前转Engram内容producer→两层残差→迭代退役。**
+
+- **介绍**　沿实际SMLA自带6key实现追KV/QK/softmax/PV/partial和输出，按整段交付形成直读或跨层panel与首partial的联合parent后再匹配历史。
+- **到了哪里**　2560窗口/1840调用/720无query，30组typed成本一致；C1/128行页与C2/64行页的8个原C++ helper CPU地址case明确快pair/大步长回退不同顺序，不是NPU位差证明。自带库/包与通用336key实现区别已核。
+- **结果**　K256/512等参考速率的direct+首partial最高条件信用1.219%/2.031%，panel后续复用+首partial为1.048%/1.689%；均非预计收益。保留有效K、稀疏速率、逐位、bank生命周期和level3资格缺口。首partial独立0.406%不再拆小预算，但仍在联合parent内。
+- **服务shared资格补证**　库调查发现服务custom也覆盖激活且对象不同；a2仅保留其独立进程事实。a3绑定服务同custom优先路径/库SHA，实际打开自带激活对象，M416八项字节0、actual BlockNum8/4/8/4+DownMix4。仅此case原语准入；a3时长受进程专用打开观察，不与旧a2/生产比较，DFC共驻仍待确认。
+- **下一处**　Engram在`model.py:1565–1591`的lookup等待/SP分片/Wkv-gate入口已读；继续实际rotation、TP/UVA/head交付、gate数学、hash/history和迭代退役。SMLA、MoE和其余历史模块均未被宣布所有优化穷尽。
+
+[SMLA内部范围/估价/具体缺口](evidence/smla-execution-review.md) · [服务M416实际实现门槛](evidence/shared-4cube-service-gate-summary.json) · [a2资格补充](evidence/data/native-shared-4cube-a2-qualification.json) · [当前前沿](evidence/source-frontier.json)
+
+本轮SMLA新增NPU0，服务shared资格定点NPU1；模型服务请求0，health前后200。所有远端新增在自有`/data/tiankuan/wio`映射子目录；未改服务/源码/权重/全局环境。v168仍为带observer诊断cohort，不能相减重建生产基线。
+<!-- SMLA-SERVICE-GATE-20261109-END -->
+
 <!-- MOE-READERS-RESOURCE-20261109-START -->
 ## 当前断点：shared4/8原语门槛与DFC返回，继续SMLA内部
 
