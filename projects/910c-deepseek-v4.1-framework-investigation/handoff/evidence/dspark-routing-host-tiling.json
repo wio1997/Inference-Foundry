@@ -1,0 +1,65 @@
+{
+  "scope": "offline draft E128 top3 K5120 AIV40 UB196352 host selector, not loaded native tiling",
+  "rows": [
+    [
+      1,
+      21000,
+      3,
+      1,
+      1,
+      1,
+      5120,
+      1
+    ],
+    [
+      2,
+      21000,
+      6,
+      1,
+      1,
+      1,
+      5120,
+      1
+    ],
+    [
+      3,
+      21000,
+      9,
+      1,
+      1,
+      1,
+      5120,
+      1
+    ]
+  ],
+  "row_columns": [
+    "M",
+    "key",
+    "need_cores",
+    "per_core_routes",
+    "last_core_routes",
+    "per_loop_routes",
+    "columns",
+    "column_loops"
+  ],
+  "source_pins": [
+    {
+      "path": "tools/probe_dspark_routing_host_tiling.cpp",
+      "sha256": "91c445a9bed0106e6d682906b9a956144a2e58b41e7fbbd9f1e7de43ec3145bf"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/moe_init_routing_quant_v2/moe_init_routing_quant_v2_tiling.h",
+      "sha256": "ab50821407cad284205dc3bed56f36270760dd68860f90f6fb6ae4ce1bd16330"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/moe_init_routing_quant_v2/moe_init_routing_v2_tiling.h",
+      "sha256": "9fd2732cbc821d5e6bd1ae932de2f6979ab750c40a67b4125ef75bf26069da02"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/op_kernel/moe_init_routing_quant_v2/moe_v2_fullload_dynamic_quant.h",
+      "sha256": "ba554c6028122f1efa3813738cf0267c011a86543282552629030ff76e51a51a"
+    }
+  ],
+  "inference": "For M1/2/3 the original top3 route tiler assigns one route per active AIV; the full-load CopyOutXQuant1H span independently loads and quantizes its source row. Each row is therefore quantized on3 AIVs before sorted fanout. This is source/host arithmetic, not a measured cost or a proved bit-equivalent alternative.",
+  "shared_contract": "Shared preparation independently invokes npu_dynamic_quant. INT8 bytes AND FP32 scales, zero/NaN/Inf and invalid/padding rows, permutation and original per-row rounding must match before sharing. The BF16 DFC API currently exposes no prepared INT8+scale input."
+}
