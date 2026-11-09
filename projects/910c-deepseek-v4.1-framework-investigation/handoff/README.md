@@ -235,6 +235,8 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+2026-11-10 新采集：[171 框架 CPU/CANN/设备 profile](evidence/framework-profile-171.md)。冻结 C8 请求完整执行，worker覆盖前12迭代。DP1的Gloo等待与设备Free重叠中位约710ms，框架协调/组间进度为优先排查线索；具体可省量待确认。原服务已恢复。
+
 优化点按当前决定分为三组。点编号查看代码和证据，megakernel 标在方案类型里。[逐项说明](opportunities.md) · [早期 42 族](evidence/priority-42.md)
 
 <!-- THREE-MEGA-PERFORMANCE-20261109-START -->

@@ -1,0 +1,144 @@
+{
+  "date": "2026-11-10 Asia/Shanghai",
+  "scope": "frozen C8 / 32768 input / 1024 output / 90% cached prefix",
+  "capture": "CPU frontend full-request; CPU+NPU workers first 12 iterations including prefill and early decode",
+  "reference": {
+    "batch_s": 16.428223767,
+    "first_text_ms": [
+      404.268052,
+      747.280617,
+      753.962355,
+      951.955514,
+      1345.05865,
+      1348.17151,
+      1360.081667,
+      1367.275068
+    ],
+    "requests_s": [
+      15.959968722,
+      15.955029517,
+      16.089371377,
+      16.287823154,
+      15.81886711,
+      16.420184372,
+      16.41608414,
+      16.026101944
+    ],
+    "tokens_out": 8192,
+    "valid_32k_1k": true
+  },
+  "profiled": {
+    "batch_s": 17.48095198,
+    "first_text_ms": [
+      416.032053,
+      747.056017,
+      750.784933,
+      1075.227722,
+      1078.159695,
+      1433.672861,
+      1434.343178,
+      1436.816992
+    ],
+    "requests_s": [
+      17.03556643,
+      17.283786446,
+      16.969835025,
+      17.472281027,
+      16.904238126,
+      17.404544989,
+      17.159660742,
+      17.100645058
+    ],
+    "tokens_out": 8192,
+    "valid_32k_1k": true
+  },
+  "profiling_batch_overhead_pct": 6.408046468874229,
+  "groups": {
+    "dp0": {
+      "ranks": 8,
+      "device_window_ms_median": 1939.2705,
+      "union_ms_median": {
+        "gloo": 76.24562499999999,
+        "event_sync": 230.6885,
+        "free": 330.38687500000003,
+        "compute": 1309.633,
+        "communication": 291.269875,
+        "dfc": 679.91025
+      },
+      "device_window_pct_median": {
+        "gloo": 3.9295329123118083,
+        "event_sync": 11.868047141106508,
+        "free": 17.03681921487685,
+        "compute": 67.53148399110606,
+        "communication": 15.019704427332265,
+        "dfc": 35.05949365959123
+      },
+      "gloo_and_free_ms_median": 0.785625,
+      "event_sync_and_free_ms_median": 2.5229999999999997
+    },
+    "dp1": {
+      "ranks": 8,
+      "device_window_ms_median": 2801.300875,
+      "union_ms_median": {
+        "gloo": 981.645125,
+        "event_sync": 255.25775,
+        "free": 1082.383625,
+        "compute": 1506.122875,
+        "communication": 212.208,
+        "dfc": 842.09325
+      },
+      "device_window_pct_median": {
+        "gloo": 34.66831782285463,
+        "event_sync": 9.097061597923789,
+        "free": 38.636741819355755,
+        "compute": 53.76454961812674,
+        "communication": 7.574967824052925,
+        "dfc": 30.06703070275801
+      },
+      "gloo_and_free_ms_median": 710.2755,
+      "event_sync_and_free_ms_median": 3.042875
+    }
+  },
+  "frontend": [
+    {
+      "name": "<built-in method encode_batch of tokenizers.Tokenizer object at 0xfffeb89db380>",
+      "ms": 466.2092392578125,
+      "calls": 8
+    },
+    {
+      "name": "<built-in method step of tokenizers.decoders.DecodeStream object at 0xfffe84593630>",
+      "ms": 102.99745166015624,
+      "calls": 8192
+    },
+    {
+      "name": "uvicorn/protocols/http/httptools_impl.py(463): send",
+      "ms": 43.2747939453125,
+      "calls": 1796
+    }
+  ],
+  "source": {
+    "remote": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/runtime/framework-profile-20261109T192807Z",
+    "utc_run_id": "20261109T192807Z",
+    "script_sha256": "0c555a4bacd87bfb0548b57655f6e98f6a92b75140b0318d2343c5119ea2b4c3"
+  },
+  "restored_smoke": {
+    "health": 200,
+    "usage": {
+      "prompt_tokens": 4,
+      "total_tokens": 12,
+      "completion_tokens": 8,
+      "prompt_tokens_details": null,
+      "completion_tokens_details": null
+    },
+    "finish_reason": "length",
+    "answer": "  \nI have a question.  \nI",
+    "original_running": true
+  },
+  "limitations": [
+    "Worker traces cover the first 12 iterations per rank, not the full 1024-token device timeline. Frontend and request endpoints cover the full requests.",
+    "Percentages use each rank/device overlap-analysis window and per-group medians. No cross-rank summation. CPU waits can overlap device computing and are not all removable.",
+    "Gloo/free overlap establishes a framework coordination symptom. Exact metadata call attribution and whether upstream workload imbalance or synchronization protocol causes it require task/collective linkage.",
+    "Torch NPU Level1/msprof-backed export has cpu_op and CANN/device flows; EngineCore Python scheduler is not directly profiled.",
+    "Full-request baseline/profile comparison has one run each, not a statistically repeated regression test."
+  ]
+}
