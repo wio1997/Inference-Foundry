@@ -1,0 +1,304 @@
+{
+  "scope": "Only listed ranges newly examined for current boundary questions; inherited S00-S11 coverage is separate",
+  "sources": [
+    {
+      "file": "worker/model_runner_v1.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          825,
+          885
+        ],
+        [
+          2688,
+          2764
+        ],
+        [
+          3394,
+          3417
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 825,
+          "end": 885,
+          "text": "    def _sync_metadata_across_dp(\n        self,\n        num_tokens: int,\n        is_draft_model: bool = False,\n        cudagraph_mode: CUDAGraphMode = CUDAGraphMode.NONE,\n    ) -> tuple[int, torch.Tensor | None, CUDAGraphMode]:\n        # TODO: In vLLM, the only thing that needs to be synced is num_tokens, but in\n        # our case, we still need to sync the other two flags as well. So we need to\n        # include them in the all_reduce operation, and more over, we CANNOT skip it\n        # even if we are running in eager mode, which harms performance.\n        # FIXME: Restore the `or self.vllm_config.model_config.enforce_eager` here\n        # immediately once the other two flags are no longer needed.\n        if self.dp_size == 1:\n            return num_tokens, None, cudagraph_mode\n\n        if should_skip_allreduce_across_dp_group(self.vllm_config, is_draft_model):\n            num_tokens_after_padding = torch.tensor([num_tokens] * self.dp_size, device=\"cpu\", dtype=torch.int32)\n            return num_tokens, num_tokens_after_padding, cudagraph_mode\n\n        packed_tensor = torch.zeros(2, self.dp_size, device=\"cpu\", dtype=torch.int32)\n        packed_tensor[0][self.dp_rank] = num_tokens\n        packed_tensor[1][self.dp_rank] = cudagraph_mode.value\n        dist.all_reduce(packed_tensor, group=get_dp_group().cpu_group)\n\n        # Unpack the results\n        num_tokens_across_dp = packed_tensor[0, :]\n        max_tokens_across_dp = int(num_tokens_across_dp.max().item())\n        synced_cudagraph_mode = CUDAGraphMode(_post_process_cudagraph_mode(packed_tensor))\n\n        # Create a tensor for num_tokens_after_padding\n        comm_method = select_moe_comm_method(max_tokens_across_dp, self.vllm_config)\n        needs_uniform_moe_input = comm_method in {MoECommType.ALLGATHER, MoECommType.MC2}\n        needs_uniform_mega_moe_input = comm_method == MoECommType.FUSED_MC2 and use_cann_megamoe(self.vllm_config)\n        finegrained_tp = self.ascend_config.finegrained_tp_config\n        needs_finegrained_tp = any(\n            size > 1\n            for size in (\n                finegrained_tp.oproj_tensor_parallel_size,\n                finegrained_tp.lmhead_tensor_parallel_size,\n                finegrained_tp.embedding_tensor_parallel_size,\n                finegrained_tp.mlp_tensor_parallel_size,\n            )\n        )\n        # Graph replay, these MoE paths and cross-DP fine-grained TP require\n        # uniform runner inputs.\n        # Draft models retain their padding until their communication policy\n        # is selected independently.\n        if (\n            synced_cudagraph_mode != CUDAGraphMode.NONE\n            or is_draft_model\n            or needs_uniform_moe_input\n            or needs_uniform_mega_moe_input\n            or needs_finegrained_tp\n        ):\n            num_tokens_after_padding = torch.tensor(\n                [max_tokens_across_dp] * self.dp_size, device=\"cpu\", dtype=torch.int32\n            )\n        else:\n            num_tokens_after_padding = num_tokens_across_dp.cpu()\n\n        return max_tokens_across_dp, num_tokens_after_padding, synced_cudagraph_mode"
+        },
+        {
+          "start": 2688,
+          "end": 2764,
+          "text": "    def _input_fits_in_drafter(\n        self, common_attn_metadata: CommonAttentionMetadata | None\n    ) -> bool:\n        \"\"\"Return whether the complete drafter query fits its model limit.\"\"\"\n        if common_attn_metadata is None:\n            return False\n        if self.drafter is None:\n            # Only the last PP rank owns and runs the drafter. Other PP ranks\n            # must not apply a local drafter limit or join drafter DP work.\n            return True\n        return (\n            common_attn_metadata.max_seq_len + self._num_drafter_query_tokens()\n            <= self.effective_drafter_max_model_len\n        )\n\n    def _drafter_runs_model_forward(self) -> bool:\n        \"\"\"Return whether the proposer participates in model collectives.\"\"\"\n        spec_config = self.speculative_config\n        return spec_config is not None and (\n            spec_config.use_eagle()\n            or spec_config.uses_draft_model()\n            or spec_config.uses_extract_hidden_states()\n        )\n\n    def _skip_drafting(\n        self,\n        scheduler_output: \"SchedulerOutput\",\n        sampled_token_ids: torch.Tensor | None = None,\n    ) -> None:\n        \"\"\"Preserve sampled state and DP alignment; publish zero draft placeholders.\"\"\"\n        if (\n            sampled_token_ids is not None\n            and self.valid_sampled_token_count_event is not None\n            and self.drafter is not None\n            and self._drafter_runs_model_forward()\n        ):\n            next_token_ids, valid_sampled_tokens_count = (\n                self.drafter.prepare_next_token_ids_padded(\n                    sampled_token_ids,\n                    self.requests,\n                    self.input_batch,\n                    self.discard_request_indices.gpu,\n                    self.num_discarded_requests,\n                )\n            )\n            self._copy_valid_sampled_token_count(\n                next_token_ids, valid_sampled_tokens_count\n            )\n\n        if (\n            self.drafter is not None\n            and self.parallel_config.data_parallel_size > 1\n            and self._drafter_runs_model_forward()\n        ):\n            if isinstance(self.drafter, AscendDSparkProposer):\n                # DSpark requires a complete synthetic query group.\n                self.drafter.dummy_run(\n                    num_tokens=self.drafter.num_query_per_req,\n                    num_reqs=1,\n                )\n            else:\n                # Match upstream: one token is sufficient for the dummy rank;\n                # drafter DP synchronization pads it to the busiest rank.\n                self.drafter.dummy_run(num_tokens=1)\n\n        # Async scheduling may already have reserved speculative input slots.\n        # Keep a full-width tensor, including when this step produces no drafts,\n        # so the next step can scatter zeros instead of stale draft token IDs.\n        self._draft_token_ids: list[list[int]] | torch.Tensor | None = torch.zeros(\n            1, device=self.device, dtype=torch.int32\n        ).expand(len(self.input_batch.req_ids), self.num_spec_tokens)\n        self._draft_probs = None\n        self._draft_prob_req_ids = None\n        self._copy_draft_token_ids_to_cpu(scheduler_output, zeros_only=True)\n\n    @torch.inference_mode()\n    def sample_tokens("
+        },
+        {
+          "start": 3394,
+          "end": 3417,
+          "text": "                \"Sequence parallelism requires num_tokens to be a multiple of tensor parallel size\"\n            )\n        # Extra coordination when running data-parallel since we need to coordinate\n        # across ranks\n        should_ubatch, num_tokens_across_dp = False, None\n        if self.vllm_config.parallel_config.data_parallel_size > 1:\n            _, num_tokens_across_dp, synced_cudagraph_mode = self._sync_metadata_across_dp(\n                num_tokens=num_tokens_padded,\n                cudagraph_mode=cudagraph_mode,\n            )\n\n            # Extract DP padding if there is any\n            if num_tokens_across_dp is not None:\n                dp_rank = self.parallel_config.data_parallel_rank\n                num_tokens_padded = int(num_tokens_across_dp[dp_rank].item())\n                # Re-dispatch with DP padding\n                cudagraph_mode, batch_descriptor = dispatch_cudagraph(\n                    num_tokens_padded,\n                    valid_modes={synced_cudagraph_mode},\n                )\n                # Assert to make sure the agreed upon token count is correct otherwise\n                # num_tokens_across_dp will no-longer be valid\n                assert batch_descriptor.num_tokens == num_tokens_padded\n        cudagraph_stats = None"
+        }
+      ]
+    },
+    {
+      "file": "spec_decode/dspark_proposer.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          238,
+          246
+        ],
+        [
+          308,
+          343
+        ],
+        [
+          364,
+          385
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 238,
+          "end": 246,
+          "text": "        num_decode_reqs=0,\n    ) -> tuple[int, torch.Tensor, CommonAttentionMetadata, tuple[Any, Any] | None]:\n        # The initial input token of markovHead is the next token\n        n = next_token_ids.shape[0]\n        self._dspark_seed_buffer[:n].copy_(next_token_ids)\n        self._dspark_seed_buffer[n:].fill_(0)\n        batch_size = cad.num_reqs\n        num_query_total = batch_size * self.num_query_per_req\n        num_sample_total = batch_size * self.num_speculative_tokens"
+        },
+        {
+          "start": 308,
+          "end": 343,
+          "text": "        # to compute self._context_slot_mapping_buffers from dict to list\n        self._context_slot_mapping_buffers = [\n            self._per_group_context_slot_mapping_buffers[gidx] for gidx in self._layer_group_idx\n        ]\n\n        effective_seq_lens = cad.seq_lens\n        if has_num_rejected:\n            effective_seq_lens = effective_seq_lens - num_rejected_tokens_gpu\n\n        cad.query_start_loc = self.arange_dflash[: batch_size + 1] * self.num_query_per_req\n        cad.seq_lens = effective_seq_lens + self.num_query_per_req\n        # The model runner has already corrected this canonical host mirror\n        # with the accepted-token count. Extend it on CPU alongside the device\n        # lengths, without another reject D2H copy or attention-side wait.\n        if cad._seq_lens_cpu is not None:\n            draft_seq_lens_cpu = cad._seq_lens_cpu.clone()\n            draft_seq_lens_cpu[:batch_size].add_(self.num_query_per_req)\n            cad._seq_lens_cpu = draft_seq_lens_cpu\n            if getattr(cad, \"seq_lens_cpu\", None) is not None:\n                cad.seq_lens_cpu = draft_seq_lens_cpu\n        cad.query_start_loc_cpu = (\n            torch.from_numpy(self.token_arange_np[: batch_size + 1]).clone() * self.num_query_per_req\n        ).to(torch.int32)\n\n        if hasattr(cad, \"actual_seq_lengths_q\"):\n            cad.actual_seq_lengths_q = [self.num_query_per_req] * batch_size\n        if hasattr(cad, \"decode_token_per_req\"):\n            cad.decode_token_per_req = self.num_query_per_req\n\n        cad.num_actual_tokens = num_query_total\n        cad.num_input_tokens = num_query_total\n        cad.max_query_len = self.num_query_per_req\n        cad.max_seq_len = cad.max_seq_len + self.num_query_per_req\n        cad.slot_mapping = self._per_group_query_slot_mapping_buffers[primary_gid][:num_query_total]\n        cad.positions = self.positions  # this would be sliced in attention backend\n        if hasattr(self.model, \"get_draft_attn_causal\"):"
+        },
+        {
+          "start": 364,
+          "end": 385,
+          "text": "\n    @torch.inference_mode()\n    def dummy_run(\n        self,\n        num_tokens: int,\n        num_reqs: int = 0,\n        num_tokens_across_dp: torch.Tensor | None = None,\n        aclgraph_runtime_mode: CUDAGraphMode = CUDAGraphMode.NONE,\n        batch_descriptor=None,\n        dummy_compute_logits=lambda hidden_states: None,\n        is_profile=False,\n        **kwargs,\n    ) -> None:\n        num_query_total = num_reqs * self.num_query_per_req\n        num_query_tokens = min(num_query_total if num_reqs > 0 else num_tokens, self.max_query_tokens)\n\n        (\n            num_input_tokens,\n            num_tokens_across_dp,\n            _,\n        ) = self.runner._sync_metadata_across_dp(num_query_tokens, is_draft_model=True)\n"
+        }
+      ]
+    },
+    {
+      "file": "spec_decode/llm_base_proposer.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          1095,
+          1115
+        ],
+        [
+          2607,
+          2635
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 1095,
+          "end": 1115,
+          "text": "                num_tokens=num_tokens, uniform_decode=uniform_decode, has_lora=has_lora\n            )\n            num_input_tokens = batch_descriptor.num_tokens\n        else:\n            num_input_tokens = num_tokens\n\n        (\n            num_input_tokens,\n            num_tokens_across_dp,\n            _,\n        ) = self.runner._sync_metadata_across_dp(num_input_tokens, is_draft_model=True)\n\n        if self.use_cuda_graph:\n            aclgraph_runtime_mode, batch_descriptor = self.runner.cudagraph_dispatcher.dispatch(\n                num_tokens=num_input_tokens, uniform_decode=uniform_decode, has_lora=has_lora\n            )\n            num_input_tokens = batch_descriptor.num_tokens\n        else:\n            aclgraph_runtime_mode = CUDAGraphMode.NONE\n            batch_descriptor = None\n"
+        },
+        {
+          "start": 2607,
+          "end": 2635,
+          "text": "            if self.use_compress:\n                extra_attn_metadata_args[\"block_size\"] = attn_group.kv_cache_spec.block_size\n            if self.method == \"dspark\":\n                gid = attn_group.kv_cache_group_id\n                common_attn_metadata = copy.copy(common_attn_metadata)\n                block_table = getattr(self, \"_per_group_block_table_buffers\", {}).get(gid)\n                if block_table is not None:\n                    common_attn_metadata.block_table_tensor = block_table[: common_attn_metadata.num_reqs]\n                slot_mapping = self._per_group_query_slot_mapping_buffers[gid]\n                if slot_mapping is not None:\n                    common_attn_metadata.slot_mapping = slot_mapping[:num_input_tokens]\n                # Apply the sliding window to the per-group block_table + seq_lens\n                # that DSpark's draft FIA actually reads. This branch overwrites\n                # common_attn_metadata.block_table_tensor with the full per-group\n                # table, so the window applied earlier (line 922) is bypassed; we\n                # skipped it there for dspark and re-apply here on the per-group\n                # table so FIA reads the recent-blocks clone instead of block 0.\n                # (dspark only - self.sliding_window is None for MTP.)\n                if self.sliding_window is not None:\n                    self.sliding_window.apply(common_attn_metadata)\n                if dcp_manager is not None:\n                    dcp_manager.prepare_common_attn_metadata(common_attn_metadata)\n                attn_metadata = builder.build_for_drafting(\n                    common_attn_metadata, draft_index=1, **extra_attn_metadata_args\n                )\n                if device_metadata_provider is not None:\n                    device_metadata_tasks.extend(device_metadata_provider.take_device_metadata_tasks())\n            else:\n                if dcp_manager is not None:"
+        }
+      ]
+    },
+    {
+      "file": "models/deepseek_v41/engram/layer.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/layer.py",
+      "sha256": "dc9457c88aa3c90133115bc608447e037b0693f8db71bb8da37f1ead44021f80",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          34,
+          57
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 34,
+          "end": 57,
+          "text": "    def forward(\n        self,\n        hidden_states: torch.Tensor,\n        rows: torch.Tensor,\n        token_mask: torch.Tensor,\n        rotation: torch.Tensor | None,\n    ) -> torch.Tensor:\n        kv = self.wkv(rows)\n        if (\n            rotation is None\n            and hidden_states.device.type == \"npu\"\n            and get_current_hardware_profile().supports(HardwareCapability.ENGRAM_UNROTATED_GATE)\n        ):\n            return fused_engram_gate(hidden_states, kv, self.q_weight, self.k_weight, token_mask, self.eps)\n        key, value = kv.split([self.hc_mult * self.dim, self.dim], -1)\n        return engram_gate(\n            hidden_states,\n            key.view(hidden_states.shape[0], self.hc_mult, self.dim),\n            value,\n            self.q_weight.float() * self.k_weight.float(),\n            rotation,\n            token_mask,\n            self.eps,\n        )"
+        }
+      ]
+    },
+    {
+      "file": "models/deepseek_v41/engram/common.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/common.py",
+      "sha256": "4797b8962264d137cdb142a9988825288283092fb797ddbd334c6ab2223eb58d",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          63,
+          82
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 63,
+          "end": 82,
+          "text": "    if rotation_block is not None:\n        original = (original.unflatten(-1, (-1, rotation_block.shape[0])) @ rotation_block.float().T).flatten(-2)\n    key = key.float()\n    rstd = torch.rsqrt(original.square().mean(-1) + eps)\n    rstd *= torch.rsqrt(key.square().mean(-1) + eps)\n    dot = (original * channel_weight.float() * key).sum(-1) * rstd * dim**-0.5\n    magnitude = dot.abs().clamp_min(1e-6).sqrt()\n    gate = torch.sigmoid(torch.where(torch.signbit(dot), -magnitude, magnitude))\n    gate = gate.masked_fill(~token_mask.unsqueeze(-1), 0)\n    return (hidden.float() + gate.unsqueeze(-1) * value.float().unsqueeze(-2)).to(hidden.dtype)"
+        }
+      ]
+    },
+    {
+      "file": "models/deepseek_v41/model.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          844,
+          852
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 844,
+          "end": 852,
+          "text": "    def rms_norm_cast(self, hidden_states: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:\n        \"\"\"Normalize once and provide the exact FP32 routing input.\"\"\"\n        outputs = DeviceOperator.rms_norm_cast(\n            hidden_states, self.post_attention_layernorm.weight, self.post_attention_layernorm.variance_epsilon\n        )\n        if outputs is not None:\n            return outputs\n        normalized = self.post_attention_layernorm(hidden_states)\n        return normalized, normalized.float()"
+        }
+      ]
+    },
+    {
+      "file": "ops/fused_moe/fused_moe.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/ops/fused_moe/fused_moe.py",
+      "sha256": "2f42ce56a7636bf618204dbc2c1aeb2a2c95fed69fe9e5bcfac995354a00beb4",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          401,
+          422
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 401,
+          "end": 422,
+          "text": "    def _apply_router_linear(self, router_input: torch.Tensor) -> torch.Tensor:\n        \"\"\"Apply the internal router gate to an already prepared input.\"\"\"\n        gate = self.gate\n        assert gate is not None\n        # Models with pre-cast FP32 weights use the direct linear path; other\n        # gates retain their registered forward and its dtype semantics.\n        if hasattr(gate, \"weight_fp32\"):\n            return F.linear(router_input, gate.weight_fp32)\n        gate_out = gate(router_input)\n        return gate_out[0] if isinstance(gate_out, tuple) else gate_out\n\n    def _compute_router_logits(\n        self,\n        hidden_states: torch.Tensor,\n        router_logits: torch.Tensor,\n    ) -> torch.Tensor:\n        \"\"\"Compute router logits without extending a fresh FP32 cast's lifetime.\n\n        Gates without a pre-cast weight retain their registered forward path\n        and do not allocate an unused FP32 input.\n        \"\"\"\n        router_input = self._prepare_router_input(hidden_states, router_logits)"
+        }
+      ]
+    },
+    {
+      "file": "ops/fused_moe/router/fused_topk_router.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/ops/fused_moe/router/fused_topk_router.py",
+      "sha256": "06c47fd91e8c36f6f5465cea0b32a184280f842833c2bff27a18fc6d17fcb838",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          140,
+          161
+        ],
+        [
+          195,
+          224
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 140,
+          "end": 161,
+          "text": "    def _compute_routing(\n        self,\n        hidden_states: torch.Tensor,\n        router_logits: torch.Tensor,\n        indices_type: torch.dtype | None,\n        *,\n        input_ids: torch.Tensor | None = None,\n    ) -> tuple[torch.Tensor, torch.Tensor]:\n        if self.bias_vl is None and not self.is_fused_supported(hidden_states):\n            return super()._compute_routing(\n                hidden_states=hidden_states,\n                router_logits=router_logits,\n                indices_type=indices_type,\n                input_ids=input_ids,\n            )\n\n        topk_group = self.topk_group if self.topk_group is not None else 1\n        num_expert_group = self.num_expert_group if self.num_expert_group is not None else 1\n        renorm = int(self.renormalize)\n        if self.scoring_func == \"sqrtsoftplus\":\n            if self.tid2eid is not None or self.bias_vl is not None:\n                if input_ids is None:"
+        },
+        {
+          "start": 195,
+          "end": 224,
+          "text": "                return topk_weights.to(torch.float32), topk_ids.to(\n                    torch.int32 if indices_type is None else indices_type\n                )\n            bias_vl = self.bias_vl\n            if bias_vl is not None and bias_vl.dtype != router_logits.dtype:\n                bias_vl = bias_vl.to(router_logits.dtype)\n            text_bias = self.e_score_correction_bias\n            if text_bias is not None and text_bias.dtype != router_logits.dtype:\n                text_bias = text_bias.to(router_logits.dtype)\n            topk_weights, topk_ids, _ = torch.ops._C_ascend.moe_gating_top_k_hash(\n                x=router_logits,\n                k=self.top_k,\n                bias=text_bias,\n                input_ids=input_ids,\n                tid2eid=tid2eid_ones,\n                k_group=topk_group,\n                group_count=num_expert_group,\n                routed_scaling_factor=self.routed_scaling_factor,\n                eps=1e-20,\n                group_select_mode=1,\n                # The hash custom op currently accepts only renorm=0.\n                renorm=0,\n                norm_type=2,\n                out_flag=False,\n                bias_vl=bias_vl,\n                image_sentinel_lo=self.image_sentinel_lo,\n                image_sentinel_count=DEEPSEEK_V4_IMAGE_SENTINEL_COUNT,\n            )\n            return topk_weights.to(torch.float32), topk_ids.to(torch.int32 if indices_type is None else indices_type)\n        norm_type = 0 if self.scoring_func == \"softmax\" else 1"
+        }
+      ]
+    },
+    {
+      "file": "sparse_flash_mla_csa_block_vector.h",
+      "local_path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/custom_transformer_impl/ascendc/sparse_flash_mla/arch22/sparse_flash_mla_csa_block_vector.h",
+      "sha256": "685190e19519b9a44da7fa95832c06e4b41849577488f4efd0d2df80e1158757",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          523,
+          568
+        ],
+        [
+          594,
+          638
+        ],
+        [
+          660,
+          705
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 523,
+          "end": 568,
+          "text": "template <typename SMLAT>\n__aicore__ inline void SMLAVectorBlock<SMLAT>::GetRealS2Idx(int64_t s2GmOffset, int64_t &realS2Idx,\n                                                            int64_t topkGmBaseOffset, const RunInfo &runInfo)\n{\n    int64_t cmpS2Offset = s2GmOffset;\n    int64_t topkGmIdx = cmpS2Offset / constInfo.sparseBlockSize;\n    if (unlikely(topkGmIdx >= constInfo.sparseBlockCount || s2GmOffset >= runInfo.v0S2DealSize)) {\n        realS2Idx = -1;\n        return;\n    }\n    realS2Idx = topkGm_.GetValue(topkGmBaseOffset + topkGmIdx) * static_cast<int64_t>(constInfo.sparseBlockSize) +\n                static_cast<int64_t>(cmpS2Offset % constInfo.sparseBlockSize);\n}\n\ntemplate <typename SMLAT>\n__aicore__ inline int64_t SMLAVectorBlock<SMLAT>::GetKeyGmOffset(int64_t realS2Idx, const RunInfo &runInfo,\n                                                                 int64_t s2IdLimit)\n{\n    if (realS2Idx < 0 || realS2Idx >= s2IdLimit) {\n        return -1;\n    }\n    int64_t realKeyGmOffset = 0;\n    if constexpr (KV_LAYOUT_T == SMLA_LAYOUT::PA_BBND) {\n        int64_t blkTableIdx = realS2Idx / constInfo.paCmpBlockSize;\n        int64_t blkTableOffset = realS2Idx % constInfo.paCmpBlockSize;\n        realKeyGmOffset =\n            cmpBlockTableGm_.GetValue(runInfo.bIdx * constInfo.cmpMaxBlockNumPerBatch + blkTableIdx) *\n                static_cast<int64_t>(constInfo.cmpKvStride0) +\n            blkTableOffset * static_cast<int64_t>(constInfo.kvHeadNum) * static_cast<int64_t>(constInfo.headDim);\n\n    } else if constexpr (KV_LAYOUT_T == SMLA_LAYOUT::BSND) {\n        int64_t batchStride = (constInfo.cmpKvStride0 == 0) ? static_cast<int64_t>(constInfo.cmpSeqSize) *\n                                                                  static_cast<int64_t>(constInfo.kvHeadNum) *\n                                                                  static_cast<int64_t>(constInfo.headDim) :\n                                                              static_cast<int64_t>(constInfo.cmpKvStride0);\n        realKeyGmOffset =\n            static_cast<int64_t>(runInfo.bIdx) * batchStride +\n            realS2Idx * static_cast<int64_t>(constInfo.kvHeadNum) * static_cast<int64_t>(constInfo.headDim) +\n            static_cast<int64_t>(runInfo.n2Idx) * static_cast<int64_t>(constInfo.headDim);\n    } else if constexpr (KV_LAYOUT_T == SMLA_LAYOUT::TND) {\n        realKeyGmOffset =\n            runInfo.tensorCmpBOffset +\n            realS2Idx * static_cast<int64_t>(constInfo.kvHeadNum) * static_cast<int64_t>(constInfo.headDim) +\n            static_cast<int64_t>(runInfo.n2Idx) * static_cast<int64_t>(constInfo.headDim);\n    }\n    return realKeyGmOffset;"
+        },
+        {
+          "start": 594,
+          "end": 638,
+          "text": "__aicore__ inline void SMLAVectorBlock<SMLAT>::CopyInKv(int64_t &mte2Size, int64_t mte3Size, int64_t mergeMte3Idx,\n                                                        int64_t realS2Idx1, int64_t realS2Idx2, const RunInfo &runInfo)\n{\n    int64_t s2IdLimit = runInfo.cmpS2IdLimit;\n\n    int64_t keyOffset1 = GetKeyGmOffset(realS2Idx1, runInfo, s2IdLimit);\n    int64_t keyOffset2 = GetKeyGmOffset(realS2Idx2, runInfo, s2IdLimit);\n    if (unlikely(keyOffset1 < 0 && keyOffset2 < 0)) {\n        return;\n    }\n\n    int64_t keySrcStride = 0;\n    keySrcStride = ((keyOffset1 > keyOffset2 ? (keyOffset1 - keyOffset2) : (keyOffset2 - keyOffset1)) -\n                    constInfo.sparseBlockSize * constInfo.headDim) *\n                   sizeof(KV_T);\n    if (unlikely(keySrcStride >= INT32_MAX || keySrcStride < 0 || realS2Idx1 + constInfo.sparseBlockSize >= s2IdLimit ||\n                 realS2Idx2 + constInfo.sparseBlockSize >= s2IdLimit)) {\n        // stride溢出、stride为负数、s2超长等异常场景，还原成2条搬运指令\n        // 因为需要拷贝两块\n        CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx1, keyOffset1, s2IdLimit, runInfo);\n        CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx2, keyOffset2, s2IdLimit, runInfo);\n    } else {\n        DataCopyExtParams intriParams;\n        intriParams.blockLen = constInfo.sparseBlockSize * constInfo.headDim * sizeof(KV_T);\n        intriParams.blockCount = (keyOffset1 >= 0) + (keyOffset2 >= 0);\n        intriParams.dstStride = 0;\n        intriParams.srcStride = keySrcStride;\n        DataCopyPadExtParams<KV_T> padParams{false, 0, 0, 0};\n\n        int64_t startGmOffset = keyOffset1 > -1 ? keyOffset1 : keyOffset2;\n        if (keyOffset2 > -1 && keyOffset2 < keyOffset1) {\n            startGmOffset = keyOffset2;\n        }\n        DataCopyPad(kvMergUb_[mergeMte3Idx % 2 * INPUT2_BUFFER_OFFSET / sizeof(KV_T) +\n                              (mte2Size - mte3Size) * constInfo.headDim],\n                    cmpKvGm_[startGmOffset], intriParams, padParams);\n        mte2Size += ((keyOffset1 > -1) + (keyOffset2 > -1)) * constInfo.sparseBlockSize;\n    }\n}\n\ntemplate <typename SMLAT>\n__aicore__ inline void SMLAVectorBlock<SMLAT>::CopyOutMrgeResult(int64_t mte2Size, int64_t mte3Size,\n                                                                 int64_t s2GmStartOffset, int64_t mergeMte3Idx,\n                                                                 const RunInfo &runInfo)\n{"
+        },
+        {
+          "start": 660,
+          "end": 705,
+          "text": "    int64_t s2ProcessSize = runInfo.v0S2DealSize;\n    int64_t s2Pair = CeilDiv(s2ProcessSize, 2 * constInfo.sparseBlockSize);\n    int64_t topkGmBaseOffset = runInfo.topKBaseOffset + runInfo.v0S2Start;\n    int64_t mte2Size = 0;\n    int64_t mte3Size = 0;\n    int64_t s2IdxArray0 = -1;\n    int64_t s2IdxArray1 = -1;\n    bool needWaitMte3ToMte2 = true;\n    int64_t s2SplitPoint = SMLAAlign(s2Pair, 2) * constInfo.sparseBlockSize;\n    int64_t s2GmStartOffset = GetSubBlockIdx() == 0 ? 0 : s2SplitPoint;\n    int64_t s2GmLimit = GetSubBlockIdx() == 0 ? s2SplitPoint : s2ProcessSize;\n    if (s2GmLimit > s2ProcessSize) {\n        s2GmLimit = s2ProcessSize;\n    }\n    // 处理两个基本块\n    for (int64_t s2GmOffsetArray = s2GmStartOffset; s2GmOffsetArray < s2GmLimit;\n         s2GmOffsetArray += 2 * constInfo.sparseBlockSize) {\n        if (needWaitMte3ToMte2) {\n            WaitFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx % 2 + SYNC_INPUT_BUF2_FLAG);\n            needWaitMte3ToMte2 = false;\n        }\n        GetRealS2Idx(s2GmOffsetArray, s2IdxArray0, topkGmBaseOffset, runInfo);\n        if (unlikely(s2IdxArray0 < 0)) {\n            CopyOutMrgeResult(mte2Size, mte3Size, s2GmStartOffset, mergeMte3Idx, runInfo);\n            SetFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx % 2 + SYNC_INPUT_BUF2_FLAG);\n            mergeMte3Idx++;\n            break;\n        }\n        GetRealS2Idx(s2GmOffsetArray + constInfo.sparseBlockSize, s2IdxArray1, topkGmBaseOffset, runInfo);\n        CopyInKv(mte2Size, mte3Size, mergeMte3Idx, s2IdxArray0, s2IdxArray1, runInfo);\n        if ((mte2Size - mte3Size + 2 * constInfo.sparseBlockSize > 16) ||\n            s2GmOffsetArray + 2 * constInfo.sparseBlockSize >= s2GmLimit) {\n            CopyOutMrgeResult(mte2Size, mte3Size, s2GmStartOffset, mergeMte3Idx, runInfo);\n            mte3Size = mte2Size;\n            SetFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx % 2 + SYNC_INPUT_BUF2_FLAG);\n            mergeMte3Idx++;\n            needWaitMte3ToMte2 = true;\n        }\n    }\n    return;\n}\n\ntemplate <typename SMLAT>\n__aicore__ inline void SMLAVectorBlock<SMLAT>::ProcessVec1L(const RunInfo &info)\n{\n    uint32_t nBufferLoopTimes = (info.actMBaseSize + constInfo.nBufferMBaseSize - 1) / constInfo.nBufferMBaseSize;"
+        }
+      ]
+    },
+    {
+      "file": "sparse_flash_mla_csa_block_cube.h",
+      "local_path": "/Users/wio/work/910c-deepinfer-control/installed-vllm-source/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/custom_transformer_impl/ascendc/sparse_flash_mla/arch22/sparse_flash_mla_csa_block_cube.h",
+      "sha256": "55210741e16d8cc455215849c73e2c06db10f23efeb73ca87b4a16847339ccc3",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          56,
+          76
+        ],
+        [
+          456,
+          488
+        ],
+        [
+          703,
+          728
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 56,
+          "end": 76,
+          "text": "    static constexpr SMLA_LAYOUT LAYOUT_T = SMLAT::layout;\n    static constexpr SMLA_LAYOUT KV_LAYOUT_T = SMLAT::kvLayout;\n\n    static constexpr uint32_t MERGE_CACHE_GM_BUF_NUM = 3;\n    static constexpr uint32_t M_SPLIT_SIZE = 128;     // m方向切分\n    static constexpr uint32_t N_SPLIT_SIZE = 128;     // n方向切分\n    static constexpr uint32_t K_L0_SPLIT_SIZE = 128;  // k方向L0切分\n    static constexpr uint32_t K_L1_SPLIT_SIZE = 256;  // k方向L1切分\n    static constexpr uint32_t N_WORKSPACE_SIZE = 512; // n方向切分\n    static constexpr uint32_t D_SPLIT_SIZE = 256;     // d轴切分\n\n    static constexpr uint32_t L1_BLOCK_SIZE = (64 * 512 * sizeof(Q_T));\n    static constexpr uint32_t L1_BLOCK_OFFSET = 64 * 512;\n\n    static constexpr uint32_t L0A_PP_SIZE = (32 * 1024);\n    static constexpr uint32_t L0B_PP_SIZE = (32 * 1024);\n    static constexpr uint32_t L0C_PP_SIZE = (64 * 1024);\n\n    // mte2 <> mte1 EventID\n    // L1 3buf, 使用3个eventId\n    static constexpr uint32_t L1_EVENT0 = EVENT_ID2;"
+        },
+        {
+          "start": 456,
+          "end": 488,
+          "text": "                if (kL1 == 0) {\n                    Nd2NzParams nd2nzPara;\n                    nd2nzPara.ndNum = 1;\n                    nd2nzPara.nValue = nL1Size;\n                    nd2nzPara.dValue = constInfo.headDim >> 1;\n                    nd2nzPara.srcDValue = constInfo.headDim;\n                    nd2nzPara.dstNzC0Stride = nL1SizeAlign;\n                    nd2nzPara.dstNzNStride = 1;\n                    nd2nzPara.srcNdMatrixStride = 0;\n                    nd2nzPara.dstNzMatrixStride = 0;\n                    DataCopy(bL1Tensor,\n                             kvMergeGm_[info.cmpLoop % MERGE_CACHE_GM_BUF_NUM * N_WORKSPACE_SIZE * kSize +\n                                        nL1 * N_SPLIT_SIZE * constInfo.headDim],\n                             nd2nzPara);\n                } else {\n                    Nd2NzParams nd2nzPara;\n                    nd2nzPara.ndNum = 1;\n                    nd2nzPara.nValue = nL1Size;\n                    nd2nzPara.dValue = constInfo.headDim >> 1;\n                    nd2nzPara.srcDValue = constInfo.headDim;\n                    nd2nzPara.dstNzC0Stride = nL1SizeAlign;\n                    nd2nzPara.dstNzNStride = 1;\n                    nd2nzPara.srcNdMatrixStride = 0;\n                    nd2nzPara.dstNzMatrixStride = 0;\n                    DataCopy(bL1Tensor,\n                             kvMergeGm_[info.cmpLoop % MERGE_CACHE_GM_BUF_NUM * N_WORKSPACE_SIZE * kSize +\n                                        (constInfo.headDim >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDim],\n                             nd2nzPara);\n                }\n            }\n            SetFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);\n            WaitFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);\n            mL1Size = M_SPLIT_SIZE;"
+        },
+        {
+          "start": 703,
+          "end": 728,
+          "text": "                                         kL1 * 128 * constInfo.headDim + nL1 * N_SPLIT_SIZE],\n                                 nd2nzPara);\n                    }\n                } else {\n                    Nd2NzParams nd2nzPara;\n                    nd2nzPara.ndNum = 1;\n                    nd2nzPara.nValue = kL0Size;      // 行数\n                    nd2nzPara.dValue = N_SPLIT_SIZE; // constInfo.headDim;\n                    nd2nzPara.srcDValue = constInfo.headDim;\n                    nd2nzPara.dstNzC0Stride = kL0SizeAlign;\n                    nd2nzPara.dstNzNStride = 1;\n                    nd2nzPara.srcNdMatrixStride = 0;\n                    nd2nzPara.dstNzMatrixStride = 0;\n                    DataCopy(bL1Tensor[(kL1 - kOffset) * 128 * N_SPLIT_SIZE],\n                             kvMergeGm_[info.cmpLoop % MERGE_CACHE_GM_BUF_NUM * N_WORKSPACE_SIZE * 512 +\n                                        kL1 * 128 * constInfo.headDim + nL1 * N_SPLIT_SIZE],\n                             nd2nzPara);\n                }\n            }\n            SetFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);\n            WaitFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);\n            mL1SizeAlign = M_SPLIT_SIZE;\n            mL1Size = M_SPLIT_SIZE; // m的实际大小\n            for (uint32_t mL1 = 0; mL1 < mL1Loops; mL1++) {\n                if (mL1 == (mL1Loops - 1)) {\n                    // 尾块"
+        }
+      ]
+    },
+    {
+      "file": "models/deepseek_v41/indexer.py",
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/indexer.py",
+      "sha256": "d5d6a438bbced4e63d729dac94c08869df30dab4a71ceacecdea211386b3db33",
+      "binding": "frozen archived source; not live loaded binary attestation",
+      "reviewed_ranges": [
+        [
+          181,
+          235
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 181,
+          "end": 235,
+          "text": "    def select_projected(\n        self,\n        query,\n        weights,\n        positions,\n        source_cache,\n        source_metadata,\n        *,\n        is_candidate_source,\n        uses_candidate_filter,\n        candidate_topk_blocks,\n        candidate_block_size,\n        candidates,\n        candidate_lengths=None,\n        topk_lengths=None,\n        indices_output=None,\n        quantized_query=None,\n        query_scale=None,\n    ):\n        \"\"\"Run QLI V2 on paged INT8 K; candidates are block IDs, not positions.\n\n        Source and consumer share [tokens, 1, candidate_topk_blocks] INT32\n        block IDs only within this forward. Query quantization and position\n        ordering stay outside the native QLI/candidate operator.\n        \"\"\"\n        candidate_shape = (query.shape[0], 1, candidate_topk_blocks)\n        topk = self.index_topk\n        if query.shape[0] == 0:\n            selected = (\n                torch.full((0, topk), -1, dtype=torch.int32, device=query.device)\n                if indices_output is None\n                else indices_output\n            )\n            if is_candidate_source:\n                candidates = torch.full(candidate_shape, -1, dtype=torch.int32, device=query.device)\n            return selected, candidates\n        if source_metadata.max_cache_seq_len == 0:\n            if indices_output is not None:\n                indices_output.fill_(-1)\n            if topk_lengths is not None:\n                topk_lengths.zero_()\n            if is_candidate_source and candidate_lengths is not None:\n                candidate_lengths.zero_()\n            selected = (\n                torch.full((query.shape[0], 0), -1, dtype=torch.int32, device=query.device)\n                if indices_output is None\n                else indices_output\n            )\n            if is_candidate_source:\n                candidates = torch.full(candidate_shape, -1, dtype=torch.int32, device=query.device)\n            return selected, candidates\n\n        if self.packed_cache_ops is not None:\n            return self.packed_cache_ops.run_a5_indexer(\n                query,"
+        }
+      ]
+    }
+  ]
+}

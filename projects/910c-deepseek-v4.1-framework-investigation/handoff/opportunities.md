@@ -74,6 +74,22 @@
 
 </details>
 
+<!-- WORKBENCH-CONTINUATION-20261109-START -->
+### 2026-11-09 交付合同续扫
+
+- **介绍**　从目标DP协调追到DSpark query、dummy/skip和EP集合调用，判定可共用计划的完整字段。
+- **到了哪里**　待确认。静态消费者核对/离线模型；无新设备实验。
+- **结果**　目标24行桶不能决定草稿5/20行；直接复用子项C04a停止。扩展packet须含B/K/角色/epoch及一致fallback；协调净关键省仍未知。
+
+[本次源码与完整判断](evidence/workbench-continuation.md) · [复算结果](evidence/workbench-continuation-results.json) · [源码摘录与hash](evidence/workbench-continuation-source-review.json)
+
+### C04a
+
+- **介绍**　直接用目标padded计数替代草稿计数协调。
+- **到了哪里**　已停止。B/K/角色信息不足。
+- **结果**　目标桶24对应草稿5或20行；不否定含完整字段的一次共同协调。
+<!-- WORKBENCH-CONTINUATION-20261109-END -->
+
 ## C05
 
 **M06、M08、M10 · 取消没有最终贡献的行：idle/小桶/末层/context分角色**
@@ -109,6 +125,16 @@
 - **接续**　按层、权重版本及完整键回放
 
 </details>
+
+<!-- WORKBENCH-CONTINUATION-20261109-START -->
+### 2026-11-09 交付合同续扫
+
+- **介绍**　区分完整内容结果命中与保留dense WKV的局部miss，修正缓存性能单位。
+- **到了哪里**　待确认。静态消费者核对/离线模型；无新设备实验。
+- **结果**　71.1%–96.3%是需消除的可缓存耗时比例，不是row-hit率。部分miss可保留整次WKV；缺完整键命中和残余调用成本。
+
+[本次源码与完整判断](evidence/workbench-continuation.md) · [复算结果](evidence/workbench-continuation-results.json) · [源码摘录与hash](evidence/workbench-continuation-source-review.json)
+<!-- WORKBENCH-CONTINUATION-20261109-END -->
 
 ## C07
 
@@ -164,6 +190,16 @@
 
 </details>
 
+<!-- WORKBENCH-CONTINUATION-20261109-START -->
+### 2026-11-09 交付合同续扫
+
+- **介绍**　追到Vector实际物理packed顺序及两个Cube读者，收窄分页直读验收合同。
+- **到了哪里**　待确认。静态消费者核对/离线模型；无新设备实验。
+- **结果**　原KV pair有物理偏移重排、尾部fallback和负索引停止；新直读须匹配packed plane或过数值验收。原17.78ms仍为条件情景，实际K/整核速度待证。
+
+[本次源码与完整判断](evidence/workbench-continuation.md) · [复算结果](evidence/workbench-continuation-results.json) · [源码摘录与hash](evidence/workbench-continuation-source-review.json)
+<!-- WORKBENCH-CONTINUATION-20261109-END -->
+
 ## C10
 
 **M03、M04 · SMLA/RoPE/OA直接产send布局，再交换窄OA结果**
@@ -200,6 +236,16 @@
 
 </details>
 
+<!-- WORKBENCH-CONTINUATION-20261109-START -->
+### 2026-11-09 交付合同续扫
+
+- **介绍**　把评分主体、压实降速和gather/恢复新增开销写成同一净收益门槛。
+- **到了哪里**　待确认。静态消费者核对/离线模型；无新设备实验。
+- **结果**　223完全关键波情景需每四次净省0.833667ms。等速零开销需评分主体占旧段≥84.024%；极有利全段评分时新增成本≤0.158514ms。缺c/ρ/h。
+
+[本次源码与完整判断](evidence/workbench-continuation.md) · [复算结果](evidence/workbench-continuation-results.json) · [源码摘录与hash](evidence/workbench-continuation-source-review.json)
+<!-- WORKBENCH-CONTINUATION-20261109-END -->
+
 ## C12
 
 **M05、M06 · norm/router GEMM/路由的共同producer**
@@ -217,6 +263,22 @@
 - **接续**　分开核算必要 GEMM 和可删交付。关联 M05
 
 </details>
+
+<!-- WORKBENCH-CONTINUATION-20261109-START -->
+### 2026-11-09 交付合同续扫
+
+- **介绍**　按同窗分母将必要GEMM与可消边界彻底分账，结束同预算的小方案。
+- **到了哪里**　待确认。静态消费者核对/离线模型；无新设备实验。
+- **结果**　固定GEMM的子项C12a停止：非GEMM全免目标最高0.8963%周期，连草稿最高0.9637%。大方案若改变GEMM主体，须另证净差。
+
+[本次源码与完整判断](evidence/workbench-continuation.md) · [复算结果](evidence/workbench-continuation-results.json) · [源码摘录与hash](evidence/workbench-continuation-source-review.json)
+
+### C12a
+
+- **介绍**　固定router GEMM，消除packet、TopK、RMS等全部边界任务。
+- **到了哪里**　已停止。同rank同周期全免费仍低值。
+- **结果**　目标最高0.8963%，连草稿最高0.9637%；不外推成服务上界，也不排除实质改变GEMM的大方案。
+<!-- WORKBENCH-CONTINUATION-20261109-END -->
 
 ## C13
 
