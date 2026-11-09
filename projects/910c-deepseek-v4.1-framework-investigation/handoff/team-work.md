@@ -1,9 +1,24 @@
 # 171 融合算子团队开发清单
 
-<!-- METADATA-HOST-20261110-START -->
-## 当前前沿：metadata与host联合交付（loop-015）
+<!-- FINAL-PRODUCER-20261110-START -->
+## 当前前沿：末读完成条件与aux后两层producer（loop-016）
 
-**Goal ACTIVE；loop-014 PIVOTED（限定结论），loop-015 EVALUATING；全链路未扫全。每个替换原语逐位一致。**
+**Goal ACTIVE；loop-015 PIVOTED（metadata仍待确认）；loop-016 EVALUATING。全链路未扫全，每个替换原语逐位一致。**
+
+- **介绍**：沿V1实际consumer/wait补共享frame完成条件，再反推最后aux之后的query/cache/输出/FFN需求。
+- **到了哪里**：16源SHA；A3 QLI producer空query仍运行，consumer可跳等待，release不证明全完成。原62/10回执保留；真实24行桶/每卡3行解释10个empty为2QLI，72窗尾部均早于body start，最小2.68574ms。producer_done正常join未见需新增device等待，但新API/其它负载成本、alias/native/graph/error仍缺。
+- **新边界**：修正早期拓扑aux标记off-by-one，真实采集于零基36/37/38入口；38/39两个body在最后aux之后。两层都读longKV20/topK36、各自SWA128必须保留。连续因果单末query示例反推39 KV128、38 query128/KV255，物理slot/淘汰/chunk/reject仍未证明。
+- **结果**：56个原C8 real eager窗口；单39层首输出一次P90全免最高.6767%，不能剪更大producer。inclusive独立最有利DP情景：单39层2.32864%，38/39两层56.86208ms/3.81150%。保留必要cache/存活行后rho未知；h=.5ms/eager-wave、rho.5情景净26.43104ms/1.77169%，rho.25仅.81881%，负收益保留。均非实测加速或原语准入。
+- **下一处**：追38/39 SWA物理writer/page/slot及跨chunk/迭代、selected-query到topK36的原CP-local行映射，拆必须保留cache和可删query/O/FFN，再核精确数值几何/净成本。原compact FFN位差配方继续停止。新NPU0、推理0、新profile0、远端写入0，无部署变化。
+
+[完整判断](evidence/metadata-tail-and-final-producer.md) · [两层范围与有成本情景](evidence/final-producer-entry.json) · [末读/完成条件](evidence/metadata-reader-frontier.json) · [修正拓扑](evidence/target-layer-plan-corrected.json)
+
+<!-- FINAL-PRODUCER-20261110-END -->
+
+<!-- METADATA-HOST-20261110-START -->
+## 上一段：metadata与host联合交付（loop-015已PIVOTED）
+
+**Goal ACTIVE；loop-014 PIVOTED（限定结论），loop-015 PIVOTED（限定结论）；全链路未扫全。每个替换原语逐位一致。**
 
 - **介绍**：从target DP协调、global/local metadata，经实际DSpark query到producer/consumer，先核早知字段与整段净值。
 - **到了哪里**：13源SHA；DP为8组[r,r+8]CPU Gloo pair。实际DSpark override返回B×Q（冻结Q5），不能复用target24桶；GPU reject后的length/slot仍晚知。CP同代batch可共享，但global/local域及每资源physical state分开。V1每次host submit、FULL用external event、finally release，不能借V2全task finish证明V1末读。
