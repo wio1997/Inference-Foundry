@@ -1,0 +1,143 @@
+def save():
+ tmp=status.with_suffix('.tmp')
+ with tmp.open('w') as f:json.dump(s,f,indent=2);f.flush();os.fsync(f.fileno())
+ os.replace(tmp,status)
+def _stop_signal(signum,frame):
+ raise SystemExit(128+signum)
+signal.signal(signal.SIGTERM,_stop_signal)
+signal.signal(signal.SIGINT,_stop_signal)
+# On startup failure or a later resident-process failure, signal only the
+# verified B frontend / launcher. Never stop containers or unrelated holders.
+startup_complete=False
+def cleanup_failed_service():
+ if startup_complete and s.get('state')!='FAIL':return
+ if s.get('state')!='FAIL':
+  s.update(state='FAIL',reason='controller exited before startup completed')
+  try:save()
+  except OSError:pass
+ for container,needle in [('wio-deepinfer-s172','python examples/ascend910c_w8a8_api_fixed_routing.py'),
+                          ('wio-deepinfer-s172-npu','python -m torch.distributed.run')]:
+  try:
+   rows=subprocess.check_output(['docker','top',container,'-eo','pid,args'],text=True).splitlines()[1:]
+   matches=[row.split(None,1) for row in rows if needle in row and str(control) in row]
+   if len(matches)>1:
+    print('CLEANUP_REFUSED_MULTIPLE_OWNERS',container,flush=True);continue
+   if not matches:continue
+   pid=int(matches[0][0]);proc=Path(f'/proc/{pid}')
+   birth=proc.joinpath('stat').read_text().rsplit(')',1)[1].split()[19]
+   args=proc.joinpath('cmdline').read_bytes().replace(b'\0',b' ').decode()
+   if needle not in args or str(control) not in args:continue
+   if proc.joinpath('stat').read_text().rsplit(')',1)[1].split()[19]!=birth:continue
+   os.kill(pid,signal.SIGTERM);print('CLEANUP_OWNED_SIGTERM',container,pid,flush=True)
+  except (OSError,subprocess.SubprocessError,ValueError,IndexError) as exc:
+   print('CLEANUP_INSPECTION_FAILED',container,type(exc).__name__,flush=True)
+ # A launcher may already have exited while its rank children are still
+ # unwinding. Inspect and signal only exact B rank commands, with unique ranks.
+ try:
+  rows=subprocess.check_output(['docker','top','wio-deepinfer-s172-npu','-eo','pid,args'],text=True).splitlines()[1:]
+  children=[row.split(None,1) for row in rows if 'ascend910c_w8a8_worker.py' in row and str(control) in row]
+  verified=[]
+  for row in children:
+   pid=int(row[0]);proc=Path(f'/proc/{pid}')
+   args=proc.joinpath('cmdline').read_bytes().replace(b'\0',b' ').decode()
+   env=dict(x.split('=',1) for x in proc.joinpath('environ').read_bytes().decode().split('\0') if '=' in x)
+   if 'ascend910c_w8a8_worker.py' not in args or str(control) not in args:raise ValueError('rank command changed')
+   rank=int(env['LOCAL_RANK']);birth=proc.joinpath('stat').read_text().rsplit(')',1)[1].split()[19]
+   if not 0<=rank<16:raise ValueError('unexpected rank')
+   verified.append((pid,rank,birth))
+  if len(verified)>16 or len({x[1] for x in verified})!=len(verified):raise ValueError('ambiguous rank ownership')
+  for pid,rank,birth in verified:
+   try:
+    if Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()[19]==birth:
+     os.kill(pid,signal.SIGTERM);print('CLEANUP_OWNED_RANK_SIGTERM',rank,pid,flush=True)
+   except (ProcessLookupError,FileNotFoundError):pass
+ except (OSError,subprocess.SubprocessError,ValueError,IndexError,KeyError) as exc:
+  print('CLEANUP_RANK_INSPECTION_FAILED',type(exc).__name__,flush=True)
+atexit.register(cleanup_failed_service)
+with (p/'logs/serving-@SERVICE@-worker.log').open('x') as worker_log,(p/'logs/serving-@SERVICE@-api.log').open('x') as api_log:
+ worker=subprocess.Popen(worker_cmd,stdout=worker_log,stderr=subprocess.STDOUT,start_new_session=True);s['worker_host_pid']=worker.pid;save()
+ while len(list(control.glob('ready-rank*.json')))<16 and worker.poll() is None and time.time()-s['started']<900:time.sleep(2)
+ if worker.poll() is not None or len(list(control.glob('ready-rank*.json')))<16:
+  s.update(state='FAIL',worker_exit=worker.poll(),reason='native load failed or timed out');save();raise SystemExit(1)
+ ready=[json.loads(f.read_text()) for f in control.glob('ready-rank*.json')]
+ import importlib.util
+ manager_spec=importlib.util.spec_from_file_location('deepinfer_owned_service',Path(SPEC['manager_source'])/'ascend910c/serve.py')
+ manager=importlib.util.module_from_spec(manager_spec);manager_spec.loader.exec_module(manager)
+ manager.validate_ready(ready,SPEC)
+ (control/'jobs').mkdir(exist_ok=True)
+ version='@SERVICE@';parent=version;dest=p/'evidence'/version;dest.mkdir(exist_ok=True)
+ # npu-smi can expose stale holders or an incomplete table during startup.
+ # Continue only after a complete, unchanged map of owned physical ranks.
+ previous_map=None; deadline=time.monotonic()+95
+ while time.monotonic()<deadline and worker.poll() is None:
+  smi=subprocess.check_output(['npu-smi','info'],text=True,timeout=25)
+  rows=re.findall(r'^\|\s*(\d+)\s+(\d+)\s*\|\s*(\d+)\s*\|',smi,re.M)
+  top=subprocess.check_output(['docker','top','wio-deepinfer-s172-npu','-eo','pid'],text=True,timeout=25)
+  owned={int(row) for row in top.splitlines()[1:] if row.strip().isdigit()}
+  records={}
+  for a,b,text in rows:
+   pid=int(text);proc=Path(f'/proc/{pid}')
+   try:
+    birth=proc.joinpath('stat').read_text().rsplit(')',1)[1].split()[19]
+    argv=proc.joinpath('cmdline').read_bytes().split(b'\0')
+    env=dict(part.split('=',1) for part in proc.joinpath('environ').read_bytes().decode().split('\0') if '=' in part)
+   except (ProcessLookupError,FileNotFoundError):continue
+   # A live foreign holder blocks startup immediately.
+   assert pid in owned and str(control).encode() in argv, ('foreign NPU holder',pid,a,b)
+   rank=int(env['LOCAL_RANK']);assert 0<=rank<16 and rank not in records
+   records[rank]=(int(a),int(b),pid,birth)
+  ready=(len(rows)==16 and set(records)==set(range(16))
+         and {(a,b) for a,b,_,_ in records.values()}=={(a,b) for a in range(8) for b in (0,1)})
+  s['holder_count']=len(rows);s['owned_rank_count']=len(records);save()
+  if ready and records==previous_map:
+   pids=[row[2] for row in records.values()]
+   break
+  previous_map=records if ready else None
+  time.sleep(2)
+ else:
+  raise RuntimeError(('16 stable owned ranks unavailable',s.get('holder_count'),s.get('owned_rank_count')))
+ workers=[]
+ for pid in pids:
+  cmd=Path(f'/proc/{pid}/cmdline').read_bytes().replace(b'\0',b' ').decode();assert 'ascend910c_w8a8_worker.py' in cmd and '/serving/@SERVICE@' in cmd,(pid,cmd)
+  env=dict(x.split('=',1) for x in Path(f'/proc/{pid}/environ').read_bytes().decode().split('\0') if '=' in x);rank=int(env['LOCAL_RANK']);assert 0<=rank<16
+  allowed=sorted(os.sched_getaffinity(pid));assert allowed==list(range(640)),('unexpected existing affinity',pid,len(allowed))
+  pool=allowed[rank*40:(rank+1)*40];assert len(pool)==40
+  tasks=[]
+  for f in sorted(Path(f'/proc/{pid}/task').iterdir()):
+   tid=int(f.name)
+   try:tasks.append({'tid':tid,'name':(f/'comm').read_text().strip(),'before':sorted(os.sched_getaffinity(tid))})
+   except ProcessLookupError:continue
+  workers.append({'rank':rank,'pid':pid,'main':pool[2:-2],'acl':[pool[-2]],'release':[pool[-1]],'irq_reserved_unchanged':pool[:2],'tasks':tasks})
+ assert sorted(x['rank'] for x in workers)==list(range(16))
+ record={'state':'PREPARED','version':version,'parent_model_runtime':parent,'reference':'Pinned Ascend A3 cpu_binding.py GLOBAL_SLICE;640CPU/16NPU,2IRQ reserved,36main,1ACL,1release','scope':'only owned worker/TID affinity; no IRQ writes, no host service changes, no memory migration','workers':workers,'started':time.time()};(dest/'transition.json').write_text(json.dumps(record,indent=2))
+ changed=[]
+ try:
+  for w in workers:
+   for task in w['tasks']:
+    cpus=w['acl'] if 'acl_thread' in task['name'] else w['release'] if 'release_thread' in task['name'] else w['main']
+    try:os.sched_setaffinity(task['tid'],cpus);changed.append(task);task['after']=sorted(os.sched_getaffinity(task['tid']));assert task['after']==cpus
+    except ProcessLookupError:task['exited']=True
+  record.update(state='APPLIED',finished=time.time());(dest/'transition.json').write_text(json.dumps(record,indent=2))
+ except BaseException:
+  for task in reversed(changed):
+   try:os.sched_setaffinity(task['tid'],task['before'])
+   except ProcessLookupError:pass
+  record['state']='ROLLED_BACK';(dest/'transition.json').write_text(json.dumps(record,indent=2));raise
+ s['cpu_affinity_record']=str(dest/'transition.json');save()
+ if worker.poll() is not None:raise RuntimeError('worker exited before API startup')
+ api=subprocess.Popen(api_cmd,stdout=api_log,stderr=subprocess.STDOUT,start_new_session=True);s.update(state='HTTP_STARTING',api_host_pid=api.pid);save()
+ import urllib.request
+ op=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+ for attempt in range(60):
+  try:
+   with op.open('http://127.0.0.1:8172/health',timeout=2) as r:health=json.load(r)
+   assert health==dict(status='ok',backend='DeepInfer-original' if SPEC.get('execution')=='original-engine' else 'DeepInfer-native');s.update(state='READY',health=health);save();break
+  except Exception:
+   if worker.poll() is not None or api.poll() is not None:
+    s.update(state='FAIL',reason='worker or API exited before readiness',worker_exit=worker.poll(),api_exit=api.poll());save();raise SystemExit(1)
+   time.sleep(1)
+ else:s.update(state='FAIL',reason='HTTP readiness timeout');save();raise SystemExit(1)
+ (p/'evidence/@SERVICE@/npu-smi-after-ready.txt').write_text(subprocess.check_output(['npu-smi','info'],text=True))
+ startup_complete=True
+ while worker.poll() is None and api.poll() is None:time.sleep(3)
+ s.update(state='FAIL',worker_exit=worker.poll(),api_exit=api.poll(),reason='resident process exited');save()

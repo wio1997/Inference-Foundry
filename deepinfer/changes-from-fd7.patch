@@ -1,0 +1,1729 @@
+--- /dev/null
++++ adapted/ascend910c/profiles/original-deterministic.json
+@@ -0,0 +1,9 @@
++{
++  "yoco_mode": "compact",
++  "yoco_keep_tokens": 140,
++  "nextn": 5,
++  "mtp_varlen": false,
++  "zos": true,
++  "enforce_eager": false,
++  "batch_invariant": true
++}
+--- accepted-fd7/ascend910c/serve.py
++++ adapted/ascend910c/serve.py
+@@ -16,7 +16,7 @@
+ 
+ sys.dont_write_bytecode = True
+ HERE = Path(__file__).resolve().parent
+-PROFILES = ("original-engine", "original-mask", "original-off", "native140", "official-yoco", "official-zos", "native256", "official-eplb-off", "official-eplb-on")
++PROFILES = ("original-engine", "original-mask", "original-off", "original-deterministic", "native140", "official-yoco", "official-zos", "native256", "official-eplb-off", "official-eplb-on")
+ 
+ 
+ def read(path):
+@@ -90,6 +90,7 @@
+             "DEEPINFER_ENABLE_MTP_VARLEN": str(int(mode.get("mtp_varlen", True))),
+             "DEEPINFER_ZERO_OVERHEAD_SCHEDULING": str(int(mode.get("zos", True))),
+             "DEEPINFER_ENFORCE_EAGER": str(int(mode.get("enforce_eager", False))),
++            "DEEPINFER_BATCH_INVARIANT": str(int(mode.get("batch_invariant", False))),
+             "DEEPINFER_USE_MULTIMODAL_POOL": "0",
+             "LD_PRELOAD": str(root / "ascend910c/lib/libstdc++.so.6"),
+             "TMPDIR": str(project / "t" / service),
+@@ -112,7 +113,8 @@
+                     nextn=int(settings["DEEPINFER_USE_NEXTN_DECODE"]),
+                     mtp_varlen=settings["DEEPINFER_ENABLE_MTP_VARLEN"] == "1",
+                     zos=settings["DEEPINFER_ZERO_OVERHEAD_SCHEDULING"] == "1",
+-                    enforce_eager=settings["DEEPINFER_ENFORCE_EAGER"] == "1")
++                    enforce_eager=settings["DEEPINFER_ENFORCE_EAGER"] == "1",
++                    batch_invariant=settings["DEEPINFER_BATCH_INVARIANT"] == "1")
+     if profile in ("official-eplb-off","official-eplb-on"):
+         settings={"DEEPINFER_910C_EPLB":"1", "DEEPINFER_OVERRIDE_NUM_EXTRA_EXPERTS":"32",
+                   "DEEPINFER_EXPERT_COUNT_WINDOW_SIZE":"3", "DEEPINFER_MOE_LB_STAT_INTERVAL":"128",
+@@ -144,6 +146,7 @@
+                 or row.get('world_size') != 16 or row.get('data_parallel_size') != 2
+                 or row.get('context_parallel_size') != 8 or row.get('dp_rank') != row['rank'] // 8
+                 or row.get('nextn') != mode['nextn']
++                or row.get('capabilities', {}).get('batch_invariant', False) != mode.get('batch_invariant', False)
+                 or row.get('execution_options') != {key: mode[key] for key in
+                     ('yoco_mode', 'yoco_keep_tokens', 'mtp_varlen', 'zos', 'enforce_eager')}):
+             raise RuntimeError('original Engine ready configuration differs')
+--- accepted-fd7/deepinfer/hugging_face/modelslim910c.py
++++ adapted/deepinfer/hugging_face/modelslim910c.py
+@@ -104,4 +104,9 @@
+     def __init__(self,weight):
+         super().__init__();self.weight=torch.nn.Parameter(weight,requires_grad=False)
+ 
+-    def forward(self,x):return torch.nn.functional.linear(x,self.weight)
++    def forward(self,x):
++        from deepinfer import envs
++        if x.device.type == 'npu' and envs.DEEPINFER_BATCH_INVARIANT:
++            from deepinfer.npu_ops.invariant910c import linear
++            return linear(x,self.weight)
++        return torch.nn.functional.linear(x,self.weight)
+--- accepted-fd7/deepinfer/model_executor/layers/tilelang_ops/asc910c/sampling.py
++++ adapted/deepinfer/model_executor/layers/tilelang_ops/asc910c/sampling.py
+@@ -36,6 +36,10 @@
+ 
+ 
+ def _sample_weights(weights, seeds, positions, case, fallback):
++    from deepinfer import envs
++    if envs.DEEPINFER_BATCH_INVARIANT:
++        from deepinfer.npu_ops.sampling_draw910c import draw
++        return draw(weights, seeds, positions, case, fallback)
+     q, width = weights.shape
+     block = 1 << (width - 1).bit_length()
+     slots = 4096 if width >= 8192 else min(block, 2048)
+@@ -68,6 +72,11 @@
+                logprobs, candidates, draft_lp, read_rows, draft_ids, accepted,
+                selected_draft_lp, accept_probs, seed_offset, workspace):
+         _check(logits, temperatures, top_ps, top_ks)
++        from deepinfer.model_executor.models.decode_trace910c import sampler_before, sampler_after
++        observed=sampler_before(logits=logits,temperatures=temperatures,top_ps=top_ps,
++            top_ks=top_ks,positions=positions,seeds=seeds,is_verify=is_verify,read_rows=read_rows,
++            previous=draft_lp if do_reject_sampling else None,
++            previous_tokens=draft_ids if do_reject_sampling else None)
+         # Shift before temperature scaling, preserving small differences in
+         # high-magnitude logits and the original read-only logits contract.
+         shifted = (logits - logits.amax(1, keepdim=True)) / temperatures[:, None]
+@@ -79,15 +88,21 @@
+         mask = torch.empty_like(removed).scatter_(1, indices, removed)
+         logprobs.copy_(torch.log_softmax(shifted.masked_fill(mask, -torch.inf), dim=-1))
+         if not do_sample:
++            sampler_after(observed,logprobs=logprobs)
+             return
+         seeds = seeds.view(torch.int64) + seed_offset
+-        probs = logprobs.exp()
+-        weights = _weights(probs)
+         fallback = logprobs.argmax(1)
++        from deepinfer import envs
++        native_draw = None
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            from deepinfer.npu_ops.sampling_draw910c import draw_logprobs
++            native_draw = draw_logprobs
+         if not do_reject_sampling:
+-            sampled, total = _sample_weights(weights, seeds, positions, 0, fallback)
++            sampled, total = (_sample_weights(_weights(logprobs.exp()), seeds, positions, 0, fallback)
++                if native_draw is None else native_draw(logprobs, seeds, positions, 0, fallback))
+             assert_nonempty_sampling(total)
+             candidates.copy_(sampled)
++            sampler_after(observed,logprobs=logprobs,candidates=candidates)
+             return
+         previous = draft_lp.index_select(0, read_rows.long())
+         tokens = draft_ids.index_select(0, read_rows.long())
+@@ -99,11 +114,18 @@
+         threshold = ((current_selected - old_selected).clamp_max(0).exp() * float(1 << 33)).to(torch.int64)
+         decision = (tokens >= 0) & (((low << 1) | 1) < threshold)
+         accepted.copy_(torch.where(is_verify, decision, True))
+-        residual = (probs - (previous - DRAFT_PROB_PENALTY).exp()).clamp_min(0)
+-        weights = _weights(torch.where(is_verify[:, None], residual, probs))
+-        sampled, total = _sample_weights(weights, seeds, positions, is_verify.to(torch.int32), fallback)
++        if native_draw is None:
++            probs = logprobs.exp()
++            residual = (probs - (previous - DRAFT_PROB_PENALTY).exp()).clamp_min(0)
++            weights = _weights(torch.where(is_verify[:, None], residual, probs))
++            sampled, total = _sample_weights(weights, seeds, positions, is_verify.to(torch.int32), fallback)
++        else:
++            sampled, total = native_draw(logprobs, seeds, positions,
++                is_verify.to(torch.int32), fallback, previous=previous, verify=is_verify)
+         accept_probs.copy_(torch.where(is_verify, (1 - total.float() / float(1 << 31)).clamp_min(0), 1))
+         candidates.copy_(torch.where(is_verify & decision, tokens, sampled))
++        sampler_after(observed,logprobs=logprobs,candidates=candidates,accepted=accepted,
++                      selected_draft_lp=selected_draft_lp,accept_probs=accept_probs)
+     return kernel
+ 
+ 
+--- accepted-fd7/deepinfer/model_executor/models/ascend_w8a8_packed.py
++++ adapted/deepinfer/model_executor/models/ascend_w8a8_packed.py
+@@ -14,15 +14,16 @@
+ import torch.distributed as dist
+ import torch.nn.functional as F
+ 
++from deepinfer import envs
+ from deepinfer.npu_ops import mhc910c as mhc
+ from deepinfer.npu_ops.dsa910c import DSABatch, sparse_mla, validate_swa_window
+-from deepinfer.npu_ops.sp910c import SequenceShard
++from deepinfer.npu_ops.sp910c import SequenceShard, ordered_sum
+ from deepinfer.npu_ops.cp910c import QuerySlice, restore_tp_heads
+ from .ascend_w8a8_layer import AscendW8A8Layer
+ from .w8a8_compressor910c import compress_batch
+ from .w8a8_engram910c import AscendW8A8Engram, CpuEngramHistory, load_rotation
+ from .w8a8_indexer910c import AscendW8A8Indexer
+-from .w8a8_math910c import rms_norm_mixed, rotate_positions
++from .w8a8_math910c import project, rms_norm_mixed, rotate_positions
+ from .w8a8_paged_cache910c import W8A8PagedCache
+ 
+ 
+@@ -233,10 +234,10 @@
+             if local_active is not None:local_active=torch.zeros(1,dtype=torch.bool,device=x.device)
+             if local_image is not None:local_image=torch.zeros(1,dtype=torch.bool,device=x.device)
+         if router_plan is None:
+-            logits=F.linear(routing,self.ffn_gate_weight)
++            logits=project(routing,self.ffn_gate_weight)
+         else:
+             from .official_cp_tiles910c import apply
+-            logits=apply(lambda rows: F.linear(rows,self.ffn_gate_weight),router_plan,routing)
++            logits=apply(lambda rows: project(rows,self.ffn_gate_weight),router_plan,routing)
+         if probe is not None:
+             probe('router_logits', 'local', logits)
+         # One model-owned stream per rank. The flag is frozen before graph
+@@ -465,7 +466,8 @@
+             self.context_parallel_calls += 1
+             self.context_parallel_query_tokens += query_x.shape[0]
+         if query_x.shape[0]:
+-            has_compressed = self.ratio and max(batch.seq_lengths)//self.ratio > 0
++            has_compressed = self.ratio and (envs.DEEPINFER_BATCH_INVARIANT
++                                             or max(batch.seq_lengths)//self.ratio > 0)
+             if self.ratio and hasattr(self, 'indexer'):
+                 if max(batch.seq_lengths)//self.ratio <= c['index_topk']:
+                     # Exact shortcut: all completed keys fit top512, so scoring
+@@ -503,7 +505,7 @@
+                 context = consumer.attention(q,batch,slots,sink,kwargs['compressed_cache'],
+                                              kwargs['compressed_table'],state.selected)
+                 self.cann_attention_calls += 1
+-            elif short_prefix:
++            elif short_prefix and not envs.DEEPINFER_BATCH_INVARIANT:
+                 self.eager_attention_calls += 1
+                 # Reuse the native eager sparse implementation for the exact
+                 # select-all prefix. The indexed long-context route stays CANN.
+@@ -566,7 +568,10 @@
+             wv_bmm = self.wv_bmm if self.fused_o_proj else None
+             wv = self.wv
+             wo_b = self.projections['wo_b']
+-        if self.fused_o_proj and (state.sequence_parallel or
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            projected = torch.stack([project(grouped[:,g,:],wv[g].to(grouped.dtype))
++                                     for g in range(grouped.shape[1])],1)
++        elif self.fused_o_proj and (state.sequence_parallel or
+                 (self.fused_o_proj_decode and state.decode_frame is not None)):
+             import torch_npu
+             projected = torch_npu.npu_transpose_batchmatmul(grouped, wv_bmm,
+@@ -590,18 +595,22 @@
+                 output = torch.cat((output, output.new_zeros((pad, output.shape[1]))), dim=0)
+             return output
+         if self.tp_size > 1 and reduce_results:
+-            dist.all_reduce(output, group=self.tp_group)
++            if envs.DEEPINFER_BATCH_INVARIANT:
++                output = ordered_sum(output, self.tp_group)
++            else:
++                dist.all_reduce(output, group=self.tp_group)
+         return output
+ 
+     def forward(self, trunk, previous, *, cache, pending, state):
+         probe = _probe_for_layer(self.layer_id)
+         c = self.config
++        fused_mhc = self.fused_mhc or envs.DEEPINFER_BATCH_INVARIANT
+         key_probe = _swa_key_probe if self.layer_id == 20 else None
+         if key_probe is not None:
+             key_probe.bind(state, trunk, previous)
+         if probe is not None:
+             probe('input', 'local', trunk, previous, state=state)
+-        if self.fused_mhc:
++        if fused_mhc:
+             if self._fixed_consumer(state, 'MHC_PRE'):
+                 from .official_cp_tiles910c import apply, plan
+                 x, post, comb, pre = apply(lambda a,b:self._hc_pre(a,b,'attn'),plan(state.query_batch),trunk,previous)
+@@ -633,10 +642,10 @@
+                 attn = self.sp.reduce(attn)
+         if probe is not None:
+             probe('tp_reduced', 'local', attn)
+-        after_attn = self._hc_post(attn, trunk, post, comb) if self.fused_mhc else mhc.mhc_post(attn, trunk, post, comb)
++        after_attn = self._hc_post(attn, trunk, post, comb) if fused_mhc else mhc.mhc_post(attn, trunk, post, comb)
+         if probe is not None:
+             probe('attn_mhc_post', 'local', after_attn)
+-        if self.fused_mhc:
++        if fused_mhc:
+             if self._fixed_consumer(state, 'FFN_MHC_PRE'):
+                 from .official_cp_tiles910c import apply, plan
+                 x, post, comb, next_pre = apply(lambda a,b:self._hc_pre(a,b,'ffn'),plan(state.query_batch),after_attn,pre)
+@@ -676,12 +685,17 @@
+             decode_graph=state.decode_frame is not None)
+         if probe is not None:
+             probe('ffn_output', 'local', ffn)
+-        if self.fused_mhc:
++        if fused_mhc:
+             return self._hc_post(ffn, after_attn, post, comb), next_pre.unsqueeze(-1)
+         return mhc.mhc_post(ffn, after_attn, post, comb), next_pre
+ 
+     def _hc_pre(self, trunk, previous, kind):
+         c = self.config
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            from deepinfer.npu_ops.invariant910c import mhc_pre
++            return mhc_pre(trunk,previous,getattr(self,f'hc_{kind}_fn'),
++                getattr(self,f'hc_{kind}_scale'),getattr(self,f'hc_{kind}_base'),
++                c['rms_norm_eps'],c['hc_eps'],c['hc_sinkhorn_iters'])
+         return torch.ops._C_ascend.npu_hc_pre_v3(trunk, getattr(self, f'hc_{kind}_fn'),
+             getattr(self, f'hc_{kind}_scale'), getattr(self, f'hc_{kind}_base'), previous.squeeze(-1),
+             hc_mult=c['hc_mult'], hc_sinkhorn_iters=c['hc_sinkhorn_iters'],
+@@ -689,6 +703,9 @@
+ 
+     @staticmethod
+     def _hc_post(value, residual, post, combination):
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            from deepinfer.npu_ops.invariant910c import mhc_post
++            return mhc_post(value,residual,post,combination)
+         return torch.ops._C_ascend.npu_hc_post(value.unsqueeze(0), residual.unsqueeze(0),
+                                             post.unsqueeze(0), combination.unsqueeze(0)).squeeze(0)
+ 
+@@ -1265,10 +1282,10 @@
+         if self.dspark is not None:
+             consumer = state.official_consumer
+             if consumer is None:
+-                self.dspark.update_main(draft_features,state.dspark_positions,state.dspark_requests)
++                self.dspark.update_main(draft_features,state.dspark_positions,state.dspark_requests,observer=self)
+             elif consumer.store_plan is not None:
+                 self.dspark.update_main(draft_features,state.dspark_positions,state.dspark_requests,
+-                                        store_rows=consumer.store_plan[0])
++                                        store_rows=consumer.store_plan[0],observer=self)
+         before_head=time.perf_counter()
+         # Prefill only needs each request's final logit, not a vocabulary-sized
+         # output tensor for every prompt token.
+@@ -1284,7 +1301,7 @@
+             else:
+                 hidden = (trunk.index_select(0, last).float()*previous.index_select(0, last)).sum(-2).bfloat16()
+         hidden = rms_norm_mixed(hidden, self.norm, self.cfg['rms_norm_eps'])[0]
+-        logits = None if return_hidden_states else F.linear(hidden, self.head).float()
++        logits = None if return_hidden_states else project(hidden, self.head).float()
+         after_head=time.perf_counter()
+         if observe:
+             self.prefill_wall_components={'scope':'CPU wall spans including implicit waits, not exclusive NPU kernel times',
+--- /dev/null
++++ adapted/deepinfer/model_executor/models/decode_trace910c.py
+@@ -0,0 +1,175 @@
++"""Opt-in asynchronous observations of original target/draft handoffs.
++
++Capture records retain graph tensor addresses. A diagnostic marker enables
++owned device snapshots; serialization runs in the original post-sync phase.
++No CPU model arithmetic, synchronization, or forced tokens are introduced.
++"""
++from contextlib import contextmanager
++from contextvars import ContextVar
++import hashlib,json,os
++from pathlib import Path
++import torch
++
++_capture=ContextVar('deepinfer_draft_capture_observer',default=None)
++_tape=ContextVar('deepinfer_decode_tape',default=None)
++_steps={}
++
++
++def root():
++    value=os.environ.get('DEEPINFER_910C_INVARIANT_TRACE_DIR')
++    return Path(value) if value else None
++
++
++@contextmanager
++def capture(module,count,decode_input):
++    if root() is None:
++        yield None
++        return
++    record=dict(inputs=decode_input,values={},samplers=[])
++    token=_capture.set(record)
++    try:
++        yield record
++    finally:
++        _capture.reset(token)
++        if not hasattr(module,'_decode_capture_records'):module._decode_capture_records={}
++        module._decode_capture_records[count]=record
++
++
++def sampler_before(**values):
++    captured=_capture.get()
++    if captured is not None:
++        captured['samplers'].append(dict(values))
++        return captured['samplers'][-1]
++    tape=_tape.get()
++    if tape is not None:
++        previous=values.pop('previous',None)
++        previous_tokens=values.pop('previous_tokens',None)
++        rows=values.get('read_rows')
++        if previous is not None and rows is not None:
++            values['previous']=previous.index_select(0,rows.long())
++            values['previous_tokens']=previous_tokens.index_select(0,rows.long())
++        return tape.copy('target_sampler'+str(tape.sampler_count),values)
++    return None
++
++
++def sampler_after(record,**values):
++    if record is None:return
++    captured=_capture.get()
++    if captured is not None:
++        record.update(values)
++    else:
++        tape=_tape.get()
++        tape.copy('target_sampler'+str(tape.sampler_count)+'_output',values)
++        tape.sampler_count+=1
++
++
++def main_update(owner,features,hidden,positions,requests,keys):
++    if root() is None or owner is None:return
++    owner._decode_main_update=dict(features=tuple(features),projected=hidden,
++        positions=positions,requests=requests,keys=tuple(keys))
++
++
++def tensors(value,prefix=''):
++    if isinstance(value,torch.Tensor):
++        yield prefix,value
++    elif isinstance(value,dict):
++        for name,item in value.items():yield from tensors(item,prefix+'/'+str(name))
++    elif isinstance(value,(tuple,list)):
++        for index,item in enumerate(value):yield from tensors(item,prefix+'/'+str(index))
++
++
++class Tape:
++    def __init__(self,path,config,number,executor,inputs,sampler_inputs):
++        self.path,self.config,self.number=path,config,number
++        self.executor,self.inputs=executor,inputs
++        self.values={};self.device_sources=[];self.sampler_count=0;self.bytes=0
++        self.copy('main_metadata',{name:getattr(inputs,name,None) for name in
++            ('input_ids','positions','state_block_idx','valid_token_mask')})
++        owner=getattr(inputs,'_decode_observer_owner',executor.model)
++        self.copy('main_update',getattr(owner,'_decode_main_update',{}))
++        data=sampler_inputs.driver
++        if data is not None:
++            self.copy('request_sampling',dict(seeds=data.kernel.seq_seeds,
++                positions=data.kernel.sample_positions))
++        self.metadata=dict(rank=int(os.environ.get('RANK','0')),phase=config['phase'],
++            step=number,is_prompt=bool(inputs.is_prompt),
++            rows=[dict(seq_id=row.seq_id,state_id=row.state_id,seqlen_q=row.seqlen_q,
++                       seqlen_k=row.seqlen_k) for row in inputs.original_packet.rows])
++
++    def copy(self,name,value):
++        for field,tensor in tensors(value):
++            if tensor.dtype==torch.uint64:tensor=tensor.view(torch.int64)
++            size=tensor.numel()*tensor.element_size()
++            if self.bytes+size>self.config.get('max_bytes_per_step',128*1024**2):continue
++            # Enqueue D2H before the original sample completion event. The
++            # post callback must not append a new NPU copy after a later
++            # target forward has already been launched by original ZOS.
++            host=torch.empty_like(tensor,device='cpu',pin_memory=True,
++                                  memory_format=torch.contiguous_format)
++            host.copy_(tensor,non_blocking=True)
++            self.values[name+field]=host
++            self.device_sources.append(tensor)
++            self.bytes+=size
++        return True
++
++    def draft(self,module,request_count):
++        runner=module.decode_graph_runner
++        count,_=runner.runner.select(request_count)
++        record=getattr(module,'_decode_capture_records',{}).get(count)
++        if record is None:return
++        self.copy('draft_values',record['values'])
++        self.copy('draft_sampler',record['samplers'])
++        current=record['inputs'];driver=current.driver
++        fields=dict(first=current.first_token_positions)
++        if driver is not None:
++            fields.update(offset=driver.last_valid_offset,golden=driver.golden_tokens,
++                seeds=driver.sampling.kernel_inputs.seq_seeds,
++                positions=driver.sampling.kernel_inputs.sample_positions,
++                write_slots=driver.sampling.mtp_info_write_slots)
++        self.copy('draft_metadata',fields)
++        slots=[self.executor.cache_storage.state_slots[row.state_id] for row in self.inputs.original_packet.rows]
++        self.metadata['context_slots']=slots
++        for index,plane in enumerate(module.draft.planes):
++            indices=torch.tensor([row for slot in slots for row in
++                range(slot*plane.resident_pages,(slot+1)*plane.resident_pages)],
++                dtype=torch.int64,device=plane.cache.device)
++            self.copy('draft_context'+str(index),plane.cache.index_select(0,indices))
++
++    def write(self):
++        rank=self.metadata['rank'];phase=self.metadata['phase']
++        directory=self.path/'decode'/phase/f'rank{rank}'/f'step{self.number}'
++        directory.mkdir(parents=True,exist_ok=False)
++        records=[]
++        for index,(name,tensor) in enumerate(self.values.items()):
++            bits=tensor.detach().contiguous().cpu().view(torch.uint8).numpy().tobytes()
++            filename=str(index)+'.bin';(directory/filename).write_bytes(bits)
++            records.append(dict(name=name,shape=list(tensor.shape),dtype=str(tensor.dtype),
++                file=filename,sha256=hashlib.sha256(bits).hexdigest()))
++        (directory/'MANIFEST.json').write_text(json.dumps(dict(**self.metadata,tensors=records),indent=2)+'\n')
++
++
++@contextmanager
++def observe(executor,inputs,sampler_inputs):
++    path=root();marker=path/'decode-enable' if path else None
++    if marker is None or not marker.exists():
++        yield None
++        return
++    if not inputs.original_packet.rows:
++        yield None
++        return
++    config=json.loads(marker.read_text());phase=config['phase']
++    if not isinstance(phase,str) or not phase.isidentifier():raise ValueError('invalid decode diagnostic phase')
++    key=(int(os.environ.get('RANK','0')),phase)
++    number=_steps.get(key,0);_steps[key]=number+1
++    if number>=config.get('max_steps',3):
++        yield None
++        return
++    tape=Tape(path,config,number,executor,inputs,sampler_inputs)
++    token=_tape.set(tape)
++    try:yield tape
++    finally:_tape.reset(token)
++
++
++def observe_draft(module,request_count):
++    tape=_tape.get()
++    if tape is not None:tape.draft(module,request_count)
+--- accepted-fd7/deepinfer/model_executor/models/dspark910c.py
++++ adapted/deepinfer/model_executor/models/dspark910c.py
+@@ -17,8 +17,9 @@
+ from deepinfer import envs
+ from deepinfer.sampling_params import SAMPLING_EPS
+ from deepinfer.npu_ops.dsa910c import DSABatch
++from deepinfer.npu_ops.sp910c import ordered_sum
+ from .ascend_w8a8_packed import AscendW8A8PackedLayer, PackedForward
+-from .w8a8_math910c import rms_norm_mixed, rotate_positions
++from .w8a8_math910c import project, rms_norm_mixed, rotate_positions
+ from .w8a8_paged_cache910c import PagedPlane, CacheWritePlan
+ 
+ 
+@@ -55,6 +56,23 @@
+     """
+     batch = state.batch
+     indices, lengths = state.dspark_indices, state.dspark_lengths
++    if envs.DEEPINFER_BATCH_INVARIANT:
++        # Preserve the original explicit NONCAUSAL visibility, including all
++        # draft positions. Only translate its logical rows to physical pages.
++        from deepinfer.npu_ops.attention910c import decode, ReferenceMLASchedMeta
++        request_ids = batch.metadata_cache.get('draft_request_ids')
++        if request_ids is None:
++            rows = torch.arange(query.shape[0],device=query.device,dtype=torch.int32)
++            request_ids = (rows[:,None]>=batch.cu_query[None,1:]).sum(-1)
++            batch.metadata_cache['draft_request_ids'] = request_ids
++        logical = indices[:,0,:]
++        pages = torch.div(logical.clamp_min(0),plane.block_size,rounding_mode='floor')
++        valid = (logical>=0) & (pages<state.swa_table.shape[1])
++        blocks = state.swa_table[request_ids[:,None],pages.clamp(0,state.swa_table.shape[1]-1).long()]
++        physical = torch.where(valid,blocks*plane.block_size+logical.remainder(plane.block_size),-1).int()
++        return decode(query,plane.cache,query.shape[-1],physical,ReferenceMLASchedMeta(),
++            query.shape[-1]**-.5,sink,batch_invariant=True,index_length=lengths[:,0],
++            _trusted_indices=True)[0]
+     common = dict(cu_seqlens_q=batch.cu_query, seqused_ori_kv=batch.seq_used,
+                   seqused_cmp_kv=None, cmp_residual_kv=None, cmp_ratio=0,
+                   ori_mask_mode=0, cmp_mask_mode=0, ori_win_left=127,
+@@ -93,7 +111,10 @@
+         context = noncausal_draft_attention(q, cache, state, self.attn_attn_sink)
+         context = rotate_positions(context, state.positions, self.rope_freq, inverse=True)
+         grouped = context.reshape(x.shape[0], self.local_o_groups, -1)
+-        if self.fused_o_proj and self.fused_o_proj_decode:
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            projected = torch.stack([project(grouped[:,g,:],self.wv[g].to(grouped.dtype))
++                                     for g in range(grouped.shape[1])],1)
++        elif self.fused_o_proj and self.fused_o_proj_decode:
+             import torch_npu
+             projected=torch_npu.npu_transpose_batchmatmul(grouped,self.wv_bmm,
+                 bias=None,scale=None,perm_x1=(1,0,2),perm_x2=(0,1,2),
+@@ -102,7 +123,10 @@
+             projected = torch.einsum('bgr,gdr->bgd', grouped.float(), self.wv.float()).bfloat16()
+         output = self.projections['wo_b'](projected.flatten(1))
+         if self.tp_size > 1:
+-            dist.all_reduce(output, group=self.tp_group)
++            if envs.DEEPINFER_BATCH_INVARIANT:
++                output = ordered_sum(output,self.tp_group)
++            else:
++                dist.all_reduce(output, group=self.tp_group)
+         return output
+ 
+ 
+@@ -221,9 +245,10 @@
+             dist.all_reduce(value,group=self.tp_group)
+         return value
+ 
+-    def update_main(self, features, positions, requests, *, store_rows=None):
++    def update_main(self, features, positions, requests, *, store_rows=None,observer=None):
+         hidden = rms_norm_mixed(self.main_proj(torch.cat(features,-1)),self.main_norm,
+                                 self.cfg['rms_norm_eps'])[0]
++        observed_keys=[] if observer is not None and os.environ.get('DEEPINFER_910C_INVARIANT_TRACE_DIR') else None
+         for layer,plane in zip(self.layers,self.planes):
+             kv = rms_norm_mixed(layer.projections['wkv'](hidden),layer.attn_kv_norm_weight,
+                                 self.cfg['rms_norm_eps'])[0]
+@@ -236,6 +261,10 @@
+                 physical = plane.physical_indices(pos[:,None],req).squeeze(-1).long()
+                 kv = kv.index_select(0,store_rows)
+             plane.write(kv[:,None],CacheWritePlan(physical,len(physical)))
++            if observed_keys is not None:observed_keys.append(kv)
++        if observed_keys is not None:
++            from .decode_trace910c import main_update
++            main_update(observer,features,hidden,positions,requests,observed_keys)
+ 
+     def forward_hidden(self, golden, starts, slots, *, mc2_global_bs=None, active_requests=None):
+         """Run the resident draft layers without imposing a sampling policy."""
+@@ -294,13 +323,13 @@
+         count, n = len(slots), self.nextn
+         hidden = self.forward_hidden(golden, starts, slots)
+         normed = rms_norm_mixed(hidden,self.norm,self.cfg['rms_norm_eps'])[0]
+-        base_logits = F.linear(normed.float(),self.head)
++        base_logits = project(normed.float(),self.head)
+         prior = golden
+         tokens,confidences = [],[]
+         weight = self.confidence_weight.float().flatten()
+         for step in range(n):
+             markov = self.markov_embed.index_select(0,prior)
+-            logits = F.linear(markov.float(),self.markov_head)+base_logits[:,step]
++            logits = project(markov.float(),self.markov_head)+base_logits[:,step]
+             score,token = logits.max(-1)
+             local_best = torch.stack((score,token.float()+self.vocab_first),-1)
+             gathered = local_best.new_empty((self.tp_size*count,2))
+--- accepted-fd7/deepinfer/model_executor/models/dspark_varlen910c.py
++++ adapted/deepinfer/model_executor/models/dspark_varlen910c.py
+@@ -15,7 +15,7 @@
+ from .ascend_w8a8_packed import PackedForward
+ from .w8a8_graph910c import NativeDecodeGraph
+ from .zos_device_step910c import guard_legacy
+-from .w8a8_math910c import rms_norm_mixed
++from .w8a8_math910c import project, rms_norm_mixed
+ 
+ 
+ class DSparkVarlenGraph(NativeDecodeGraph):
+@@ -78,11 +78,11 @@
+ 
+     def compress(self,layer,x,positions):
+         if layer.ratio==1:
+-            latent=rms_norm_mixed(F.linear(x,layer.compressor_wkv_weight),
++            latent=rms_norm_mixed(project(x,layer.compressor_wkv_weight),
+                 layer.compressor_norm_weight,layer.config['rms_norm_eps'])[0]
+             return latent,positions
+-        current=F.linear(x.float(),layer.compressor_wkv_weight.float())
+-        gate=F.linear(x.float(),layer.compressor_wgate_weight.float())
++        current=project(x.float(),layer.compressor_wkv_weight.float())
++        gate=project(x.float(),layer.compressor_wgate_weight.float())
+         self.even_rows[layer.layer_id]=(current,gate)
+         previous,previous_gate=self.even[layer.layer_id]
+         for saved,value in zip(self.even_before[layer.layer_id],(previous,previous_gate)):
+@@ -125,10 +125,10 @@
+                 features.append(trunk.float().mean(-2).bfloat16())
+             trunk,previous=layer(trunk,previous,cache=model.cache,pending=model.pending,state=state)
+         if model.dspark is not None:
+-            model.dspark.update_main(features,self.positions,self.query_requests)
++            model.dspark.update_main(features,self.positions,self.query_requests,observer=self)
+         hidden=(trunk.float()*previous).sum(-2).bfloat16()
+         hidden=rms_norm_mixed(hidden,model.norm,model.cfg['rms_norm_eps'])[0]
+-        return hidden if self.return_hidden_states else F.linear(hidden,model.target_head).float()
++        return hidden if self.return_hidden_states else project(hidden,model.target_head).float()
+ 
+     @torch.inference_mode()
+     def step(self,chunks):
+--- accepted-fd7/deepinfer/model_executor/models/official_consumer910c.py
++++ adapted/deepinfer/model_executor/models/official_consumer910c.py
+@@ -15,8 +15,14 @@
+ KEEP, WINDOW = 140, 128
+ 
+ 
+-def compressed_only(query,batch,sink,cache,table,selected):
++def compressed_only(query,batch,sink,cache,table,selected,*,window=WINDOW):
+     """Keep explicit C1-only operator calls within the verified query width."""
++    from deepinfer import envs
++    if envs.DEEPINFER_BATCH_INVARIANT or window != WINDOW:
++        from deepinfer.npu_ops.dsa910c import paged_mla
++        return paged_mla(query,batch,sink=sink,window=window,ratio=1,
++            compressed_cache=cache,compressed_table=table,compressed_indices=selected,
++            batch_invariant=envs.DEEPINFER_BATCH_INVARIANT)
+     limit = 32
+     if query.shape[0]<=limit:
+         return run_c1_only(query,batch,sink,cache,table,selected)
+@@ -216,7 +222,7 @@
+         for base,a,b,c,d,sub,tmp_table in self.local_groups:
+             q, chosen, cmp_table = query[a:b], selected[a:b], table[c:d].contiguous()
+             if base is None:
+-                out = compressed_only(q,sub,sink,cache,cmp_table,chosen)
++                out = compressed_only(q,sub,sink,cache,cmp_table,chosen,window=self.window_size)
+             else:
+                 out = sparse_mla(q,self.pages,sub,tmp_table,sink=sink,ratio=1,
+                                  window=self.window_size,
+--- accepted-fd7/deepinfer/model_executor/models/official_source20_910c.py
++++ adapted/deepinfer/model_executor/models/official_source20_910c.py
+@@ -31,7 +31,8 @@
+             not state.sequence_parallel or state.context_query is None or
+             getattr(state,'pre_stored_source',None) is not None):
+         raise ValueError('unsupported full-source prestore contract')
+-    if layer.fused_mhc:
++    from deepinfer import envs
++    if layer.fused_mhc or envs.DEEPINFER_BATCH_INVARIANT:
+         x, _, _, _ = layer._hc_pre(trunk,previous,'attn')
+     else:
+         x, _, _, _ = layer._pre(trunk,previous,'attn')
+--- /dev/null
++++ adapted/deepinfer/model_executor/models/row_trace910c.py
+@@ -0,0 +1,118 @@
++"""Optional hashes of actual NPU rows for a bounded prefill diagnostic.
++
++No reference model is executed. With no enable marker, existing compute
++probes remain untouched. The diagnostic client enables tracing only after an
++ordinary untraced comparison fails, so fences cannot qualify a normal pass.
++"""
++import hashlib
++import json
++import os
++from pathlib import Path
++import torch
++
++
++def select_rows(lengths, rows, rank, world, target, request=None):
++    if request is None and target not in lengths:
++        return None
++    request = lengths.index(target) if request is None else request
++    if not 0 <= request < len(lengths):
++        return None
++    width_for_request = lengths[request]
++    logical = target-width_for_request
++    first = sum(lengths[:request])
++    total = sum(lengths)
++    if rows == total:
++        return first, first+width_for_request, logical, rank
++    width = (total+world-1)//world
++    if rows != width:
++        return None
++    left, right = max(first, rank*width), min(first+width_for_request, (rank+1)*width)
++    return (left-rank*width, right-rank*width, logical+left-first, None) if left < right else None
++
++
++class Trace:
++    def __init__(self, model, root):
++        from . import ascend_w8a8_packed as packed
++        self.packed, self.model, self.root = packed, model, Path(root)
++        self.rank = int(os.environ['RANK'])
++        config=json.loads((self.root/'enable').read_text())
++        self.target=int(config['target_length'])
++        if self.target<1:raise ValueError('positive diagnostic target length required')
++        self.dump_stages=set(config.get('dump_stages',()))
++        self.dump_layers=set(config.get('dump_layers',()))
++        self.dump_limit=int(config.get('max_dump_bytes',0))
++        self.dump_bytes=0
++        self.cp_rank, self.world = model.sp.rank, model.sp.world
++        path = self.root/f'rank{self.rank}.jsonl'
++        self.phase = (sum(json.loads(line).get('type') == 'phase' for line in path.read_text().splitlines())
++                      if path.exists() else 0)
++        self.active, self.state, self.request = False, None, None
++        self.old = packed._layer20_probe, packed._layer21_probe, dict(packed._late_consumer_probes)
++        self.root.mkdir(parents=True, exist_ok=True)
++        self.stream = path.open('a', buffering=1)
++        for layer in range(len(model.layers)):
++            packed._late_consumer_probes[layer] = self.callback(layer)
++        packed._layer20_probe = packed._late_consumer_probes[20]
++        packed._layer21_probe = packed._late_consumer_probes[21]
++
++    def emit(self, value):
++        self.stream.write(json.dumps(value, separators=(',', ':'))+'\n')
++
++    def callback(self, layer):
++        def observe(stage, scope, *values, state=None):
++            if state is not None:
++                self.state = state
++            if layer == 0 and stage == 'input':
++                state = self.state
++                self.active = self.target in state.batch.query_lengths
++                if self.active:
++                    self.request = state.batch.query_lengths.index(self.target)
++                    self.phase += 1
++                    self.emit(dict(type='phase', phase=self.phase, rank=self.rank,
++                        lengths=list(state.batch.query_lengths), seq_lengths=list(state.batch.seq_lengths)))
++            if not self.active:
++                return
++            lengths = self.state.batch.query_lengths
++            for index, value in enumerate(values):
++                if value is None or value.ndim == 0:
++                    continue
++                # Original compact YOCO keeps the suffix of the same request.
++                # Its query length changes; its request index does not.
++                selected = select_rows(lengths, value.shape[0], self.cp_rank,
++                                       self.world,self.target,self.request)
++                if selected is None:
++                    continue
++                first, last, logical, axis = selected
++                # CPU inspects opaque bytes only; no CPU numerical golden.
++                payload = value[first:last].detach().contiguous().cpu().view(torch.uint8)
++                payload = payload.reshape(last-first, -1).numpy()
++                hashes = [hashlib.sha256(row.tobytes()).hexdigest() for row in payload]
++                record=dict(type='rows',phase=self.phase,rank=self.rank,layer=layer,
++                    stage=stage,scope=scope,tensor=index,dtype=str(value.dtype),
++                    shape=list(value.shape[1:]),axis=axis,first=logical,hashes=hashes)
++                if layer in self.dump_layers and stage in self.dump_stages and self.dump_bytes+payload.nbytes<=self.dump_limit:
++                    name=f'rows/p{self.phase}-r{self.rank}-l{layer}-{stage}-t{index}-{logical}.bin'
++                    path=self.root/name;path.parent.mkdir(exist_ok=True)
++                    raw=payload.tobytes();path.write_bytes(raw);self.dump_bytes+=len(raw)
++                    record.update(payload=name,payload_sha256=hashlib.sha256(raw).hexdigest())
++                self.emit(record)
++        return observe
++
++    def close(self):
++        self.packed._layer20_probe, self.packed._layer21_probe, previous = self.old
++        self.packed._late_consumer_probes.clear()
++        self.packed._late_consumer_probes.update(previous)
++        self.stream.close()
++
++
++def update(model, current, root):
++    enabled = (Path(root)/'enable').exists()
++    if current is not None and not enabled:
++        current.close()
++        return None
++    if current is None and enabled:
++        from deepinfer import envs
++        if not envs.DEEPINFER_BATCH_INVARIANT:
++            raise ValueError('row comparison requires the invariant diagnostic profile')
++        return Trace(model, root)
++    return current
+--- accepted-fd7/deepinfer/model_executor/models/w8a8_compressor910c.py
++++ adapted/deepinfer/model_executor/models/w8a8_compressor910c.py
+@@ -3,7 +3,7 @@
+ import torch
+ import torch.nn.functional as F
+ 
+-from .w8a8_math910c import rms_norm_mixed
++from .w8a8_math910c import project, rms_norm_mixed
+ 
+ 
+ def compress_batch(x, batch, request_slots, ratio, wkv, wgate, norm, eps, pending, *, trace=None, layer_id=None):
+@@ -17,14 +17,14 @@
+     if len(slots) != len(batch.query_lengths) or len(set(slots)) != len(slots) or x.shape[0] != sum(batch.query_lengths):
+         raise ValueError('packed compressor token/request shape mismatch')
+     if ratio == 1:
+-        latent = rms_norm_mixed(F.linear(x, wkv), norm, eps)[0]
++        latent = rms_norm_mixed(project(x, wkv), norm, eps)[0]
+         positions, requests = [], []
+         for q, s, slot in zip(batch.query_lengths, batch.seq_lengths, slots):
+             positions.extend(range(s-q, s)); requests.extend([slot]*q)
+         return latent, positions, requests
+     if ratio != 2 or wgate is None:
+         raise ValueError('C2 requires an FP32 gate projection')
+-    projected, scores = F.linear(x.float(), wkv.float()), F.linear(x.float(), wgate.float())
++    projected, scores = project(x.float(), wkv.float()), project(x.float(), wgate.float())
+     if trace is not None:
+         trace.record(layer_id, slots, batch.query_lengths, projected, scores)
+     latents, positions, requests = [], [], []
+--- accepted-fd7/deepinfer/model_executor/models/w8a8_dflash910c.py
++++ adapted/deepinfer/model_executor/models/w8a8_dflash910c.py
+@@ -17,7 +17,7 @@
+ from deepinfer.model_executor.models.mtp.sampling import DFlashSampling
+ from deepinfer.model_executor.parallel_utils.communication_op import cp_broadcast_multi_tensor
+ from deepinfer.model_executor.parallel_utils.parallel_state import PG
+-from .w8a8_math910c import rms_norm_mixed
++from .w8a8_math910c import project, rms_norm_mixed
+ 
+ 
+ class _DraftNorm(nn.Module):
+@@ -36,7 +36,7 @@
+         self.register_buffer('weight', weight, persistent=False)
+ 
+     def forward(self, hidden, *, out_acc):
+-        out_acc.add_(F.linear(hidden.float(), self.weight))
++        out_acc.add_(project(hidden.float(), self.weight))
+         return out_acc
+ 
+ 
+@@ -110,12 +110,16 @@
+         starts = context.positions.index_select(0, first.clamp_min(0).long()) + offsets + 1
+         padding_starts = ((~valid).to(torch.int32).cumsum(0).to(torch.int32) - 1).clamp_min(0) * self.max_MTP_value
+         starts = torch.where(valid, starts, torch.where(context.slots[:count] == context.scratch, padding_starts, 0))
+-        hidden = self.draft.forward_hidden(golden, starts, context.slots[:count],
+-            mc2_global_bs=context.global_bs, active_requests=valid)
+-        if driver is None:
+-            return None
+-        with self.sampling_validation.record():
+-            return self.sample_drafts(hidden.flatten(0, 1), driver)
++        from .decode_trace910c import capture
++        with capture(self,count,decode_input) as observed:
++            hidden = self.draft.forward_hidden(golden, starts, context.slots[:count],
++                mc2_global_bs=context.global_bs, active_requests=valid)
++            if observed is not None:
++                observed['values'].update(hidden=hidden,starts=starts,slots=context.slots[:count],valid=valid)
++            if driver is None:
++                return None
++            with self.sampling_validation.record():
++                return self.sample_drafts(hidden.flatten(0, 1), driver)
+ 
+     def take_graph_checks(self):
+         return [] if self.sampling_validation is None else self.sampling_validation.take()
+--- accepted-fd7/deepinfer/model_executor/models/w8a8_execution910c.py
++++ adapted/deepinfer/model_executor/models/w8a8_execution910c.py
+@@ -8,6 +8,7 @@
+ from dataclasses import dataclass
+ from contextlib import contextmanager
+ import math
++import os
+ 
+ import torch
+ import torch.distributed as dist
+@@ -132,6 +133,10 @@
+         self.model._original_state_history = self.state_history
+         self._yoco_api = None
+         self.hidden_graphs = None
++        self._row_trace_root = os.environ.get('DEEPINFER_910C_INVARIANT_TRACE_DIR')
++        self._row_trace = None
++        self.supports_batch_invariant = (self.model.device.type == 'npu'
++                                        and PLATFORM.tilelang_ops_backend == 'asc910c')
+ 
+     @contextmanager
+     def _device_phase(self, name):
+@@ -372,6 +377,9 @@
+             raise RuntimeError(f'original ZOS deferred host bookkeeping failed before sampling: {error}')
+ 
+     def execute_main_model(self, metadata, gpu_cache, *, metadata_zos=None, total_q=None, scheduler_outputs=None):
++        if self._row_trace_root:
++            from .row_trace910c import update
++            self._row_trace=update(self.model,self._row_trace,self._row_trace_root)
+         packet, error = None, None
+         if self.worker.is_driver_worker:
+             try:
+@@ -476,12 +484,14 @@
+         if record_state:
+             self.state_history.finish()
+         if device_decode:
++            device_inputs._decode_observer_owner=graph_frame
+             return MainModelOutput(output,device_inputs,graph_size=graph_size)
+         ids = [token for chunk in chunks for token in chunk]
+         positions = [position for row in packet.rows for position in range(row.seqlen_k-row.seqlen_q, row.seqlen_k)] if packet.rows else [0]
+         inputs = W8A8InputMetadata(is_prompt=packet.is_prompt, num_reqs=len(chunks), total_q=len(ids),
+             input_ids=torch.tensor(ids, dtype=torch.int32, device=self.model.device),
+             positions=torch.tensor(positions, dtype=torch.int32, device=self.model.device), original_packet=packet)
++        inputs._decode_observer_owner=graph_frame if graph_frame is not None else self.model
+         return MainModelOutput(output, inputs, graph_size=graph_size)
+ 
+     def execute_sample(self, metadata, inputs, model_output, gpu_cache):
+@@ -489,10 +499,17 @@
+             self._finish_original_device_decode(metadata,inputs)
+         sampler_inputs = self.worker.model_runner.prepare_sampler_inputs(metadata, inputs)
+         output = model_output.move()
+-        with self._device_phase('device_sample'):
++        from .decode_trace910c import observe,observe_draft
++        with self._device_phase('device_sample'),observe(self,inputs,sampler_inputs) as tape:
+             result = self.sampler(self.mtp_module, embedding=self.model.head,
+                 hidden_states=Movable(output.hidden_states), sampler_inputs=sampler_inputs,
+                 main_input_metadata=inputs, nextn_kv_caches=gpu_cache, seq_metadata_list=metadata)
++            if tape is not None:
++                if not inputs.is_prompt and self.mtp_module is not None:
++                    # The original module has completed its enqueue phase;
++                    # snapshots precede any later graph reuse on this stream.
++                    observe_draft(self.mtp_module,len(inputs.original_packet.rows) or 1)
++                result.post_funcs.append(tape.write)
+             checks = getattr(self.mtp_module, 'take_graph_checks', None)
+             if checks is not None:
+                 result.post_funcs[:0] = checks()
+--- accepted-fd7/deepinfer/model_executor/models/w8a8_graph910c.py
++++ adapted/deepinfer/model_executor/models/w8a8_graph910c.py
+@@ -14,7 +14,7 @@
+ 
+ from deepinfer.npu_ops.dsa910c import DSABatch
+ from .ascend_w8a8_packed import PackedForward
+-from .w8a8_math910c import rms_norm_mixed
++from .w8a8_math910c import project, rms_norm_mixed
+ from .w8a8_paged_cache910c import CacheWritePlan
+ from .zos_device_step910c import guard_legacy,guard_execute
+ from .zos_step910c import (prepare_target_inputs,replay_prepared_target,
+@@ -254,10 +254,10 @@
+     def compress(self,layer,x,positions):
+         c=layer.config
+         if layer.ratio==1:
+-            latent=rms_norm_mixed(F.linear(x,layer.compressor_wkv_weight),layer.compressor_norm_weight,c['rms_norm_eps'])[0]
++            latent=rms_norm_mixed(project(x,layer.compressor_wkv_weight),layer.compressor_norm_weight,c['rms_norm_eps'])[0]
+             return latent,positions
+-        current=F.linear(x.float(),layer.compressor_wkv_weight.float()).reshape(self.count,self.query_tokens,-1)
+-        gate=F.linear(x.float(),layer.compressor_wgate_weight.float()).reshape(self.count,self.query_tokens,-1)
++        current=project(x.float(),layer.compressor_wkv_weight.float()).reshape(self.count,self.query_tokens,-1)
++        gate=project(x.float(),layer.compressor_wgate_weight.float()).reshape(self.count,self.query_tokens,-1)
+         self.even_rows[layer.layer_id]=(current,gate)
+         previous,previous_gate=self.even[layer.layer_id]
+         for saved,value in zip(self.even_before[layer.layer_id],(previous,previous_gate)):
+@@ -298,11 +298,11 @@
+                 draft_features.append(trunk.float().mean(-2).bfloat16())
+             trunk,previous=layer(trunk,previous,cache=model.cache,pending=model.pending,state=state)
+         if model.dspark is not None:
+-            model.dspark.update_main(draft_features,positions,self.query_requests)
++            model.dspark.update_main(draft_features,positions,self.query_requests,observer=self)
+         hidden=(trunk.float()*previous).sum(-2).bfloat16()
+         hidden=rms_norm_mixed(hidden,model.norm,model.cfg['rms_norm_eps'])[0]
+         head=model.target_head if model.target_vocab_parallel and self.query_tokens>1 else model.head
+-        return F.linear(hidden,head).float()
++        return project(hidden,head).float()
+ 
+     @torch.inference_mode()
+     def step(self,chunks):
+--- accepted-fd7/deepinfer/model_executor/models/w8a8_math910c.py
++++ adapted/deepinfer/model_executor/models/w8a8_math910c.py
+@@ -11,7 +11,20 @@
+ import torch.nn.functional as F
+ 
+ 
++def project(x, weight):
++    if x.device.type == 'npu':
++        from deepinfer import envs
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            from deepinfer.npu_ops.invariant910c import linear
++            return linear(x, weight)
++    return F.linear(x, weight)
++
++
+ def rms_norm_mixed(x, weight, eps):
++    from deepinfer import envs
++    if x.device.type == 'npu' and envs.DEEPINFER_BATCH_INVARIANT:
++        from deepinfer.npu_ops.invariant910c import rms_norm
++        return rms_norm(x,weight,eps)
+     value = x.float() * torch.rsqrt(x.float().square().mean(-1, keepdim=True) + eps) * weight.float()
+     return value.bfloat16(), value
+ 
+@@ -92,11 +105,11 @@
+     occurs before RMS normalization. C1 uses the BF16 projection boundary.
+     """
+     if ratio == 1:
+-        projected = F.linear(x, wkv)
++        projected = project(x, wkv)
+         return rms_norm_mixed(projected, norm_weight, eps)[0], position
+     if ratio != 2:
+         raise ValueError('only source compression ratios 1 and 2 are supported')
+-    kv, scores = F.linear(x.float(), wkv.float()), F.linear(x.float(), wgate.float())
++    kv, scores = project(x.float(), wkv.float()), project(x.float(), wgate.float())
+     if position % 2 == 0:
+         if pending:
+             raise ValueError('unconsumed compressor state')
+@@ -112,12 +125,19 @@
+ 
+ def rotated_engram_gate(hidden, kv, q_weight, k_weight, rotation, token_mask, eps):
+     """Gate in the original basis; value projection stays checkpoint-rotated."""
++    from deepinfer import envs
+     channels, width = hidden.shape[-2:]
+     key, value = kv.split((channels * width, width), -1)
+     key = key.reshape_as(hidden).float()
+     original = hidden.float()
+     if rotation is not None:
+-        original = (original.unflatten(-1, (-1, rotation.shape[0])) @ rotation.float().T).flatten(-2)
++        if hidden.device.type == 'npu' and envs.DEEPINFER_BATCH_INVARIANT:
++            original = project(original.unflatten(-1, (-1, rotation.shape[0])), rotation.float()).flatten(-2)
++        else:
++            original = (original.unflatten(-1, (-1, rotation.shape[0])) @ rotation.float().T).flatten(-2)
++    if hidden.device.type == 'npu' and envs.DEEPINFER_BATCH_INVARIANT:
++        from deepinfer.npu_ops.invariant910c import engram_gate
++        return engram_gate(hidden,original,key,value,q_weight,k_weight,token_mask,eps)
+     rstd = torch.rsqrt(original.square().mean(-1) + eps) * torch.rsqrt(key.square().mean(-1) + eps)
+     dot = (original * (q_weight.float() * k_weight.float()) * key).sum(-1) * rstd * width ** -.5
+     magnitude = dot.abs().clamp_min(1e-6).sqrt()
+--- accepted-fd7/deepinfer/npu_ops/attention910c.py
++++ adapted/deepinfer/npu_ops/attention910c.py
+@@ -110,9 +110,9 @@
+     return torch.cat(outputs),torch.cat(lses)
+ 
+ 
+-def decode(query,key_cache,head_dim_v,indices_in_kvcache,sched_meta,softmax_scale,attn_sink=None,batch_invariant=False,index_length=None,key_cache_extra=None,indices_in_kvcache_extra=None,index_length_extra=None,fused_norm_rope_cast_kwargs=None):
+-    if fused_norm_rope_cast_kwargs is not None or batch_invariant:
+-        raise NotImplementedError("910C reference MLA does not implement fused casting or batch-invariant guarantees")
++def decode(query,key_cache,head_dim_v,indices_in_kvcache,sched_meta,softmax_scale,attn_sink=None,batch_invariant=False,index_length=None,key_cache_extra=None,indices_in_kvcache_extra=None,index_length_extra=None,fused_norm_rope_cast_kwargs=None,*,_trusted_indices=False):
++    if fused_norm_rope_cast_kwargs is not None:
++        raise NotImplementedError("910C reference MLA does not implement fused casting")
+     _validate(query,indices_in_kvcache)
+     if (key_cache_extra is None)!=(indices_in_kvcache_extra is None):raise ValueError("extra cache and its indices must be provided together")
+     if key_cache_extra is None and index_length_extra is not None:raise ValueError("extra lengths require an extra cache")
+@@ -120,13 +120,17 @@
+     outputs=[];lses=[]
+     for start in range(0,query.shape[0],16):
+         idx=indices_in_kvcache[start:start+16];lengths=None if index_length is None else index_length[start:start+16]
+-        valid=_mask(idx,key_cache.shape[0]*key_cache.shape[1],lengths,decode=True)
++        valid=_mask(idx,key_cache.shape[0]*key_cache.shape[1],lengths,decode=not _trusted_indices)
+         gathered=_cache_rows(key_cache,idx,valid,query.shape[-1])
+         if key_cache_extra is not None:
+             if key_cache_extra.device!=query.device or indices_in_kvcache_extra.shape[0]!=query.shape[0]:raise ValueError("extra cache/indices mismatch")
+             extra_idx=indices_in_kvcache_extra[start:start+16];extra_len=None if index_length_extra is None else index_length_extra[start:start+16]
+-            extra_valid=_mask(extra_idx,key_cache_extra.shape[0]*key_cache_extra.shape[1],extra_len,decode=True)
++            extra_valid=_mask(extra_idx,key_cache_extra.shape[0]*key_cache_extra.shape[1],extra_len,decode=not _trusted_indices)
+             gathered=torch.cat((gathered,_cache_rows(key_cache_extra,extra_idx,extra_valid,query.shape[-1])),1);valid=torch.cat((valid,extra_valid),1)
+-        out,lse=_attend(query[start:start+16],gathered,valid,softmax_scale,attn_sink,head_dim_v);outputs.append(out);lses.append(lse)
++        operation = _attend
++        if batch_invariant:
++            from .invariant910c import attend
++            operation = attend
++        out,lse=operation(query[start:start+16],gathered,valid,softmax_scale,attn_sink,head_dim_v);outputs.append(out);lses.append(lse)
+     if not outputs:return query.new_empty((*query.shape[:2],head_dim_v)),torch.empty(query.shape[:2],device=query.device,dtype=torch.float32)
+     return torch.cat(outputs),torch.cat(lses)
+--- accepted-fd7/deepinfer/npu_ops/dsa910c.py
++++ adapted/deepinfer/npu_ops/dsa910c.py
+@@ -26,9 +26,68 @@
+ 
+ 
+ def validate_swa_window(window):
+-    """The pinned CANN MLA ABI requires ori_win_left=127 and right=0."""
+-    if type(window) is not int or window != CANN_SWA_WINDOW:
+-        raise ValueError(f'the pinned CANN MLA backend requires sliding_window={CANN_SWA_WINDOW}')
++    """Validate the model contract; CANN's fused-window limit is route-local."""
++    if type(window) is not int or window < 1:
++        raise ValueError('sliding_window must be a positive integer')
++
++
++def paged_mla(query, batch, *, sink, window, swa_cache=None, swa_table=None,
++              swa_base=0, swa_repacked=False, compressed_cache=None,
++              compressed_table=None, compressed_indices=None, ratio=0,
++              batch_invariant=False):
++    """Original sparse-attention equation using DeepInfer-owned physical rows.
++
++    This route covers arbitrary SWA windows and invariant-mode attention;
++    neither C++ query selection nor the cache write/lifetime policy changes.
++    """
++    from .attention910c import decode, ReferenceMLASchedMeta
++    validate_swa_window(window)
++    if type(swa_base) is not int or swa_base < 0:
++        raise ValueError('invalid SWA replay base')
++    if ratio not in (0, 1, 2):
++        raise ValueError('compression ratio must be zero, one or two')
++    positions = batch.positions()
++    key = ('physical_request_ids',)
++    requests = batch.metadata_cache.get(key)
++    if requests is None:
++        rows = torch.arange(query.shape[0],device=query.device,dtype=torch.int32)
++        requests = (rows[:,None]>=batch.cu_query[None,1:]).sum(-1)
++        batch.metadata_cache[key] = requests
++
++    def physical(table, cache, logical, valid):
++        block = cache.shape[1]
++        pages = torch.div(logical.clamp_min(0), block, rounding_mode='floor')
++        valid = valid & (pages < table.shape[1])
++        ids = table[requests[:, None], pages.clamp(0, table.shape[1] - 1).long()]
++        rows = ids * block + logical.remainder(block)
++        valid = valid & (rows >= 0) & (rows < cache.shape[0] * block)
++        return torch.where(valid, rows, -1).int()
++
++    logical = positions[:, None] - window + 1 + torch.arange(window, device=query.device)[None, :]
++    valid = (logical >= swa_base) & (logical <= positions[:, None])
++    if swa_cache is None:
++        # Preserve the same SWA+compressed key columns even when original
++        # metadata exposes no SWA rows. Empty visibility cannot change a
++        # compressed row's reduction position in invariant mode.
++        swa_cache = query.new_zeros((1, 1, 1, query.shape[-1]))
++        swa_indices = torch.full_like(logical, -1, dtype=torch.int32)
++    else:
++        if swa_table is None or swa_table.shape[0] != len(batch.query_lengths):
++            raise ValueError('one SWA page table per request required')
++        coordinates = logical - swa_base if swa_repacked else logical
++        swa_indices = physical(swa_table, swa_cache, coordinates, valid)
++    extra = {}
++    if ratio:
++        if compressed_cache is None or compressed_table is None or compressed_indices is None:
++            raise ValueError('compressed cache, table and indices must be provided together')
++        visible = torch.div(positions + 1, ratio, rounding_mode='floor')[:, None]
++        valid = (compressed_indices >= 0) & (compressed_indices < visible)
++        extra = dict(key_cache_extra=compressed_cache,
++            indices_in_kvcache_extra=physical(compressed_table, compressed_cache,
++                                              compressed_indices, valid))
++    return decode(query, swa_cache, query.shape[-1], swa_indices,
++        ReferenceMLASchedMeta(), query.shape[-1] ** -.5, sink,
++        batch_invariant=batch_invariant, _trusted_indices=True, **extra)[0]
+ 
+ 
+ @lru_cache(maxsize=1)
+@@ -209,6 +268,13 @@
+             raise ValueError('compressed MLA requires BF16 pages, table and 512 INT32 indices per query')
+     elif any(x is not None for x in (compressed_cache, compressed_table, compressed_indices)):
+         raise ValueError('SWA-only MLA cannot take compressed inputs')
++    from deepinfer import envs
++    if window != CANN_SWA_WINDOW or envs.DEEPINFER_BATCH_INVARIANT:
++        return paged_mla(query, batch, sink=sink, window=window,
++            swa_cache=swa_cache, swa_table=swa_table, swa_base=swa_base,
++            swa_repacked=swa_repacked, compressed_cache=compressed_cache,
++            compressed_table=compressed_table, compressed_indices=compressed_indices,
++            ratio=ratio, batch_invariant=envs.DEEPINFER_BATCH_INVARIANT)
+     load_ops()
+     seq, residual = batch.compressed(ratio) if has_compressed else (None, None)
+     ori_used=batch.seq_used
+--- /dev/null
++++ adapted/deepinfer/npu_ops/invariant910c.py
+@@ -0,0 +1,327 @@
++"""Batch-independent NPU arithmetic for the original invariant-mode contract.
++
++The grid may change with the batch, but a row's reduction tree never does.
++These are numerical leaf implementations, not request padding or scheduling.
++"""
++import torch
++import triton
++import triton.language as tl
++
++
++def project(x, weight):
++    """Select the numerical leaf without changing the default execution path."""
++    from deepinfer import envs
++    if x.device.type == 'npu' and envs.DEEPINFER_BATCH_INVARIANT:
++        return linear(x, weight)
++    return torch.nn.functional.linear(x, weight)
++
++
++@triton.jit
++def _rms_norm(X, WEIGHT, FLOAT, BF16, WIDTH: tl.constexpr, EPS: tl.constexpr,
++              BK: tl.constexpr = 1024):
++    row = tl.program_id(0)
++    columns = tl.arange(0, BK)
++    squares = tl.full((), 0, tl.float32)
++    for start in range(tl.cdiv(WIDTH, BK)):
++        index = start*BK+columns
++        value = tl.load(X+row*WIDTH+index,index<WIDTH,0).to(tl.float32)
++        squares += tl.sum(value*value,0)
++    rstd = tl.rsqrt(squares/WIDTH+EPS)
++    for start in range(tl.cdiv(WIDTH, BK)):
++        index = start*BK+columns
++        value = tl.load(X+row*WIDTH+index,index<WIDTH,0).to(tl.float32)
++        weight = tl.load(WEIGHT+index,index<WIDTH,0).to(tl.float32)
++        normalized = value*rstd*weight
++        tl.store(FLOAT+row*WIDTH+index,normalized,index<WIDTH)
++        tl.store(BF16+row*WIDTH+index,normalized,index<WIDTH)
++
++
++def rms_norm(x, weight, eps):
++    """Original FP32 RMS equation and mixed-output ABI, fixed within a row."""
++    width = x.shape[-1]
++    if width < 1 or weight.shape != (width,):
++        raise ValueError('RMS norm requires a matching one-dimensional weight')
++    flat = x.reshape(-1,width).contiguous()
++    full = torch.empty_like(x,dtype=torch.float32,memory_format=torch.contiguous_format)
++    reduced = torch.empty_like(x,dtype=torch.bfloat16,memory_format=torch.contiguous_format)
++    if flat.shape[0]:
++        _rms_norm[(flat.shape[0],)](flat,weight.contiguous(),full,reduced,width,eps,
++                                   enable_fp_fusion=False)
++    return reduced,full
++
++
++@triton.jit
++def _linear_fp32(X, W, Y, M, N: tl.constexpr, K: tl.constexpr,
++                 XS: tl.constexpr, WS: tl.constexpr, WK: tl.constexpr,
++                 BN: tl.constexpr = 8, BK: tl.constexpr = 256):
++    row = tl.program_id(0)
++    cols = tl.program_id(1) * BN + tl.arange(0, BN)
++    ks = tl.arange(0, BK)
++    acc = tl.full((BN,), 0, tl.float32)
++    for start in range(tl.cdiv(K, BK)):
++        k = start * BK + ks
++        x = tl.load(X + row * XS + k, (row < M) & (k < K), 0).to(tl.float32)
++        w = tl.load(W + cols[:, None] * WS + k[None, :] * WK,
++                    (cols[:, None] < N) & (k[None, :] < K), 0).to(tl.float32)
++        acc += tl.sum(w * x[None, :], 1)
++    tl.store(Y + row * N + cols, acc, (row < M) & (cols < N))
++
++
++def linear(x, weight):
++    """Original linear formula with an M-independent accumulation algorithm."""
++    if x.shape[-1] != weight.shape[1] or weight.ndim != 2:
++        raise ValueError('linear expects input [...,K] and weight [N,K]')
++    shape = x.shape[:-1]
++    flat = x.reshape(-1, x.shape[-1]).contiguous()
++    output = x.new_empty((*shape, weight.shape[0]))
++    if not flat.shape[0]:
++        return output
++    if x.dtype == weight.dtype == torch.bfloat16:
++        # Reuse the already integrated original-head GEMM; its K loop and
++        # accumulator tile are independent of M, including a masked last tile.
++        from .bf16_logits910c import bf16_gemm_nt
++        bf16_gemm_nt(flat, weight, output.reshape(flat.shape[0], -1))
++    elif x.dtype == weight.dtype == torch.float32:
++        _linear_fp32[(flat.shape[0], triton.cdiv(weight.shape[0], 8))](
++            flat, weight, output, flat.shape[0], weight.shape[0], flat.shape[1],
++            flat.stride(0), *weight.stride(), enable_fp_fusion=False)
++    else:
++        raise TypeError('invariant linear requires matching BF16 or FP32 operands')
++    return output
++
++
++@triton.jit
++def _qk(Q, K, V, L, H: tl.constexpr, D: tl.constexpr, S: tl.constexpr,
++        Q0: tl.constexpr, Q1: tl.constexpr, Q2: tl.constexpr,
++        K0: tl.constexpr, K1: tl.constexpr, K2: tl.constexpr,
++        SCALE: tl.constexpr, BD: tl.constexpr, BS: tl.constexpr = 16):
++    row, head = tl.program_id(0), tl.program_id(1)
++    keys = tl.program_id(2) * BS + tl.arange(0, BS)
++    dims = tl.arange(0, BD)
++    q = tl.load(Q + row * Q0 + head * Q1 + dims * Q2, dims < D, 0).to(tl.float32)
++    kv = tl.load(K + row * K0 + keys[:, None] * K1 + dims[None, :] * K2,
++                 (keys[:, None] < S) & (dims[None, :] < D), 0).to(tl.float32)
++    valid = tl.load(V + row * S + keys, keys < S, 0)
++    logits = tl.sum(kv * q[None, :], 1) * SCALE
++    logits = tl.where(valid, logits, -float('inf'))
++    tl.store(L + (row * H + head) * S + keys, logits, keys < S)
++
++
++@triton.jit
++def _softmax(L, SINK, P, LSE, H: tl.constexpr, S: tl.constexpr,
++             HAS_SINK: tl.constexpr, BS: tl.constexpr):
++    row, head = tl.program_id(0), tl.program_id(1)
++    keys = tl.arange(0, BS)
++    logits = tl.load(L + (row * H + head) * S + keys, keys < S, -float('inf'))
++    maximum = tl.max(logits, 0)
++    nonempty = maximum != -float('inf')
++    safe_maximum = tl.where(nonempty, maximum, 0.)
++    normalizer = tl.sum(tl.exp(logits - safe_maximum), 0)
++    lse = tl.where(nonempty, safe_maximum + tl.log(normalizer), float('inf'))
++    if HAS_SINK:
++        sink = tl.load(SINK + head)
++        m = tl.maximum(maximum, sink)
++        denominator = tl.sum(tl.exp(logits - m), 0) + tl.exp(sink - m)
++        probability = tl.exp(logits - m) / denominator
++    else:
++        probability = tl.where(nonempty, tl.exp(logits - safe_maximum) / normalizer, 0.)
++    tl.store(P + (row * H + head) * S + keys, probability, keys < S)
++    tl.store(LSE + row * H + head, lse)
++
++
++@triton.jit
++def _pv(P, K, O, H: tl.constexpr, D: tl.constexpr, DV: tl.constexpr,
++        S: tl.constexpr, K0: tl.constexpr, K1: tl.constexpr, K2: tl.constexpr,
++        BS: tl.constexpr, BD: tl.constexpr = 8):
++    row, head = tl.program_id(0), tl.program_id(1)
++    dims = tl.program_id(2) * BD + tl.arange(0, BD)
++    keys = tl.arange(0, BS)
++    p = tl.load(P + (row * H + head) * S + keys, keys < S, 0)
++    kv = tl.load(K + row * K0 + keys[:, None] * K1 + dims[None, :] * K2,
++                 (keys[:, None] < S) & (dims[None, :] < DV), 0).to(tl.float32)
++    result = tl.sum(p[:, None] * kv, 0)
++    tl.store(O + (row * H + head) * DV + dims, result, dims < DV)
++
++
++def attend(query, gathered, valid, scale, sink, dim_v):
++    """FlashMLA reference equation, including sink and empty-row semantics.
++
++    A program owns one query/head. It neither splits keys by batch occupancy
++    nor changes reduction order when the same token moves to another row.
++    """
++    rows, heads, dim = query.shape
++    keys = gathered.shape[1]
++    output = query.new_empty((rows, heads, dim_v))
++    lse = torch.empty((rows, heads), device=query.device, dtype=torch.float32)
++    if not rows:
++        return output, lse
++    if not keys:
++        output.zero_(); lse.fill_(float('inf'))
++        return output, lse
++    logits = torch.empty((rows, heads, keys), device=query.device, dtype=torch.float32)
++    probabilities = torch.empty_like(logits)
++    valid = valid.contiguous()
++    _qk[(rows, heads, triton.cdiv(keys, 16))](
++        query, gathered, valid, logits, heads, dim, keys,
++        *query.stride(), *gathered.stride(), scale, triton.next_power_of_2(dim),
++        enable_fp_fusion=False)
++    _softmax[(rows, heads)](logits, logits if sink is None else sink,
++        probabilities, lse, heads, keys, sink is not None, triton.next_power_of_2(keys),
++        enable_fp_fusion=False)
++    _pv[(rows, heads, triton.cdiv(dim_v, 8))](
++        probabilities, gathered, output, heads, dim, dim_v, keys,
++        *gathered.stride(), triton.next_power_of_2(keys), enable_fp_fusion=False)
++    return output, lse
++
++
++@triton.jit
++def _engram_gate(HIDDEN, ORIGINAL, KEY, VALUE, QW, KW, MASK, OUT,
++                 C: tl.constexpr, H: tl.constexpr, EPS: tl.constexpr,
++                 BK: tl.constexpr = 1024):
++    row, channel = tl.program_id(0), tl.program_id(1)
++    offsets = tl.arange(0, BK)
++    oo = tl.full((),0,tl.float32)
++    kk = tl.full((),0,tl.float32)
++    product = tl.full((),0,tl.float32)
++    for part in range(tl.cdiv(H,BK)):
++        columns = part*BK+offsets
++        base = (row*C+channel)*H+columns
++        original = tl.load(ORIGINAL+base,columns<H,0).to(tl.float32)
++        key = tl.load(KEY+base,columns<H,0).to(tl.float32)
++        qw = tl.load(QW+channel*H+columns,columns<H,0).to(tl.float32)
++        kw = tl.load(KW+channel*H+columns,columns<H,0).to(tl.float32)
++        oo += tl.sum(original*original,0)
++        kk += tl.sum(key*key,0)
++        product += tl.sum((original*(qw*kw))*key,0)
++    rstd = tl.rsqrt(oo/H+EPS)*tl.rsqrt(kk/H+EPS)
++    dot = (product*rstd)*(H**-.5)
++    magnitude = tl.sqrt(tl.maximum(tl.abs(dot),1.e-6))
++    signed = tl.where(dot.to(tl.int32,bitcast=True)<0,-magnitude,magnitude)
++    gate = 1./(1.+tl.exp(-signed))
++    gate = tl.where(tl.load(MASK+row)!=0,gate,0.)
++    for part in range(tl.cdiv(H,BK)):
++        columns = part*BK+offsets
++        base = (row*C+channel)*H+columns
++        hidden = tl.load(HIDDEN+base,columns<H,0).to(tl.float32)
++        value = tl.load(VALUE+row*H+columns,columns<H,0).to(tl.float32)
++        tl.store(OUT+base,hidden+gate*value,columns<H)
++
++
++def engram_gate(hidden, original, key, value, q_weight, k_weight, mask, eps):
++    """Original rotated Engram gate with a row-independent reduction tree."""
++    rows, channels, width = hidden.shape
++    output = torch.empty_like(hidden)
++    if not rows:
++        return output
++    qw = q_weight.float().reshape(-1,width).expand(channels,width).contiguous()
++    kw = k_weight.float().reshape(-1,width).expand(channels,width).contiguous()
++    _engram_gate[(rows,channels)](hidden.contiguous(),original.contiguous(),
++        key.contiguous(),value.contiguous(),qw,kw,mask.contiguous(),output,
++        channels,width,eps,enable_fp_fusion=False)
++    return output
++
++
++@triton.jit
++def _mhc_coefficients(X, DOT, SCALE, BASE, PRE, POST, COMB,
++                      C: tl.constexpr, H: tl.constexpr, EPS: tl.constexpr,
++                      HC_EPS: tl.constexpr, REPEAT: tl.constexpr,
++                      BC: tl.constexpr, BK: tl.constexpr = 1024):
++    row = tl.program_id(0)
++    k = tl.arange(0,BK)
++    squares = tl.full((),0,tl.float32)
++    for part in range(tl.cdiv(C*H,BK)):
++        index = part*BK+k
++        value = tl.load(X+row*C*H+index,index<C*H,0).to(tl.float32)
++        squares += tl.sum(value*value,0)
++    rstd = tl.rsqrt(squares/(C*H)+EPS)
++    channels = tl.arange(0,BC)
++    valid = channels<C
++    a0 = tl.load(SCALE).to(tl.float32)
++    a1 = tl.load(SCALE+1).to(tl.float32)
++    a2 = tl.load(SCALE+2).to(tl.float32)
++    n = C*(C+2)
++    pre_dot = tl.load(DOT+row*n+channels,valid,0)*rstd
++    post_dot = tl.load(DOT+row*n+C+channels,valid,0)*rstd
++    b0 = tl.load(BASE+channels,valid,0).to(tl.float32)
++    b1 = tl.load(BASE+C+channels,valid,0).to(tl.float32)
++    pre = 1./(1.+tl.exp(-(pre_dot*a0+b0)))+HC_EPS
++    post = 2./(1.+tl.exp(-(post_dot*a1+b1)))
++    tl.store(PRE+row*C+channels,pre,valid)
++    tl.store(POST+row*C+channels,post,valid)
++    matrix_valid = valid[:,None]&valid[None,:]
++    index = 2*C+channels[:,None]*C+channels[None,:]
++    logits = tl.load(DOT+row*n+index,matrix_valid,0)*rstd*a2
++    logits += tl.load(BASE+index,matrix_valid,0).to(tl.float32)
++    logits = tl.where(matrix_valid,logits,-float('inf'))
++    maximum = tl.where(valid,tl.max(logits,1),0.)
++    exponent = tl.exp(logits-maximum[:,None])
++    normalizer = tl.sum(exponent,1)
++    combination = tl.where(matrix_valid,exponent/tl.maximum(normalizer[:,None],1.e-30)+HC_EPS,0.)
++    combination = tl.where(matrix_valid,combination/(tl.sum(combination,0)[None,:]+HC_EPS),0.)
++    for _ in range(REPEAT-1):
++        combination = tl.where(matrix_valid,combination/(tl.sum(combination,1)[:,None]+HC_EPS),0.)
++        combination = tl.where(matrix_valid,combination/(tl.sum(combination,0)[None,:]+HC_EPS),0.)
++    tl.store(COMB+row*C*C+channels[:,None]*C+channels[None,:],combination,matrix_valid)
++
++
++@triton.jit
++def _mhc_apply(X, PREVIOUS, OUT, C: tl.constexpr, H: tl.constexpr,
++                BH: tl.constexpr = 256):
++    row = tl.program_id(0)
++    columns = tl.program_id(1)*BH+tl.arange(0,BH)
++    result = tl.full((BH,),0,tl.float32)
++    for channel in range(C):
++        x = tl.load(X+(row*C+channel)*H+columns,columns<H,0).to(tl.float32)
++        weight = tl.load(PREVIOUS+row*C+channel).to(tl.float32)
++        result += x*weight
++    tl.store(OUT+row*H+columns,result,columns<H)
++
++
++def mhc_pre(trunk, previous, fn, scale, base, eps, hc_eps, repeat):
++    """Original prenorm projection, split mixes and Sinkhorn equations.
++
++    One program owns a row's coefficients. A CANN nonlinear/reduction kernel
++    may choose a different implementation for another batch/storage shape;
++    this provider fixes the arithmetic within the row instead.
++    """
++    rows,channels,width = trunk.shape
++    if (fn.shape!=(channels*(channels+2),channels*width) or scale.shape!=(3,)
++            or base.shape!=(channels*(channels+2),) or repeat<1):
++        raise ValueError('invalid original mHC projection or coefficient geometry')
++    trunk = trunk.contiguous()
++    previous = previous.reshape(rows,channels).contiguous()
++    dots = linear(trunk.reshape(rows,channels*width).float(),fn.float())
++    pre = torch.empty((rows,channels),device=trunk.device,dtype=torch.float32)
++    post = torch.empty_like(pre)
++    combination = torch.empty((rows,channels,channels),device=trunk.device,dtype=torch.float32)
++    value = torch.empty((rows,width),device=trunk.device,dtype=torch.bfloat16)
++    if rows:
++        _mhc_coefficients[(rows,)](trunk,dots,scale,base,pre,post,combination,
++            channels,width,eps,hc_eps,repeat,triton.next_power_of_2(channels),enable_fp_fusion=False)
++        _mhc_apply[(rows,triton.cdiv(width,256))](trunk,previous,value,channels,width,enable_fp_fusion=False)
++    return value,post,combination,pre
++
++
++@triton.jit
++def _mhc_post(VALUE, RESIDUAL, POST, COMB, OUT,
++              C: tl.constexpr, H: tl.constexpr, BH: tl.constexpr = 256):
++    row,channel = tl.program_id(0),tl.program_id(1)
++    columns = tl.program_id(2)*BH+tl.arange(0,BH)
++    result = tl.full((BH,),0,tl.float32)
++    for source in range(C):
++        x = tl.load(RESIDUAL+(row*C+source)*H+columns,columns<H,0).to(tl.float32)
++        weight = tl.load(COMB+row*C*C+source*C+channel).to(tl.float32)
++        result += x*weight
++    value = tl.load(VALUE+row*H+columns,columns<H,0).to(tl.float32)
++    weight = tl.load(POST+row*C+channel).to(tl.float32)
++    result += value*weight
++    tl.store(OUT+(row*C+channel)*H+columns,result,columns<H)
++
++
++def mhc_post(value, residual, post, combination):
++    rows,channels,width = residual.shape
++    output = torch.empty_like(residual)
++    if rows:
++        _mhc_post[(rows,channels,triton.cdiv(width,256))](value.contiguous(),residual.contiguous(),
++            post.contiguous(),combination.contiguous(),output,channels,width,enable_fp_fusion=False)
++    return output
+--- accepted-fd7/deepinfer/npu_ops/mhc910c.py
++++ adapted/deepinfer/npu_ops/mhc910c.py
+@@ -25,7 +25,11 @@
+ def mhc_pre_apply_mix(x,mix):return (x.float()*mix).sum(-2).bfloat16()
+ 
+ def mhc_post(x,residual,post_layer_mix,comb_res_mix):
+-    mixed=torch.matmul(comb_res_mix.transpose(-2,-1),residual.float())
++    from deepinfer import envs
++    if envs.DEEPINFER_BATCH_INVARIANT:
++        mixed=(comb_res_mix.transpose(-2,-1).unsqueeze(-1)*residual.float().unsqueeze(-3)).sum(-2)
++    else:
++        mixed=torch.matmul(comb_res_mix.transpose(-2,-1),residual.float())
+     return (x.float().unsqueeze(-2)*post_layer_mix+mixed).bfloat16()
+ 
+ def mhc_pre_split_mixes(input_mixes,mhc_scale,mhc_base,mhc_mult,mhc_post_mult_value,mhc_pre_eps):
+@@ -42,7 +46,13 @@
+     flat=x.reshape(-1,k).float();step=k//n_splits;products=[];squares=[]
+     for split in range(n_splits):
+         part=flat[:,split*step:(split+1)*step]
+-        products.append(torch.mm(part,fn[:,split*step:(split+1)*step].float().T)[:,None,:]);squares.append(part.square().sum(-1,keepdim=True))
++        from deepinfer import envs
++        if envs.DEEPINFER_BATCH_INVARIANT and part.device.type == 'npu':
++            from .invariant910c import linear
++            product=linear(part,fn[:,split*step:(split+1)*step].float())
++        else:
++            product=torch.mm(part,fn[:,split*step:(split+1)*step].float().T)
++        products.append(product[:,None,:]);squares.append(part.square().sum(-1,keepdim=True))
+     return torch.stack(products),torch.stack(squares)
+ 
+ def mhc_pre_norm_fn(residual,mhc_fn,mhc_norm_weight,mhc_norm_eps,n_splits=None):
+--- /dev/null
++++ adapted/deepinfer/npu_ops/sampling_draw910c.py
+@@ -0,0 +1,152 @@
++"""Original Ascend fixed-point draw in one NPU kernel.
++
++The pinned Ascend sampler folds uint32 weights by column modulo acc_slots,
++then uses Philox4x32-10 and two inclusive integer scans. Keep that device
++operation indivisible when a five-step DFlash graph reuses its scratch pool.
++No request padding, host numerical work, or alternative RNG is involved.
++"""
++import torch
++import triton
++import triton.language as tl
++
++
++@triton.jit
++def _multiply_words(a, multiplier: tl.constexpr):
++    # Exact 32x32->64 product using only 32-bit device arithmetic.
++    lo = a & 65535
++    hi = a >> 16
++    p0 = lo * (multiplier & 65535)
++    p1 = hi * (multiplier & 65535)
++    p2 = lo * (multiplier >> 16)
++    p3 = hi * (multiplier >> 16)
++    middle = (p0 >> 16) + (p1 & 65535) + (p2 & 65535)
++    low = (p0 & 65535) | (middle << 16)
++    high = p3 + (p1 >> 16) + (p2 >> 16) + (middle >> 16)
++    return low.to(tl.uint32), high.to(tl.uint32)
++
++
++@triton.jit
++def _philox_words(key0, key1, position, case):
++    sequence = position * 3 + case
++    c0 = tl.full((), 0, tl.uint32)
++    c1 = tl.full((), 0, tl.uint32)
++    c2 = sequence.to(tl.uint32)
++    c3 = tl.where(sequence < 0, 0xffffffff, 0).to(tl.uint32)
++    for _ in range(10):
++        a0, a1 = _multiply_words(c0, 0xD2511F53)
++        b0, b1 = _multiply_words(c2, 0xCD9E8D57)
++        c0, c1, c2, c3 = ((b1 ^ c1 ^ key0).to(tl.uint32), b0.to(tl.uint32),
++                          (a1 ^ c3 ^ key1).to(tl.uint32), a0.to(tl.uint32))
++        key0 = (key0 + 0x9E3779B9).to(tl.uint32)
++        key1 = (key1 + 0xBB67AE85).to(tl.uint32)
++    return c0, c1
++
++
++@triton.jit
++def _mod_words(low, high, divisor):
++    # Unsigned 64/32 remainder; carry handles divisors above 2**31 too.
++    remainder = tl.full((), 0, tl.uint32)
++    for bit in range(31, -1, -1):
++        carry = remainder >> 31
++        value = (remainder << 1) | ((high >> bit) & 1)
++        remainder = tl.where((carry != 0) | (value >= divisor), value-divisor, value).to(tl.uint32)
++    for bit in range(31, -1, -1):
++        carry = remainder >> 31
++        value = (remainder << 1) | ((low >> bit) & 1)
++        remainder = tl.where((carry != 0) | (value >= divisor), value-divisor, value).to(tl.uint32)
++    return remainder
++
++
++@triton.jit
++def _weights_at(W, PREVIOUS, VERIFY, row, index, mask,
++                STRIDE: tl.constexpr, PREVIOUS_STRIDE: tl.constexpr,
++                LOGPROBS: tl.constexpr, REJECT: tl.constexpr,
++                PENALTY: tl.constexpr):
++    value = tl.load(W+row*STRIDE+index, mask, 0)
++    if LOGPROBS:
++        probability = tl.exp(value.to(tl.float32))
++        if REJECT:
++            previous = tl.load(PREVIOUS+row*PREVIOUS_STRIDE+index, mask, 0).to(tl.float32)
++            residual = tl.maximum(probability-tl.exp(previous-PENALTY), 0.)
++            probability = tl.where(tl.load(VERIFY+row), residual, probability)
++        scaled = probability*2147483648.
++        # float32 cannot represent INT32_MAX; implement the original signed
++        # saturating ROUND_Z conversion explicitly at its 2**31 boundary.
++        value = tl.where(scaled >= 2147483648., 2147483647,
++                         scaled.to(tl.int32)).to(tl.uint32)
++    return tl.where(mask, value.to(tl.int32), 0).to(tl.uint32)
++
++
++@triton.jit
++def _draw(W, PREVIOUS, VERIFY, SEEDS, POSITIONS, CASE, FALLBACK, OUT, TOTAL,
++          WIDTH: tl.constexpr, STRIDE: tl.constexpr, SLOTS: tl.constexpr,
++          GROUPS: tl.constexpr, BG: tl.constexpr,
++          TENSOR_CASE: tl.constexpr, SCALAR_CASE: tl.constexpr,
++          PREVIOUS_STRIDE: tl.constexpr, LOGPROBS: tl.constexpr,
++          REJECT: tl.constexpr, PENALTY: tl.constexpr):
++    row = tl.program_id(0)
++    columns = tl.arange(0, SLOTS)
++    folded = tl.full((SLOTS,), 0, tl.uint32)
++    for group in range(GROUPS):
++        index = columns+group*SLOTS
++        folded += _weights_at(W, PREVIOUS, VERIFY, row, index, index < WIDTH,
++                              STRIDE, PREVIOUS_STRIDE, LOGPROBS, REJECT, PENALTY)
++    # Signed storage has identical wraparound addition. Avoid the backend's
++    # implicit uint32->uint64 vector promotion; compare unsigned via sign bias.
++    cdf = tl.cumsum(folded.to(tl.int32), 0, dtype=tl.int32).to(tl.uint32)
++    total = tl.sum(folded.to(tl.int32), 0, dtype=tl.int32).to(tl.uint32)
++    key0 = tl.load(SEEDS+row*2).to(tl.uint32)
++    key1 = tl.load(SEEDS+row*2+1).to(tl.uint32)
++    position = tl.load(POSITIONS+row)
++    case = tl.load(CASE+row) if TENSOR_CASE else SCALAR_CASE
++    low, high = _philox_words(key0, key1, position, case)
++    target = _mod_words(low, high, tl.maximum(total, 1).to(tl.uint32)).to(tl.uint32)
++    sign = tl.full((), 0x80000000, tl.uint32)
++    below = (cdf ^ sign).to(tl.int32) <= (target ^ sign).to(tl.int32)
++    offset = tl.minimum(tl.sum(below.to(tl.int32), 0, dtype=tl.int32), SLOTS-1)
++    before = tl.sum(tl.where(columns == offset-1, cdf.to(tl.int32), 0), 0, dtype=tl.int32).to(tl.uint32)
++    remaining = (target-before).to(tl.uint32)
++    groups = tl.arange(0, BG)
++    index = offset+groups*SLOTS
++    weights = _weights_at(W, PREVIOUS, VERIFY, row, index,
++        (groups < GROUPS) & (index < WIDTH), STRIDE, PREVIOUS_STRIDE,
++        LOGPROBS, REJECT, PENALTY)
++    local_cdf = tl.cumsum(weights.to(tl.int32), 0, dtype=tl.int32).to(tl.uint32)
++    below = (local_cdf ^ sign).to(tl.int32) <= (remaining ^ sign).to(tl.int32)
++    group = tl.sum((below & (groups < GROUPS)).to(tl.int32), 0, dtype=tl.int32)
++    selected = offset+group*SLOTS
++    fallback = tl.load(FALLBACK+row)
++    tl.store(OUT+row, tl.where(total > 0, selected, fallback))
++    tl.store(TOTAL+row, total.to(tl.int64))
++
++
++def _launch(weights, seeds, positions, case, fallback, previous=None, verify=None, *, logprobs=False):
++    rows, width = weights.shape
++    if width < 1 or weights.stride(1) != 1:
++        raise ValueError('sampling weights require nonempty contiguous columns')
++    slots = 4096 if width >= 8192 else min(triton.next_power_of_2(width), 2048)
++    groups = triton.cdiv(width, slots)
++    output = torch.empty((rows,), dtype=torch.int32, device=weights.device)
++    total = torch.empty((rows,), dtype=torch.int64, device=weights.device)
++    words = seeds.contiguous().view(torch.int32)
++    tensor_case = isinstance(case, torch.Tensor)
++    if rows:
++        from deepinfer.model_executor.layers.tilelang_ops.common import DRAFT_PROB_PENALTY
++        _draw[(rows,)](weights, weights if previous is None else previous,
++            positions if verify is None else verify,
++            words, positions, case if tensor_case else positions,
++            fallback, output, total, width, weights.stride(0), slots, groups,
++            triton.next_power_of_2(groups), tensor_case, 0 if tensor_case else case,
++            0 if previous is None else previous.stride(0), logprobs,
++            previous is not None, DRAFT_PROB_PENALTY, enable_fp_fusion=False)
++    return output, total
++
++
++def draw(weights, seeds, positions, case, fallback):
++    """Exact original two-level selection; weights are saturated 31-bit ints."""
++    return _launch(weights, seeds, positions, case, fallback)
++
++
++def draw_logprobs(logprobs, seeds, positions, case, fallback, *, previous=None, verify=None):
++    """Original FP32 exp/residual, quantization, RNG and scans in one kernel."""
++    return _launch(logprobs, seeds, positions, case, fallback, previous, verify, logprobs=True)
+--- accepted-fd7/deepinfer/npu_ops/sp910c.py
++++ adapted/deepinfer/npu_ops/sp910c.py
+@@ -5,7 +5,35 @@
+ mHC residual stream, normalization and FFN own disjoint token slices; gather
+ normalized attention inputs and reduce-scatter the partial output projection.
+ """
++import torch
+ import torch.distributed as dist
++from deepinfer import envs
++
++
++def ordered_sum(partial, group, *, scatter=False):
++    """Sum TP contributions in rank order when batch invariance is requested.
++
++    HCCL transports the contributions without reducing them. Each destination
++    then adds the same ranks in FP32, so changing a row's batch position or
++    destination rank cannot change its reduction order.
++    """
++    world = dist.get_world_size(group)
++    if world == 1 or partial.shape[0] == 0:
++        return partial
++    if scatter:
++        if partial.shape[0] % world:
++            raise ValueError('ordered reduce-scatter requires padded token rows')
++        received = torch.empty_like(partial)
++        dist.all_to_all_single(received, partial.contiguous(), group=group)
++        pieces = received.reshape(world, partial.shape[0] // world, *partial.shape[1:])
++    else:
++        received = partial.new_empty((world * partial.shape[0], *partial.shape[1:]))
++        dist.all_gather_into_tensor(received, partial.contiguous(), group=group)
++        pieces = received.reshape(world, *partial.shape)
++    result = pieces[0].float()
++    for rank in range(1, world):
++        result.add_(pieces[rank])
++    return result.to(partial.dtype)
+ 
+ 
+ class SequenceShard:
+@@ -38,6 +66,8 @@
+         padded, width = self._pad(partial)
+         if self.world == 1:
+             return padded
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            return ordered_sum(padded,self.group,scatter=True)
+         local = padded.new_empty((width, *padded.shape[1:]))
+         dist.reduce_scatter_tensor(local, padded, group=self.group)
+         return local
+--- accepted-fd7/deepinfer/npu_ops/w8a8.py
++++ adapted/deepinfer/npu_ops/w8a8.py
+@@ -38,6 +38,7 @@
+             weight=torch_npu.npu_format_cast(weight,29)
+         self.weight=torch.nn.Parameter(weight,requires_grad=False)
+         self.register_buffer('weight_scale',scale.contiguous())
++        self.register_buffer('integer_scale',torch.ones(1,dtype=torch.float32,device=weight_nk.device))
+ 
+     def forward(self,x):
+         import torch_npu
+@@ -45,6 +46,12 @@
+         shape=x.shape[:-1];flat=x.reshape(-1,self.input_size)
+         if flat.shape[0]==0:return x.new_empty((*shape,self.output_size))
+         quantized,token_scale=torch_npu.npu_dynamic_quant(flat,dst_type=torch.int8)
++        from deepinfer import envs
++        if envs.DEEPINFER_BATCH_INVARIANT:
++            # Integer accumulation is exact. Keep the scale arithmetic out of
++            # CANN's M-dependent fused epilogue, with no private padded rows.
++            acc=torch_npu.npu_quant_matmul(quantized,self.weight,self.integer_scale,output_dtype=torch.int32)
++            return (acc.float()*self.weight_scale.float()[None,:]*token_scale[:,None]).to(x.dtype).reshape(*shape,self.output_size)
+         output=torch_npu.npu_quant_matmul(quantized,self.weight,self.weight_scale,pertoken_scale=token_scale,output_dtype=x.dtype)
+         return output.reshape(*shape,self.output_size)
+ 
+--- accepted-fd7/deepinfer/worker/execution_resources910c.py
++++ adapted/deepinfer/worker/execution_resources910c.py
+@@ -142,7 +142,9 @@
+                 draft_graph_sizes=[] if draft_pool is None else draft_pool.batch_sizes,
+                 decode_perf_curve=worker.decode_perf_curve,
+                 capabilities=dict(vision=bool(getattr(self, 'supports_multimodal', False)),
+-                                  eplb=getattr(self.model, 'eplb_runtime', None) is not None),
++                                  eplb=getattr(self.model, 'eplb_runtime', None) is not None,
++                                  batch_invariant=bool(envs.DEEPINFER_BATCH_INVARIANT
++                                      and getattr(self, 'supports_batch_invariant', False))),
+                 nextn=worker.nextn,
+                 execution_options=dict(yoco_mode=worker.model_runner.yoco_prefill_truncation_mode,
+                     yoco_keep_tokens=envs.DEEPINFER_YOCO_PREFILL_KEEP_TOKENS,
+@@ -182,7 +184,7 @@
+                 raise ValueError('original Worker nextn differs from existing draft resources')
+             if worker.scheduler_config.max_num_seqs > self.cache_storage.num_state_seqs - 1:
+                 raise ValueError('original Scheduler exceeds existing physical state capacity')
+-            if envs.DEEPINFER_BATCH_INVARIANT:
++            if envs.DEEPINFER_BATCH_INVARIANT and not getattr(self, 'supports_batch_invariant', False):
+                 raise NotImplementedError('batch-invariant compute interfaces still require backend adaptation')
+             runtime = getattr(self.model, 'eplb_runtime', None)
+             if runtime is not None:

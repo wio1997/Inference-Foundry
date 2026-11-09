@@ -1,0 +1,345 @@
+{
+  "state": "THREE_ORIGINAL_BACKEND_ADAPTATIONS_ACCEPTED",
+  "source_manifest": "36d2a7d7117bfb3144e0e5acd0cd4bfb3d34202f6b0b4044aae36653ec8b0046",
+  "scopes": [
+    {
+      "id": "yoco-config-backend-coverage",
+      "state": "ADAPTED_AND_SCOPED_VALIDATION_PASS",
+      "original": "复用原CPP的query选择、source共享、可见域、持久化存储指令；window/storage/keep独立传递。",
+      "adaptation": "默认128窗口保留原CANN路径；其他正整数窗口通过相同页表和原注意力公式执行。",
+      "validation": "窗口1/64/128/129/256 × mask/compact，共10组80个CP切片；相同NPU FP32参考及持久化写入校验通过。",
+      "qualification": "v132的窗口1初始夹具无效已保留；v133只补足修正后的窗口1及128，未重复6组已通过案例。"
+    },
+    {
+      "id": "batch-invariant",
+      "state": "ADAPTED_AND_SCOPED_VALIDATION_PASS",
+      "original": "保留原版BI开关、请求和调度语义。",
+      "adaptation": "NPU线性、注意力、Engram、mHC、RMSNorm与TP求和固定每行算术及归约顺序；采样叶接口复用原Ascend的Philox4x32-10、31bit权重、uint32扫描及两级选列，合在单一设备kernel执行。不按测试批大小补行。",
+      "validation": "DP0/1 × 长度33/257/769/1025：混批对单请求8/8精确，token/logprob/top-token/top-logprob全部相同。",
+      "qualification": "真实模型普通运行无诊断marker、无teacher forcing；中间失败和实际输入复现证据保留。"
+    },
+    {
+      "id": "deterministic",
+      "state": "ADAPTED_AND_SCOPED_VALIDATION_PASS",
+      "original": "原Sampler及辅助函数不改；固定seq_seed，BI开启，MTP_VARLEN=0，nextn=5。",
+      "adaptation": "复用同一联合请求验证确定性；上层DFlash/Markov/接受策略保留。真实同输入的采样反例定位后，补齐原版单kernel组织的NPU采样叶接口；不以greedy代替自由随机采样。",
+      "validation": "temperature=1/top_p=.7，16个普通请求96个输出token；相同输入和seed跨批精确，另1次公共API验证EOS及既有同NPU回复。",
+      "qualification": "固定DeepSeek-V4.1-Flash-1017 W8A8，910C DP2/CP8/EP16；当前版本性能尚未测量。"
+    }
+  ],
+  "runtime": {
+    "ranks": 16,
+    "mode": {
+      "yoco_mode": "compact",
+      "yoco_keep_tokens": 140,
+      "nextn": 5,
+      "mtp_varlen": false,
+      "zos": true,
+      "enforce_eager": false,
+      "batch_invariant": true
+    },
+    "ordinary_requests": 16,
+    "ordinary_output_tokens": 96,
+    "API_requests": 1,
+    "API_output_tokens": 5,
+    "EOS": "stop"
+  },
+  "exact_comparisons": [
+    {
+      "dp": 0,
+      "prompt_length": 33,
+      "exact": true
+    },
+    {
+      "dp": 1,
+      "prompt_length": 33,
+      "exact": true
+    },
+    {
+      "dp": 0,
+      "prompt_length": 257,
+      "exact": true
+    },
+    {
+      "dp": 1,
+      "prompt_length": 257,
+      "exact": true
+    },
+    {
+      "dp": 0,
+      "prompt_length": 769,
+      "exact": true
+    },
+    {
+      "dp": 1,
+      "prompt_length": 769,
+      "exact": true
+    },
+    {
+      "dp": 0,
+      "prompt_length": 1025,
+      "exact": true
+    },
+    {
+      "dp": 1,
+      "prompt_length": 1025,
+      "exact": true
+    }
+  ],
+  "original_policy_proof": [
+    {
+      "path": "deepinfer/engine/llm_engine.py",
+      "upstream_path": "/Users/wio/work/172-deepinfer-control/product-readiness-20261106/releases/upstream-553741/deepinfer/engine/llm_engine.py",
+      "upstream_sha256": "a636d60ca5711f6b7c21e68370c3bd9c2de6fc3f4439a7429ca4f572f0edeebe",
+      "unchanged_methods": [
+        "__del__",
+        "_create_scheduler",
+        "_execute_model_async_step",
+        "_init_cache",
+        "_process_model_outputs",
+        "_run_workers",
+        "abort_request",
+        "add_request",
+        "build_extra_metrics_log",
+        "do_copy_state",
+        "do_save_kvcache",
+        "finalize_seq",
+        "flush_inflight_reqs",
+        "get_nextn_pad_token_ids",
+        "get_num_pendings",
+        "get_num_unfinished_requests",
+        "has_unfinished_requests",
+        "init_pd_split",
+        "pe_do_save_kvcache",
+        "pe_prepare_save_kvcache",
+        "post_process",
+        "post_process_model_outputs",
+        "post_schedule",
+        "pre_sampler_sync",
+        "process_output",
+        "send_processed_prompts",
+        "should_copy_state",
+        "so_builder_has_pending",
+        "so_matcher_builder",
+        "step"
+      ],
+      "changed_methods": [
+        "__init__",
+        "_init_workers",
+        "close",
+        "from_engine_args"
+      ],
+      "moved_methods": []
+    },
+    {
+      "path": "deepinfer/model_executor/layers/sampler.py",
+      "upstream_path": "/Users/wio/work/172-deepinfer-control/product-readiness-20261106/releases/upstream-553741/deepinfer/model_executor/layers/sampler.py",
+      "upstream_sha256": "81205a12e860041ffa904321b852db2d048bc038bb07d494dbb78b44b522d9a9",
+      "unchanged_methods": [
+        "__init__",
+        "_get_so_mask",
+        "_prefill_golden_gen",
+        "_prepare_top_info",
+        "_update_golden_tokens",
+        "_verification",
+        "forward"
+      ],
+      "changed_methods": [],
+      "moved_methods": []
+    },
+    {
+      "path": "deepinfer/model_executor/layers/sampler_utils.py",
+      "upstream_path": "/Users/wio/work/172-deepinfer-control/product-readiness-20261106/releases/upstream-553741/deepinfer/model_executor/layers/sampler_utils.py",
+      "upstream_sha256": "35bdfd873865375cbf834258543e54ea7a1dbb860767412b8b8e44bea1b296b9",
+      "unchanged_methods": [
+        "_compute_prompt_logprobs_chunk",
+        "compute_prompt_logprobs",
+        "get_logits",
+        "process_sampling",
+        "split_prompt_logprobs"
+      ],
+      "changed_methods": [],
+      "moved_methods": []
+    },
+    {
+      "path": "deepinfer/model_executor/models/mtp/dflash.py",
+      "upstream_path": "/Users/wio/work/172-deepinfer-control/product-readiness-20261106/releases/upstream-553741/deepinfer/model_executor/models/mtp/dflash.py",
+      "upstream_sha256": "12ebfb9c793062844d40e0fab17164d5365d965c318f8b9f0f4adf51b3afb684",
+      "unchanged_methods": [
+        "__init__",
+        "_embed_draft_init_tokens",
+        "decode_forward",
+        "forward_drafts",
+        "moe_layer_list",
+        "run_drafts",
+        "update_main_cache"
+      ],
+      "changed_methods": [],
+      "moved_methods": [
+        "allocate_output",
+        "init_mtp_info_pool",
+        "sample_drafts"
+      ]
+    }
+  ],
+  "scheduler_files_byte_identical": 22,
+  "acceptance_scope": "三个缺口在上述原版配置、模型和拓扑内通过；其他未改功能复用已有明确范围证据，不宣称穷举所有模型及开关。",
+  "sampler_evidence": {
+    "actual_counterexample": "v172/v173：首步主模型、草稿context/hidden/logits/logprobs及seed/position相同，候选token不同；独立Torch图重放未复现，不能声称已确定某个allocator或硬件缺陷。",
+    "adaptation": "按固定原版Ascend的单kernel结构实现FP32 exp/residual、饱和31bit量化、Philox、uint32前缀和及两级选列；上层策略未改。",
+    "component": "v181共72组整数输出/总和精确；v184在无TRACE环境下原五步DFlash图精确，真实草稿40次行对比及两组24行residual精确，NPU FP32总和误差0；seed/position位边界及切片图变更通过。",
+    "invalid_diagnostics": "v163/v165/v167旧快照上限被占位步耗尽；v164零配对不算通过，v168断言拒绝。修正后v172有真实记录，v173配对44组。",
+    "unexecuted_and_failed_fixtures": [
+      "v154/v157/v183未派发模型验证",
+      "v171部署前Path类型失败0loads",
+      "v174私有目录冲突未启动组件",
+      "v176缺少原SamplingValidation.record导致组件失败",
+      "v178参考模块相对导入失败",
+      "v179/v180/v182编译类型限制失败；均0模型请求"
+    ]
+  },
+  "component_evidence": [
+    {
+      "path": "components/backend-semantics-v132.json",
+      "original_result_sha256": "85214b4da6f4fd0e3c37ca6b812acf34ae03ec681a7e714286848047bb5d3251",
+      "published_sha256": "f3553ff1067654c75fc3f35823010db1d0841c4e44629839ded72e1fc164da41"
+    },
+    {
+      "path": "components/backend-semantics-v133.json",
+      "original_result_sha256": "524f02af0dd6cd43f8f392f36e710574b9b3842eb3c2e31af1a8a7283ff9f39a",
+      "published_sha256": "6c13f44133ad7c3ac6c3b743782afec75bced9b75da5718e117eecd6d57fde42"
+    },
+    {
+      "path": "components/invariant-graph-v136.json",
+      "original_result_sha256": "87b35212e22bb0dec6bf6e3d3ff6918dd5a6ad5d060412a7532c8e1534d4ac05",
+      "published_sha256": "e1c5296683075edbcdc4f2e3aa72dab197a4ee013603631bc3c31564ed5cf26d"
+    },
+    {
+      "path": "components/engram-gate-v140.json",
+      "original_result_sha256": "6331fae72228a69d297b8371b054dbed14ddf4fee761e6015ed9089260068064",
+      "published_sha256": "cee6c69bbc5dc039af97e57f1d50b1d4bf8e8b7a709133f790b14ac1135cd1d5"
+    },
+    {
+      "path": "components/actual-mhc-v144.json",
+      "original_result_sha256": "16e6d51d87b35de7f3d86df4b6c1ad06631f25d047b71e2e84d61f3e292a8d76",
+      "published_sha256": "bdfca47d14fbae0fba268d2e5e304481a55a7169b024085e85bcd4941d6e50d7"
+    },
+    {
+      "path": "components/output-chain-v149.json",
+      "original_result_sha256": "21c9e3015e8f5370698e3438837037c531b459f4f9ef16a08d4f03aef6a16c1d",
+      "published_sha256": "f9acbd122015325154339395ac66a388eba493406ccaabbc89a8c1062d58ca91"
+    },
+    {
+      "path": "components/actual-rms-v153.json",
+      "original_result_sha256": "e408600d59a145df2fa71c26e2c16a71d27ab8a3980a98c95efcbf991bbd3a96",
+      "published_sha256": "8799b6d1b979daff288354f3898e48bb191e2144de8611c7ae89b1d3f8d19d00"
+    },
+    {
+      "path": "components/actual-rms-v155.json",
+      "original_result_sha256": "603faaa0d94956b19bf67897b5904260967fe121ad048d974a7c6efddb8a1849",
+      "published_sha256": "02f69c16f6903bb0ee56d4ea169959c0fd6ad7ffc6eca1125af0fe52d34ff227"
+    },
+    {
+      "path": "components/sampling-draw-v181.json",
+      "original_result_sha256": "229b31bcc05efd9cbb2e809f6e139f98af139d1731adbcbea1fa8cf0d9bee732",
+      "published_sha256": "44ab1251728423d55d5db90a472c082b5236e09239467b4049de1fc4b683ba13"
+    },
+    {
+      "path": "components/sampling-chain-v184.json",
+      "original_result_sha256": "122ba8fe22f4eb44bf416853e87cfd985b19275f0b26ebc1b18e109244482d9a",
+      "published_sha256": "ad2b623e4399cac5ea2aa77f9c3fd5492495b42f88744b58ecb5d552e57009a5"
+    }
+  ],
+  "artifacts": [
+    "joint-result.json",
+    "frozen-audit.json",
+    "graph-dispatch-audit.json",
+    "delivery-audit.json",
+    "runtime.json"
+  ],
+  "historical_model_campaign_counts": {
+    "134": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 1,
+      "sequence_admissions": 0,
+      "output_tokens": 0
+    },
+    "137": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 0,
+      "sequence_admissions": 16,
+      "output_tokens": 96
+    },
+    "141": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 0,
+      "sequence_admissions": 26,
+      "output_tokens": 106
+    },
+    "145": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 0,
+      "sequence_admissions": 26,
+      "output_tokens": 106
+    },
+    "156": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 0,
+      "sequence_admissions": 26,
+      "output_tokens": 106
+    },
+    "163": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 0,
+      "sequence_admissions": 20,
+      "output_tokens": 60
+    },
+    "172": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 0,
+      "sequence_admissions": 17,
+      "output_tokens": 101
+    },
+    "185": {
+      "candidate_model_loads": 1,
+      "recovery_model_loads": 0,
+      "sequence_admissions": 17,
+      "output_tokens": 101
+    }
+  },
+  "historical_same_resident_diagnostics": {
+    "147": {
+      "requests": 12,
+      "output_tokens": 12,
+      "model_loads": 0,
+      "service_transitions": 0
+    },
+    "150": {
+      "requests": 16,
+      "output_tokens": 16,
+      "model_loads": 0,
+      "service_transitions": 0
+    },
+    "152": {
+      "requests": 8,
+      "output_tokens": 8,
+      "model_loads": 0,
+      "service_transitions": 0
+    },
+    "165": {
+      "requests": 32,
+      "output_tokens": 192,
+      "model_loads": 0,
+      "service_transitions": 0
+    },
+    "167": {
+      "requests": 10,
+      "output_tokens": 60,
+      "model_loads": 0,
+      "service_transitions": 0
+    }
+  },
+  "performance_scoring": false,
+  "required_unfinished_adaptations": [],
+  "hardware_exemptions": []
+}

@@ -1,0 +1,23 @@
+#pragma once
+
+#include <deep_ep/comm/barrier.hpp>
+#include <deep_ep/common/compiled.hpp>
+#include <deep_ep/layout/common/signals.hpp>
+#include <deep_ep/common/exception.hpp>
+
+#include <kernel_operator.h>
+#include <simt_api/device_atomic_functions.h>
+
+namespace deep_ep {
+
+template <int kNumRanks, int kNumVecCores, int kNumJetties, int64_t kNumTimeoutCycles>
+__global__ __vector__ void barrier_impl(__gm__ void* common_signals, __gm__ void* jetty_ptrs, const int rank_idx) {
+    AscendC::InitSocState();
+
+    auto& signals = *static_cast<__gm__ layout::CommonSignals*>(common_signals);
+    const auto vec_core_idx = static_cast<int>(AscendC::GetBlockIdx());
+    comm::scalar::barrier<kNumRanks, kNumTimeoutCycles, true, false, false, kNumVecCores, kNumJetties>(
+        signals, vec_core_idx, jetty_ptrs);
+}
+
+}  // namespace deep_ep

@@ -1,0 +1,91 @@
+---
+# clang-tidy config for DeepGEMM-Ascend
+#
+# clangd automatically runs these checks and surfaces them as diagnostics
+# (it discovers the nearest .clang-tidy file up the directory tree).
+#
+# You can also run it standalone, e.g.:
+#   clang-tidy csrc/python_api.cpp -- -std=c++20 <includes...>
+#
+# Check groups are enabled broadly, then noisy/irrelevant checks are
+# individually disabled to keep signal high on a C++20 / PyTorch-extension
+# + Ascend-C kernel codebase.
+
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  misc-*,
+  portability-*,
+  cppcoreguidelines-*,
+  clang-analyzer-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-nodiscard,
+  -modernize-return-braced-init-list,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-braces-around-statements,
+  -readability-function-cognitive-complexity,
+  -readability-named-parameter,
+  -readability-implicit-bool-conversion,
+  -readability-isolate-declaration,
+  -readability-uppercase-literal-suffix,
+  -readability-qualified-auto,
+  -readability-math-missing-parentheses,
+  -readability-else-after-return,
+  -readability-simplify-boolean-expr,
+  -readability-redundant-typename,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -misc-include-cleaner,
+  -misc-use-anonymous-namespace,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-narrowing-conversions,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-use-enum-class,
+  -cppcoreguidelines-avoid-do-while,
+  -cppcoreguidelines-init-variables,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -readability-avoid-nested-conditional-operator,
+  -misc-unused-parameters,
+  -misc-unconventional-assign-operator,
+  -cppcoreguidelines-c-copy-assignment-signature,
+  -bugprone-throwing-static-initialization,
+  -bugprone-unsafe-to-allow-exceptions,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -bugprone-branch-clone,
+  -cppcoreguidelines-pro-type-member-init,
+  -bugprone-command-processor
+
+
+# Only report issues in this project's own headers/sources, not third-party
+# or system headers pulled in via the include paths in .clangd.
+HeaderFilterRegex: '.*/(csrc|deep_gemm)/.*'
+
+# Don't turn any tidy warnings into hard errors (keep them as warnings in clangd).
+WarningsAsErrors: ''
+
+FormatStyle: none
+
+CheckOptions:
+  - key:   readability-identifier-naming.IgnoreMainLikeFunctions
+    value: 'true'
+  - key:   misc-const-correctness.AnalyzeValues
+    value: 'true'

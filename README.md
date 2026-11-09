@@ -2,6 +2,12 @@
 
 本分支记录 **172 上的 DeepSeek V4.1 Flash W8A8 部署与 DeepInfer 910C 适配**。
 
+## DeepInfer 独立源码（2026-11-09）
+
+[进入 deepinfer/](deepinfer/)：完整原版框架适配源码、运行配置、三项适配验收和 SHA-256 校验入口。YOCO 窗口、严格跨批一致性及原版固定 seed 生成已在当前 DeepSeek W8A8 / DP2 CP8 EP16 配置内通过；新版本性能尚未重测。
+
+## 历史项目记录
+
 **官方 DSpark 置信度调度版 v15：521.07 token/s，平均首 token 805.65 ms，16/16 完整输出与冻结 vLLM 一致。** 对照 vLLM 518.42 token/s、831.25 ms；指定两轮吞吐高 0.51%。 见[最终DSpark结果](projects/910c-deepinfer-172/optimizations/20261028-dspark/README.md)。服务已按用户要求恢复，旧实验完成结论已撤回。
 
 | 入口 | 内容 |
