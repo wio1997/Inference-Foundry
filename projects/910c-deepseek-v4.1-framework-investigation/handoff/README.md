@@ -1,5 +1,14 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 2026-11-10 当前：末层物理cache与原行映射，继续输入/embedding
+
+**介绍**：保留body38完整aux39，body39沿writer/page/未来读者到topK/TP-SP返回。**到了哪里**：16运行源pin；slot3/group11、padded stride、非模128环；页按已处理提交prefix退役。3328单请求末行=CP7/旧local415，不能压成一行后取topK前缀。**结果**：尾128 writer且原prefix发布不变、新topK前缀且原restore不变两配方已停止；全原cache+显式旧行/原数值几何联合query/O/FFN仍待确认。56原C8窗口保留六cache原语旧时长的有利组件P90包络2.163059%；rho.5/h.5ms每wave条件净.947468%，非预计/实测/逐位准入，也不剪改变cache producer的大范围。混合波的全部验证行仍有读者。
+
+loop-016 **PIVOTED仅限源码/价格判断**，loop-017继续文本输入/embedding与DSpark context producer；实际多请求QSL/device长度、SMLA/HC/GEMM/EP原几何、逐位实现/净成本/六普通缺口保留。Goal ACTIVE，全链路未扫全，每替换原语逐位一致。本轮NPU0、推理0、新profile0、远端写入0，服务不变。
+
+[介绍、到了哪里、结果及下一条交付](evidence/final-cache-review.md)。
+
+
 <!-- FINAL-PRODUCER-20261110-START -->
 ## 当前前沿：aux完整接线更正，继续body39（loop-016）
 

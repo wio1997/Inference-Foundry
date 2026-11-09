@@ -1,0 +1,3335 @@
+{
+  "status": "PARTIAL_PHYSICAL_CACHE_AND_QUERY_ROW_REVIEW",
+  "whole_chain_complete": false,
+  "precision": "EVERY_REPLACEMENT_PRIMITIVE_BITWISE_IDENTICAL",
+  "source_identity": "final-cache-execution-identity.json",
+  "physical_chain": [
+    {
+      "entry": "cache_config.py:147-227,248-274",
+      "finding": "Four layer-outermost physical slot tensors; body39 SWA belongs to slot3 with source20/other SWAs. SWA groups transpose slots and allocate distinct global block IDs. Sharing a backing tensor does not authorize simultaneous same-block alias writes."
+    },
+    {
+      "entry": "model_runner_v1.py:5389-5462;dsa_v41.py:227-242,297-308",
+      "finding": "Per-layer views carry physical padded page stride; A3 scatter uses builder [block,row] coordinates and skips[-1,-1]. Original PA read uses the same group table; no modulo128 ring for target SWA."
+    },
+    {
+      "entry": "compute_slot_mapping.py:43-90;dsa_v41.py:974-1035",
+      "finding": "Noncircular DCP1 mapping is table[request,position//block_size]*block_size+position%block_size, then split by storage_block_size. A nonnegative null block ID is not automatically a PAD skip."
+    },
+    {
+      "entry": "kv_cache_manager.py:525-546;single_type_kv_cache_manager.py:681-718,944-1061,1146-1182",
+      "finding": "Retire full blocks from committed/processed prefix excluding in-flight speculation. Prefix-hit needs contiguous window-tail blocks plus eagle drop block; full chunks remain allocated while current queries run."
+    },
+    {
+      "entry": "single_type_kv_cache_manager.py:470-524,1063-1144;kv_cache_coordinator.py:335-360",
+      "finding": "SWA cached block tails may serve later sibling replay at reachable prefix boundaries. Dense/sparse retention, extra retained tokens and CoW ownership cannot be inferred from window length alone."
+    }
+  ],
+  "original_retention_integer_examples": [
+    {
+      "committed_prefix": 0,
+      "skipped_tokens": 0,
+      "freed_full_blocks": 0,
+      "retained_block_start": 0
+    },
+    {
+      "committed_prefix": 3200,
+      "skipped_tokens": 3073,
+      "freed_full_blocks": 24,
+      "retained_block_start": 3072
+    },
+    {
+      "committed_prefix": 3328,
+      "skipped_tokens": 3201,
+      "freed_full_blocks": 25,
+      "retained_block_start": 3200
+    },
+    {
+      "committed_prefix": 3334,
+      "skipped_tokens": 3207,
+      "freed_full_blocks": 25,
+      "retained_block_start": 3200
+    }
+  ],
+  "original_allocator_marker_replay": {
+    "body39_slot": 3,
+    "body39_framework_group": 11,
+    "aliased_slot_names": [
+      "model.layers.20.self_attn.long_kv_cache",
+      "model.layers.20.self_attn.indexer.k_cache",
+      "model.layers.3.self_attn.swa_cache",
+      "model.layers.7.self_attn.swa_cache",
+      "model.layers.11.self_attn.swa_cache",
+      "model.layers.15.self_attn.swa_cache",
+      "model.layers.19.self_attn.swa_cache",
+      "model.layers.23.self_attn.swa_cache",
+      "model.layers.27.self_attn.swa_cache",
+      "model.layers.31.self_attn.swa_cache",
+      "model.layers.35.self_attn.swa_cache",
+      "model.layers.39.self_attn.swa_cache"
+    ],
+    "qualification": "Executed original topology helper with inert marker specs. No Torch import; dummy capacities discarded. Group11 follows original transpose after full/state groups; not a live data_ptr/block-ID dump."
+  },
+  "tail_only_counterexample": {
+    "original_length": 3328,
+    "naive_kept_rows": [
+      3200,
+      3327
+    ],
+    "later_query_position": 256,
+    "needed_window": [
+      129,
+      256
+    ],
+    "existing_cache_needed": [
+      129,
+      255
+    ],
+    "shared_prefix_at_least": 384,
+    "possible_eagle_peek_blocks": [
+      1,
+      2
+    ],
+    "later_private_query_row": 256,
+    "qualification": "Legal logical prefix replay counterexample; not an observed C8 hit. Tail-only writer with unchanged cache publication is stopped. Effective prefix setting is not needed to retain the safe full-writer alternative."
+  },
+  "selected_row_contract": {
+    "equation": "For original global query row g: old CP owner=floor(g/ceil(N/8)); old local row=g-owner*ceil(N/8). Gather topK36 by that old local row. Restore selected global IDs explicitly through TP head exchange and SP return.",
+    "single_request_3328": {
+      "global_selected_row": 3327,
+      "CP_owner": 7,
+      "old_CP_local_topK_row": 415,
+      "wrong_new_prefix_row": 0,
+      "all_eight_TP_participants_required": true
+    },
+    "contiguous_suffix": "For each original request/CP intersection, selecting its tail k and keeping authoritative device seq_len preserves logical causal position L-k+j. Arbitrary holes need explicit positions/custom metadata or dense fallback. Logical set equality does not prove SMLA primitive bits.",
+    "numerical_geometry": "Keep old M/tile indices, KV reduction/softmax/P rounding, GEMM and HC reduction trees, EP expert order and original collective reduction arithmetic for every retained output. Masking tiles is a design direction; no native implementation or admission.",
+    "cases": [
+      {
+        "wave": 3,
+        "DP": 0,
+        "scheduled_total": 3328,
+        "prefill_requests": 1,
+        "all_live_verify_rows": 0,
+        "selected_count": 1,
+        "native_head_rows": 1,
+        "exact_multi_request_row_order": "NOT_DERIVED_FROM_SCHEDULER_DICT"
+      },
+      {
+        "wave": 4,
+        "DP": 0,
+        "scheduled_total": 6,
+        "prefill_requests": 0,
+        "all_live_verify_rows": 6,
+        "selected_count": 6,
+        "native_head_rows": 6,
+        "exact_multi_request_row_order": "NOT_DERIVED_FROM_SCHEDULER_DICT"
+      },
+      {
+        "wave": 4,
+        "DP": 1,
+        "scheduled_total": 6528,
+        "prefill_requests": 2,
+        "all_live_verify_rows": 0,
+        "selected_count": 2,
+        "native_head_rows": 2,
+        "exact_multi_request_row_order": "NOT_DERIVED_FROM_SCHEDULER_DICT"
+      },
+      {
+        "wave": 5,
+        "DP": 0,
+        "scheduled_total": 6534,
+        "prefill_requests": 2,
+        "all_live_verify_rows": 6,
+        "selected_count": 8,
+        "native_head_rows": 8,
+        "exact_multi_request_row_order": "NOT_DERIVED_FROM_SCHEDULER_DICT"
+      },
+      {
+        "wave": 5,
+        "DP": 1,
+        "scheduled_total": 12,
+        "prefill_requests": 0,
+        "all_live_verify_rows": 12,
+        "selected_count": 12,
+        "native_head_rows": 12,
+        "exact_multi_request_row_order": "NOT_DERIVED_FROM_SCHEDULER_DICT"
+      },
+      {
+        "wave": 6,
+        "DP": 0,
+        "scheduled_total": 3346,
+        "prefill_requests": 1,
+        "all_live_verify_rows": 18,
+        "selected_count": 19,
+        "native_head_rows": 19,
+        "exact_multi_request_row_order": "NOT_DERIVED_FROM_SCHEDULER_DICT"
+      },
+      {
+        "wave": 6,
+        "DP": 1,
+        "scheduled_total": 6540,
+        "prefill_requests": 2,
+        "all_live_verify_rows": 12,
+        "selected_count": 14,
+        "native_head_rows": 14,
+        "exact_multi_request_row_order": "NOT_DERIVED_FROM_SCHEDULER_DICT"
+      }
+    ],
+    "outstanding": [
+      "Actual multi-request InputBatch/QSL and post-reject seq_len mapping rather than scheduler dict order",
+      "SMLA metadata/task partition and selected suffix can change K-panel/partial softmax order; prove bit-preserving old geometry",
+      "Zero-query ranks must retain full cache writes and participate in TP exchange; retain original SP residual/pre_mix ownership",
+      "Original FFN expert grouping/tiling changes under compaction; previous failed compact recipe stays stopped"
+    ]
+  },
+  "C8_retained_cache_sensitivity": {
+    "windows": [
+      {
+        "wave": 3,
+        "rank": 0,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.41228,
+        "start_ns": 1793646071353380425,
+        "head_start_ns": 1793646071358792705,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44692,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 115980
+          },
+          {
+            "task": 44693,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 25920
+          },
+          {
+            "task": 44904,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 117460
+          },
+          {
+            "task": 44910,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 21380
+          },
+          {
+            "task": 44913,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 20300
+          },
+          {
+            "task": 44914,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 143940
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44498,
+        "adjusted_free_end_ns": 1793646071358347725,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 3,
+        "rank": 1,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.417512,
+        "start_ns": 1793646071353372507,
+        "head_start_ns": 1793646071358790019,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44692,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 118058
+          },
+          {
+            "task": 44693,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 21999
+          },
+          {
+            "task": 44904,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 116958
+          },
+          {
+            "task": 44910,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 21639
+          },
+          {
+            "task": 44913,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 20600
+          },
+          {
+            "task": 44914,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 136617
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.435871,
+        "adjusted_free_end_ns": 1793646071358354148,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 3,
+        "rank": 2,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.414352,
+        "start_ns": 1793646071353366580,
+        "head_start_ns": 1793646071358780932,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44101,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 116577
+          },
+          {
+            "task": 44102,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 27960
+          },
+          {
+            "task": 44313,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 115858
+          },
+          {
+            "task": 44319,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 22140
+          },
+          {
+            "task": 44322,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 18479
+          },
+          {
+            "task": 44323,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 139078
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.440092,
+        "adjusted_free_end_ns": 1793646071358340840,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 3,
+        "rank": 3,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.42636,
+        "start_ns": 1793646071353374890,
+        "head_start_ns": 1793646071358801250,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44101,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 120000
+          },
+          {
+            "task": 44102,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 30160
+          },
+          {
+            "task": 44313,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 114560
+          },
+          {
+            "task": 44319,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 22780
+          },
+          {
+            "task": 44322,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 19820
+          },
+          {
+            "task": 44323,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 141220
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44854,
+        "adjusted_free_end_ns": 1793646071358352710,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 3,
+        "rank": 4,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.41994,
+        "start_ns": 1793646071353377520,
+        "head_start_ns": 1793646071358797460,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44101,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 117260
+          },
+          {
+            "task": 44102,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 23980
+          },
+          {
+            "task": 44313,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 114560
+          },
+          {
+            "task": 44319,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 25260
+          },
+          {
+            "task": 44322,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 18860
+          },
+          {
+            "task": 44323,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 141600
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44152,
+        "adjusted_free_end_ns": 1793646071358355940,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 3,
+        "rank": 5,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.4018,
+        "start_ns": 1793646071353377235,
+        "head_start_ns": 1793646071358779035,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44098,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 117000
+          },
+          {
+            "task": 44099,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 25080
+          },
+          {
+            "task": 44310,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 116220
+          },
+          {
+            "task": 44316,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 21640
+          },
+          {
+            "task": 44319,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 19620
+          },
+          {
+            "task": 44320,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 140840
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.4404,
+        "adjusted_free_end_ns": 1793646071358338635,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 3,
+        "rank": 6,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.41196,
+        "start_ns": 1793646071353381355,
+        "head_start_ns": 1793646071358793315,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44066,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 117380
+          },
+          {
+            "task": 44067,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 27620
+          },
+          {
+            "task": 44273,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 115660
+          },
+          {
+            "task": 44280,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 21980
+          },
+          {
+            "task": 44283,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 20500
+          },
+          {
+            "task": 44284,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 139620
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44276,
+        "adjusted_free_end_ns": 1793646071358350555,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 3,
+        "rank": 7,
+        "ordinal": 0,
+        "scheduled": {
+          "7": 3328
+        },
+        "original_parent_ms": 5.40676,
+        "start_ns": 1793646071353385630,
+        "head_start_ns": 1793646071358792390,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 44101,
+            "type": "HcPre",
+            "input_shapes": "\"416,4,5120;24,20480;3;24;416,4\"",
+            "duration_ns": 117300
+          },
+          {
+            "task": 44102,
+            "type": "RmsNorm",
+            "input_shapes": "\"416,5120;5120\"",
+            "duration_ns": 26740
+          },
+          {
+            "task": 44313,
+            "type": "MatMulV2",
+            "input_shapes": "\"3328,5120;512,5120\"",
+            "duration_ns": 118000
+          },
+          {
+            "task": 44319,
+            "type": "RmsNorm",
+            "input_shapes": "\"3328,512;512\"",
+            "duration_ns": 21760
+          },
+          {
+            "task": 44322,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3328,1,1,512;3328,1,1,64;3328,1,1,64\"",
+            "duration_ns": 16980
+          },
+          {
+            "task": 44323,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3328,2;3328,512\"",
+            "duration_ns": 137020
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.4378,
+        "adjusted_free_end_ns": 1793646071358354590,
+        "native_head_rows": 1
+      },
+      {
+        "wave": 4,
+        "rank": 0,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.2269,
+        "start_ns": 1793646071698240425,
+        "head_start_ns": 1793646071704467325,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 51665,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 38160
+          },
+          {
+            "task": 51666,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4980
+          },
+          {
+            "task": 51682,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 11000
+          },
+          {
+            "task": 51688,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 9300
+          },
+          {
+            "task": 51691,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 4280
+          },
+          {
+            "task": 51692,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 47060
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.11478,
+        "adjusted_free_end_ns": 1793646071704352545,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 1,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.224956,
+        "start_ns": 1793646071698223837,
+        "head_start_ns": 1793646071704448793,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 51665,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 36479
+          },
+          {
+            "task": 51666,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4880
+          },
+          {
+            "task": 51682,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 10980
+          },
+          {
+            "task": 51688,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 9280
+          },
+          {
+            "task": 51691,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 4340
+          },
+          {
+            "task": 51692,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 43739
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.109698,
+        "adjusted_free_end_ns": 1793646071704339095,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 2,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.220396,
+        "start_ns": 1793646071698223429,
+        "head_start_ns": 1793646071704443825,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 49930,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 35620
+          },
+          {
+            "task": 49931,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4720
+          },
+          {
+            "task": 49940,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 10360
+          },
+          {
+            "task": 49941,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 6080
+          },
+          {
+            "task": 49942,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 4220
+          },
+          {
+            "task": 49943,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 10619
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.071619,
+        "adjusted_free_end_ns": 1793646071704372206,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 3,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.22628,
+        "start_ns": 1793646071698236770,
+        "head_start_ns": 1793646071704463050,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 49929,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 35300
+          },
+          {
+            "task": 49930,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4960
+          },
+          {
+            "task": 49939,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 11060
+          },
+          {
+            "task": 49940,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 6340
+          },
+          {
+            "task": 49941,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 4220
+          },
+          {
+            "task": 49942,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 10380
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.07226,
+        "adjusted_free_end_ns": 1793646071704390790,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 4,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.229,
+        "start_ns": 1793646071698235120,
+        "head_start_ns": 1793646071704464120,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 49929,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 37340
+          },
+          {
+            "task": 49930,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4740
+          },
+          {
+            "task": 49939,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 10320
+          },
+          {
+            "task": 49940,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 6080
+          },
+          {
+            "task": 49941,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 3900
+          },
+          {
+            "task": 49942,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 13180
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.07556,
+        "adjusted_free_end_ns": 1793646071704388560,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 5,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.22838,
+        "start_ns": 1793646071698233215,
+        "head_start_ns": 1793646071704461595,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 49844,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 33520
+          },
+          {
+            "task": 49845,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4860
+          },
+          {
+            "task": 49854,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 10060
+          },
+          {
+            "task": 49855,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 6420
+          },
+          {
+            "task": 49856,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 4220
+          },
+          {
+            "task": 49857,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 10440
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.06952,
+        "adjusted_free_end_ns": 1793646071704392075,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 6,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.22696,
+        "start_ns": 1793646071698239295,
+        "head_start_ns": 1793646071704466255,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 49844,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 34220
+          },
+          {
+            "task": 49845,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4800
+          },
+          {
+            "task": 49854,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 10480
+          },
+          {
+            "task": 49855,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 6500
+          },
+          {
+            "task": 49856,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 4040
+          },
+          {
+            "task": 49857,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 9780
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.06982,
+        "adjusted_free_end_ns": 1793646071704396435,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 7,
+        "ordinal": 1,
+        "scheduled": {
+          "7": 6
+        },
+        "original_parent_ms": 6.22298,
+        "start_ns": 1793646071698236150,
+        "head_start_ns": 1793646071704459130,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 49847,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 34160
+          },
+          {
+            "task": 49848,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4960
+          },
+          {
+            "task": 49857,
+            "type": "MatMulV2",
+            "input_shapes": "\"6,5120;512,5120\"",
+            "duration_ns": 10760
+          },
+          {
+            "task": 49858,
+            "type": "RmsNorm",
+            "input_shapes": "\"6,512;512\"",
+            "duration_ns": 6900
+          },
+          {
+            "task": 49859,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6,1,1,512;6,1,1,64;6,1,1,64\"",
+            "duration_ns": 4100
+          },
+          {
+            "task": 49860,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6,2;6,512\"",
+            "duration_ns": 11120
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.072,
+        "adjusted_free_end_ns": 1793646071704387130,
+        "native_head_rows": 6
+      },
+      {
+        "wave": 4,
+        "rank": 8,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.577828,
+        "start_ns": 1793646071698803286,
+        "head_start_ns": 1793646071708381114,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47971,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 187876
+          },
+          {
+            "task": 47972,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 36399
+          },
+          {
+            "task": 48183,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 196396
+          },
+          {
+            "task": 48189,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 29959
+          },
+          {
+            "task": 48192,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 19640
+          },
+          {
+            "task": 48193,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 208456
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.678726,
+        "adjusted_free_end_ns": 1793646071707702388,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 4,
+        "rank": 9,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.57678,
+        "start_ns": 1793646071698815665,
+        "head_start_ns": 1793646071708392445,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47971,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 186440
+          },
+          {
+            "task": 47972,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 29860
+          },
+          {
+            "task": 48183,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 196160
+          },
+          {
+            "task": 48189,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 31520
+          },
+          {
+            "task": 48192,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 20420
+          },
+          {
+            "task": 48193,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 210260
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67466,
+        "adjusted_free_end_ns": 1793646071707717785,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 4,
+        "rank": 10,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.60236,
+        "start_ns": 1793646071698821545,
+        "head_start_ns": 1793646071708423905,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47380,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 187020
+          },
+          {
+            "task": 47381,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 31940
+          },
+          {
+            "task": 47592,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 198380
+          },
+          {
+            "task": 47598,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 33460
+          },
+          {
+            "task": 47601,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 19220
+          },
+          {
+            "task": 47602,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 204440
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67446,
+        "adjusted_free_end_ns": 1793646071707749445,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 4,
+        "rank": 11,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.56618,
+        "start_ns": 1793646071698814365,
+        "head_start_ns": 1793646071708380545,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47380,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 189300
+          },
+          {
+            "task": 47381,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 28260
+          },
+          {
+            "task": 47592,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 194780
+          },
+          {
+            "task": 47598,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 30280
+          },
+          {
+            "task": 47601,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 21380
+          },
+          {
+            "task": 47602,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 207640
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67164,
+        "adjusted_free_end_ns": 1793646071707708905,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 4,
+        "rank": 12,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.5716,
+        "start_ns": 1793646071698816780,
+        "head_start_ns": 1793646071708388380,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47380,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 188900
+          },
+          {
+            "task": 47381,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 28540
+          },
+          {
+            "task": 47592,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 192400
+          },
+          {
+            "task": 47598,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 29440
+          },
+          {
+            "task": 47601,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 20880
+          },
+          {
+            "task": 47602,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 208960
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.66912,
+        "adjusted_free_end_ns": 1793646071707719260,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 4,
+        "rank": 13,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.585068,
+        "start_ns": 1793646071698798496,
+        "head_start_ns": 1793646071708383564,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47380,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 184676
+          },
+          {
+            "task": 47381,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 33380
+          },
+          {
+            "task": 47592,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 197116
+          },
+          {
+            "task": 47598,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 30600
+          },
+          {
+            "task": 47601,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 20319
+          },
+          {
+            "task": 47602,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 209096
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.675187,
+        "adjusted_free_end_ns": 1793646071707708377,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 4,
+        "rank": 14,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.6056,
+        "start_ns": 1793646071698815790,
+        "head_start_ns": 1793646071708421390,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47380,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 189440
+          },
+          {
+            "task": 47381,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 31740
+          },
+          {
+            "task": 47592,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 196860
+          },
+          {
+            "task": 47598,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 34800
+          },
+          {
+            "task": 47601,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 19680
+          },
+          {
+            "task": 47602,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 212080
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.6846,
+        "adjusted_free_end_ns": 1793646071707736790,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 4,
+        "rank": 15,
+        "ordinal": 1,
+        "scheduled": {
+          "3": 3200,
+          "2": 3328
+        },
+        "original_parent_ms": 9.58986,
+        "start_ns": 1793646071698818360,
+        "head_start_ns": 1793646071708408220,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 47380,
+            "type": "HcPre",
+            "input_shapes": "\"816,4,5120;24,20480;3;24;816,4\"",
+            "duration_ns": 182300
+          },
+          {
+            "task": 47381,
+            "type": "RmsNorm",
+            "input_shapes": "\"816,5120;5120\"",
+            "duration_ns": 31620
+          },
+          {
+            "task": 47592,
+            "type": "MatMulV2",
+            "input_shapes": "\"6528,5120;512,5120\"",
+            "duration_ns": 198960
+          },
+          {
+            "task": 47598,
+            "type": "RmsNorm",
+            "input_shapes": "\"6528,512;512\"",
+            "duration_ns": 28800
+          },
+          {
+            "task": 47601,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6528,1,1,512;6528,1,1,64;6528,1,1,64\"",
+            "duration_ns": 19900
+          },
+          {
+            "task": 47602,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6528,2;6528,512\"",
+            "duration_ns": 208980
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67056,
+        "adjusted_free_end_ns": 1793646071707737660,
+        "native_head_rows": 2
+      },
+      {
+        "wave": 5,
+        "rank": 0,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.59804,
+        "start_ns": 1793646072034993325,
+        "head_start_ns": 1793646072044591365,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 78565,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 188080
+          },
+          {
+            "task": 78566,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 33160
+          },
+          {
+            "task": 78777,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 190240
+          },
+          {
+            "task": 78783,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 28160
+          },
+          {
+            "task": 78786,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 21300
+          },
+          {
+            "task": 78787,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 210560
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.6715,
+        "adjusted_free_end_ns": 1793646072043919865,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 1,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.612628,
+        "start_ns": 1793646072034967769,
+        "head_start_ns": 1793646072044580397,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 78565,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 190136
+          },
+          {
+            "task": 78566,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 28100
+          },
+          {
+            "task": 78777,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 193876
+          },
+          {
+            "task": 78783,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 29780
+          },
+          {
+            "task": 78786,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 19739
+          },
+          {
+            "task": 78787,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 204936
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.666567,
+        "adjusted_free_end_ns": 1793646072043913830,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 2,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.565229,
+        "start_ns": 1793646072034967321,
+        "head_start_ns": 1793646072044532550,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 76816,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 193196
+          },
+          {
+            "task": 76817,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 30400
+          },
+          {
+            "task": 77028,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 193476
+          },
+          {
+            "task": 77034,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 29979
+          },
+          {
+            "task": 77037,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 20640
+          },
+          {
+            "task": 77038,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 208376
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.676067,
+        "adjusted_free_end_ns": 1793646072043856483,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 3,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.6034,
+        "start_ns": 1793646072034989790,
+        "head_start_ns": 1793646072044593190,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 76728,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 190900
+          },
+          {
+            "task": 76729,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 30140
+          },
+          {
+            "task": 76940,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 192160
+          },
+          {
+            "task": 76946,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 29680
+          },
+          {
+            "task": 76949,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 20300
+          },
+          {
+            "task": 76950,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 209620
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.6728,
+        "adjusted_free_end_ns": 1793646072043920390,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 4,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.59114,
+        "start_ns": 1793646072034989040,
+        "head_start_ns": 1793646072044580180,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 76728,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 190420
+          },
+          {
+            "task": 76729,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 28960
+          },
+          {
+            "task": 76940,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 192520
+          },
+          {
+            "task": 76946,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 28900
+          },
+          {
+            "task": 76949,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 19060
+          },
+          {
+            "task": 76950,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 207600
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.66746,
+        "adjusted_free_end_ns": 1793646072043912720,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 5,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.57012,
+        "start_ns": 1793646072034985075,
+        "head_start_ns": 1793646072044555195,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 76643,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 189260
+          },
+          {
+            "task": 76644,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 30600
+          },
+          {
+            "task": 76855,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 198140
+          },
+          {
+            "task": 76861,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 26680
+          },
+          {
+            "task": 76864,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 19800
+          },
+          {
+            "task": 76865,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 210060
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67454,
+        "adjusted_free_end_ns": 1793646072043880655,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 6,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.58128,
+        "start_ns": 1793646072034989615,
+        "head_start_ns": 1793646072044570895,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 76643,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 189780
+          },
+          {
+            "task": 76644,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 33060
+          },
+          {
+            "task": 76855,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 199840
+          },
+          {
+            "task": 76861,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 26000
+          },
+          {
+            "task": 76864,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 20440
+          },
+          {
+            "task": 76865,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 212100
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.68122,
+        "adjusted_free_end_ns": 1793646072043889675,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 7,
+        "ordinal": 2,
+        "scheduled": {
+          "7": 6,
+          "6": 3200,
+          "0": 3328
+        },
+        "original_parent_ms": 9.598,
+        "start_ns": 1793646072034989410,
+        "head_start_ns": 1793646072044587410,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 76724,
+            "type": "HcPre",
+            "input_shapes": "\"817,4,5120;24,20480;3;24;817,4\"",
+            "duration_ns": 187000
+          },
+          {
+            "task": 76725,
+            "type": "RmsNorm",
+            "input_shapes": "\"817,5120;5120\"",
+            "duration_ns": 33460
+          },
+          {
+            "task": 76936,
+            "type": "MatMulV2",
+            "input_shapes": "\"6534,5120;512,5120\"",
+            "duration_ns": 195060
+          },
+          {
+            "task": 76942,
+            "type": "RmsNorm",
+            "input_shapes": "\"6534,512;512\"",
+            "duration_ns": 27500
+          },
+          {
+            "task": 76945,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6534,1,1,512;6534,1,1,64;6534,1,1,64\"",
+            "duration_ns": 20760
+          },
+          {
+            "task": 76946,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6534,2;6534,512\"",
+            "duration_ns": 214460
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67824,
+        "adjusted_free_end_ns": 1793646072043909170,
+        "native_head_rows": 8
+      },
+      {
+        "wave": 5,
+        "rank": 8,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.218175,
+        "start_ns": 1793646072034396481,
+        "head_start_ns": 1793646072040614656,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 55164,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 33499
+          },
+          {
+            "task": 55165,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 3700
+          },
+          {
+            "task": 55181,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 12840
+          },
+          {
+            "task": 55187,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 8400
+          },
+          {
+            "task": 55190,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 4740
+          },
+          {
+            "task": 55191,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 44339
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.107518,
+        "adjusted_free_end_ns": 1793646072040507138,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 5,
+        "rank": 9,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.21508,
+        "start_ns": 1793646072034414705,
+        "head_start_ns": 1793646072040629785,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 55164,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 38860
+          },
+          {
+            "task": 55165,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4880
+          },
+          {
+            "task": 55181,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 10200
+          },
+          {
+            "task": 55187,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 10300
+          },
+          {
+            "task": 55190,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 6900
+          },
+          {
+            "task": 55191,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 38340
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.10948,
+        "adjusted_free_end_ns": 1793646072040520305,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 5,
+        "rank": 10,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.21694,
+        "start_ns": 1793646072034424765,
+        "head_start_ns": 1793646072040641705,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 54573,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 47600
+          },
+          {
+            "task": 54574,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 5220
+          },
+          {
+            "task": 54590,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 14120
+          },
+          {
+            "task": 54596,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 10540
+          },
+          {
+            "task": 54599,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 4600
+          },
+          {
+            "task": 54600,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 40680
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.12276,
+        "adjusted_free_end_ns": 1793646072040518945,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 5,
+        "rank": 11,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.21442,
+        "start_ns": 1793646072034423585,
+        "head_start_ns": 1793646072040638005,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 54573,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 36760
+          },
+          {
+            "task": 54574,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4720
+          },
+          {
+            "task": 54590,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 10140
+          },
+          {
+            "task": 54596,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 8360
+          },
+          {
+            "task": 54599,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 4620
+          },
+          {
+            "task": 54600,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 44600
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.1092,
+        "adjusted_free_end_ns": 1793646072040528805,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 5,
+        "rank": 12,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.211,
+        "start_ns": 1793646072034418660,
+        "head_start_ns": 1793646072040629660,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 53429,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 35800
+          },
+          {
+            "task": 53430,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4740
+          },
+          {
+            "task": 53439,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 9640
+          },
+          {
+            "task": 53440,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 7400
+          },
+          {
+            "task": 53441,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 5180
+          },
+          {
+            "task": 53442,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 11920
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.07468,
+        "adjusted_free_end_ns": 1793646072040554980,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 5,
+        "rank": 13,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.214856,
+        "start_ns": 1793646072034392351,
+        "head_start_ns": 1793646072040607207,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 53346,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 36599
+          },
+          {
+            "task": 53347,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4960
+          },
+          {
+            "task": 53356,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 10220
+          },
+          {
+            "task": 53357,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 7020
+          },
+          {
+            "task": 53358,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 5359
+          },
+          {
+            "task": 53359,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 12540
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.076698,
+        "adjusted_free_end_ns": 1793646072040530509,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 5,
+        "rank": 14,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.21652,
+        "start_ns": 1793646072034416870,
+        "head_start_ns": 1793646072040633390,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 53346,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 34600
+          },
+          {
+            "task": 53347,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 4800
+          },
+          {
+            "task": 53356,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 11600
+          },
+          {
+            "task": 53357,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 7520
+          },
+          {
+            "task": 53358,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 4840
+          },
+          {
+            "task": 53359,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 11740
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.0751,
+        "adjusted_free_end_ns": 1793646072040558290,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 5,
+        "rank": 15,
+        "ordinal": 2,
+        "scheduled": {
+          "3": 6,
+          "2": 6
+        },
+        "original_parent_ms": 6.21884,
+        "start_ns": 1793646072034414320,
+        "head_start_ns": 1793646072040633160,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 53346,
+            "type": "HcPre",
+            "input_shapes": "\"3,4,5120;24,20480;3;24;3,4\"",
+            "duration_ns": 32800
+          },
+          {
+            "task": 53347,
+            "type": "RmsNorm",
+            "input_shapes": "\"3,5120;5120\"",
+            "duration_ns": 5520
+          },
+          {
+            "task": 53356,
+            "type": "MatMulV2",
+            "input_shapes": "\"12,5120;512,5120\"",
+            "duration_ns": 10300
+          },
+          {
+            "task": 53357,
+            "type": "RmsNorm",
+            "input_shapes": "\"12,512;512\"",
+            "duration_ns": 7480
+          },
+          {
+            "task": 53358,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"12,1,1,512;12,1,1,64;12,1,1,64\"",
+            "duration_ns": 4900
+          },
+          {
+            "task": 53359,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;12,2;12,512\"",
+            "duration_ns": 11620
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.07262,
+        "adjusted_free_end_ns": 1793646072040560540,
+        "native_head_rows": 12
+      },
+      {
+        "wave": 6,
+        "rank": 0,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.19338,
+        "start_ns": 1793646072387743305,
+        "head_start_ns": 1793646072395936685,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 107041,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 116220
+          },
+          {
+            "task": 107042,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 27020
+          },
+          {
+            "task": 107253,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 121680
+          },
+          {
+            "task": 107259,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 22820
+          },
+          {
+            "task": 107262,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 18460
+          },
+          {
+            "task": 107263,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 130980
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.43718,
+        "adjusted_free_end_ns": 1793646072395499505,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 1,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.163737,
+        "start_ns": 1793646072387726421,
+        "head_start_ns": 1793646072395890158,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 107041,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 120497
+          },
+          {
+            "task": 107042,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 23080
+          },
+          {
+            "task": 107253,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 120537
+          },
+          {
+            "task": 107259,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 22600
+          },
+          {
+            "task": 107262,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 17280
+          },
+          {
+            "task": 107263,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 134177
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.438171,
+        "adjusted_free_end_ns": 1793646072395451987,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 2,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.170817,
+        "start_ns": 1793646072387722913,
+        "head_start_ns": 1793646072395893730,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 105292,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 118918
+          },
+          {
+            "task": 105293,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 23299
+          },
+          {
+            "task": 105504,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 121298
+          },
+          {
+            "task": 105510,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 22099
+          },
+          {
+            "task": 105513,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 18480
+          },
+          {
+            "task": 105514,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 143637
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.447731,
+        "adjusted_free_end_ns": 1793646072395445999,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 3,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.18608,
+        "start_ns": 1793646072387750590,
+        "head_start_ns": 1793646072395936670,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 105204,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 122940
+          },
+          {
+            "task": 105205,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 24820
+          },
+          {
+            "task": 105416,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 120920
+          },
+          {
+            "task": 105422,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 22320
+          },
+          {
+            "task": 105425,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 18820
+          },
+          {
+            "task": 105426,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 123620
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.43344,
+        "adjusted_free_end_ns": 1793646072395503230,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 4,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.15258,
+        "start_ns": 1793646072387772080,
+        "head_start_ns": 1793646072395924660,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 105204,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 117960
+          },
+          {
+            "task": 105205,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 24080
+          },
+          {
+            "task": 105416,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 119080
+          },
+          {
+            "task": 105422,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 25960
+          },
+          {
+            "task": 105425,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 16680
+          },
+          {
+            "task": 105426,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 137180
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44094,
+        "adjusted_free_end_ns": 1793646072395483720,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 5,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.18562,
+        "start_ns": 1793646072387746175,
+        "head_start_ns": 1793646072395931795,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 105119,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 121380
+          },
+          {
+            "task": 105120,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 25820
+          },
+          {
+            "task": 105331,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 120800
+          },
+          {
+            "task": 105337,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 22140
+          },
+          {
+            "task": 105340,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 19480
+          },
+          {
+            "task": 105341,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 134920
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44454,
+        "adjusted_free_end_ns": 1793646072395487255,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 6,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.1843,
+        "start_ns": 1793646072387751295,
+        "head_start_ns": 1793646072395935595,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 105119,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 125500
+          },
+          {
+            "task": 105120,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 28300
+          },
+          {
+            "task": 105331,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 120360
+          },
+          {
+            "task": 105337,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 22780
+          },
+          {
+            "task": 105340,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 19120
+          },
+          {
+            "task": 105341,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 128260
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44432,
+        "adjusted_free_end_ns": 1793646072395491275,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 7,
+        "ordinal": 3,
+        "scheduled": {
+          "7": 6,
+          "6": 6,
+          "0": 6,
+          "5": 3328
+        },
+        "original_parent_ms": 8.17398,
+        "start_ns": 1793646072387749470,
+        "head_start_ns": 1793646072395923450,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 105286,
+            "type": "HcPre",
+            "input_shapes": "\"419,4,5120;24,20480;3;24;419,4\"",
+            "duration_ns": 118380
+          },
+          {
+            "task": 105287,
+            "type": "RmsNorm",
+            "input_shapes": "\"419,5120;5120\"",
+            "duration_ns": 26980
+          },
+          {
+            "task": 105498,
+            "type": "MatMulV2",
+            "input_shapes": "\"3346,5120;512,5120\"",
+            "duration_ns": 120580
+          },
+          {
+            "task": 105504,
+            "type": "RmsNorm",
+            "input_shapes": "\"3346,512;512\"",
+            "duration_ns": 23060
+          },
+          {
+            "task": 105507,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"3346,1,1,512;3346,1,1,64;3346,1,1,64\"",
+            "duration_ns": 16620
+          },
+          {
+            "task": 105508,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;3346,2;3346,512\"",
+            "duration_ns": 134740
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.44036,
+        "adjusted_free_end_ns": 1793646072395483090,
+        "native_head_rows": 19
+      },
+      {
+        "wave": 6,
+        "rank": 8,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.055939,
+        "start_ns": 1793646072387945317,
+        "head_start_ns": 1793646072398001256,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 82094,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 190996
+          },
+          {
+            "task": 82095,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 29879
+          },
+          {
+            "task": 82306,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 192456
+          },
+          {
+            "task": 82312,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 28840
+          },
+          {
+            "task": 82315,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 20240
+          },
+          {
+            "task": 82316,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 206095
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.668506,
+        "adjusted_free_end_ns": 1793646072397332750,
+        "native_head_rows": 14
+      },
+      {
+        "wave": 6,
+        "rank": 9,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.07068,
+        "start_ns": 1793646072387955585,
+        "head_start_ns": 1793646072398026265,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 82094,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 189520
+          },
+          {
+            "task": 82095,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 30740
+          },
+          {
+            "task": 82306,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 193600
+          },
+          {
+            "task": 82312,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 28680
+          },
+          {
+            "task": 82315,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 22080
+          },
+          {
+            "task": 82316,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 206460
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67108,
+        "adjusted_free_end_ns": 1793646072397355185,
+        "native_head_rows": 14
+      },
+      {
+        "wave": 6,
+        "rank": 10,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.0772,
+        "start_ns": 1793646072387970205,
+        "head_start_ns": 1793646072398047405,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 81503,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 189720
+          },
+          {
+            "task": 81504,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 32500
+          },
+          {
+            "task": 81715,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 198000
+          },
+          {
+            "task": 81721,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 33840
+          },
+          {
+            "task": 81724,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 18620
+          },
+          {
+            "task": 81725,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 208340
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.68102,
+        "adjusted_free_end_ns": 1793646072397366385,
+        "native_head_rows": 14
+      },
+      {
+        "wave": 6,
+        "rank": 11,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.0646,
+        "start_ns": 1793646072387953525,
+        "head_start_ns": 1793646072398018125,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 81503,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 190320
+          },
+          {
+            "task": 81504,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 28440
+          },
+          {
+            "task": 81715,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 193400
+          },
+          {
+            "task": 81721,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 30180
+          },
+          {
+            "task": 81724,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 22220
+          },
+          {
+            "task": 81725,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 208860
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67342,
+        "adjusted_free_end_ns": 1793646072397344705,
+        "native_head_rows": 14
+      },
+      {
+        "wave": 6,
+        "rank": 12,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.0713,
+        "start_ns": 1793646072387953640,
+        "head_start_ns": 1793646072398024940,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 80339,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 187820
+          },
+          {
+            "task": 80340,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 29220
+          },
+          {
+            "task": 80551,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 198880
+          },
+          {
+            "task": 80557,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 28520
+          },
+          {
+            "task": 80560,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 21220
+          },
+          {
+            "task": 80561,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 205000
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.67066,
+        "adjusted_free_end_ns": 1793646072397354280,
+        "native_head_rows": 14
+      },
+      {
+        "wave": 6,
+        "rank": 13,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.083079,
+        "start_ns": 1793646072387921207,
+        "head_start_ns": 1793646072398004286,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 80175,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 188897
+          },
+          {
+            "task": 80176,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 35019
+          },
+          {
+            "task": 80387,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 199596
+          },
+          {
+            "task": 80393,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 31919
+          },
+          {
+            "task": 80396,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 20740
+          },
+          {
+            "task": 80397,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 204956
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.681127,
+        "adjusted_free_end_ns": 1793646072397323159,
+        "native_head_rows": 14
+      },
+      {
+        "wave": 6,
+        "rank": 14,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.09532,
+        "start_ns": 1793646072387954710,
+        "head_start_ns": 1793646072398050030,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 80175,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 190560
+          },
+          {
+            "task": 80176,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 32880
+          },
+          {
+            "task": 80387,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 192800
+          },
+          {
+            "task": 80393,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 34660
+          },
+          {
+            "task": 80396,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 19960
+          },
+          {
+            "task": 80397,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 210360
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.68122,
+        "adjusted_free_end_ns": 1793646072397368810,
+        "native_head_rows": 14
+      },
+      {
+        "wave": 6,
+        "rank": 15,
+        "ordinal": 3,
+        "scheduled": {
+          "3": 6,
+          "2": 6,
+          "4": 3328,
+          "1": 3200
+        },
+        "original_parent_ms": 10.06872,
+        "start_ns": 1793646072387955920,
+        "head_start_ns": 1793646072398024640,
+        "retained_serial_cache_tasks": [
+          {
+            "task": 80253,
+            "type": "HcPre",
+            "input_shapes": "\"818,4,5120;24,20480;3;24;818,4\"",
+            "duration_ns": 188060
+          },
+          {
+            "task": 80254,
+            "type": "RmsNorm",
+            "input_shapes": "\"818,5120;5120\"",
+            "duration_ns": 31920
+          },
+          {
+            "task": 80465,
+            "type": "MatMulV2",
+            "input_shapes": "\"6540,5120;512,5120\"",
+            "duration_ns": 200800
+          },
+          {
+            "task": 80471,
+            "type": "RmsNorm",
+            "input_shapes": "\"6540,512;512\"",
+            "duration_ns": 28240
+          },
+          {
+            "task": 80474,
+            "type": "InplacePartialRotaryMul",
+            "input_shapes": "\"6540,1,1,512;6540,1,1,64;6540,1,1,64\"",
+            "duration_ns": 20280
+          },
+          {
+            "task": 80475,
+            "type": "ScatterNdUpdateSk",
+            "input_shapes": "\"17304,128,512;6540,2;6540,512\"",
+            "duration_ns": 214960
+          }
+        ],
+        "mandatory_same_primitive_duration_ms": 0.68426,
+        "adjusted_free_end_ns": 1793646072397340380,
+        "native_head_rows": 14
+      }
+    ],
+    "DP_wave_bounds_ms": {
+      "3:0": [
+        4.9614,
+        4.981641
+      ],
+      "4:0": [
+        6.11212,
+        6.15886
+      ],
+      "4:1": [
+        8.89454,
+        8.9279
+      ],
+      "5:0": [
+        8.889162,
+        8.946061
+      ],
+      "5:1": [
+        6.09418,
+        6.14622
+      ],
+      "6:0": [
+        7.71164,
+        7.7562
+      ],
+      "6:1": [
+        9.38446,
+        9.4141
+      ]
+    },
+    "favorable_wave_bounds_ms": {
+      "3": 4.981641,
+      "4": 8.9279,
+      "5": 8.946061,
+      "6": 9.4141
+    },
+    "P90_optimistic_saved_ms": 32.26970200000005,
+    "P90_optimistic_percent": 2.1630591098012353,
+    "paid_scenarios": [
+      {
+        "removable_exposed_fraction": 0,
+        "added_ms_per_wave": 0.1,
+        "P90_signed_net_ms": -0.40000000000009095,
+        "P90_signed_net_percent": -0.02681226011695706
+      },
+      {
+        "removable_exposed_fraction": 0,
+        "added_ms_per_wave": 0.5,
+        "P90_signed_net_ms": -2.0,
+        "P90_signed_net_percent": -0.1340613005847548
+      },
+      {
+        "removable_exposed_fraction": 0,
+        "added_ms_per_wave": 1,
+        "P90_signed_net_ms": -4.0,
+        "P90_signed_net_percent": -0.2681226011695096
+      },
+      {
+        "removable_exposed_fraction": 0.25,
+        "added_ms_per_wave": 0.1,
+        "P90_signed_net_ms": 7.667425500000036,
+        "P90_signed_net_percent": 0.5139525173333593
+      },
+      {
+        "removable_exposed_fraction": 0.25,
+        "added_ms_per_wave": 0.5,
+        "P90_signed_net_ms": 6.067425499999899,
+        "P90_signed_net_percent": 0.40670347686554637
+      },
+      {
+        "removable_exposed_fraction": 0.25,
+        "added_ms_per_wave": 1,
+        "P90_signed_net_ms": 4.067425499999899,
+        "P90_signed_net_percent": 0.27264217628079157
+      },
+      {
+        "removable_exposed_fraction": 0.5,
+        "added_ms_per_wave": 0.1,
+        "P90_signed_net_ms": 15.734850999999935,
+        "P90_signed_net_percent": 1.0547172947836605
+      },
+      {
+        "removable_exposed_fraction": 0.5,
+        "added_ms_per_wave": 0.5,
+        "P90_signed_net_ms": 14.134851000000026,
+        "P90_signed_net_percent": 0.9474682543158628
+      },
+      {
+        "removable_exposed_fraction": 0.5,
+        "added_ms_per_wave": 1,
+        "P90_signed_net_ms": 12.134851000000026,
+        "P90_signed_net_percent": 0.8134069537311079
+      },
+      {
+        "removable_exposed_fraction": 0.75,
+        "added_ms_per_wave": 0.1,
+        "P90_signed_net_ms": 23.802276500000062,
+        "P90_signed_net_percent": 1.5954820722339769
+      },
+      {
+        "removable_exposed_fraction": 0.75,
+        "added_ms_per_wave": 0.5,
+        "P90_signed_net_ms": 22.202276499999925,
+        "P90_signed_net_percent": 1.488233031766164
+      },
+      {
+        "removable_exposed_fraction": 0.75,
+        "added_ms_per_wave": 1,
+        "P90_signed_net_ms": 20.202276499999925,
+        "P90_signed_net_percent": 1.3541717311814092
+      }
+    ],
+    "qualification": "56 matching original eager windows, retaining measured six serial cache primitives. All gather, waits, surviving verification rows, selected compute, communication and replacement costs still relaxed. All real eager waves includes decode-only and mixed waves; no credit for deleting live verify rows. Same-primitive original-schedule sensitivity, not a hardware bound, actual gain, full alternative limit or additive terminal budget."
+  },
+  "candidates": [
+    {
+      "name": "Tail128-only cache writes with unchanged prefix publication",
+      "state": "已停止",
+      "reason": "Missing reachable cache rows under chunk/replay/rollback ownership; no modulo ring guarantee"
+    },
+    {
+      "name": "Selected rows with topK new prefix and unchanged CP restore",
+      "state": "已停止",
+      "reason": "Old row415 becomes new0 in the unambiguous3328 single-request case; collective return also loses global IDs"
+    },
+    {
+      "name": "Full original cache producer plus query/O/FFN demand scheduling",
+      "state": "待确认",
+      "reason": "Worth deeper implementation judgment; concrete row maps and old numerical geometry/native/net costs still required"
+    }
+  ],
+  "next_action": "Continue remaining source-derived input/embedding/host-context deliveries; retain last39 full-cache selected-query candidate with explicit geometry/row-map/net gates. No tail-only cache patch or retry of failed compact FFN.",
+  "inputs": [
+    {
+      "path": "audit/execution-search/final-cache-execution-identity.json",
+      "sha256": "2cc682b98f6a5cc72b25e2f0bca73dcb7b20859c0c5125b01acaaf7b0e01f107"
+    },
+    {
+      "path": "audit/execution-search/final-producer-entry.json",
+      "sha256": "5712846c70ab31c0b3ef830d13b55d0994ded651ba2e531b2011747774954cb1"
+    },
+    {
+      "path": "/Users/wio/work/branch-fusion-audit-20261104/full-review/runs/first-token-v168-protocol-bodies.json",
+      "sha256": "16c6d38e3de0b6b0531ef3e96e5a305ef5452e56e2ffc11c9be75db29a5c40de"
+    },
+    {
+      "path": "/Users/wio/Documents/ChatGPT/deepseek 4.1flash 算子优化/tools/analyze_final_cache_frontier.py",
+      "sha256": "bc7b7aab8bfdde9d68c29ffc7b1c57855096c4abd965f3ac009a377e52d3f6a0"
+    }
+  ],
+  "new_NPU_work": 0,
+  "new_profile_collection": 0,
+  "service_requests": 0,
+  "remote_writes": []
+}
