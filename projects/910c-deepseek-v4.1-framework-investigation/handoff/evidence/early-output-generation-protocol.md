@@ -2,6 +2,12 @@
 
 **研究设计，未部署、未获 native 实现准入。** 不能单独应用 `sampler-early-output-copy.patch`；该原样配方已停止。实际输出等待约7–15ms的价值仍保留，范围扩大到下一输入的 staging 所有权，而非用保留原全完成屏障的小方案替代此目标。
 
+## 2026-11-10 所有权范围收窄
+
+后续源码审阅找到已继承的 `synchronize_input_prep`：target 准备前等待、准备后记录，涵盖 block table / zeroer / target CPU staging。**此前的全输入独立代次需求只是保守设计假设，不能当成已证明必须的成本。** 已知晚到持久源是 proposer backup（每卡16B容量），CP qsl/suffix 为本次新结果。详见[输入staging判断](input-staging-review.md)。
+
+新增两条有条件边界：扩展现有复用栅栏并支付 lost host overlap；或在无 discard greedy 下利用 backup 臂无活读，仅消去其 CPU fill/H2D。后者源码条件已推导，实际批次资格与 native 逐位/完整末读仍缺。独立 ring/snapshot 保留为有活 fallback 时的选项。下文是更广所有权协议原则，不能据此预收全部输入复制成本，或声称没有原保护。
+
 ## 介绍
 
 sampler IDs 已就绪时，DSpark 仍在 device/default stream 后续计算。提前只读 D2H 不改变原语数值，但会让 core 更早处理结果、推进队列和回收 request。因而输出 data-ready 与下一轮 CPU staging 可复用，不能共用一个“已完成”含义。

@@ -1,6 +1,21 @@
 # 融合优化逐项说明
 
-## 本轮：提前输出必须扩大到staging所有权（未完成全图）
+<!-- INPUT-STAGING-20261110-START -->
+## 2026-11-10 输入原保护与条件 dead-backup（全图未完成）
+
+**Goal ACTIVE；loop-014 EVALUATING；每个替换原语逐位一致。**
+
+- **介绍**：继续沿物理 CPU 源追 H2D 末读，判断提前输出真正需要的代次边界。
+- **到了哪里**：21份源码身份核对。继承的 synchronize_input_prep 在 target 准备前等待、结束后记录，覆盖 block table、zeroer 和 target CPU 源；已知晚到持久源为 proposer backup INT32[4]（每卡16B），CP qsl/suffix 为本次新结果。device metadata 另有 stage/join/reuse。
+- **结果**：无 discard greedy 下每行至少一个有效ID，backup臂条件无活读；可仅消去 fallback fill/H2D，作为提前输出协议深入，仍属**待确认**。原 C8 回复 rank0/8 的2641/2677条日志不含 discard 数/all_greedy 标志，受限分支的实际资格未证。原7–15ms仅重叠组件预算，未扣新协议成本，不能全额授予此分支。原样 early-copy 补丁继续**已停止**；扩展复用栅栏或 live-source snapshot/ring 亦待确认，需支付 lost host overlap / event / backpressure；不能预设全部输入双份。
+- **下一段**：共享 metadata / host submission 的较大交付联合定价，保留本段全caller/委托末读、实际资格和native逐位缺口即可继续。随后回末层attention/FFN producer。不重复自动快照实验。
+- **环境**：新NPU0、推理请求0、新profile0、远端写入0，无部署变更。AST遍历顺序reader错误保留，修正后仅review通过，未认领实现或性能准入。
+
+[完整判断](evidence/input-staging-review.md) · [行段与所有权前沿](evidence/staging-execution-frontier.json) · [协议修订](evidence/early-output-generation-protocol.md)
+
+<!-- INPUT-STAGING-20261110-END -->
+
+## 上一轮：提前输出扩大到staging所有权（未完成全图）
 
 **Goal ACTIVE；loop-014 EVALUATING；全链路未扫完。每个替换原语逐位一致。**
 
