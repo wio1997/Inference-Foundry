@@ -1,6 +1,8 @@
 # DSpark 三层 body 与 TP/EP 交付判断
 
-公开[完整价格摘要](dspark-three-body-price-summary.json)保留227波价格、每请求净情景、身份与限制；3696行完整关联在摘要所列本地文件及SHA，未冒充已公开的原始记录。
+公开[完整价格摘要](dspark-three-body-price-summary.json)保留227波价格与所有有成本情景；3696行完整关联在摘要所列本地文件及SHA。
+
+> 2026-11-10 更正：本页此前把可选shared辅助流实现写成冻结配置“已重叠”，该无条件表述撤回。固定selector在enable_fused_mc2=1时强制multistream_overlap_shared_expert=False，旧flag-only candidate样本0；参见[实际worker与有效配置](worker-capture-review.md)。整段价格不变，显式共驻/调度重写仍待确认。
 
 介绍：冻结版本、CANN9.2.0、910C、原C8与六普通负载；**每个替换原语逐位一致**。本轮独立从三层真实调用到消费者，再复用匹配后的历史记录。全链路 Goal ACTIVE，本页只关闭一段源码/价格判断，不能保证已找出全部融合机会。171 本次 `--check` 认证失败；以下为本地固定源码和旧 profile 分析，没有新的运行身份核验、设备验收或部署。
 
@@ -11,11 +13,11 @@ HcPre → BF16 RMS → TP8 SP AG
  → 本卡 CP Q + 全局 query KV/SWA writer → noncausal SWA/SMLA
  → 逆RoPE → TP head restore/alltoall → OA/OB → SP RS → HcPost
  → HcPre → RmsNormCast（BF16专家输入 + 原FP32 gate输入）
- → gate/top3 → EP16 DFC（8本地专家） ∥ 已有 shared auxiliary-stream 流水
+ → gate/top3 → EP16 DFC（8本地专家） → shared（冻结配置串行；可选aux流需独立重写）
  → 原BF16 shared+routed add → HcPost → 下一层
 ```
 
-三层各有权重、HC系数、query/cache和状态；没有 target 的long/index源或Engram。草稿128/top3/本地8，不继承target384/top6/本地24或M416的准入。实际MoERunner注册替换为AscendMoERunner；返回tensor已由`_foreach_add`合并，模型里的tuple fallback不是本路径的额外一次all-reduce。SP reduction hooks也不能重复计价。共享输入准备已在router前提交，Gate-Up已在router事件后、routed TopK/dispatch前排队；“再增加同一重叠”不是新收益。
+三层各有权重、HC系数、query/cache和状态；没有 target 的long/index源或Engram。草稿128/top3/本地8，不继承target384/top6/本地24或M416的准入。实际MoERunner注册替换为AscendMoERunner；返回tensor已由`_foreach_add`合并，模型里的tuple fallback不是本路径的额外一次all-reduce。SP reduction hooks也不能重复计价。可选重叠实现会在router前准备共享输入、在router事件后及routed TopK前排Gate-Up；冻结DFC配置将该开关关闭，不能宣称这些重叠已生效。单翻开关无效；显式资源/调度重写仍需独立证明。
 
 结果：以下状态均限定具体配方。新候选**没有一项达到“已确认可实现”设备准入**。
 
