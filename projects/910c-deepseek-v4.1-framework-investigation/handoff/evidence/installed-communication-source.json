@@ -1,0 +1,36 @@
+{
+  "command_kind": "read-only installed TorchNPU source via stdlib; no import Torch/no NPU init",
+  "exit_code": 0,
+  "stderr": "连接 A3 171 · 172.16.10.171 · xinyufeng\n",
+  "result": {
+    "base": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu",
+    "meta_candidates": [
+      "_inductor/_npu_meta_registration.py",
+      "_inductor/ascend_npu_ir/ascend_npu_ir/npu/meta_compiler.py",
+      "_inductor/ascend_npu_ir/ascend_npu_ir/npu/npu_meta.py",
+      "_inductor/ascend_npu_ir/ascend_npu_ir/npu/codegen/meta_kernel.py",
+      "op_plugin/atb/_atb_meta_registrations.py",
+      "op_plugin/meta/_meta_registrations.py"
+    ],
+    "files": {
+      "distributed/distributed_c10d.py": {
+        "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/distributed/distributed_c10d.py",
+        "sha256": "9c0728544f2dd7e8dd823127dc5a94f4cd7cb2b3be91bdb17ae51669b259b116",
+        "functions": [
+          {
+            "line": 158,
+            "end_line": 270,
+            "source": "def _gather(tensor, gather_list=None, dst=0, group=None, async_op=False):\n    \"\"\"\n    Gathers a list of tensors in a single process.\n\n    Args:\n        tensor (Tensor): Input tensor.\n        gather_list (list[Tensor], optional): List of appropriately-sized\n            tensors to use for gathered data (default is None, must be specified\n            on the destination rank)\n        dst (int, optional): Destination rank (default is 0)\n        group (ProcessGroup, optional): The process group to work on. If None,\n            the default process group will be used.\n        async_op (bool, optional): Whether this op should be an async op\n\n    Returns:\n        Async work handle, if async_op is set to True.\n        None, if not async_op or if not part of the group\n    Note:\n        Npu replaces gather with all_gather in default mode, uses gather with group send/recv in compatibility mode\n    \"\"\"\n\n    _check_single_tensor(tensor, \"tensor\")\n\n    if gather_list:\n        _check_tensor_list(gather_list, \"gather_list\")\n    else:\n        gather_list = []\n    _ensure_all_tensors_same_dtype(tensor, gather_list)\n\n    if _rank_not_in_group(group):\n        _warn_not_in_group(\"gather\")\n        return None\n    my_rank = get_rank()\n\n    _validate_output_list_for_rank(my_rank, dst, gather_list)\n    group_size = _get_group_size(group)\n    recv_size_list = (\n        [None for _ in range(group_size)]\n        if my_rank != dst\n        else [tensor.size() for tensor in gather_list]\n    )\n\n    input_tensors = [tensor]\n    opts = GatherOptions()\n    opts.rootRank = dst\n    use_compatible_impl = False\n    if tensor.device.type == \"npu\":\n        use_compatible_impl = npu.are_compatible_impl_enabled()\n\n    if use_compatible_impl:\n        npu_device_name = npu.get_device_name()\n        use_compatible_impl = (npu_device_name >= \"Ascend910B1\" and npu_device_name <= \"Ascend910B4_1\") or \\\n            (npu_device_name >= \"Ascend910_9362\" and npu_device_name <= \"Ascend910_9392\")\n\n    if group is None or group is GroupMember.WORLD:\n        default_pg = _get_default_group()\n        if tensor.device.type == \"npu\":\n            if use_compatible_impl:\n                output_tensors = [gather_list] if my_rank == dst else []\n                _group = default_pg._get_backend(torch.device(\"npu\"))\n                work = _group.gather(output_tensors, input_tensors, opts)\n            else:\n                if my_rank == dst:\n                    warnings.warn(\n                        \"HCCL doesn't support gather at the moment. Implemented with allgather instead.\"\n                    )\n                # To handle tensors of different shape on each rank, update recv shape first.\n                dist.broadcast_object_list(recv_size_list, dst, group)\n                if not gather_list:\n                    gather_list = [\n                        torch.empty(tensor_size, dtype=tensor.dtype).npu()\n                        for tensor_size in recv_size_list\n                    ]\n\n                output_tensors = [gather_list]\n                _group = default_pg._get_backend(torch.device(\"npu\"))\n                work = _group.allgather(output_tensors, input_tensors)\n        else:\n            output_tensors = [gather_list] if dst == my_rank else []\n            default_pg = _get_default_group()\n            work = default_pg.gather(output_tensors, input_tensors, opts)\n    else:\n        if tensor.device.type == \"npu\":\n            if use_compatible_impl:\n                output_tensors = [gather_list] if my_rank == dst else []\n                _group = group._get_backend(torch.device(\"npu\"))\n                work = _group.gather(output_tensors, input_tensors, opts)\n            else:\n                if my_rank == dst:\n                    warnings.warn(\n                        \"HCCL doesn't support gather at the moment. Implemented with allgather instead.\"\n                    )\n                # To handle tensors of different shape on each rank, update recv shape first.\n                dist.broadcast_object_list(recv_size_list, dst, group)\n                if not gather_list:\n                    gather_list = [\n                        torch.empty(tensor_size, dtype=tensor.dtype).npu()\n                        for tensor_size in recv_size_list\n                    ]\n\n                output_tensors = [gather_list]\n                _group = group._get_backend(torch.device(\"npu\"))\n                work = _group.allgather(output_tensors, input_tensors)\n        else:\n            group_dst_rank = get_group_rank(group, dst)\n            output_tensors = [gather_list] if dst == my_rank else []\n            opts.rootRank = group_dst_rank\n            work = group.gather(output_tensors, input_tensors, opts)\n    if async_op:\n        return work\n    else:\n        work.wait()\n        return None"
+          }
+        ]
+      },
+      "csrc/aten/npu_native_functions_by_codegen.yaml": {
+        "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/csrc/aten/npu_native_functions_by_codegen.yaml",
+        "sha256": "7bdad689a5472f854e26b5eecf0e9012da8594036c60b77bcd8c5ad684d37849",
+        "matches": [
+          "  func: npu_all_gather_base_mm(Tensor self, Tensor x2, str hcom, int world_size, *, Tensor? bias=None, Tensor? x1_scale=None, Tensor? x2_scale=None, int gather_index=0, bool gather_output=True, int comm_turn=0, ScalarType? output_dtype=None, str? comm_mode=None) -> (Tensor, Tensor)"
+        ]
+      }
+    }
+  }
+}

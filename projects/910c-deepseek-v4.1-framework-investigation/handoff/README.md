@@ -1,11 +1,25 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+<!-- ATTENTION-TRANSPORT-OUTPUT-20261109-START -->
+## 当前独立前沿：逐位合同与Attention交付
+
+**每个替换原语必须逐位一致（用户明确要求）。全链路仍未扫完。**
+
+- **介绍**　从真实宽输入读者和SMLA输出，分别反推Q/cache-ready与OA/OB/RS/HC/FFN norm交付；形成方案后才匹配历史。
+- **到了哪里**　隔离TP8真实Wkv两shape对照完成，宽收集8rank一致、输出finite；stock AIV AGMM有526/1005个位差，直接替换已停止。原Wkv切M的302个位差方案也停止。不再为这些配方补测性能。
+- **结果**　输出段2560原窗口中1840有query、400 query空但仍投影、320整侧无投影；14组OA/OB成本匹配，实际均BF16。孤立逆RoPE+pack全免的C8条件TTFT信用最高0.723%，停止独立1%路线。query owner先OA可将65536降为16384B/query，额外2240MiB/rank；同cohort最快通信代理下新增50/100µs/层的最高条件信用1.938%/1.391%，保留大行完整40权重逐位/成本门槛，非预计收益。下一处为FFN双输出到真实MoE消费者；其余前沿未自动闭合。
+
+[通信/数值深入](evidence/attention-transport-review.md) · [输出至FFN判断](evidence/attention-output-review.md) · [native汇总](evidence/AGMM-native-summary.json) · [便携定价](evidence/attention-output-portable.json) · [验证](evidence/attention-output-validation.json) · [显式未闭合前沿](evidence/source-frontier.json)
+
+远端仅在自有 `/data/tiankuan/wio` RW映射新建诊断目录，进程级缓存/日志/auto通信端口隔离，未改服务、全局环境或挂载；服务推理请求0，health前后200。前三次启动错误原件保留，a4完成，不把启动错误当原语失败。
+<!-- ATTENTION-TRANSPORT-OUTPUT-20261109-END -->
+
 <!-- EXECUTION-SEARCH-CORRECTION-20261109-START -->
 **全链路融合搜索尚未完成。** 2026-11-09用户纠正：GitHub只是已跑工作的参考；剪枝用于减少无效工作，有价值候选必须继续深入判断。撤回上一轮将12模块已有记录/具名缺口当作全Goal完成依据的结论。已知局部事实保留；Goal恢复进行中。
 
 - **介绍**　从真实代码独立建立生产者/全部读者和合法分支，按最终交付由大到小选择融合范围。
 - **到了哪里**　独立搜索与高值深入判断进行中；路径覆盖、变换范围和候选成熟度分开记录，旧台账不充当搜索穷尽证明。
-- **结果**　当前从Decoder/DSACP的D-A1区域继续；C2三源的两份FP32投影不在旧保守owner估价中，已查同负载prefill原耗时，继续绑定原重叠和local-M数值/替代成本。新增NPU测量0。[当前搜索切口与未闭合前沿](evidence/execution-derived-search.md)。
+- **结果**　已转入SMLA输出至FFN与MoE前沿。最新诊断/逐位合同/停止子方案见上方；本段旧D-A1初建记录不作当前任务断点。
 <!-- EXECUTION-SEARCH-CORRECTION-20261109-END -->
 
 
@@ -86,7 +100,7 @@ M09 --> M11 -->|下一轮| M00
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
-| [M03 Attention 主体](../modules/M03.md) · [📄 C08](opportunities.md#c08) 本地 KV 投影后窄 AllGather · 通信与计算重排 | 待确认；native发现ND切M位差，需数值路线和整段重价 | 原30.27ms是尚未验收的local-M条件包络。3328→8×416的ND原语有302个位差；完整诊断后续ERROR。C2两FP32单独全免C8条件信用≤0.636%，大producer继续。 |
+| [M03 Attention 主体](../modules/M03.md) · [📄 C08](opportunities.md#c08) producer/通信重排 | 待确认；已测local-M与stock AGMM直接替换已因位差停止 | 同M真实root/P2P和保留原归约的流水待协议/净价；不继承旧30.27ms或7/8计算信用。 |
 | [M03 Attention 主体](../modules/M03.md) · [📄 C09](opportunities.md#c09) SMLA 分页 KV 直读（[历史 F07](opportunities.md#history46-f07)） · 读写融合 | 待确认；本次已核对具名合同/门槛 | 原KV pair有物理偏移重排、尾部fallback和负索引停止；新直读须匹配packed plane或过数值验收。原17.78ms仍为条件情景，实际K/整核速度待证。 |
 | [M06 MoE](../modules/M06.md) · [📄 K03](opportunities.md#k03) DFC 尾部承接共享 GateUp · megakernel  | 待确认。条件净性能已复算；需τ/吞吐/覆盖 | τ20µs/h5µs、40层时：Up吞吐ρ1省0.600ms/周期（中位1.080%）；ρ0.9仅0.486ms（0.876%）。同一局部周期情景，不是整请求实测。 |
 | [M00 输入与元数据](../modules/M00.md) · [📄 C01](opportunities.md#c01) 增量发布 block 表 · 提交合并 | 待核对可省的主机提交时间 | 部件预算：C8 旧整批 23.66 ms（0.127%），仅计上传数据。 |
@@ -94,7 +108,7 @@ M09 --> M11 -->|下一轮| M00
 | [M01 Engram](../modules/M01.md) · [📄 C06](opportunities.md#c06) Engram 完整结果复用 · 计算消除与复用 | 待确认；本次已核对具名合同/门槛 | 71.1%–96.3%是需消除的可缓存耗时比例，不是row-hit率。部分miss可保留整次WKV；缺完整键命中和残余调用成本。 |
 | [M02 Attention 前 mHC](../modules/M02.md) · [📄 C07](opportunities.md#c07) mHC 系数与残差复用 · 计算消除与复用 | 待确认可省归约与舍入边界 | 预算：HcPre 占同周期约 5.10%；周期降 1% 需净删 HcPre 耗时的 19.6%。 |
 | [M03 Attention 主体](../modules/M03.md) · [📄 C11](opportunities.md#c11) QLI 按 key 压实评分 · 计算消除与复用 | 待确认；本次已核对具名合同/门槛 | 223完全关键波情景需每四次净省0.833667ms。等速零开销需评分主体占旧段≥84.024%；极有利全段评分时新增成本≤0.158514ms。缺c/ρ/h。 |
-| [M04 Attention 输出](../modules/M04.md) · [📄 C10](opportunities.md#c10) OA 前移并直接生成发送布局 · 通信与计算重排 | 旧变体已关闭，新布局的形状覆盖待核对 | 成本余量：理想 OA 前移后，新传输与融合的额外开销中位仅容许 0.214 ms；新变体净值待定。 |
+| [M04 Attention 输出](../modules/M04.md) · [📄 C10](opportunities.md#c10) OA前移/窄交换 | 待确认；大行完整权重逐位门槛与直接send成本 | 65536→16384B/query；总bank2560MiB、额外2240MiB/rank。h50/h100µs的最高条件信用1.938%/1.391%，非实测/预计收益。旧M3 stock+pack保持停止。 |
 | [M06 MoE](../modules/M06.md) · [📄 C05](opportunities.md#c05) 裁掉无最终贡献的行 · 计算消除与复用 | 待核对假路由命中次数及末层读者 | 上界：末层 FFN 与读出合计 22.992 ms（长 prefill）；idle 波若有 100 次，旧整批达 1% 需净省 1.859 ms/次。 |
 | [M06 MoE](../modules/M06.md) · [📄 C12](opportunities.md#c12) Norm、Router、TopK 联合生产 · 读写融合 | 待确认；本次已核对具名合同/门槛 | 固定GEMM的子项C12a停止：非GEMM全免目标最高0.8963%周期，连草稿最高0.9637%。大方案若改变GEMM主体，须另证净差。 |
 | [M06 MoE](../modules/M06.md) · [📄 C13](opportunities.md#c13) 共享专家与路由专家联合排程 · 调度与同步 | 待核对计算与通信可重叠的窗口 | 情景：F21 独占资源且保留路由时可省 0.594 ms/周期，达到 1% 后新增成本余量中位仅 0.0427 ms。 |
@@ -181,11 +195,11 @@ M09 --> M11 -->|下一轮| M00
 ## 5. 已完成、待确认与任务分配
 
 - **算子开发**：优先 C09 / 历史 F07，选一个真实长提示 shape，比对 SMLA 的分页 KV 直读与原有显存暂存路径。第一份交付是相同输入下的数值对照、真实有效 K 及完整 kernel 的 µs。
-- **框架与通信联合**：C08，先验证单个普通 SWA 层换本地行数后的 BF16、行序与 cache，再比较窄 AllGather 的净交付时间。K01 和它共享工作预算。
+- **框架与通信联合**：C08已测切M及stock AIV AGMM直接替换停止；只保留原逐位数值接口的所有权/通信重排。K01共享预算。C10大行OA前移先核完整权重数值、布局增量和KV容量，不能重复旧失败小行变体。
 - **待补证**：优先确认 K03。先查同 shape 下 DFC 最后 GMM2 到 Vector 收尾之间 Cube 真正可用的时间、并发 Up 吞吐、净新增成本及层覆盖。既有模型假设额外开销为每 FFN 5 µs 时，过参考线所需尾部时长中位约 18.89 µs；这个时长尚待确认。K02 与 C09 的 KV 交付部分重叠。理论估价和源码核对均未新增设备实测。
 - **排查队列**：首批是大 prefill 的 OA→OB（历史 F08）、C11 QLI 压实、C07 mHC、B1 slot 扩形状（历史 F03）。下一批优先 C05 假路由、C06 Engram 完整键复用、C12 路由主体。按引导词选一项，结束时更新本节。
 
-**已完成的范围**　冻结模型实际路径的离线首筛与条件记录、已有实现的历史基线复核，以及 megakernel 理论切分。当前 C08、C09、K03 仍分别处于原型待领或条件补证阶段。团队清单列出 2 个原型、4 个首批排查、8 个后备确认；K03 与 C13 复用同一 MoE 模块责任链。[团队工作单](team-work.md) · [megakernel 设计依据](evidence/megakernel.md) · [逐窗口模型](evidence/megakernel-window-model.json)
+**当前范围**　已登记的离线局部判断、历史基线与理论切分可复用；独立全链路搜索尚未完成。高值OA/OB/HC与SMLA/DFC等范围仍有具体门槛。地图、候选深度与搜索前沿分别维护。[团队工作单](team-work.md) · [当前证据](evidence/attention-output-review.md)
 
 ## 6. 性能定价与适用范围
 

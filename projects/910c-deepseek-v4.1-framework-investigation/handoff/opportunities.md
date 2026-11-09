@@ -156,11 +156,11 @@
 
 ## C08
 
-**M02、M03 · SP row先投影，再gather窄KV/C1结果**
+**M02、M03 · Attention producer与通信重排（具体数值路线分别判定）**
 
 - **介绍**　在 SP 行所属卡先算 Wkv，将 H5120 的宽 AllGather 换成窄 KV。36 层传 512 维，层 20 传两份 512 维，三处 C2 源保留原路径。
-- **到了哪里**　待确认。条件估算。待领原型
-- **结果**　情景：长提示的四个 prefill 执行批次毛预算 60.54 ms，兑现 50% 省 30.27 ms（旧 TTFT 2.03%，旧整批 0.163%）。
+- **到了哪里**　待确认的大范围；已测Wkv切M及stock AIV AGMM直接替换因位差停止，不能照旧包络领取这些原型。
+- **结果**　原60.54ms/30.27ms只保留为旧local-M条件模型；其数值未准入，不是当前可开发收益。同M重排须重价，不能继承计算删除信用。
 
 <details><summary>代码与依据</summary>
 
@@ -183,6 +183,13 @@
 - **介绍**　按实际三源读者绑定全部336次FP32调用和192个分支窗口，对大producer的Wkv换M做最小native数值诊断。
 - **到了哪里**　待确认；C2单独两FP32的C8首token1%独立路线停止。ND primitive换M位等价有反例，大producer需同M重排、原归约实现或既定容差验收。
 - **结果**　两FP32全部免费、原peer/其它工作固定时，八请求TTFT信用最高0.636%，cache-only该项0。真实层0 Wkv/finite synthetic BF16的3328→8×416有302/1703936个位差，maxabs2.44e-4；后续NZ编译缓存报ERROR，6540/NZ未验。1组ND比较完成，无服务请求/性能benchmark。原30.27ms仅条件模型，不升格可开发收益。[全文、全部ID、原件及复算](evidence/C2-deep-screen-and-Wkv-numerics.md)。
+
+
+### 最新逐位合同与通信深入
+
+- **介绍**　默认gather可能模拟AllGather；另对原TP8使用现成AIV AGMM做固定两shape原语对照。
+- **到了哪里**　用户要求每个替换原语逐位一致。Wkv切M的302个位差、stock AGMM的526/1005个位差已停止对应直接替换；历史段的“容差待定”已被新合同取代。
+- **结果**　AGMM接口本身可执行、gather及finite检查完成，但不满足逐位门槛；不再补其Q争用或服务收益。保持full-M的真实root/P2P及保持原算术的其它流水仍待协议和净价。[完整判断](evidence/attention-transport-review.md)。
 
 ## C09
 
@@ -229,6 +236,13 @@
 - **接续**　查实际可覆盖形状及权重额外容量。关联 M03
 
 </details>
+
+
+### 最新D-A2大行交付判断
+
+- **介绍**　实际BF16 OA后接BF16 OB。query owner先算全部8组OA、再窄交换，保留OB/RS和OA舍入。
+- **到了哪里**　待确认；14个原OA/OB typed成本组匹配。需要总2560MiB/额外2240MiB OA权重/rank，并保持KV容量；大行416/818、完整40权重逐位一致及OA+pack增量未验，不能继承M3结果。
+- **结果**　payload 65536→16384B/query；同cohort最快通信代理、h50/h100µs/层场景最高条件信用1.938%/1.391%。旧M3 stock+pack数值虽过但价值未过，保持停止；只消逆RoPE+pack全免最高0.723%，停止独立1%路线。SMLA/OA联合producer及OA/OB/HC仍保留原舍入/归约门槛。[原读者、预算与具体缺口](evidence/attention-output-review.md)。
 
 ## C11
 
