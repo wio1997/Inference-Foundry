@@ -1,5 +1,9 @@
 # 171 融合算子团队开发清单
 
+**本轮更新（2026-11-10北京，UTC Run2026-11-09）**：28源/72旧窗口，只9个TP0回复等待。条件short TTFT3.395%、P90.5373%；native pinned H2D否定自动快照，原样early-copy补丁已停止。值得深入的是提前输出连同输入代次lease，当前待确认完整源/末读、回压净成本和native集成。a1 setup错误保留、a2匹配16worker且独立代次控制byte-identical；无模型加载/推理请求/部署变化。Goal ACTIVE。
+
+[具体判断和下一步](evidence/sampler-output-review.md)
+
 **本轮更新**：终端18源与真实读者/下轮状态已展开，DSpark dead-bank有具体未部署补丁（320MiB/卡）；native资格待确认。完整Post/head/verify独立1%预算低，结束对应小方案；更大末层与host-device交付仍待确认。旧compact原语位差不以最终readout一致豁免。历史reader失配保留error，精确Git blob及原receipt已核。Goal ACTIVE，下一处完整sampler/RNG/block-verify。
 
 [判断与下一步](evidence/terminal-execution-review.md)

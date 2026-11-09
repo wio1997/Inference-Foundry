@@ -1,0 +1,117 @@
+STOPPED DESIGN RECORD. Do not apply: mutable pinned next-input staging has no generation ownership protocol.
+
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -2887,6 +2887,50 @@
+             spec_decode_metadata,
+         )
+ 
++        # Keep publication after proposer submission/host failures. Only the copy
++        # moves; input-batch history publication below stays in its old position.
++        early_model_runner_output = None
++        early_async_output = None
++        if (
++            self.use_async_scheduling
++            and self.speculative_config is not None
++            and self.speculative_config.method == "dspark"
++            and not use_pp_spec_decode
++            and get_tp_group().rank_in_group == 0
++            and self.vllm_config.kv_transfer_config is None
++            and self.vllm_config.ec_transfer_config is None
++            and not self.dynamic_eplb
++            and not self.need_accepted_tokens
++            and self.debugger is None
++            and self.input_batch.sampling_metadata.all_greedy
++            and not self.input_batch.sampling_metadata.output_token_ids
++            and sampler_output.logprobs_tensors is None
++            and not prompt_logprobs_dict
++            and num_nans_device is None
++        ):
++            early_model_runner_output = ModelRunnerOutput(
++                req_ids=req_ids_output_copy,
++                req_id_to_index=req_id_to_index_output_copy,
++                sampled_token_ids=valid_sampled_token_ids,
++                spec_token_ids=output_spec_token_ids,
++                logprobs=logprobs_lists,
++                prompt_logprobs_dict=prompt_logprobs_dict,
++                kv_connector_output=kv_connector_output,
++                pooler_output=[],
++                ec_connector_output=ec_connector_output if self.supports_mm_inputs else None,
++                num_nans_in_logits=num_nans_in_logits,
++                cudagraph_stats=cudagraph_stats,
++            )
++            early_async_output = AsyncGPUModelRunnerOutput(
++                model_runner_output=early_model_runner_output,
++                sampled_token_ids=sampler_output.sampled_token_ids,
++                logprobs_tensors=sampler_output.logprobs_tensors,
++                invalid_req_indices=invalid_req_indices,
++                async_output_copy_stream=self.async_output_copy_stream,
++                vocab_size=self.input_batch.vocab_size,
++                num_nans=num_nans_device,
++            )
++
+         with record_function_or_nullcontext("draft_token"):
+             if self.speculative_config:
+                 if not early_pp_padded_drafter:
+@@ -2923,19 +2967,21 @@
+                         for req_id in req_ids_output_copy
+                     ]
+ 
+-        model_runner_output = ModelRunnerOutput(
+-            req_ids=req_ids_output_copy,
+-            req_id_to_index=req_id_to_index_output_copy,
+-            sampled_token_ids=valid_sampled_token_ids,
+-            spec_token_ids=output_spec_token_ids,
+-            logprobs=logprobs_lists,
+-            prompt_logprobs_dict=prompt_logprobs_dict,
+-            kv_connector_output=kv_connector_output,
+-            pooler_output=[],
+-            ec_connector_output=ec_connector_output if self.supports_mm_inputs else None,
+-            num_nans_in_logits=num_nans_in_logits,
+-            cudagraph_stats=cudagraph_stats,
+-        )
++        model_runner_output = early_model_runner_output
++        if model_runner_output is None:
++            model_runner_output = ModelRunnerOutput(
++                req_ids=req_ids_output_copy,
++                req_id_to_index=req_id_to_index_output_copy,
++                sampled_token_ids=valid_sampled_token_ids,
++                spec_token_ids=output_spec_token_ids,
++                logprobs=logprobs_lists,
++                prompt_logprobs_dict=prompt_logprobs_dict,
++                kv_connector_output=kv_connector_output,
++                pooler_output=[],
++                ec_connector_output=ec_connector_output if self.supports_mm_inputs else None,
++                num_nans_in_logits=num_nans_in_logits,
++                cudagraph_stats=cudagraph_stats,
++            )
+         if self.dynamic_eplb:
+             self.eplb_updator.forward_end(self.eplb_heat_collection_status)
+ 
+@@ -2954,15 +3000,17 @@
+             return model_runner_output
+ 
+         # R3 is served by the V2 runner through vLLM's AuxOutput connector.
+-        async_output = AsyncGPUModelRunnerOutput(
+-            model_runner_output=model_runner_output,
+-            sampled_token_ids=sampler_output.sampled_token_ids,
+-            logprobs_tensors=sampler_output.logprobs_tensors,
+-            invalid_req_indices=invalid_req_indices,
+-            async_output_copy_stream=self.async_output_copy_stream,
+-            vocab_size=self.input_batch.vocab_size,
+-            num_nans=num_nans_device,
+-        )
++        async_output = early_async_output
++        if async_output is None:
++            async_output = AsyncGPUModelRunnerOutput(
++                model_runner_output=model_runner_output,
++                sampled_token_ids=sampler_output.sampled_token_ids,
++                logprobs_tensors=sampler_output.logprobs_tensors,
++                invalid_req_indices=invalid_req_indices,
++                async_output_copy_stream=self.async_output_copy_stream,
++                vocab_size=self.input_batch.vocab_size,
++                num_nans=num_nans_device,
++            )
+         self.input_batch.set_async_sampled_token_ids(
+             async_output.sampled_token_ids_cpu,
+             async_output.async_copy_ready_event,
