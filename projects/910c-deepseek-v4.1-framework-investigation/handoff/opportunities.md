@@ -324,6 +324,13 @@
 
 </details>
 
+
+### C13最新资源范围：DFC20/40与完整shared4/8
+
+- **介绍**　冻结host固定20AIC/40AIV，研究其余4/8承接shared DQ、INT32 Up、activation和Down；区别于仅把Up塞前段或尾段，两处不重复计同一Up。
+- **到了哪里**　待确认，有继续判断价值。原四阶段全隐藏的条件信用最高2.248%；4/8实际伸长、原NZ权重与控核API要求的ND约束、逐原语bit identity及真实BlockDim/共驻仍待核。core数相加不是资源独占证明。
+- **结果**　只藏Up的C8诊断cohort最高条件信用0.906%，停止该C8独立1%路线的τ补证；decode/其它负载不外推。whole shared至少须兑现约44.5%最有利信用才到1%且无新增成本，非预计收益。下一步先查接口/原语实现，再决定固定4/8 native门槛。[完整判断](evidence/moe-delivery-frontier.md) · [预算](evidence/shared-4cube-residency-budget.json)。
+
 ## C14
 
 **M09、M10 · aux owner→main/norm→三个context KV共同发布**

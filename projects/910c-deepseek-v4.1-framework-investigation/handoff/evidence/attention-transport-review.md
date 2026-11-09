@@ -1,5 +1,8 @@
 # Attention宽输入交付：owner协议与AG+MM流水
 
+v168时序使用带observer的诊断cohort；observer模型收益信用0，其它时长与请求模型也只是条件参考。不能减去observer就称生产基线。standalone数值反例独立有效。[适用范围](profile-provenance-scope.json)。
+
+
 2026-11-09；冻结171/910C/CANN9.2.0、TP8/DP2/EP16与C8 eager first-token。路径来自实际Decoder → DSACP → SWA/C1/C2读者；历史价格仅在形成方案后匹配。全链路搜索仍未完成。
 
 **用户最新验收要求：每个替换原语逐位一致。** 下方保留形成方案时的条件模型；实际诊断已将stock AIV AGMM直接替换归入已停止，不能按模型级容差放行。loop-004原INCONCLUSIVE是用户明确该要求前的时点结论，未回写成当时已知。

@@ -1,5 +1,8 @@
 # D-A2：Attention结果到FFN归一化交付
 
+v168时序使用带observer的诊断cohort；observer模型收益信用0，其它时长与请求模型也只是条件参考。不能减去observer就称生产基线。standalone数值反例独立有效。[适用范围](profile-provenance-scope.json)。
+
+
 2026-11-09。用户要求每个替换原语逐位一致。本文是一个新读者范围的实际排查；形成改法后才匹配历史OA研究，不以旧表作为搜索目录。全链路仍未闭合。
 
 ## 介绍：范围由真实数值/状态读者决定

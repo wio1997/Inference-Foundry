@@ -1,12 +1,12 @@
 {
-  "updated_at_utc": "2026-11-09T10:31:41.536Z",
-  "source_analysis_commit": "248afd8dc35c8311cf2dc880833ef75b0af89365",
+  "updated_at_utc": "2026-11-09T11:23:37.720Z",
+  "source_analysis_commit": "9dce1a1",
   "status": "ACTIVE_EXECUTION_DERIVED_SEARCH_INCOMPLETE",
   "previous_goal_turn_classification": "PROGRESS",
-  "active_module": "D-M1 FFN dual-output to actual MoE consumers; Attention scoped judgments retained",
+  "active_module": "D-M1 MoE actual readers and 20/40 DFC with 4/8 shared coexistence, IN_PROGRESS",
   "overall_complete": false,
   "numeric_model_ceiling": null,
-  "next_action": "From model.py DeepseekV41MoE.forward:262-325, trace actual BF16/FP32 readers, router/DFC/shared/combine through FFN Post and next layer. Every replacement primitive must be bitwise identical; do not rerun failed stock AGMM/local-M recipe.",
+  "next_action": "Check per-primitive core control and original NZ/ND eligibility for fixed shared4AIC/8AIV versus DFC20AIC/40AIV; then gated bit-identical timing/BlockDim diagnostics. Complete DFC prepare/finalize, epilogues, unpermute and remaining readers afterward.",
   "module_statuses": [
     {
       "id": "M00",
@@ -537,5 +537,50 @@
       "handoff/evidence/attention-output-review.md"
     ],
     "next_independent_frontier": "D-M1"
-  }
+  },
+  "MoE_reader_resource_update": {
+    "status": "IN_PROGRESS_NOT_WHOLE_MOE_CLOSURE",
+    "typed_windows": 2560,
+    "independent_cost_groups": 64,
+    "DFC_launch": {
+      "AIC": 20,
+      "AIV": 40
+    },
+    "shared_candidate": {
+      "AIC": 4,
+      "AIV": 8
+    },
+    "C8_Up_only_conditional_max_percent": 0.9061988203898049,
+    "C8_whole_shared_conditional_max_percent": 2.248327965967356,
+    "observer_model_speedup_credit": 0,
+    "prior_CPU_adapter48": "Withdrawn for actual-core inference; correct source BLOCK_NUM20 means AIV40",
+    "correct_host_selector_ranges": [
+      {
+        "M": [
+          1,
+          592
+        ],
+        "key": 21000
+      },
+      {
+        "M": [
+          593,
+          1018
+        ],
+        "key": 11000
+      },
+      {
+        "M": [
+          1019,
+          8192
+        ],
+        "key": 11010
+      }
+    ],
+    "CombineV1_from_M": 683,
+    "new_NPU_work": 0,
+    "deployment_changes": 0,
+    "report": "handoff/evidence/moe-delivery-frontier.md"
+  },
+  "profile_provenance_scope": "v168 task timing includes opt-in diagnostic observers. Exclude their work from model credit; do not reconstruct production baseline by subtraction. All request models remain conditional."
 }

@@ -1,5 +1,8 @@
 # 171 融合算子团队开发清单
 
+**MoE当前优先确认**：C13/K03的完整shared4AIC/8AIV共驻范围，先核DFC20/40固定发核、shared原语控核/ND-NZ与逐位合同，再量实际BlockDim和净时间。Up-only C8阶段补证停止；不把v168 observer融合算成模型收益。[当前工作断点](evidence/moe-delivery-frontier.md)。
+
+
 **当前合同与断点**：每个替换原语逐位一致。C08已测Wkv切M与stock AGMM直接替换已停止，不重跑原配方；保留原算术的重排继续判断。D-A2 OA大行有量级，先核完整权重逐位和净增成本；下一独立前沿为MoE双输出消费者。[native/停止依据](evidence/attention-transport-review.md) · [输出交付/缺口](evidence/attention-output-review.md)
 
 

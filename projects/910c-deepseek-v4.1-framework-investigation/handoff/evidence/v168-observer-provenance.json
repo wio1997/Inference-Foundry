@@ -1,0 +1,89 @@
+{
+  "status": "RETRACT_SCATTER_MODEL_CANDIDATE;DIAGNOSTIC_OBSERVER_ORIGIN_PROVED",
+  "inputs": {
+    "/Users/wio/work/branch-fusion-audit-20261104/full-review/runs/scatter-observer-source-pins.json": "f17bba9be944a092a28eca27172e223839e51bde47ce80767a3529060addb448",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v168/PLAN.json": "cc1b064860d07a53092cb1a118a03bd704a53ed30709a0b079ef348a2f35638f",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v168/hook/sitecustomize.py": "2042dc6a0dfcb6f0a71d16a5f74fc572b02a21cab31dc979d7cbd1348bdecdba",
+    "/Users/wio/work/166-vllm-analysis-continuation-20261030/shared-profile-analysis-v168/hook/joint_runtime.py": "1859c9f8c5aad7552e23b9a32e138c7341170f6c87784fa32c059357d1ac51f5",
+    "/Users/wio/work/branch-fusion-audit-20261104/full-review/runs/scatter-observer-creator-binding.json": "d52572fe8f32cb90930cd0da37ccf813081a4059f5948a0cc95ab88b881b95e2",
+    "/Users/wio/work/branch-fusion-audit-20261104/full-review/runs/scatter-native-owner-seed.json": "fa24a25c4c62cb844508a1e7dc5a2d3d15747c791083087b6b57963499f734fd",
+    "/Users/wio/work/branch-fusion-audit-20261104/full-review/runs/scatter-observer-service-env.json": "bfe23a0985f783d567ea7ca8b83c9b20aee08c421eabfb3e5f5cb6fbe1a87889",
+    "/Users/wio/work/branch-fusion-audit-20261104/.cache/v168-rank0-layout-descriptors.json.zlib": "51c84b02ef32d1baa79bb77a7c3cafd0f71192765c13557a5ea3f25a6d027eff"
+  },
+  "scope": "Pinned v168 hook and same-worker creation CPU records; runtime rank0,225 selected target windows.",
+  "binding": {
+    "source": "joint_runtime.State.observe, line85 history write; line89 optional ID write",
+    "creation_CPU_calls": {
+      "history_updates": 40,
+      "ID_updates": 2,
+      "aten_and_aclnn_records": 84
+    },
+    "history_shape": [
+      384,
+      4096,
+      26
+    ],
+    "slice_shape": [
+      4096,
+      26
+    ],
+    "fields": "24 receiver counts, valid sender-row count, diagnostic epoch",
+    "runtime_native_sequence": "DispatchFFNCombine -> observer mask sum/index cast/concat -> InplaceScatter lowering -> model shared-expert work. Four Transpose descriptors repeat40 times per selected target.",
+    "connection_limit": "Creation CPU source binding and runtime same-graph order/shape binding are distinct evidence. No per-kernel runtime CPU connection is invented."
+  },
+  "excluded_model_opportunity": {
+    "descriptor_signatures": [
+      [
+        "aclnnInplaceScatter_TransposeAiCore_Transpose",
+        "Transpose",
+        "\"4096,26;2\"",
+        "INT32;INT64",
+        "\"26,4096\"",
+        "INT32"
+      ],
+      [
+        "aclnnInplaceScatter_TransposeAiCore_Transpose",
+        "Transpose",
+        "\"1,26;2\"",
+        "INT64;INT64",
+        "\"26,1\"",
+        "INT64"
+      ],
+      [
+        "aclnnInplaceScatter_TransposeAiCore_Transpose",
+        "Transpose",
+        "\"1,26;2\"",
+        "INT32;INT64",
+        "\"26,1\"",
+        "INT32"
+      ],
+      [
+        "aclnnInplaceScatter_TransposeAiCore_Transpose",
+        "Transpose",
+        "\"26,4096;2\"",
+        "INT32;INT64",
+        "\"4096,26\"",
+        "INT32"
+      ]
+    ],
+    "tasks": 36000,
+    "tasks_per_target": 160,
+    "union_us_per_target_median": 1860.0,
+    "union_us_per_target_mean": 1859.6989333333333,
+    "production_speedup_credit": 0,
+    "reason": "This work writes diagnostic history and was introduced by the opt-in v168 collector. Optimizing it is not a model optimization."
+  },
+  "measurement_contract": [
+    "NPU-only means the selected profiler activity, not an uninstrumented model execution. v168 also injects device operations and readers.",
+    "Other v168 native task times remain observed diagnostic-cohort times; cost fractions and local erasure calculations are not production performance bounds.",
+    "Do not subtract observer task times and call the remainder measured baseline latency: observer allocation, reads, scheduling and inter-rank timing may change other work.",
+    "Keep original raw task measurements. Exclude positively identified observer work from optimization credit; unknown origin cannot be treated as model work by default.",
+    "The frozen unprofiled service comparisons have separate receipts. This correction supplies no new CP, QLI, C2, overlap or HC speedup result."
+  ],
+  "service_environment_scope": "The earlier live snapshot has no WIO_JOINT opt-in in the inspected initial environments. Later container restarts are recorded separately; do not extend this snapshot through them.",
+  "decision": "Close the Scatter replacement branch without a new implementation or NPU probe. Require provenance before each new benefit estimate.",
+  "new_NPU_work": 0,
+  "service_mutations": [],
+  "numeric_model_ceiling": null,
+  "overall_complete": false
+}

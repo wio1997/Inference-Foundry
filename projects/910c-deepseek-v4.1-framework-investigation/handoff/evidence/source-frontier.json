@@ -1,5 +1,5 @@
 {
-  "status": "ACTIVE_NEXT_FRONTIER_MOE_BITEXACT_REQUIRED",
+  "status": "ACTIVE_MOE_READERS_AND_HOST_SELECTOR_IN_PROGRESS",
   "region": "D-A1 decoder residual to Attention output and cache-ready",
   "sources": [
     {
@@ -60,7 +60,7 @@
     }
   ],
   "completeness_established": false,
-  "next_action": "DeepseekV41MoE.forward:262-325, BF16/FP32 readers -> router/DFC/shared/combine -> FFN Post/next layer; preserve whole producer budget.",
+  "next_action": "First check 4AIC/8AIV shared pipeline eligibility: original NZ weights, per-op tiler resource support, actual BlockDim and bit identity. Continue DFC prepare/finalize, epilogue2/3 and all readers afterward.",
   "C2_stage_binding": {
     "windows": 192,
     "native_FP32_calls": 336,
@@ -112,8 +112,9 @@
     },
     {
       "region": "D-M1",
-      "state": "NEXT_INDEPENDENT_REVIEW",
-      "entry": "model.py DeepseekV41MoE.forward:262-325"
+      "state": "IN_PROGRESS_SOURCE_READERS_HOST_SELECTOR_AND_SCOPED_BUDGET",
+      "entry": "model.py DeepseekV41MoE.forward:262-325",
+      "remaining": "prepare/finalize, epilogue implementation and full transform/reader coverage; no whole-MoE closure"
     },
     {
       "region": "SMLA internal QK/PV and physical selected cache",
@@ -123,5 +124,29 @@
       "region": "input/Engram/output/DSpark/iteration handoffs",
       "state": "HISTORICAL_REFERENCES_ONLY_NOT_INDEPENDENTLY_EXHAUSTED"
     }
-  ]
+  ],
+  "MoE_review": {
+    "status": "IN_PROGRESS_NOT_CLOSED",
+    "report": "moe-delivery-frontier.md",
+    "reader_windows": 2560,
+    "independent_native_cost_groups": 64,
+    "host_routing_keys": [
+      21000,
+      11000,
+      11010
+    ],
+    "Combine_transition_M": 683,
+    "observer_model_credit": 0,
+    "C8_Up_only_conditional_max_pct": 0.9061988203898049,
+    "whole_shared_hidden_conditional_max_pct": 2.248327965967356,
+    "profile_scope": "v168 diagnostic observer cohort; cannot reconstruct production timing by subtraction",
+    "full_load_shared_sort": "PENDING: same global SortCompute on each active AIV; one shared producer may overlap quant but no 48x latency claim. Only carrier416 in current C8; >=112.21us/layer net needed for earliest request 1%.",
+    "actual_host_cores": {
+      "AIC": 20,
+      "AIV": 40,
+      "source": "dispatch_ffn_combine_tiling.cpp:48,273",
+      "prior_48_CPU_adapter": "invalid for actual-core inference; preserved with correction receipt"
+    },
+    "shared_4cube_8vector": "PENDING: prove per-op resource support/ND-NZ contract, actual co-residency, bit identity and net timing; whole shared original budget2.248% conditional"
+  }
 }

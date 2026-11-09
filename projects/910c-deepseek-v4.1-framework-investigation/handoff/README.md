@@ -1,5 +1,20 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+<!-- MOE-READERS-RESOURCE-20261109-START -->
+## 当前MoE深入：整段shared与DFC资源共驻
+
+- **介绍**　从FFN原BF16/FP32双读者追至真实router、DFC和共享支。目标为384专家/EP16、TopK6；未把已有GMM1/activation/GMM2同launch列成新融合。
+- **到了哪里**　在扫，未闭合。2560窗口的64组typed成本一致。冻结host固定20AIC/40AIV，提出用剩余4AIC/8AIV承接完整shared流水；core数相加不证明共驻，先核逐原语控核、ND/NZ与逐位合同。前次48AIV CPU适配器参数已纠正，原件保留；正确selector分支与combine边界分别记录。
+- **结果**　只隐藏shared Up的C8条件信用最高0.906%，停止该C8独立1%路线的阶段τ补证；shared四原语全部隐藏最高2.248%，仍有量级。实际4/8时长、共驻及对DFC的争用未测，不能把整段免费信用当预计收益。full-load公共排序、combine粒度和更大producer保留具体缺口；下一步先核4/8方案的合法实现边界。
+
+**时序来源**：C2/Attention/MoE所用v168是带诊断observer的cohort。DFC后历史scatter已证实来自观测器，模型收益信用0；不能减去其耗时就称生产基线。其它native时长、条件请求模型也不构成生产保证。standalone原语位差反例独立有效。
+
+[当前MoE读者、真实分支与缺口](evidence/moe-delivery-frontier.md) · [4/8预算](evidence/shared-4cube-residency-budget.json) · [正确host selector](evidence/host-routing-tiling-summary.json) · [64组核对](evidence/moe-delivery-validation.json) · [observer来源](evidence/v168-observer-provenance.json) · [适用范围](evidence/profile-provenance-scope.json)
+
+全链路Goal继续，MoE主体及SMLA内部、输入/Engram/终端/DSpark/迭代交付尚未独立闭合。
+<!-- MOE-READERS-RESOURCE-20261109-END -->
+
+
 <!-- ATTENTION-TRANSPORT-OUTPUT-20261109-START -->
 ## 当前独立前沿：逐位合同与Attention交付
 
