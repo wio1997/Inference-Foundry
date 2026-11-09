@@ -1,6 +1,10 @@
 # 171 融合算子团队开发清单
 
-**当前增量（Goal ACTIVE）**：Engram两层consumer→UVA/TP-SP/hash/退役已推进。保留E8M0的新容量路线有18.43GB明确逻辑容量与编码255反例；修正CPU枚举通过，NPU/成对加载/代次缺口待确认。停止同预算小方案和未改变旧失败配方，保留owner/提前Wkv/HC大parent。当前loop-013扫DSpark的5次Markov串行反馈及target接受拒绝状态。
+**当前增量（Goal ACTIVE）**：DSpark真实21源/128-top3-3层，五轮replicated W2和BF16 Add边界已核。整score原请求预算先全免仍低，只停止独立小路线，不为它再做cache trace。aux/main live-row、三decoder/EP和大提交仍有具体缺口。loop-014开始terminal全部读者、verify/async/scheduler/下一输入；MTP bank源码容量320MiB/rank尚未证明可删。
+
+[开发门槛/三类处置](evidence/dspark-execution-review.md) · [下一处](evidence/terminal-entry-frontier.json)
+
+**前次Engram增量（历史快照）**：Engram两层consumer→UVA/TP-SP/hash/退役已推进。保留E8M0的新容量路线有18.43GB明确逻辑容量与编码255反例；修正CPU枚举通过，NPU/成对加载/代次缺口待确认。停止同预算小方案和未改变旧失败配方，保留owner/提前Wkv/HC大parent。当前loop-013扫DSpark的5次Markov串行反馈及target接受拒绝状态。
 
 [Engram开发门槛/三类处置](evidence/engram-execution-review.md) · [DSpark入口](evidence/dspark-entry-frontier.json)
 

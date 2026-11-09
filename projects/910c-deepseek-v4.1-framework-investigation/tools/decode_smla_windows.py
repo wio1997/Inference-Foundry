@@ -15,5 +15,8 @@ if __name__=='__main__':
     assert len(raw)==x['uncompressed_bytes']
     with a.output.open('xb') as f:f.write(raw)
     decoded=json.loads(raw)
-    count=len(decoded['windows']) if isinstance(decoded,dict) else len(decoded)
+    if isinstance(decoded,dict):
+        count=len(decoded['windows']) if 'windows' in decoded else {k:len(v) for k,v in decoded.items() if isinstance(v,list)}
+    else:
+        count=len(decoded)
     print(json.dumps(dict(windows=count,output=str(a.output))))

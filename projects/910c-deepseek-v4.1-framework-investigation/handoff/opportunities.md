@@ -1,5 +1,14 @@
 # 融合优化逐项说明
 
+## DSpark完整score预算与terminal读者前沿（未完成全图）
+
+- **介绍**　沿aux/main/context、三decoder、完整score→五ID及接受拒绝边界建立范围。
+- **到了哪里**　21源/实际128-top3-3层patch，8组typed成本与3632个C8 rank-score绑定。W2是复制的，五轮没有AG；BF16 W2及加法边界不能跨过。
+- **结果**　整score含六GEMM全免费，C8个体最高0.9602%、六普通B1情景最高0.8027%，停止同一独立1%预算小方案；aux/main/decoder/大提交仍待确认。terminal入口发现DSpark仍分配MTP HC bank，容量320MiB/rank只是待核读者切口；并未确认可删。继续验证/async/下一输入。
+
+[完整判断与停止范围](evidence/dspark-execution-review.md) · [terminal缺口](evidence/terminal-entry-frontier.json)
+
+
 ## Engram独立源码与CPU表示门槛，DSpark入口推进
 
 - **介绍**　沿实际Wkv/gate残差消费者反推hash、INT8/FP32 UVA、TP-SP和迭代退役。

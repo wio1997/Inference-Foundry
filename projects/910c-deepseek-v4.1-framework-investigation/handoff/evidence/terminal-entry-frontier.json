@@ -1,0 +1,81 @@
+{
+  "status": "ACTUAL_TERMINAL_ENTRY_ONLY_READERS_AND_BUDGET_OPEN",
+  "introduction": "last HC -> optional full HC/pre_mix gather and MTP bank -> collapse -> narrow gather only if no bank -> norm -> selected head rows -> ExecuteModelState -> sample/verify/output/next-input",
+  "sources": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "read_ranges": [
+        [
+          975,
+          989
+        ],
+        [
+          1595,
+          1612
+        ],
+        [
+          1798,
+          1802
+        ]
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "read_ranges": [
+        [
+          2055,
+          2067
+        ],
+        [
+          2611,
+          2676
+        ]
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/config/speculative.py",
+      "runtime_path": "/vllm-workspace/vllm/vllm/config/speculative.py",
+      "sha256": "9c642a87264339c0dbc1d0b57330572149df0f9d5e16c6893b9895e50a619e19",
+      "read_ranges": [
+        [
+          1909,
+          1913
+        ]
+      ]
+    }
+  ],
+  "reached": [
+    "SpeculativeConfig.use_eagle includes dspark, so target allocates _mtp_hidden_buffer under frozen PP1/DSpark. Its existence cannot be assumed false merely because method is not mtp.",
+    "With bank: gather full HC and pre_mix, copy flattened full HC, then collapse full rows; without bank: collapse SP rows then gather narrow result.",
+    "runner calls getter, but only method==mtp replaces hidden_states with the returned MTP bank; DSpark chooses aux_hidden_states. Complete actual runtime consumers/callbacks still require audit.",
+    "PP-last common path selects hidden_states[logits_indices] only after terminal norm; pooling/PP-broadcast/ExecuteModelState hold separate readers."
+  ],
+  "new_candidate": {
+    "status": "待确认",
+    "scope": "DSpark MTP bank writer/full-HC gather vs actual readers, then selected terminal producer",
+    "derived_bank_capacity_tokens": 8192,
+    "BF16_HC_shape": [
+      8192,
+      4,
+      5120
+    ],
+    "bank_bytes_per_rank": 335544320,
+    "bank_MiB_per_rank": 320,
+    "all_16_ranks_bank_GiB": 5,
+    "qualification": "Source-derived allocation from frozen 8192 token config, not new memory measurement. Do not delete before full consumer audit; changing collapse M/layout requires per-primitive bit gate.",
+    "gaps": [
+      "all actual runtime consumers, getters/observers and capture lifetime",
+      "collapse FP32 multiplication/sum/BF16 rounding when moved before gather",
+      "matched wide-HC/pre_mix AG and bank-copy cost, new narrow transport and request propagation",
+      "prompt logprob/pooling/MTP/PP and other outputs before selected-row pruning"
+    ]
+  },
+  "next": "Audit actual runtime full bank/getter references, all hidden_states/prompt/logprob readers and primitive rounding; bind last wide AG + pre_mix + copy at same C8/ordinary loads, then follow target sampler/reject kernel and asynchronous next-input generations.",
+  "new_NPU_measurements": 0,
+  "service_requests": 0,
+  "whole_chain_complete": false
+}

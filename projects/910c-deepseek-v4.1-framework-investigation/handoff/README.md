@@ -1,7 +1,22 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+<!-- DSPARK-EXECUTION-20261109-START -->
+## 当前独立前沿：DSpark整段score判断，终端与异步迭代继续
+
+**Goal ACTIVE；每个替换原语逐位一致；loop-013 PIVOTED，loop-014开始terminal全部读者和下一迭代。全链路未完成。**
+
+- **介绍**　从aux/main→三context cache→3decoder→base与五次Markov反馈→target接受拒绝边界，先形成完整parent再匹配历史。
+- **到了哪里**　21源SHA匹配，补实际Ascend config patch证明draft128 experts/top3/3层。W2复制/disable_tp，五轮没有五个原AG可删；原BF16 W2→BF16 Add→ArgMax舍入保留。112 accepted periods的8组typed成本一致；独立clean同shape/count不同时间，已分开。历史C8绑定231 waves/3632 rank-score记录。
+- **结果**　整个score含六GEMM/收集/选择/发布全部免费，C8 makespan最高条件信用0.9529%、个体响应0.9602%；六普通B1匹配情景最高0.8027%。结束同原schedule独立追1%score的小变体，不补同预算cache命中trace；小context writer也止于自己的预算。aux/main、三decoder/EP与大提交仍保留具体逐位/净价/代次缺口，不能被上述低值误剪。
+- **下一处已开始**　target实际因use_eagle(dspark)=true分配MTP HC bank；先full HC/pre_mix gather和copy，再collapse。runner getter返回值只在mtp替换输入，DSpark用aux；完整实际读者仍待审。源码容量320MiB/rank（16rank约5GiB）是待确认的读者/容量切口，**未确认可删**；继续wide/narrow/collapse位值与成本、prompt/logprob、reject kernel、async/scheduler/下一输入。
+- **工作范围**　新NPU测量0、推理请求0、远端写入0；本地证据`d2c26f7`。
+
+[介绍/到了哪里/结果及三类处置](evidence/dspark-execution-review.md) · [成本与整段价格](evidence/dspark-execution-frontier.json) · [21源身份](evidence/dspark-execution-identity.json) · [native限定复用](evidence/dspark-native-evidence-reuse.json) · [cohort资格纠正](evidence/dspark-cost-cohort-qualification.json) · [无损typed窗口](evidence/dspark-score-windows-archive.json) · [terminal实际入口](evidence/terminal-entry-frontier.json)
+<!-- DSPARK-EXECUTION-20261109-END -->
+
+
 <!-- ENGRAM-EXECUTION-20261109-START -->
-## 当前独立前沿：Engram交付已推进，DSpark五候选入口继续
+## 上一前沿快照：Engram交付已推进，DSpark五候选入口继续
 
 **全链路仍进行中；每个替换原语逐位一致。loop-012为PIVOTED，当前loop-013保持活动。**
 
