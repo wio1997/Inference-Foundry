@@ -172,6 +172,12 @@
 
 </details>
 
+### 2026-11-09 独立搜索与C2扩展深入
+
+- **介绍**　从真实Decoder/DSACP读者独立反推行owner producer；C2考虑SWA BF16与两份FP32投影共同发布，保留原全局pool/ring。
+- **到了哪里**　待确认，正在深入。旧保守价排除三个C2源；不能用低值pool/ring小helper剪掉FP32主计算，不能据当前缺口关闭总搜索。
+- **结果**　同C8 eager的两个FP32投影，四carrier/三源的原耗时中位串行参考9.113ms；非请求可省量。本地M数值/耗时和原重叠仍须核对，不与旧30.27ms包络相加。[实际消费者、搜索前沿与下一步](evidence/execution-derived-search.md)。
+
 ## C09
 
 **M03 · SMLA direct KV reader＋首partial交付；shared panel为替代**
