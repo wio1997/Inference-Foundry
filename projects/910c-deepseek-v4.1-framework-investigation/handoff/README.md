@@ -1,7 +1,20 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+<!-- TERMINAL-READERS-20261109-START -->
+## 当前前沿：终端读者与跨迭代交付，完整搜索继续
+
+**Goal ACTIVE；loop-014 EVALUATING；每个替换原语逐位一致。全链路未扫完。**
+
+- **介绍**：最终HC→全部真实读者→target head/接受拒绝→异步输出与下一输入，按完整交付定价。
+- **到了哪里**：18源SHA匹配；13,520文件仅是三个bank/getter标识的引用扫描。DSpark不消费MTP bank getter值；prompt完整行、req-ID快照/bonus-draft scatter、Worker输出线程、CPU stop和common退役接口已读。
+- **结果**：bank源码容量320MiB/卡（16卡共5GiB），保留full AG/full-M数学形状的具体补丁已形成，未部署、native/graph待确认。Post→head输入全免C8 P90最高0.96564%、六普通情景0.64242%；target head+验证连GEMM全免最高个体响应0.58204%、六普通0.52940%，停止相同独立1%延迟小预算。原compact FFN原语位差已停止，即使normalized相同也不放行。更大末层producer与reject-count/下轮host plan保留。
+- **下一处**：sampler processors/RNG、random block verifier/fallback；再联合定价下轮host-device大交付及末层attention/FFN producer。connector provider内部仍条件待扫。
+
+[介绍/到了哪里/结果](evidence/terminal-execution-review.md) · [结构化前沿](evidence/terminal-execution-frontier.json) · [价格](evidence/terminal-cost-replay.json) · [未部署补丁](evidence/terminal-dspark-dead-bank.patch) · [原native引用资格](evidence/terminal-native-archive-qualification.json)
+<!-- TERMINAL-READERS-20261109-END -->
+
 <!-- DSPARK-EXECUTION-20261109-START -->
-## 当前独立前沿：DSpark整段score判断，终端与异步迭代继续
+## 前次独立前沿：DSpark整段score判断，终端与异步迭代继续
 
 **Goal ACTIVE；每个替换原语逐位一致；loop-013 PIVOTED，loop-014开始terminal全部读者和下一迭代。全链路未完成。**
 

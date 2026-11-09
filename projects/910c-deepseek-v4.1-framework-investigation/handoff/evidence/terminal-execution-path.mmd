@@ -1,0 +1,32 @@
+flowchart TD
+    LAST[最终第39层 HC + pre_mix] --> AG[原 full HC AG + pre_mix AG]
+    AG --> COPY[DSpark MTP bank copy：无当前读者]
+    AG --> COLL[原 full-M FP32 multiply/reduce → BF16]
+    COPY -. 保持其它数学操作不变可删 .-> CAP[每卡320 MiB逻辑容量；native资格待验]
+    COLL --> RMS[原 full-M RMS]
+    RMS --> SEL[ordered logits_indices：全部验证项 + bonus]
+    RMS --> PROMPT{prompt logprobs / pooling / PP等}
+    PROMPT --> FULL[额外完整行读者或原路径 fallback]
+    SEL --> HEAD[target BF16 head + TP8 gather]
+    HEAD --> PROC[constraints / processors / greedy或random]
+    PROC --> REJECT[实际 reject kernel → -1后缀的输出ID]
+    REJECT --> SEED[count / last seed]
+    REJECT --> D2H[独立stream D2H + copy event + 持有设备引用]
+    AUX[层36/37/38入口 aux] --> DRAFT[DSpark main/context/3 decoder/5 Markov]
+    SEED --> DRAFT
+    DRAFT --> DID[草稿ID + 原K stride]
+    D2H --> THREAD[Worker输出线程 get_output → Core FIFO drain]
+    THREAD --> SCHED[scheduler 拒绝回退 / stop trim / stale代次]
+    SCHED --> CLIENT[detokenize / earliest stop-string / holdback / 输出queue]
+    CLIENT -->|字符串stop发abort| SCHED
+    SCHED --> NEXTMAP[下一轮req-ID映射与scheduled draft长度]
+    NEXTMAP --> SNAP[先snapshot旧computed/count/drafts 再原地更新]
+    SEED --> SNAP
+    SNAP --> POS[校正GPU positions / seq_lens / slot]
+    NEXTMAP --> IDS[bonus + 草稿prefix scatter / 新prefill CPU输入]
+    DID --> IDS
+    SEED --> IDS
+    POS --> INPUT[下一轮输入 / cache与Engram metadata]
+    IDS --> INPUT
+    SCHED --> RETIRE[connector/EC延迟释放与代次；provider内部仍待扫]
+    DRAFT --> FINALIZE[原finalize KV：wait_for_save + clear]

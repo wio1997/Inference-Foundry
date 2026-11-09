@@ -1,5 +1,9 @@
 # 171 融合算子团队开发清单
 
+**本轮更新**：终端18源与真实读者/下轮状态已展开，DSpark dead-bank有具体未部署补丁（320MiB/卡）；native资格待确认。完整Post/head/verify独立1%预算低，结束对应小方案；更大末层与host-device交付仍待确认。旧compact原语位差不以最终readout一致豁免。历史reader失配保留error，精确Git blob及原receipt已核。Goal ACTIVE，下一处完整sampler/RNG/block-verify。
+
+[判断与下一步](evidence/terminal-execution-review.md)
+
 **当前增量（Goal ACTIVE）**：DSpark真实21源/128-top3-3层，五轮replicated W2和BF16 Add边界已核。整score原请求预算先全免仍低，只停止独立小路线，不为它再做cache trace。aux/main live-row、三decoder/EP和大提交仍有具体缺口。loop-014开始terminal全部读者、verify/async/scheduler/下一输入；MTP bank源码容量320MiB/rank尚未证明可删。
 
 [开发门槛/三类处置](evidence/dspark-execution-review.md) · [下一处](evidence/terminal-entry-frontier.json)
