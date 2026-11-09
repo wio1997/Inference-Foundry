@@ -1,7 +1,23 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+<!-- ENGRAM-EXECUTION-20261109-START -->
+## 当前独立前沿：Engram交付已推进，DSpark五候选入口继续
+
+**全链路仍进行中；每个替换原语逐位一致。loop-012为PIVOTED，当前loop-013保持活动。**
+
+- **介绍**　从层1/14四路残差反推BF16 Wkv、rotated gate、UVA/TP-SP、hash/history及退役，按整段交付形成范围后匹配历史。
+- **到了哪里**　19份源码SHA匹配当前运行；64首tokenbody/128两层边界/4736 gate任务，10组Wkv成本calls/min/median/max一致。实际6144→25600 BF16 Wkv；共享DP已有本地lookup，A3不走A5 unrotated gate。gate接HcPre后残差仍有HcPost末读。
+- **结果**　body+copy全免C8原调度条件TTFT最高1.1154%；独立Wkv/gate/tuple-cut分别0.6156%/0.4897%/0.7107%，停止同预算小方案和未改变失败变体。owner交付、提前Wkv、内容cache与HC联合范围保留具体净价/逐位/代次缺口，未宣称Engram穷尽。
+- **新容量机会**　INT8表保留checkpoint E8M0 scale，两个物理共享表可少18,432,548,400B（17.16665GiB）host。现成MXFP8 decoder在编码255生成0x7fc00000，加载FP32为0x7f800001，直接复用停止；修正CPU256编码/65536乘积0位差。NPU原语、加载/映射/退役及真实UVA延迟待确认，不把CPU证据写成已部署或速度收益。
+- **下一处已开始**　DSpark实际3draft blocks、aux零基36/37/38；base logits一次，随后5次Markov/embed/bias/选词有串行反馈。继续MarkovHead/LogitsProcessor、context producer及target accept/reject/history末读，再定大词表交付的净价；不继承旧模块完成。
+- **本轮工作**　NPU测量0、服务推理请求0、远端写入0；本地证据`576d5e4`。
+
+[介绍/到了哪里/结果及三类处置](evidence/engram-execution-review.md) · [匹配成本/条件价格](evidence/engram-execution-frontier.json) · [冻结身份](evidence/engram-execution-identity.json) · [CPU位门槛](evidence/engram-scale-representation-cpu.json) · [128 typed窗口无损包](evidence/engram-execution-windows-archive.json) · [DSpark入口与未扫项](evidence/dspark-entry-frontier.json)
+<!-- ENGRAM-EXECUTION-20261109-END -->
+
+
 <!-- SMLA-SERVICE-GATE-20261109-START -->
-## 当前独立前沿：SMLA联合交付与服务实际激活门槛
+## 上一前沿快照：SMLA联合交付与服务实际激活门槛
 
 **全链路仍进行中；每个替换原语逐位一致。当前转Engram内容producer→两层残差→迭代退役。**
 

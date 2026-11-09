@@ -14,4 +14,6 @@ if __name__=='__main__':
     raw=zlib.decompress(c);assert hashlib.sha256(raw).hexdigest()==x['uncompressed_sha256']
     assert len(raw)==x['uncompressed_bytes']
     with a.output.open('xb') as f:f.write(raw)
-    print(json.dumps(dict(windows=len(json.loads(raw)),output=str(a.output))))
+    decoded=json.loads(raw)
+    count=len(decoded['windows']) if isinstance(decoded,dict) else len(decoded)
+    print(json.dumps(dict(windows=count,output=str(a.output))))

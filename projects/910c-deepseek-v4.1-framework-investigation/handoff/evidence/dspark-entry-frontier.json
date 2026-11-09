@@ -1,0 +1,92 @@
+{
+  "status": "ENTRY_SOURCE_REVIEW_ONLY_PROPOSER_AND_ITERATION_UNCLOSED",
+  "introduction": "pre-Engram aux snapshots -> main_proj/norm and three layer-specific context KV -> three draft blocks -> one base-vocab logits bank -> five serial Markov/embed/bias/selection -> target verification and history",
+  "frozen_config": {
+    "num_target_layers": 40,
+    "num_draft_layers": 3,
+    "num_candidates": 5,
+    "dspark_block_size": 5,
+    "target_aux_one_based": [
+      37,
+      38,
+      39
+    ],
+    "snapshot_zero_based": [
+      36,
+      37,
+      38
+    ],
+    "vocab_size": 129280,
+    "markov_rank": 256
+  },
+  "sources": [
+    {
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/dspark.py",
+      "sha256": "fcee256905928917154d8dac94d6611bb83d02da441e8aa154a525ef51e6a601",
+      "read_ranges": [
+        [
+          143,
+          337
+        ],
+        [
+          403,
+          460
+        ]
+      ],
+      "runtime_revalidation": "PENDING_THIS_TRANCHE"
+    },
+    {
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/dspark_proposer.py",
+      "sha256": "70d216de21875e679d510153ebdb0f0ccf130875a0e644f0673d60b67b6b633c",
+      "read_ranges": [
+        [
+          31,
+          108
+        ],
+        [
+          226,
+          358
+        ]
+      ],
+      "runtime_revalidation": "PENDING_THIS_TRANCHE"
+    },
+    {
+      "local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "read_ranges": [
+        [
+          1480,
+          1649
+        ]
+      ],
+      "runtime_revalidation": "PENDING_THIS_TRANCHE"
+    }
+  ],
+  "reached": [
+    "DSparkModel forward: token embed/HC4, three draft blocks, HC collapse/SP gather; combine_hidden_states main_proj then norm",
+    "precompute_and_store_context_kv loops all three distinct attn Wkv/norm/RoPE/cache writers; empty context or mapping skip",
+    "raw logits computed once [B,K,V]; each candidate depends on previous selected token Markov embedding and bias; in-place original add then argmax or probabilistic branch",
+    "full-vocab model map_draft_to_target returns identity; generic reduced-vocab path and confidence dynamic branch cannot be assumed active",
+    "sample_from_anchor default True chooses K query rows vs False K+1; actual transformed draft HF setting needs qualification",
+    "set_inputs_first_pass subtracts rejected count in device effective_seq_lens and extends already-corrected host mirror; per-group physical/kernel block mapping retained"
+  ],
+  "next": "Read qwen3_dspark DSparkMarkovHead/ConfidenceHead and LogitsProcessor then AscendDflashProposer.build_model_inputs_first_pass/context pipeline, prove frozen greedy/probabilistic/mapping/dynamic flags; follow actual target accept/reject/update readers and bind full parent profiles before choosing native probes",
+  "candidate_frontiers": [
+    {
+      "scope": "keep base-logit shards and serial Markov correction at shard owners; global selection packet instead of full-vocab AG",
+      "status": "待确认",
+      "gap": "actual dtype/rounding/LP consumers and sampling flags, tie/NaN rule, original primitive tiling, coherent token feedback and matching request net price"
+    },
+    {
+      "scope": "aux->main projection/norm->three context Wkv/RoPE/cache writers",
+      "status": "待确认",
+      "gap": "actual weights/dtypes and all readers, no algebraic reassociation across BF16/norm, shared/source projection geometry and original overlap"
+    }
+  ],
+  "new_NPU_measurements": 0,
+  "service_requests": 0,
+  "whole_chain_complete": false
+}

@@ -1,6 +1,10 @@
 # 171 融合算子团队开发清单
 
-**当前增量**：SMLA按真实选中KV/partial大交付判断，direct或跨层panel+首partial保留具体K/速率/逐位与生命周期门槛；不要以首partial单项低值剪联合范围。shared M416以服务custom绑定a3为准，a2只有其独立进程资格，整个DFC共驻尚未测。[SMLA](evidence/smla-execution-review.md) · [服务shared原语](evidence/shared-4cube-service-gate-summary.json)。全图当前续扫Engram。
+**当前增量（Goal ACTIVE）**：Engram两层consumer→UVA/TP-SP/hash/退役已推进。保留E8M0的新容量路线有18.43GB明确逻辑容量与编码255反例；修正CPU枚举通过，NPU/成对加载/代次缺口待确认。停止同预算小方案和未改变旧失败配方，保留owner/提前Wkv/HC大parent。当前loop-013扫DSpark的5次Markov串行反馈及target接受拒绝状态。
+
+[Engram开发门槛/三类处置](evidence/engram-execution-review.md) · [DSpark入口](evidence/dspark-entry-frontier.json)
+
+**前次SMLA增量**：SMLA按真实选中KV/partial大交付判断，direct或跨层panel+首partial保留具体K/速率/逐位与生命周期门槛；不要以首partial单项低值剪联合范围。shared M416以服务custom绑定a3为准，a2只有其独立进程资格，整个DFC共驻尚未测。[SMLA](evidence/smla-execution-review.md) · [服务shared原语](evidence/shared-4cube-service-gate-summary.json)。全图当前续扫Engram。
 
 **MoE当前开发门槛**：完整shared4/8已有M416真实权重、正确BF16 scale逐位与actual BlockDim限定事实；下一开发缺口为真实DFC共驻/争用、其它M/40层逐位及图/格式设置。前缀裁剪/deferred返回融合需保留舍入和arena末读。原样空credit变体已有native价值失败，不重做。全链路独立扫描现进SMLA实际kernel。[原语门槛](evidence/shared-fourcube-primitive-gate.md) · [返回消费者](evidence/moe-return-consumers.md)。
 

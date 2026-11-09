@@ -1,8 +1,17 @@
 # 融合优化逐项说明
 
+## Engram独立源码与CPU表示门槛，DSpark入口推进
+
+- **介绍**　沿实际Wkv/gate残差消费者反推hash、INT8/FP32 UVA、TP-SP和迭代退役。
+- **到了哪里**　19源身份、128边界/4736 gate任务和10组Wkv成本；body全免最高条件TTFT1.1154%，gate→HC仍保存BF16残差的后续HcPost读者。DSpark进入base logits一次/五次Markov反馈，主体和验证末读未闭合。
+- **结果**　独立小预算/原样失败变体停止；E8M0容量候选净少18.43GB共享host，编码255不能直接用现成decoder，修正CPU穷举0差、NPU待验。owner交付/提前投影/内容cache/HC联合保留明确缺口，全图继续。
+
+[三类处置及证据](evidence/engram-execution-review.md) · [DSpark下一处](evidence/dspark-entry-frontier.json)
+
+
 每项按介绍、进度、结果阅读。展开可查代码、适用条件和证据。[更新方式](README.md#阶段说明与上传流程) · [早期 42 族](evidence/priority-42.md)
 
-## 当前独立深入增量（全链路未完成）
+## 前次MoE深入增量（全链路未完成）
 
 - **介绍**　完整shared4/8与DFC共驻、DFC返回到残差大consumer，均由真实交付形成范围后再匹配历史。
 - **到了哪里**　M416真实共享权重八项字节比较0、actual BlockNum8/4/8/4（DownMix4），仅确认本case原语准入；返回段明确FP16/BF16舍入、原TopK序和屏障后peerD末读。
