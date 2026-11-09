@@ -1,0 +1,464 @@
+{
+  "_publication_scope": "Archived initial generic-pool interpretation; superseded by actual-tokenizer-dispatch-frontier.json. Raw jobs/FIFO prices remain. No actual auto-pool admission.",
+  "status": "LIMITED_INPUT_RENDERER_SOURCE_FIFO_VALUE_REVIEW",
+  "whole_chain_complete": false,
+  "bitwise_required": true,
+  "current_source_pins": [
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/renderers/base.py",
+      "sha256": "4db44560f4d331bf0f184626ed7cac97b350355a5c64bce648bf1fa971b16d68"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/renderers/online_renderer.py",
+      "sha256": "147ac64103d7ffa842cc6b91e916c5de8aaab35f79762451e2c0ee8cb5513c0e"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/renderers/params.py",
+      "sha256": "6837717e82e4c322920de34bd6f3e26c9f7739dc49edf13e8c6a5c5050f87fc5"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/renderers/inputs/preprocess.py",
+      "sha256": "d3ec875c43f81208444c111da53bea5854bb9ff0cc0c793eeec6c693a4bdd25c"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/tokenizers/hf.py",
+      "sha256": "53b0dd497817c873d0ef02a7b716affff836c344f85947a4c59b61e7acffa95d"
+    },
+    {
+      "path": "audit/execution-search/frontend-output-runtime-source/vllm/vllm/tokenizers/detokenizer_utils.py",
+      "sha256": "e17ef23dae7bbb1db5875024c249567b988d8611b560d095c3f786d1e697fe11"
+    },
+    {
+      "path": "audit/execution-search/frontend-output-runtime-source/vllm/vllm/utils/async_utils.py",
+      "sha256": "7288d88a8d065453f1251008bfe03bf3c0997cca7f670c099bca0962db3a7588"
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm/vllm/entrypoints/openai/completion/protocol.py",
+      "sha256": "5f7930635fd3924826015211032fb298206b27c7f04cd6cd2224bb128e4a3a50"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/renderers/hf.py",
+      "sha256": "9cec4d72b0a7464138216791499a2de25adb8edc0fe9a1cd5bd2d6a837ee384c"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/renderers/registry.py",
+      "sha256": "5ea03ecad81f8911c72112656f2456c05e0e57122be99af05c27464466596844"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/tokenizers/registry.py",
+      "sha256": "077f11649db9c6e086eeb60f9dd81ed5667cadd83a29e66a0870c1ed5b1680a5"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/tokenizers/__init__.py",
+      "sha256": "29548902d92ec30fbed3cbf3f76225d9766a18dae9ef54553eb48284e4dbf653"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/config/model.py",
+      "sha256": "f4168b67cc93ce72ff2a6d4c66974223e32fd0f1fab4c05e44bd68a275e18d69"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/vllm/vllm/utils/async_utils.py",
+      "sha256": "7288d88a8d065453f1251008bfe03bf3c0997cca7f670c099bca0962db3a7588"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/installed/transformers/tokenization_utils_tokenizers.py",
+      "sha256": "4142769e9147cd371e7ee4b3270f521013fcbf1306fc9842aa87bb503f9f64fb"
+    },
+    {
+      "path": "audit/execution-search/input-renderer-runtime-source/installed/transformers/tokenization_utils_base.py",
+      "sha256": "f86fc8ce6ad86bcbb4bad93b84b3cde9f7b93b516703b5d220889c66bbdd7b5a"
+    }
+  ],
+  "actual_path": [
+    "CompletionRequest.build_tok_params",
+    "OnlineRenderer.preprocess_completion/preprocess_cmpl",
+    "parse_model_prompt -> parse_dec_only_prompt",
+    "BaseRenderer.render_cmpl_async -> render_prompts_async/tokenize_prompts_async",
+    "_tokenize_singleton_prompt_async pre-validation",
+    "make_async/_executor -> _tokenize_prompt -> pooled TokenizersBackend.__call__ -> _encode_plus -> native encode_batch",
+    "_build_tokens_prompt per-request list copy -> post-validation/truncation/padding/parallel fields",
+    "_process_tokens_async -> tokens_input -> EngineInput arrival_time -> existing EngineCoreRequest/validation/cache/scheduler/H2D consumers"
+  ],
+  "fixed_branch": {
+    "model": "decoder-only text, no multimodal data/offsets/echo or prompt embeds in frozen C8",
+    "request_max_tokens": 1024,
+    "max_model_len": 34816,
+    "source_derived_kwargs": {
+      "truncation": true,
+      "max_length": 33793,
+      "add_special_tokens": true
+    },
+    "renderer_num_workers": "ModelConfig default1; saved launch has no flag per prior script identity. Completed trace actual one worker matches, not current live object introspection.",
+    "native_binding": "v0.22.2 upstream encode_batch uses py.detach; trace shows main submitting7 more requests during first native call. Source tag not installed binary provenance.",
+    "pool": "HfRenderer copies tokenizer then maybe_make_thread_pool(workers+1). Public calls borrow independent deep copies; raw _tokenizer/mutation methods explicitly outside thread-safe interface."
+  },
+  "FIFO": {
+    "jobs": [
+      {
+        "ordinal": 0,
+        "submit_ms": 0,
+        "start_ms": 1.330724609375,
+        "end_ms": 65.09470751953126,
+        "parent_ms": 63.763983,
+        "native_ms": 59.543966999999995,
+        "retained_parent_other_ms": 4.220016000000003,
+        "queue_wait_ms": 1.330724609375,
+        "thread": 30599
+      },
+      {
+        "ordinal": 1,
+        "submit_ms": 1.631748046875,
+        "start_ms": 65.68941259765624,
+        "end_ms": 127.470802734375,
+        "parent_ms": 61.78139,
+        "native_ms": 59.182991,
+        "retained_parent_other_ms": 2.5983989999999975,
+        "queue_wait_ms": 64.05766455078125,
+        "thread": 30599
+      },
+      {
+        "ordinal": 2,
+        "submit_ms": 1.7501328125,
+        "start_ms": 128.0644677734375,
+        "end_ms": 187.89327587890625,
+        "parent_ms": 59.828807999999995,
+        "native_ms": 57.597546,
+        "retained_parent_other_ms": 2.231261999999995,
+        "queue_wait_ms": 126.3143349609375,
+        "thread": 30599
+      },
+      {
+        "ordinal": 3,
+        "submit_ms": 1.83035595703125,
+        "start_ms": 188.49183056640624,
+        "end_ms": 247.80537744140625,
+        "parent_ms": 59.313547,
+        "native_ms": 57.156157,
+        "retained_parent_other_ms": 2.1573899999999995,
+        "queue_wait_ms": 186.661474609375,
+        "thread": 30599
+      },
+      {
+        "ordinal": 4,
+        "submit_ms": 2.10969775390625,
+        "start_ms": 248.42994384765626,
+        "end_ms": 308.4888120117188,
+        "parent_ms": 60.058868000000004,
+        "native_ms": 57.93285899999999,
+        "retained_parent_other_ms": 2.1260090000000056,
+        "queue_wait_ms": 246.32024609375,
+        "thread": 30599
+      },
+      {
+        "ordinal": 5,
+        "submit_ms": 2.2415927734375,
+        "start_ms": 309.06152587890625,
+        "end_ms": 368.7207978515625,
+        "parent_ms": 59.659271999999994,
+        "native_ms": 57.218379,
+        "retained_parent_other_ms": 2.4408929999999964,
+        "queue_wait_ms": 306.81993310546875,
+        "thread": 30599
+      },
+      {
+        "ordinal": 6,
+        "submit_ms": 2.36391796875,
+        "start_ms": 369.29349072265626,
+        "end_ms": 431.4018544921875,
+        "parent_ms": 62.108364,
+        "native_ms": 59.144870000000004,
+        "retained_parent_other_ms": 2.963493999999999,
+        "queue_wait_ms": 366.92957275390626,
+        "thread": 30599
+      },
+      {
+        "ordinal": 7,
+        "submit_ms": 2.47353271484375,
+        "start_ms": 432.007259765625,
+        "end_ms": 492.6039609375,
+        "parent_ms": 60.596701,
+        "native_ms": 58.43247,
+        "retained_parent_other_ms": 2.1642309999999996,
+        "queue_wait_ms": 429.53372705078124,
+        "thread": 30599
+      }
+    ],
+    "submit_span_ms": 2.47353271484375,
+    "native_total_ms": 466.209239,
+    "parents_total_ms": 487.110933,
+    "last_parent_end_ms": 492.6039609375,
+    "aggregate_queue_wait_ms": 1727.967677734375,
+    "contract": "Internal FIFO ordinal pairing:8 submissions,8 worker jobs/native calls; source maxworkers1 and no extra tokenizer job in window. No external request-ID association. Queue waits overlap across requests: never add their sum to batch or CPU work."
+  },
+  "paid_FIFO_scenarios": [
+    {
+      "native_fraction_removed": 0,
+      "new_ms_per_job": 0.1,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        -0.10000008984374631,
+        -0.19999995312498697,
+        -0.2999998476562098,
+        -0.3999999726561896,
+        -0.4999998085937136,
+        -0.5999998359374672,
+        -0.7000000664062327,
+        -0.7999998945312541
+      ],
+      "last_input_acceleration_ms": -0.7999998945312541,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": -0.10000008984366104,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": -0.7999998945313109,
+      "last_input_acceleration_over_profiled_batch_percent": -0.004576409199261778
+    },
+    {
+      "native_fraction_removed": 0,
+      "new_ms_per_job": 0.5,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        -0.500000089843752,
+        -0.9999999531249983,
+        -1.4999998476562268,
+        -1.9999999726562123,
+        -2.4999998085937136,
+        -2.9999998359374445,
+        -3.500000066406187,
+        -3.999999894531186
+      ],
+      "last_input_acceleration_ms": -3.999999894531186,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": -0.500000089843752,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": -3.999999894531129,
+      "last_input_acceleration_over_profiled_batch_percent": -0.022882048409649514
+    },
+    {
+      "native_fraction_removed": 0,
+      "new_ms_per_job": 2,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        -2.000000089843752,
+        -3.9999999531249983,
+        -5.999999847656227,
+        -7.999999972656212,
+        -9.999999808593714,
+        -11.999999835937444,
+        -14.000000066406187,
+        -15.999999894531186
+      ],
+      "last_input_acceleration_ms": -15.999999894531186,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": -2.855868847656211,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": -15.999999894531129,
+      "last_input_acceleration_over_profiled_batch_percent": -0.091528195448605
+    },
+    {
+      "native_fraction_removed": 0.5,
+      "new_ms_per_job": 0.1,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        29.671983410156244,
+        59.163479046875,
+        87.86225215234374,
+        116.34033052734378,
+        145.2067601914063,
+        173.71594966406255,
+        203.1883844335938,
+        232.30461960546876
+      ],
+      "last_input_acceleration_ms": 232.30461960546876,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 176.86008066406248,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 29.671983410156145,
+      "last_input_acceleration_over_profiled_batch_percent": 1.3289014229388023
+    },
+    {
+      "native_fraction_removed": 0.5,
+      "new_ms_per_job": 0.5,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        29.271983410156245,
+        58.363479046875014,
+        86.66225215234375,
+        114.74033052734379,
+        143.20676019140632,
+        171.3159496640626,
+        200.38838443359387,
+        229.10461960546883
+      ],
+      "last_input_acceleration_ms": 229.10461960546883,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 174.46008066406262,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 29.27198341015628,
+      "last_input_acceleration_over_profiled_batch_percent": 1.3105957837284146
+    },
+    {
+      "native_fraction_removed": 0.5,
+      "new_ms_per_job": 2,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        27.771983410156245,
+        55.363479046875014,
+        82.16225215234375,
+        108.74033052734379,
+        135.70676019140632,
+        162.3159496640626,
+        189.88838443359387,
+        217.10461960546883
+      ],
+      "last_input_acceleration_ms": 217.10461960546883,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 165.46008066406262,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 27.77198341015628,
+      "last_input_acceleration_over_profiled_batch_percent": 1.2419496366894591
+    },
+    {
+      "native_fraction_removed": 0.9,
+      "new_ms_per_job": 0.1,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        53.489570210156245,
+        106.65426224687499,
+        158.39205375234374,
+        209.73259492734377,
+        261.77216819140625,
+        313.1687092640625,
+        366.29909203359375,
+        418.7883152054688
+      ],
+      "last_input_acceleration_ms": 418.7883152054688,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 316.3128402640625,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 53.48957021015622,
+      "last_input_acceleration_over_profiled_batch_percent": 2.395683688649254
+    },
+    {
+      "native_fraction_removed": 0.9,
+      "new_ms_per_job": 0.5,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        53.089570210156246,
+        105.854262246875,
+        157.19205375234372,
+        208.13259492734375,
+        259.77216819140625,
+        310.7687092640625,
+        363.4990920335938,
+        415.5883152054688
+      ],
+      "last_input_acceleration_ms": 415.5883152054688,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 313.91284026406265,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 53.08957021015635,
+      "last_input_acceleration_over_profiled_batch_percent": 2.3773780494388657
+    },
+    {
+      "native_fraction_removed": 0.9,
+      "new_ms_per_job": 2,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        51.589570210156246,
+        102.854262246875,
+        152.69205375234372,
+        202.13259492734375,
+        252.27216819140625,
+        301.7687092640625,
+        352.9990920335938,
+        403.5883152054688
+      ],
+      "last_input_acceleration_ms": 403.5883152054688,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 304.91284026406265,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 51.58957021015635,
+      "last_input_acceleration_over_profiled_batch_percent": 2.30873190239991
+    },
+    {
+      "native_fraction_removed": 1,
+      "new_ms_per_job": 0.1,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        59.44396691015624,
+        118.52695804687501,
+        176.02450415234375,
+        233.08066102734378,
+        290.9135201914063,
+        348.0318991640625,
+        407.07676893359377,
+        465.40923910546877
+      ],
+      "last_input_acceleration_ms": 465.40923910546877,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 351.17603016406247,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 59.44396691015618,
+      "last_input_acceleration_over_profiled_batch_percent": 2.662379255076867
+    },
+    {
+      "native_fraction_removed": 1,
+      "new_ms_per_job": 0.5,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        59.04396691015624,
+        117.726958046875,
+        174.82450415234374,
+        231.48066102734376,
+        288.91352019140623,
+        345.6318991640625,
+        404.27676893359376,
+        462.2092391054688
+      ],
+      "last_input_acceleration_ms": 462.2092391054688,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 348.7760301640624,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 59.043966910156314,
+      "last_input_acceleration_over_profiled_batch_percent": 2.6440736158664784
+    },
+    {
+      "native_fraction_removed": 1,
+      "new_ms_per_job": 2,
+      "completion_acceleration_ms_by_FIFO_ordinal": [
+        57.54396691015624,
+        114.726958046875,
+        170.32450415234374,
+        225.48066102734376,
+        281.41352019140623,
+        336.6318991640625,
+        393.77676893359376,
+        450.2092391054688
+      ],
+      "last_input_acceleration_ms": 450.2092391054688,
+      "P90_TTFT_fixed_downstream_lag_best_pairing_ms": 339.7760301640624,
+      "P90_TTFT_fixed_downstream_lag_worst_pairing_ms": 57.543966910156314,
+      "last_input_acceleration_over_profiled_batch_percent": 2.575427468827523
+    }
+  ],
+  "endpoint_contract": "Queue completion simulations retain observed parent-other costs and inter-job gaps, fixed task submission times and source FIFO. Endpoint pairing range assumes each downstream lag unchanged; engine admission/batching/prefill/CPU-GPU overlap and request-ID mapping are NOT known, so these are sensitivity scenarios, not measured/expected/tight causal request bounds. No cross-cohort/native-seed/metadata budget addition.",
+  "decisions": [
+    {
+      "state": "已确认可实现",
+      "scope": "Existing renderer worker configuration and tokenizer-copy pool",
+      "qualification": "Existing async capability, not a new fusion implementation or measured benefit. No service change. Shared raw backend mutable truncation/encode_special_tokens state must not replace the pool."
+    },
+    {
+      "state": "待确认",
+      "scope": "Shared stable-prefix tokenization/pretokenization/BPE and immutable ID delivery",
+      "qualification": "Whole native466ms is nontrivial; cached_tokenizer caches properties, not full promptIDs. Need exact stable regex/added-token boundary, immutable generation/config/flags, validation/error/offset semantics, cold insertion/warm hit/LRU/lookup/copy costs. Prefix length alone is not admissible."
+    },
+    {
+      "state": "已停止",
+      "scope": "Blind concat of independently tokenized arbitrary common prefix/suffix, or bare concurrent calls through one mutable HF backend",
+      "qualification": "No stable BPE/special-token boundary proof; HF explicitly mutates backend truncation/padding/split-special state. Stops these recipes, not guarded prefix reuse or independent pooled clones."
+    },
+    {
+      "state": "待确认",
+      "scope": "Whole renderer/ID-publication/cache/next-submit joint delivery",
+      "qualification": "Retain original perrequest ID values/ownership, EngineInput text/arrival/cache_salt and existing EngineCore/Engram/cache consumers. No new model/H2D deletion credit from tokenizer CPU optimization."
+    }
+  ],
+  "remaining": [
+    "Generic HF constructor replay IDs/actual loader and service identity relation; source replay cannot replace captured serving IDs",
+    "Decision-changing stable-prefix geometry and exact IDs/cold+warm CPU cost point if sufficiently large; otherwise move on",
+    "Four startup warmup helpers/internal kernels and MM budget remain; do not close full scan by listing gaps"
+  ],
+  "analyzer_sha256": "7ba1144de7b9c1b9a10ee881a53db132b3532657342e81ae21c69c87bb604fd5",
+  "new_profile_collection": 0,
+  "service_requests": 0,
+  "new_explicit_NPU_work": 0,
+  "remote_writes": [],
+  "ID_replay": {
+    "path": "input-renderer-ID-replay.json",
+    "status": "PASS_SOURCE_REPLAY",
+    "source_derived_kwargs": {
+      "truncation": true,
+      "max_length": 33793,
+      "add_special_tokens": true
+    },
+    "rows": 8,
+    "all_direct_native_IDs_equal": true,
+    "relation": "Original renderer methods and actual generic HF backend constructor/convert_added_tokens + pool replay. Not actual AutoTokenizer model resolution or serving-process IDs.",
+    "stable_prefix_chars": 117286,
+    "candidate_numeric_cut": 117067,
+    "added_flags_zero": [
+      "lstrip",
+      "rstrip",
+      "single_word"
+    ],
+    "remaining": "Guarded new prefix primitive exact/cost point, online insertion/lookup and full service integration"
+  }
+}
