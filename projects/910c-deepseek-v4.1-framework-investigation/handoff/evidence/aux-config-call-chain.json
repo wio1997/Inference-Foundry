@@ -1,0 +1,54 @@
+{
+  "status": "SOURCE_DERIVED_FULL_AUX_CONFIG_CALL_CHAIN",
+  "checkpoint_ids": [
+    37,
+    38,
+    39
+  ],
+  "upstream_selector_result": null,
+  "NPU_selector_result": [
+    38,
+    39,
+    40
+  ],
+  "model_entry_layers_zero_based": [
+    37,
+    38,
+    39
+  ],
+  "after_last_aux_body_layers": [
+    39
+  ],
+  "source_methods": [
+    {
+      "path": "/vllm-workspace/vllm/vllm/v1/worker/gpu_model_runner.py",
+      "sha256": "87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51",
+      "method": "_get_eagle3_aux_layers_from_config"
+    },
+    {
+      "path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "method": "_get_eagle3_aux_layers_from_config"
+    }
+  ],
+  "setter": {
+    "runtime_path": "/vllm-workspace/vllm/vllm/model_executor/models/interfaces.py",
+    "sha256": "5cc70b37e1dc715fe6ea2710678e8a4446ec223d154a7c31a53f0a05242c64b4",
+    "functions": [
+      {
+        "symbol": "_set_aux_hidden_state_layers",
+        "start": 1577,
+        "end": 1581,
+        "source": "    def _set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:\n        self.aux_hidden_state_layers = tuple(sorted(set(layers)))\n        self._aux_slot_base_cached = 0\n        self._aux_upstream_total_cached = 0\n        self._cache_aux_pp_layout()"
+      }
+    ]
+  },
+  "config_sha256": "43d3b2bc55626893d59275b32e04068c0fc916f5c382eb91de73bdbade9c88f7",
+  "reader_sha256": "ffb7df6688f76994c0decb485ee5de91f0a69a447d5e3afe51c7a9ad0ded525d",
+  "path": "GPU setup virtual _get -> NPU fallback adds1 -> root set_aux -> EagleModelMixin stores sorted ids unchanged -> model tests layer_idx+1",
+  "qualification": "Pure selector execution from frozen config fields and pinned source, not a live object dump. Draft-normalization source preserves DSpark ids and no upstream eagle/dflash override is present in frozen config. Current Docker logs contain no matching info message; missing logs are not evidence of another selector result.",
+  "correction": "Earlier model-only derivation omitted NPU runner +1 and incorrectly claimed entries36/37/38. Retract unconditional body38 pruning: its full output mean is aux at entry39. The old raw topology flag37/38/39 was accidentally correct but is now derived rather than hardcoded.",
+  "new_NPU_work": 0,
+  "service_requests": 0,
+  "remote_writes": []
+}

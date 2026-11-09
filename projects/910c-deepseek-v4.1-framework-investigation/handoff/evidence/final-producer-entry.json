@@ -5,60 +5,9 @@
   "source_identity": "metadata-readers-execution-identity.json",
   "corrected_topology": {
     "path": "target-layer-plan-corrected.json",
-    "sha256": "d9c015aeb57d921b6f5d27bf5ff6938a70919257af30a37c124eb00d04491610",
+    "sha256": "c0a5fd85cead2b594ab7afd878e361cff0eeabb63e3bc48cd8210e8d0f3a808c",
     "layer39": {
       "layer_idx": 39,
-      "compress_ratio": 1,
-      "kv_source_layer": 20,
-      "index_source_layer": 36,
-      "is_kv_source": false,
-      "is_index_source": false,
-      "is_candidate_source": false,
-      "uses_candidate_filter": true,
-      "engram_slot": null,
-      "aux_before_layer": false,
-      "body": "Attention-HcPre/norm/CP/attention/RS/Post -> FFN-HcPre/normcast/MoE/Post",
-      "body_value_review": "PENDING",
-      "engram_value_review": "not-present"
-    },
-    "sliding_window": 128,
-    "index_topk": 512,
-    "aux": {
-      "checkpoint_one_based_ids": [
-        37,
-        38,
-        39
-      ],
-      "zero_based_entry_layers": [
-        36,
-        37,
-        38
-      ],
-      "source": "DeepseekV41Model.forward:1560 uses layer.layer_idx + 1",
-      "correction": "Old hardcoded aux_before_layer37/38/39 was off by one; actual entries36/37/38. Layer39 output has no DSpark aux reader."
-    }
-  },
-  "live_outputs": [
-    "current layer39 SWA128 cache writes for present/future requests; no own long-KV or index-K source writes",
-    "reads shared long-KV source20 and topK source36; selected query row must map to original CP-local topK row, not arbitrary prefix",
-    "query output restores TP heads and FlashComm suffix before O projection/RS; preserve all required collective participants",
-    "selected normalized head rows when no prompt-logprob/pooling/raw observer; full prompt-logprob keeps prompt rows",
-    "mHC rounded residual, coefficients, FFN router/expert/combined/post and collapse retain each original primitive bit contract"
-  ],
-  "boundaries": {
-    "source": "model.py:879-920,1505-1608; dsa_v41.py:350-389; dsa_v41_cp.py:189-225",
-    "separation": "Actual preprocess already separates query_hidden from cache_hidden. Last39 has no DSpark aux reader. Its own SWA write demand still has to be traced to physical slots/pages and future read horizon.",
-    "caution": "SWA128 does not alone prove only128 rows may be kept: physical block ownership, chunk overlap, same-step selected queries, prefix sharing and future iterations must be checked.",
-    "precision": "Naively shrinking M is not admitted. Prior compact FFN changed coefficients/router or combined/HCPost bits despite equal final readout; that exact recipe remains stopped. Original tiler/rounding or a new fully bit-validated design is required."
-  },
-  "backward_demand_extension": {
-    "last_aux_capture": "zero-based layer38 entry, before its body",
-    "after_last_aux_body_layers": [
-      38,
-      39
-    ],
-    "layer38_role": {
-      "layer_idx": 38,
       "compress_ratio": 1,
       "kv_source_layer": 20,
       "index_source_layer": 36,
@@ -72,14 +21,51 @@
       "body_value_review": "PENDING",
       "engram_value_review": "not-present"
     },
-    "isolated_causal_prefill_example": {
-      "guard": "one terminal selected query/request, contiguous causal positions, no prompt-logprobs or additional observers; physical slot/eviction correctness still unproved",
-      "layer39_query_rows": 1,
-      "layer39_SWA_KV_tail_rows": 128,
-      "layer38_output_query_tail_rows": 128,
-      "layer38_SWA_KV_tail_rows": 255
-    },
-    "keep": "both own SWA future state, shared longKV20 and CP-local topK36 row mapping, exact HC/quant/router/expert primitives; aux entry38 remains full"
+    "sliding_window": 128,
+    "index_topk": 512,
+    "aux": {
+      "checkpoint_zero_based_ids": [
+        37,
+        38,
+        39
+      ],
+      "runner_selected_one_based_ids": [
+        38,
+        39,
+        40
+      ],
+      "zero_based_entry_layers": [
+        37,
+        38,
+        39
+      ],
+      "source": "NPUModelRunner._get_eagle3_aux_layers_from_config:797 adds1; setter stores unchanged; model.forward:1560 tests layer_idx+1",
+      "correction": "Retract model-only36/37/38 mapping which omitted runner+1. Actual entries37/38/39; body38 full output is aux at entry39. Original hardcoded37/38/39 was correct by coincidence."
+    }
+  },
+  "live_outputs": [
+    "current layer39 SWA128 cache writes for present/future requests; no own long-KV or index-K source writes",
+    "reads shared long-KV source20 and topK source36; selected query row must map to original CP-local topK row, not arbitrary prefix",
+    "query output restores TP heads and FlashComm suffix before O projection/RS; preserve all required collective participants",
+    "selected normalized head rows when no prompt-logprob/pooling/raw observer; full prompt-logprob keeps prompt rows",
+    "mHC rounded residual, coefficients, FFN router/expert/combined/post and collapse retain each original primitive bit contract"
+  ],
+  "boundaries": {
+    "source": "model.py:879-920,1505-1608; dsa_v41.py:350-389; dsa_v41_cp.py:189-225",
+    "separation": "Actual preprocess separates query_hidden from cache_hidden. Entry39 is a full DSpark aux reader of body38 output; only body39 lies after the last capture. Body39 SWA write demand still needs physical slot/future-reader proof.",
+    "caution": "SWA128 does not alone prove only128 rows may be kept: physical block ownership, chunk overlap, same-step selected queries, prefix sharing and future iterations must be checked.",
+    "precision": "Naively shrinking M is not admitted. Prior compact FFN changed coefficients/router or combined/HCPost bits despite equal final readout; that exact recipe remains stopped. Original tiler/rounding or a new fully bit-validated design is required."
+  },
+  "aux_binding": {
+    "path": "aux-config-call-chain.json",
+    "sha256": "e5b5197f9674c56fd876d6c65be2e2457db82d763625d9e1b84cc8827c5712ba",
+    "last_aux_capture": "zero-based layer39 entry, before its body",
+    "after_last_aux_body_layers": [
+      39
+    ],
+    "layer38_live_observer": "Full body38 output mean feeds aux at entry39; cannot delete its nonterminal rows.",
+    "rejected_extension": "Unconditional two-body38/39 row pruning and its3.8115% budget are withdrawn; see withdrawn-two-layer-price.json.",
+    "possible_distinct_scope": "Body38 HCPost/full aux-mean materialization can only be fused while computing every required aux row and preserving each primitive rounding; not a two-body compute-erasure claim."
   },
   "C8_first_eager_price": {
     "windows": [
@@ -1297,10 +1283,6 @@
         "conditional_TTFT_percent": [
           0.8486408620668819,
           0.8528461694590111
-        ],
-        "two_layer_first_output_saved_ms": [
-          15.71628,
-          15.761765
         ]
       },
       {
@@ -1315,10 +1297,6 @@
         "conditional_TTFT_percent": [
           0.6760765484435936,
           0.6787241948298988
-        ],
-        "two_layer_first_output_saved_ms": [
-          16.4845,
-          16.51236
         ]
       },
       {
@@ -1333,10 +1311,6 @@
         "conditional_TTFT_percent": [
           1.2058825454003304,
           1.2108517065429893
-        ],
-        "two_layer_first_output_saved_ms": [
-          15.40758,
-          15.44684
         ]
       },
       {
@@ -1351,10 +1325,6 @@
         "conditional_TTFT_percent": [
           1.2130513351370245,
           1.2180500371927148
-        ],
-        "two_layer_first_output_saved_ms": [
-          15.40758,
-          15.44684
         ]
       },
       {
@@ -1369,10 +1339,6 @@
         "conditional_TTFT_percent": [
           0.6740561304704794,
           0.6766958645096434
-        ],
-        "two_layer_first_output_saved_ms": [
-          16.4845,
-          16.51236
         ]
       },
       {
@@ -1387,10 +1353,6 @@
         "conditional_TTFT_percent": [
           0.5578698672710561,
           0.5606617553095248
-        ],
-        "two_layer_first_output_saved_ms": [
-          14.607008,
-          14.63326
         ]
       },
       {
@@ -1405,10 +1367,6 @@
         "conditional_TTFT_percent": [
           0.8517351569526258,
           0.8559557976403079
-        ],
-        "two_layer_first_output_saved_ms": [
-          15.71628,
-          15.761765
         ]
       },
       {
@@ -1423,10 +1381,6 @@
         "conditional_TTFT_percent": [
           1.203487397150068,
           1.2089592121883896
-        ],
-        "two_layer_first_output_saved_ms": [
-          9.115778,
-          9.14112
         ]
       }
     ],
@@ -1533,52 +1487,7 @@
     "P90_optimistic_percent": 2.328638624337365,
     "qualification": "Credit the largest independently favorable DP parent frontier in each real eager wave, then serially propagate all inclusive eager waves to each first output. No graph/decode, head GEMM or later-wave credit. This relaxes actual critical-rank/DP/async exposure and all required SWA work; not an expected gain. The single-first-output model above is narrower and cannot prune this broader producer."
   },
-  "two_layer_C8_prefill_prefix_relaxation": {
-    "wave_max_independent_DP_free_ms": {
-      "3": 9.14112,
-      "4": 15.44684,
-      "5": 15.761765,
-      "6": 16.51236
-    },
-    "requests": [
-      {
-        "slot": 0,
-        "optimistic_saved_ms": 40.34972500000001
-      },
-      {
-        "slot": 1,
-        "optimistic_saved_ms": 56.86208500000001
-      },
-      {
-        "slot": 2,
-        "optimistic_saved_ms": 24.587960000000002
-      },
-      {
-        "slot": 3,
-        "optimistic_saved_ms": 24.587960000000002
-      },
-      {
-        "slot": 4,
-        "optimistic_saved_ms": 56.86208500000001
-      },
-      {
-        "slot": 5,
-        "optimistic_saved_ms": 56.86208500000001
-      },
-      {
-        "slot": 6,
-        "optimistic_saved_ms": 40.34972500000001
-      },
-      {
-        "slot": 7,
-        "optimistic_saved_ms": 9.14112
-      }
-    ],
-    "P90_optimistic_saved_ms": 56.86208499999998,
-    "P90_optimistic_percent": 3.811502534530437,
-    "qualification": "Same generous inclusive eager-wave relaxation, now from layer38 Attention HcPre after the final aux capture to pre-head readout. All required SWA work, surviving rows and replacement costs must be subtracted; not measured gain or a universal ceiling."
-  },
-  "two_layer_paid_scenarios": {
+  "one_layer_paid_scenarios": {
     "scenarios": [
       {
         "removable_exposed_fraction": 0,
@@ -1631,149 +1540,149 @@
       {
         "removable_exposed_fraction": 0.25,
         "added_cost_ms_per_eager_wave": 0.1,
-        "P90_conditional_net_saved_ms": 13.815521250000074,
-        "P90_conditional_net_percent": 0.9260633735156637,
+        "P90_conditional_net_saved_ms": 8.284977000000026,
+        "P90_conditional_net_percent": 0.5553473959673918,
         "per_request_signed_saved_ms": [
-          9.787431250000001,
-          13.815521250000002,
-          5.94699,
-          5.94699,
-          13.815521250000002,
-          13.815521250000002,
-          9.787431250000001,
-          2.18528
+          5.861147000000001,
+          8.284977,
+          3.55799,
+          3.55799,
+          8.284977,
+          8.284977,
+          5.861147000000001,
+          1.2565899999999999
         ]
       },
       {
         "removable_exposed_fraction": 0.25,
         "added_cost_ms_per_eager_wave": 0.5,
-        "P90_conditional_net_saved_ms": 12.215521249999938,
-        "P90_conditional_net_percent": 0.8188143330478507,
+        "P90_conditional_net_saved_ms": 6.68497699999989,
+        "P90_conditional_net_percent": 0.4480983554995788,
         "per_request_signed_saved_ms": [
-          8.587431250000002,
-          12.215521250000002,
-          5.146990000000001,
-          5.146990000000001,
-          12.215521250000002,
-          12.215521250000002,
-          8.587431250000002,
-          1.7852800000000002
+          4.661147000000001,
+          6.684977,
+          2.7579900000000004,
+          2.7579900000000004,
+          6.684977,
+          6.684977,
+          4.661147000000001,
+          0.85659
         ]
       },
       {
         "removable_exposed_fraction": 0.25,
         "added_cost_ms_per_eager_wave": 1,
-        "P90_conditional_net_saved_ms": 10.215521249999938,
-        "P90_conditional_net_percent": 0.6847530324630959,
+        "P90_conditional_net_saved_ms": 4.68497699999989,
+        "P90_conditional_net_percent": 0.31403705491482403,
         "per_request_signed_saved_ms": [
-          7.087431250000002,
-          10.215521250000002,
-          4.146990000000001,
-          4.146990000000001,
-          10.215521250000002,
-          10.215521250000002,
-          7.087431250000002,
-          1.2852800000000002
+          3.1611470000000006,
+          4.684977,
+          1.7579900000000004,
+          1.7579900000000004,
+          4.684977,
+          4.684977,
+          3.1611470000000006,
+          0.35658999999999996
         ]
       },
       {
         "removable_exposed_fraction": 0.5,
         "added_cost_ms_per_eager_wave": 0.1,
-        "P90_conditional_net_saved_ms": 28.031042500000012,
-        "P90_conditional_net_percent": 1.8789390071482692,
+        "P90_conditional_net_saved_ms": 16.969953999999916,
+        "P90_conditional_net_percent": 1.1375070520517254,
         "per_request_signed_saved_ms": [
-          19.874862500000003,
-          28.031042500000005,
-          12.093980000000002,
-          12.093980000000002,
-          28.031042500000005,
-          28.031042500000005,
-          19.874862500000003,
-          4.470560000000001
+          12.022294,
+          16.969954,
+          7.315980000000001,
+          7.315980000000001,
+          16.969954,
+          16.969954,
+          12.022294,
+          2.61318
         ]
       },
       {
         "removable_exposed_fraction": 0.5,
         "added_cost_ms_per_eager_wave": 0.5,
-        "P90_conditional_net_saved_ms": 26.431042500000103,
-        "P90_conditional_net_percent": 1.7716899666804715,
+        "P90_conditional_net_saved_ms": 15.369954000000007,
+        "P90_conditional_net_percent": 1.0302580115839277,
         "per_request_signed_saved_ms": [
-          18.674862500000003,
-          26.431042500000004,
-          11.293980000000001,
-          11.293980000000001,
-          26.431042500000004,
-          26.431042500000004,
-          18.674862500000003,
-          4.07056
+          10.822294000000001,
+          15.369954,
+          6.515980000000001,
+          6.515980000000001,
+          15.369954,
+          15.369954,
+          10.822294000000001,
+          2.21318
         ]
       },
       {
         "removable_exposed_fraction": 0.5,
         "added_cost_ms_per_eager_wave": 1,
-        "P90_conditional_net_saved_ms": 24.431042500000103,
-        "P90_conditional_net_percent": 1.6376286660957167,
+        "P90_conditional_net_saved_ms": 13.369954000000007,
+        "P90_conditional_net_percent": 0.8961967109991729,
         "per_request_signed_saved_ms": [
-          17.174862500000003,
-          24.431042500000004,
-          10.293980000000001,
-          10.293980000000001,
-          24.431042500000004,
-          24.431042500000004,
-          17.174862500000003,
-          3.5705600000000004
+          9.322294000000001,
+          13.369954,
+          5.515980000000001,
+          5.515980000000001,
+          13.369954,
+          13.369954,
+          9.322294000000001,
+          1.71318
         ]
       },
       {
         "removable_exposed_fraction": 0.75,
         "added_cost_ms_per_eager_wave": 0.1,
-        "P90_conditional_net_saved_ms": 42.24656374999995,
-        "P90_conditional_net_percent": 2.8318146407808746,
+        "P90_conditional_net_saved_ms": 25.654931000000033,
+        "P90_conditional_net_percent": 1.7196667081360744,
         "per_request_signed_saved_ms": [
-          29.962293750000004,
-          42.24656375000001,
-          18.24097,
-          18.24097,
-          42.24656375000001,
-          42.24656375000001,
-          29.962293750000004,
-          6.755840000000001
+          18.183441000000002,
+          25.654931,
+          11.073970000000003,
+          11.073970000000003,
+          25.654931,
+          25.654931,
+          18.183441000000002,
+          3.96977
         ]
       },
       {
         "removable_exposed_fraction": 0.75,
         "added_cost_ms_per_eager_wave": 0.5,
-        "P90_conditional_net_saved_ms": 40.64656375000004,
-        "P90_conditional_net_percent": 2.724565600313077,
+        "P90_conditional_net_saved_ms": 24.054930999999897,
+        "P90_conditional_net_percent": 1.6124176676682613,
         "per_request_signed_saved_ms": [
-          28.762293750000005,
-          40.646563750000006,
-          17.44097,
-          17.44097,
-          40.646563750000006,
-          40.646563750000006,
-          28.762293750000005,
-          6.355840000000001
+          16.983441000000003,
+          24.054931,
+          10.273970000000002,
+          10.273970000000002,
+          24.054931,
+          24.054931,
+          16.983441000000003,
+          3.56977
         ]
       },
       {
         "removable_exposed_fraction": 0.75,
         "added_cost_ms_per_eager_wave": 1,
-        "P90_conditional_net_saved_ms": 38.64656375000004,
-        "P90_conditional_net_percent": 2.5905042997283223,
+        "P90_conditional_net_saved_ms": 22.054930999999897,
+        "P90_conditional_net_percent": 1.4783563670835065,
         "per_request_signed_saved_ms": [
-          27.262293750000005,
-          38.646563750000006,
-          16.44097,
-          16.44097,
-          38.646563750000006,
-          38.646563750000006,
-          27.262293750000005,
-          5.855840000000001
+          15.483441000000003,
+          22.054931,
+          9.273970000000002,
+          9.273970000000002,
+          22.054931,
+          22.054931,
+          15.483441000000003,
+          3.06977
         ]
       }
     ],
-    "formula": "saved_i = rho * all-free inclusive two-layer prefix_i - h * affected eager waves_i; recompute maximum of8 original TTFTs",
+    "formula": "saved_i = rho * all-free inclusive layer39 prefix_i - h * affected eager waves_i; recompute maximum of8 original TTFTs",
     "qualification": "rho is unknown actual removability/exposure after preserving all required cache/math/communication; h is unknown additional nonoverlapped cost per eager wave. Conditional sensitivity only, not measured speed. Negative gains are retained. Precision failures remain disqualifying regardless of these numbers."
   },
   "candidates": [
@@ -1788,7 +1697,7 @@
       ]
     }
   ],
-  "next_action": "Trace layer38/39 SWA128 physical writer/page/slot and backward-selected query/topK36 row domains after the last aux entry38; separate required cache production from removable query/O/FFN work in the matching two-layer parent. Do not retry failed compact FFN or prune with a narrow single-output/terminal bound.",
+  "next_action": "Trace body39 SWA128 physical writer/page/slot and selected query/topK36 original CP-local row domains, preserving full aux at entry39 from body38. Separate required cache from removable query/O/FFN and numerical geometry. Never use the withdrawn two-body erasure budget or retry failed compact FFN.",
   "inputs": [
     {
       "path": "/Users/wio/work/branch-fusion-audit-20261104/full-review/runs/first-token-v168-protocol-bodies.json",
@@ -1800,11 +1709,15 @@
     },
     {
       "path": "audit/code-led/target-layer-plan.json",
-      "sha256": "d9c015aeb57d921b6f5d27bf5ff6938a70919257af30a37c124eb00d04491610"
+      "sha256": "c0a5fd85cead2b594ab7afd878e361cff0eeabb63e3bc48cd8210e8d0f3a808c"
+    },
+    {
+      "path": "audit/execution-search/aux-config-call-chain.json",
+      "sha256": "e5b5197f9674c56fd876d6c65be2e2457db82d763625d9e1b84cc8827c5712ba"
     },
     {
       "path": "/Users/wio/Documents/ChatGPT/deepseek 4.1flash 算子优化/tools/analyze_final_producer_entry.py",
-      "sha256": "8bccfc0cc1a700e6a84356027780512929e80081684f2868c45bb087f81b01dc"
+      "sha256": "1edefaf3205aa614e40dfd8652a1951478a91ba4df694b9cd04e33c481163692"
     }
   ],
   "new_NPU_work": 0,

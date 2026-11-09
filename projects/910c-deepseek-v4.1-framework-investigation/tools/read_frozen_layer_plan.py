@@ -24,7 +24,7 @@ ns = {'dataclass': dataclasses.dataclass, 'Any': Any}
 exec(compile(ast.fix_missing_locations(ast.Module(body=body, type_ignores=[])), str(source), 'exec'), ns)
 config = json.loads(CONFIG.read_text())['text_config']
 plan = ns['build_layer_plan'](SimpleNamespace(**config))
-aux_one_based = tuple(config['dspark_target_layer_ids'])
+aux_one_based = tuple(i + 1 for i in config['dspark_target_layer_ids'])
 assert 'if layer.layer_idx + 1 in self.aux_hidden_state_layers:' in source.read_text()
 rows = []
 for role in plan.layers:
@@ -39,10 +39,11 @@ result = {
     'source': {'path': str(source), 'sha256': pin['sha256']},
     'config': {'path': str(CONFIG), 'sha256': hashlib.sha256(CONFIG.read_bytes()).hexdigest()},
     'layers': rows,
-    'aux_capture_contract': {'checkpoint_one_based_ids': list(aux_one_based),
+    'aux_capture_contract': {'checkpoint_zero_based_ids': list(config['dspark_target_layer_ids']),
+                             'runner_selected_one_based_ids': list(aux_one_based),
                              'zero_based_entry_layers': [r['layer_idx'] for r in rows if r['aux_before_layer']],
-                             'source': 'DeepseekV41Model.forward:1560 uses layer.layer_idx + 1',
-                             'correction': 'Old hardcoded aux_before_layer37/38/39 was off by one; actual entries36/37/38. Layer39 output has no DSpark aux reader.'},
+                             'source': 'NPUModelRunner._get_eagle3_aux_layers_from_config:797 adds1; setter stores unchanged; model.forward:1560 tests layer_idx+1',
+                             'correction': 'Retract model-only36/37/38 mapping which omitted runner+1. Actual entries37/38/39; body38 full output is aux at entry39. Original hardcoded37/38/39 was correct by coincidence.'},
     'KV_source_consumers': {str(s): list(plan.kv_consumers(s)) for s in plan.kv_source_layer_ids},
     'index_source_consumers': {str(s): list(plan.index_consumers(s)) for s in plan.index_source_layer_ids},
     'common_body_calls_per_target': {'Attention_HcPre': 40, 'FFN_HcPre': 40, 'HcPost': 80, 'SWA_write': 40,

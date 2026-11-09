@@ -1,17 +1,16 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
 <!-- FINAL-PRODUCER-20261110-START -->
-## 当前前沿：末读完成条件与aux后两层producer（loop-016）
+## 当前前沿：aux完整接线更正，继续body39（loop-016）
 
-**Goal ACTIVE；loop-015 PIVOTED（metadata仍待确认）；loop-016 EVALUATING。全链路未扫全，每个替换原语逐位一致。**
+**Goal ACTIVE；全链路未扫全；每个替换原语逐位一致。更正并撤回：此前aux36/37/38与两个body可删的判断漏了NPU runner先加1，两层3.8115%/1.77169%情景不得再用于候选收益。**
 
-- **介绍**：沿V1实际consumer/wait补共享frame完成条件，再反推最后aux之后的query/cache/输出/FFN需求。
-- **到了哪里**：16源SHA；A3 QLI producer空query仍运行，consumer可跳等待，release不证明全完成。原62/10回执保留；真实24行桶/每卡3行解释10个empty为2QLI，72窗尾部均早于body start，最小2.68574ms。producer_done正常join未见需新增device等待，但新API/其它负载成本、alias/native/graph/error仍缺。
-- **新边界**：修正早期拓扑aux标记off-by-one，真实采集于零基36/37/38入口；38/39两个body在最后aux之后。两层都读longKV20/topK36、各自SWA128必须保留。连续因果单末query示例反推39 KV128、38 query128/KV255，物理slot/淘汰/chunk/reject仍未证明。
-- **结果**：56个原C8 real eager窗口；单39层首输出一次P90全免最高.6767%，不能剪更大producer。inclusive独立最有利DP情景：单39层2.32864%，38/39两层56.86208ms/3.81150%。保留必要cache/存活行后rho未知；h=.5ms/eager-wave、rho.5情景净26.43104ms/1.77169%，rho.25仅.81881%，负收益保留。均非实测加速或原语准入。
-- **下一处**：追38/39 SWA物理writer/page/slot及跨chunk/迭代、selected-query到topK36的原CP-local行映射，拆必须保留cache和可删query/O/FFN，再核精确数值几何/净成本。原compact FFN位差配方继续停止。新NPU0、推理0、新profile0、远端写入0，无部署变化。
+- **介绍**：重新沿GPU setup virtual selector、NPU override、setter到model采集点追完整接线，保留原错误记录和失效说明。
+- **到了哪里**：冻结ID37/38/39，上游无eagle/dflash覆盖，NPU选择38/39/40，setter排序去重不换ID，model再判断layer_idx+1；真实aux入口为37/38/39。body38全行输出mean供aux39，只有body39在最后采集之后。这是源码/冻结配置推导，不冒充live对象dump；缺Docker INFO日志未被当成分支证据。
+- **结果**：原两body裁剪已停止/撤回，原Run不可变记录由新Run及superseding knowledge明确声明旧解释失效。当前body39候选仍待确认；56个real eager窗口下inclusive最有利DP全免包络P90 2.32864%，h=.5ms/wave、rho.5情景净1.03026%，rho.25仅.44810%，负收益保留。非实测或原语准入。metadata72窗末读结论不变，producer_done/alias/native/graph/error仍待确认。
+- **下一处**：body39 SWA128物理writer/page/slot/未来读者、selected-query到topK36原CP-local映射；保留KV20/topK36与body38完整aux39。38 HCPost→完整aux-mean物化只能另研、须算全aux行，不能认领38整层计算删除。新NPU0、推理0、新profile0、远端写入0。
 
-[完整判断](evidence/metadata-tail-and-final-producer.md) · [两层范围与有成本情景](evidence/final-producer-entry.json) · [末读/完成条件](evidence/metadata-reader-frontier.json) · [修正拓扑](evidence/target-layer-plan-corrected.json)
+[更正与当前判断](evidence/metadata-tail-and-final-producer.md) · [完整接线](evidence/aux-config-call-chain.json) · [当前body39价格](evidence/final-producer-entry.json) · [撤回档案](evidence/withdrawn-two-layer-price.json)
 
 <!-- FINAL-PRODUCER-20261110-END -->
 
