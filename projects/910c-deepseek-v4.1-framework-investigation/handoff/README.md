@@ -72,13 +72,21 @@ M09 --> M11 -->|下一轮| M00
 - **结果**　目标计数直接复用被反例否定；固定GEMM边界全免仍不足1%。SMLA补物理packed顺序合同，QLI补c/ρ/h门槛。旧实验的暂停记录单独保留。
 <!-- WORKBENCH-CONTINUATION-20261109-END -->
 
+<!-- C2-DEEP-NATIVE-20261109-START -->
+2026-11-09深入：[C2实际链、请求信用与Wkv换M反例](evidence/C2-deep-screen-and-Wkv-numerics.md)。全链路搜索继续；192个C2窗口不作全图覆盖率。
+
+- **介绍**　绑定三源336个FP32 native调用，按原EP/请求顺序剪枝，再对更大的row-owner方案做决定性的native数值补证。
+- **到了哪里**　C8单独两FP32投影冲首token1%的路线停止；大producer待确认。原样ND换M“逐位不变”出现反例，不能按旧条件估价直接领实现。
+- **结果**　两FP32全免的条件TTFT信用最高0.636%，cache-only该项为0。真实Wkv的3328→8×416有302/1703936个位差，maxabs2.44e-4；整次诊断后续NZ分支ERROR，1组ND比较完成，模型请求/性能benchmark为0。下一处是同M producer收集/窄发布重价及原精度合同，不能继承local-M计算节省。
+<!-- C2-DEEP-NATIVE-20261109-END -->
+
 ### 待确认
 
 实现条件或调优价值还有关键问题。优先看 C08、C09 和 K03。
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
-| [M03 Attention 主体](../modules/M03.md) · [📄 C08](opportunities.md#c08) 本地 KV 投影后窄 AllGather · 通信与计算重排 | 待确认，正在深入；独立核对行owner与C2扩展producer | 情景：长提示的四个 prefill 执行批次毛预算 60.54 ms，兑现 50% 省 30.27 ms（旧 TTFT 2.03%，旧整批 0.163%）。 C2两份FP32投影四carrier原耗时串行参考9.113ms，尚未绑定请求关键净值，不与前数相加。 |
+| [M03 Attention 主体](../modules/M03.md) · [📄 C08](opportunities.md#c08) 本地 KV 投影后窄 AllGather · 通信与计算重排 | 待确认；native发现ND切M位差，需数值路线和整段重价 | 原30.27ms是尚未验收的local-M条件包络。3328→8×416的ND原语有302个位差；完整诊断后续ERROR。C2两FP32单独全免C8条件信用≤0.636%，大producer继续。 |
 | [M03 Attention 主体](../modules/M03.md) · [📄 C09](opportunities.md#c09) SMLA 分页 KV 直读（[历史 F07](opportunities.md#history46-f07)） · 读写融合 | 待确认；本次已核对具名合同/门槛 | 原KV pair有物理偏移重排、尾部fallback和负索引停止；新直读须匹配packed plane或过数值验收。原17.78ms仍为条件情景，实际K/整核速度待证。 |
 | [M06 MoE](../modules/M06.md) · [📄 K03](opportunities.md#k03) DFC 尾部承接共享 GateUp · megakernel  | 待确认。条件净性能已复算；需τ/吞吐/覆盖 | τ20µs/h5µs、40层时：Up吞吐ρ1省0.600ms/周期（中位1.080%）；ρ0.9仅0.486ms（0.876%）。同一局部周期情景，不是整请求实测。 |
 | [M00 输入与元数据](../modules/M00.md) · [📄 C01](opportunities.md#c01) 增量发布 block 表 · 提交合并 | 待核对可省的主机提交时间 | 部件预算：C8 旧整批 23.66 ms（0.127%），仅计上传数据。 |
@@ -122,6 +130,7 @@ M09 --> M11 -->|下一轮| M00
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
+| M03 · [📄 C08/C2单独两FP32投影](evidence/C2-deep-screen-and-Wkv-numerics.md) · 计算共享 | 已停止；限C8首token1%独立路线及原其它工作固定 | 全部免费条件TTFT信用最高0.636%；不排除联合owner或普通请求。 |
 | M00、M10、M11 · [📄 C04a](opportunities.md#c04a) 直接复用目标padded计数 · 计划复用 | 已停止；字段不足 | B1/B4目标同24行，草稿分别5/20行；扩展packet仍见C04。 |
 | M05、M06 · [📄 C12a](opportunities.md#c12a) 固定router GEMM的全部边界融合 · 读写融合 | 已停止；整段乐观筛查不过线 | 112同窗：目标全免最高0.8963%周期，连草稿最高0.9637%；更小子方案一并停止。 |
 | M01 · [📄 K06](opportunities.md#k06) Engram固定位置plane融合 · megakernel | 原局部方案已停止 | 所列gate+lookup全免最高约0.743%同周期，局部停止 |

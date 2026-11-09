@@ -178,6 +178,12 @@
 - **到了哪里**　待确认，正在深入。旧保守价排除三个C2源；不能用低值pool/ring小helper剪掉FP32主计算，不能据当前缺口关闭总搜索。
 - **结果**　同C8 eager的两个FP32投影，四carrier/三源的原耗时中位串行参考9.113ms；非请求可省量。本地M数值/耗时和原重叠仍须核对，不与旧30.27ms包络相加。[实际消费者、搜索前沿与下一步](evidence/execution-derived-search.md)。
 
+### 2026-11-09 C2逐调用与native数值深入
+
+- **介绍**　按实际三源读者绑定全部336次FP32调用和192个分支窗口，对大producer的Wkv换M做最小native数值诊断。
+- **到了哪里**　待确认；C2单独两FP32的C8首token1%独立路线停止。ND primitive换M位等价有反例，大producer需同M重排、原归约实现或既定容差验收。
+- **结果**　两FP32全部免费、原peer/其它工作固定时，八请求TTFT信用最高0.636%，cache-only该项0。真实层0 Wkv/finite synthetic BF16的3328→8×416有302/1703936个位差，maxabs2.44e-4；后续NZ编译缓存报ERROR，6540/NZ未验。1组ND比较完成，无服务请求/性能benchmark。原30.27ms仅条件模型，不升格可开发收益。[全文、全部ID、原件及复算](evidence/C2-deep-screen-and-Wkv-numerics.md)。
+
 ## C09
 
 **M03 · SMLA direct KV reader＋首partial交付；shared panel为替代**
