@@ -1,9 +1,9 @@
 # 171 融合算子团队开发清单
 
-**MoE当前优先确认**：C13/K03的完整shared4AIC/8AIV共驻范围，先核DFC20/40固定发核、shared原语控核/ND-NZ与逐位合同，再量实际BlockDim和净时间。Up-only C8阶段补证停止；不把v168 observer融合算成模型收益。[当前工作断点](evidence/moe-delivery-frontier.md)。
+**MoE当前开发门槛**：完整shared4/8已有M416真实权重、正确BF16 scale逐位与actual BlockDim限定事实；下一开发缺口为真实DFC共驻/争用、其它M/40层逐位及图/格式设置。前缀裁剪/deferred返回融合需保留舍入和arena末读。原样空credit变体已有native价值失败，不重做。全链路独立扫描现进SMLA实际kernel。[原语门槛](evidence/shared-fourcube-primitive-gate.md) · [返回消费者](evidence/moe-return-consumers.md)。
 
 
-**当前合同与断点**：每个替换原语逐位一致。C08已测Wkv切M与stock AGMM直接替换已停止，不重跑原配方；保留原算术的重排继续判断。D-A2 OA大行有量级，先核完整权重逐位和净增成本；下一独立前沿为MoE双输出消费者。[native/停止依据](evidence/attention-transport-review.md) · [输出交付/缺口](evidence/attention-output-review.md)
+**当前合同与断点**：每个替换原语逐位一致。C08已测Wkv切M与stock AGMM直接替换已停止，不重跑原配方；保留原算术的重排继续判断。D-A2 OA大行有量级，先核完整权重逐位和净增成本；下一独立前沿为SMLA真实选中cache与QK/PV消费者。[native/停止依据](evidence/attention-transport-review.md) · [输出交付/缺口](evidence/attention-output-review.md)
 
 
 适用范围为冻结 DeepSeek‑V4.1‑Flash W8A8、CANN 9.2.0、910C。下面是建议分工，负责人实名和结果由团队认领时填写。编号沿用研究台账；F08、F03 来自历史 46 条 CSV。首批有两条原型线，四项限范围的排查，六项都可以独立领取。

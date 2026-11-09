@@ -2,6 +2,14 @@
 
 每项按介绍、进度、结果阅读。展开可查代码、适用条件和证据。[更新方式](README.md#阶段说明与上传流程) · [早期 42 族](evidence/priority-42.md)
 
+## 当前独立深入增量（全链路未完成）
+
+- **介绍**　完整shared4/8与DFC共驻、DFC返回到残差大consumer，均由真实交付形成范围后再匹配历史。
+- **到了哪里**　M416真实共享权重八项字节比较0、actual BlockNum8/4/8/4（DownMix4），仅确认本case原语准入；返回段明确FP16/BF16舍入、原TopK序和屏障后peerD末读。
+- **结果**　完整共驻及前缀/deferred返回融合待确认具体净价/生命周期/剩余逐位覆盖。原样空credit变体复用EP16 native价值失败，已停止；DQ-only条件0.2864%停止独立1%路线，merge+Post全免1.3537%不是预计净省。继续SMLA内部和其余未扫路径。
+
+[原语事实/缺口](evidence/shared-fourcube-primitive-gate.md) · [返回判断/停止依据](evidence/moe-return-consumers.md)
+
 ## C01
 
 **M00、M11 · 未变block表跳过/增量发布**

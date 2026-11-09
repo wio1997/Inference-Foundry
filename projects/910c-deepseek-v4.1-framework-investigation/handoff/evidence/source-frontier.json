@@ -1,5 +1,5 @@
 {
-  "status": "ACTIVE_MOE_READERS_AND_HOST_SELECTOR_IN_PROGRESS",
+  "status": "ACTIVE_SMLA_INTERNAL_ENTRY_RETURN_REVIEW_AND_SHARED_NATIVE_GATE_RECORDED",
   "region": "D-A1 decoder residual to Attention output and cache-ready",
   "sources": [
     {
@@ -60,7 +60,7 @@
     }
   ],
   "completeness_established": false,
-  "next_action": "First check 4AIC/8AIV shared pipeline eligibility: original NZ weights, per-op tiler resource support, actual BlockDim and bit identity. Continue DFC prepare/finalize, epilogue2/3 and all readers afterward.",
+  "next_action": "SMLA实际入口已定位：dsa_v41.py:656 -> csrc/attention/sparse_flash_mla/sparse_flash_mla_torch_adpt.h:173 aclnnSparseFlashMla；进入安装CANN kernel/tiler，追选中SWA/C1/C2 cache到QK/PV与原归约。",
   "C2_stage_binding": {
     "windows": 192,
     "native_FP32_calls": 336,
@@ -81,12 +81,12 @@
     "tested_Wkv_local_M_direct_replacement": "STOPPED: 302 differences"
   },
   "transport_review": {
-    "report": "attention-transport-review.md",
+    "report": "Attention通信重排与流水判断.md",
     "owner_protocol": "PENDING: default gather mimics AllGather; true root/P2P net cost missing",
     "AGMM_actual_API": "TP8 two-case primitive ran; direct replacement stopped under new contract"
   },
   "output_delivery": {
-    "report": "attention-output-review.md",
+    "report": "Attention输出到FFN交付判断.md",
     "windows": 2560,
     "branches": {
       "query": 1840,
@@ -112,13 +112,14 @@
     },
     {
       "region": "D-M1",
-      "state": "IN_PROGRESS_SOURCE_READERS_HOST_SELECTOR_AND_SCOPED_BUDGET",
+      "state": "RETURN_READERS_REVIEWED_SHARED_NATIVE_GATE_LIMITED",
       "entry": "model.py DeepseekV41MoE.forward:262-325",
-      "remaining": "prepare/finalize, epilogue implementation and full transform/reader coverage; no whole-MoE closure"
+      "remaining": "actual DFC4/8 co-residency, full weight/shape bit coverage, different control schedule only with new mechanism beyond failed empty-credit variant, prefix output net price, unique-row quant/transport and GMM internal scheduling"
     },
     {
       "region": "SMLA internal QK/PV and physical selected cache",
-      "state": "NOT_CLOSED_IN_CURRENT_INDEPENDENT_PASS"
+      "state": "IN_PROGRESS_ACTUAL_PYTHON_CALL_CONFIRMED",
+      "entry": "SMLA实际入口已定位：dsa_v41.py:656 -> csrc/attention/sparse_flash_mla/sparse_flash_mla_torch_adpt.h:173 aclnnSparseFlashMla；进入安装CANN kernel/tiler，追选中SWA/C1/C2 cache到QK/PV与原归约。"
     },
     {
       "region": "input/Engram/output/DSpark/iteration handoffs",
@@ -127,7 +128,7 @@
   ],
   "MoE_review": {
     "status": "IN_PROGRESS_NOT_CLOSED",
-    "report": "moe-delivery-frontier.md",
+    "report": "MoE双输出与DFC前沿.md",
     "reader_windows": 2560,
     "independent_native_cost_groups": 64,
     "host_routing_keys": [
@@ -147,6 +148,11 @@
       "source": "dispatch_ffn_combine_tiling.cpp:48,273",
       "prior_48_CPU_adapter": "invalid for actual-core inference; preserved with correction receipt"
     },
-    "shared_4cube_8vector": "PENDING: prove per-op resource support/ND-NZ contract, actual co-residency, bit identity and net timing; whole shared original budget2.248% conditional"
+    "shared_4cube_8vector": "PENDING WHOLE CANDIDATE; M416 layer0 real weight + loaded BF16 scales native primitive gate has zero byte differences and BlockNum8/4/8/4, DownMix4. a1 F32-scale signature invalid; actual DFC coexistence/all-layer-shape bits/graph settings and request net gain remain missing.",
+    "return_frontier": "moe-return-consumers.md: SP prefix-only output, FP16 GMM boundary, BF16 return, ordered FP32 topK sum, shared BF16 add and peer-D last reader after end barrier. Prefix/unique-row/deferred producer pending; unchanged empty-credit variant stopped on reused native evidence, not complete MoE.",
+    "shared_gate_report": "shared-fourcube-primitive-gate.md",
+    "shared_DQ_only_conditional_max_pct": 0.28638653755310367,
+    "merge_HcPost_free_conditional_max_pct": 1.353714043936,
+    "empty_expert_native_reuse": "原样空credit变体逐位通过但native价值失败，STOP unchanged recipe; see empty-expert-native-reuse.json"
   }
 }

@@ -1,0 +1,141 @@
+{
+  "status": "LIMITED_PRIMITIVE_ADMISSION_CONFIRMED_WHOLE_RESIDENCY_PENDING",
+  "case": {
+    "M": 416,
+    "layer": 0,
+    "device": 0,
+    "input": "synthetic BF16 seed20261109",
+    "weight": "frozen real shared expert",
+    "scale": "checkpoint F32 -> loaded params_dtype BF16 for Up/Down; activation weight_scale_fp32 = loaded BF16 -> F32"
+  },
+  "checks": {
+    "DQ": {
+      "byte_differences": 0,
+      "elements": 2129920,
+      "dtype": "torch.int8",
+      "finite": true
+    },
+    "DQ_scale": {
+      "byte_differences": 0,
+      "elements": 416,
+      "dtype": "torch.float32",
+      "finite": true
+    },
+    "Up_INT32": {
+      "byte_differences": 0,
+      "elements": 1916928,
+      "dtype": "torch.int32",
+      "finite": true
+    },
+    "Activation_INT8": {
+      "byte_differences": 0,
+      "elements": 958464,
+      "dtype": "torch.int8",
+      "finite": true
+    },
+    "Activation_scale": {
+      "byte_differences": 0,
+      "elements": 416,
+      "dtype": "torch.float32",
+      "finite": true
+    },
+    "Down_BF16_same_input": {
+      "byte_differences": 0,
+      "elements": 2129920,
+      "dtype": "torch.bfloat16",
+      "finite": true
+    },
+    "NZ_Up_to_limited_ND": {
+      "byte_differences": 0,
+      "elements": 1916928,
+      "dtype": "torch.int32",
+      "finite": true
+    },
+    "NZ_Down_to_limited_ND_same_input": {
+      "byte_differences": 0,
+      "elements": 2129920,
+      "dtype": "torch.bfloat16",
+      "finite": true
+    }
+  },
+  "kernel_details": [
+    {
+      "name": "aclnnDynamicQuantV2_DynamicQuant_DynamicQuant",
+      "block_num": 8,
+      "mix_block_num": 0,
+      "us": 31.9,
+      "input_shapes": "\"416,5120\"",
+      "input_dtypes": "DT_BF16",
+      "input_formats": "ND"
+    },
+    {
+      "name": "aclnnQuantMatmulV5_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "block_num": 4,
+      "mix_block_num": 0,
+      "us": 257.94,
+      "input_shapes": "\"416,5120;5120,4608;4608\"",
+      "input_dtypes": "INT8;INT8;DT_BF16",
+      "input_formats": "ND;ND;ND"
+    },
+    {
+      "name": "DequantSwigluQuant",
+      "block_num": 8,
+      "mix_block_num": 0,
+      "us": 65.4,
+      "input_shapes": "\"416,4608;4608;416;;;;\"",
+      "input_dtypes": "INT32;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED",
+      "input_formats": "ND;ND;ND;NULL;NULL;NULL;NULL"
+    },
+    {
+      "name": "aclnnQuantMatmulV5_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "block_num": 4,
+      "mix_block_num": 4,
+      "us": 166.06,
+      "input_shapes": "\"416,2304;2304,5120;5120;416\"",
+      "input_dtypes": "INT8;INT8;DT_BF16;FLOAT",
+      "input_formats": "ND;ND;ND;ND"
+    }
+  ],
+  "isolated_pipeline_event_us": {
+    "samples": {
+      "ND_default_us": [
+        516.260027885437,
+        498.6799955368042,
+        478.6199927330017,
+        490.97999930381775,
+        471.48001194000244,
+        496.78000807762146,
+        476.20001435279846
+      ],
+      "ND_4_8_us": [
+        616.3600087165833,
+        593.7600135803223,
+        542.680025100708,
+        558.239996433258,
+        543.3400273323059,
+        555.400013923645,
+        558.3999752998352
+      ]
+    },
+    "medians": {
+      "ND_default_us": 490.97999930381775,
+      "ND_4_8_us": 558.239996433258
+    },
+    "scope": "ND only, no DFC or requests; admission diagnostic, no speedup claim"
+  },
+  "profile_kernel_sum_us": 521.3,
+  "profile_kernel_wall_us": 739.25,
+  "invalid_first_attempt": "native-shared-4cube-a1/correction.json",
+  "model_requests": 0,
+  "valid_NPU_attempts": 1,
+  "invalid_for_target_signature_NPU_attempts": 1,
+  "pending": [
+    "Physical co-residency with actual DFC20/40 and nonexclusive scheduler placement, original DFC slowdown and HBM/L2 contention",
+    "All relevant M and forty layer weights/real inputs under per-replacement bit contract",
+    "Integrated private-format setting and graph/stream synchronization without changing other primitives",
+    "All-rank EP arrival and request critical path; diagnostic v168 reference remains observer-perturbed"
+  ],
+  "evidence_sha256": "19b7d56b3f4abb1cb9896c7ab00c90a4588f8481fe51d3090df7165061e85df1",
+  "whole_chain_complete": false,
+  "profile_field_reference": "https://www.hiascend.com/doc_center/source/en/CANNCommunityEdition/910/devaids/Profiling/atlasprofiling_16_1149.html"
+}

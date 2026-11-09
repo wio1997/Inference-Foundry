@@ -1,17 +1,18 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
 <!-- MOE-READERS-RESOURCE-20261109-START -->
-## 当前MoE深入：整段shared与DFC资源共驻
+## 当前断点：shared4/8原语门槛与DFC返回，继续SMLA内部
 
-- **介绍**　从FFN原BF16/FP32双读者追至真实router、DFC和共享支。目标为384专家/EP16、TopK6；未把已有GMM1/activation/GMM2同launch列成新融合。
-- **到了哪里**　在扫，未闭合。2560窗口的64组typed成本一致。冻结host固定20AIC/40AIV，提出用剩余4AIC/8AIV承接完整shared流水；core数相加不证明共驻，先核逐原语控核、ND/NZ与逐位合同。前次48AIV CPU适配器参数已纠正，原件保留；正确selector分支与combine边界分别记录。
-- **结果**　只隐藏shared Up的C8条件信用最高0.906%，停止该C8独立1%路线的阶段τ补证；shared四原语全部隐藏最高2.248%，仍有量级。实际4/8时长、共驻及对DFC的争用未测，不能把整段免费信用当预计收益。full-load公共排序、combine粒度和更大producer保留具体缺口；下一步先核4/8方案的合法实现边界。
+**全链路仍进行中；每个替换原语逐位一致。**
 
-**时序来源**：C2/Attention/MoE所用v168是带诊断observer的cohort。DFC后历史scatter已证实来自观测器，模型收益信用0；不能减去其耗时就称生产基线。其它native时长、条件请求模型也不构成生产保证。standalone原语位差反例独立有效。
+- **介绍**　从真实DFC20AIC/40AIV形成完整shared4AIC/8AIV候选，继续做决定性原语门槛；返回段沿SP finalize、两Combine、Unpermute、shared合并和HcPost追实际消费者。
+- **到了哪里**　M416真实layer0共享权重、正确加载BF16 scale下，ND/NZ默认与ND限4/8八项比较0字节差异且finite。实际Block Num8/4/8/4，Down另Mix4。ND4/8隔离流水中位558.24µs，未测DFC共驻。a1误用F32 scale已invalid，原件保留；a2仅本case原语准入。
+- **结果**　完整shared仍待真实共驻/争用、其它M/40层逐位和图/格式设置，whole-shared原条件2.248%不是预计收益。返回producer保留原FP16/BF16舍入和TopK顺序，结束屏障后offsetD仍有读者；前缀裁剪/deferred返回融合待确认。原样空expert credit变体复用已有EP16逐位通过但native价值失败，已停止，不重测。DQ-only全免条件0.2864%，停止独立1%小路线；merge+Post全免1.3537%仅筛选预算。
+- **下一处**　已从真实Python调用进入`sparse_flash_mla_torch_adpt.h:173 aclnnSparseFlashMla`，接续安装CANN的物理选中SWA/C1/C2 cache到QK/softmax/PV及归约。MoE所有优化、其它历史模块、Engram/DSpark/迭代交付尚未独立穷尽。
 
-[当前MoE读者、真实分支与缺口](evidence/moe-delivery-frontier.md) · [4/8预算](evidence/shared-4cube-residency-budget.json) · [正确host selector](evidence/host-routing-tiling-summary.json) · [64组核对](evidence/moe-delivery-validation.json) · [observer来源](evidence/v168-observer-provenance.json) · [适用范围](evidence/profile-provenance-scope.json)
+[原语门槛与原件](evidence/shared-fourcube-primitive-gate.md) · [返回读者/舍入/缺口](evidence/moe-return-consumers.md) · [实际未闭合前沿](evidence/source-frontier.json) · [旧空credit native复用](evidence/empty-expert-native-reuse.json)
 
-全链路Goal继续，MoE主体及SMLA内部、输入/Engram/终端/DSpark/迭代交付尚未独立闭合。
+v168时序仍为带observer诊断cohort，observer模型信用0，不能减去它重建生产基线。新NPU两次（有效1、scale签名不匹配1），无模型服务请求，health均前后200；远端新增仅自有`/data/tiankuan/wio`子目录，无服务/源码/权重/全局配置修改。
 <!-- MOE-READERS-RESOURCE-20261109-END -->
 
 

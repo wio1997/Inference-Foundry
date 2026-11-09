@@ -1,3 +1,5 @@
+> 最新返回/原语进展：[shared4/8限定native门槛](shared-fourcube-primitive-gate.md) · [两Combine/Unpermute/残差及停止依据](moe-return-consumers.md)。相同空credit变体已有逐位通过但native价值失败，不重测；独立扫描继续SMLA内部。本文下方初建断点按这两份最新报告修正。
+
 # D-M1工作断点：FFN双输出、真实DFC与共享分支
 
 2026-11-09。**本段在扫，尚未闭合；每个替换原语必须逐位一致。** 本文不接管DSpark的8本地专家分支，它另有行域/拓扑；此处先核目标40层的实际384/EP16=24本地专家、TopK6。
@@ -38,7 +40,7 @@
 
 原DFC同一launch已经包括mask、routing quant/排序、跨rank token计数/收集、GMM1、分段dequant/SwiGLU/quant、GMM2、combine、清理和unpermute。AIC先GMM1、等V2C后GMM2；AIV分段等待C2V，执行activation后全核同步再释放GMM2。不能将必要barrier当作随意可删等待，或把expert分段当作空闲Cube数量。
 
-Combine的分支与routing selector不同：`M*6<=4096`走V2细块交付，即M≤682；M≥683走V1按expert回传。因此目标M24/416用V2，816/817/818用V1。当前完整组合有四个M范围，不能只查一个kernel名字。另须保留每expert空计数、maxOutputSize截断、local sender全false仍接收/计算远端专家、清理及跨rank结束同步。`ResetTokenPerExpert + CrossRankSync`之后才可重用peer arena；最终unpermute还读原expandedRowIdx及已经带router系数的probs。
+Combine的分支与routing selector不同：`M*6<=4096`走V2细块交付，即M≤682；M≥683走V1按expert回传。因此目标M24/416用V2，816/817/818用V1。当前完整组合有四个M范围，不能只查一个kernel名字。另须保留每expert空计数、maxOutputSize截断、local sender全false仍接收/计算远端专家、清理及跨rank结束同步。结束屏障在unpermute之前，offsetD仍有末读，不能据此复用整个peer arena；最终unpermute还读原expandedRowIdx及已经带router系数的probs。
 
 更细的候选是按真实recv分布研究combine粒度/输出producer；当前M谓词也受DP padding影响，不能用local有效sender数替代recv工作量。缺口是同窗receiver counts与V1/V2实际epilogue/flag边界的联合净价和逐位门槛；不能从整个DFC数毫秒时长直接声称都能省。实际逐段epilogue实现仍待读，未准入新kernel。
 
@@ -48,11 +50,9 @@ Combine的分支与routing selector不同：`M*6<=4096`走V2细块交付，即M�
 - **到了哪里**：source `moe_v2_fullload_dynamic_quant.h:97–161,382–395`确认重复；但各core原来并行排序，共享后关键路径仍有一份排序，加上GM发布/同步和缓存，不能把core数当加速倍数。可能节省的是排序与量化的串行等待，且新增quant scratch/映射GM读者需计价。必须复用原排序/tie和每row量化运算，保留INT32及BF16中间边界。
 - **结果**：当前C8只有carrier416用此full-load路线；816–818已经使用global-sort/gather，不能全40层×4carrier领取此收益。即使忽略其它传播，最早请求要达1%需该carrier平均每层净省约112.21µs；晚请求需约365µs/层。缺原排序/量化阶段的独立耗时与新发布成本，暂不给预计收益或排新全模型试验；若同scope阶段预算低于这些门槛，则该C8独立路线直接停止。decode/其它行域另用原负载门槛。它可与完整routing/shared producer联合研究，不与同一阶段的等待消除相加。
 
-### 6. DFC固定20/40发核，剩余4/8承接共享支 · 待确认
+### 6. shared4/8原语门槛已补，完整共驻仍待确认
 
-- **介绍**：硬件有24个Cube/48个Vector，但冻结DFC host固定20个AIC组、40个AIV。研究用其余4/8资源承接整个shared DQ/Up/activation/Down，不只藏一份Up。它是独立资源并发方案，也可作为更大megakernel的明确分工。
-- **到了哪里**：原完整shared全部隐藏的C8条件信用最高2.248%，有继续判断价值；无新增成本时，最有利请求仍须兑现约44.5%的整段信用。core数相加不证明共驻；必须核真实BlockDim/调度和带宽争用、固定形状逐位一致、不同rank的CDF占用窗口。不能直接沿用全核shared耗时；4/8资源可能显著拉长它。
-- **结果**：TorchNPU实际安装源码有stream资源接口；[官方说明](https://www.hiascend.com/document/detail/zh/Pytorch/730/apiref/torchnpuCustomsapi/docs/context/torch_npu-set_stream_limit.md)仅对支持控核的Ascend C算子有效，并要求禁用private format。当前shared权重为NZ，且activation自定义算子的tiler支持尚未核实。因此下一步先核ND/NZ与每个原语的控核实现，随后才值得做固定4/8原语数值/时间/BlockDim门槛；不修改加载服务或全局设备配置，不以get_stream_limit返回值代替实际生效。
+M416真实layer0权重、加载后BF16 scale及derived FP32 scale，八项逐字节比较0，actual BlockNum8/4/8/4、DownMix4。隔离ND4/8流水中位558.24µs，无DFC并发或模型收益。a1 F32-scale签名不匹配已invalid；a2为限定事实。[原件与范围](shared-fourcube-primitive-gate.md)。完整shared保留实际共驻/争用、其它M/40层逐位和图/格式缺口。
 
 ## 当前证据与下一步
 
