@@ -1,0 +1,56 @@
+{
+  "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+  "full_file_sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+  "full_file_bytes": 89106,
+  "full_body_public": false,
+  "reviewed_ranges": [
+    [
+      1013,
+      1062
+    ],
+    [
+      1644,
+      1650
+    ],
+    [
+      1720,
+      1753
+    ],
+    [
+      1844,
+      1873
+    ],
+    [
+      2010,
+      2043
+    ]
+  ],
+  "excerpts": [
+    {
+      "first": 1013,
+      "last": 1062,
+      "text": "        )\n        for layer in self.layers:\n            if isinstance(layer, DeepseekV41DecoderLayer):\n                layer.self_attn.shared_state = self.shared_attention_state\n        self.engram_root = vllm_config.model_config.model\n        config = self.config\n        self.engram_weight_root = self.engram_root\n        # Detect each table's checkpoint dtype independently of dense weights.\n        # Host placement remains controlled by vLLM's EngramConfig.\n        cpu_offload = engram_cpu_offload(vllm_config)\n        self.engram_dp_shared_memory = resolve_dp_shared_memory(\n            bool(vllm_config.engram_config and vllm_config.engram_config.dp_shared_memory)\n        )\n        self.engram_layout = EngramLayout.from_config(config) if self.has_engram else None\n        if self.engram_layout is not None:\n            # Head buckets use TP x DP x PCP when sharded, or TP alone when host\n            # storage is shared across local DP x PCP replicas.\n            # Fail on an unreadable checkpoint before the first table exists:\n            # the allocation below is per-rank 24-51 GiB, and discovering a\n            # missing index/key during weight iteration would mean paying for\n            # it first.  `dummy` reads no checkpoint at all.\n            if vllm_config.load_config.load_format != \"dummy\":\n                preflight_engram_checkpoint(\n                    self.engram_weight_root, config.engram_layer_ids, AscendParallelEngramEmbedding\n                )\n            native_mxfp8 = get_current_hardware_profile().supports(HardwareCapability.ENGRAM_MXFP8)\n            for slot, (layer_id, rows) in enumerate(zip(config.engram_layer_ids, config.engram_num_embeddings)):\n                head_sizes = tuple(size for order in self.engram_layout.primes[slot] for size in order)\n                storage_dtype = torch.bfloat16 if vllm_config.quant_config is None else torch.int8\n                if vllm_config.load_config.load_format != \"dummy\":\n                    storage_dtype = engram_storage_dtype(self.engram_weight_root, layer_id)\n                    if storage_dtype == torch.float8_e4m3fn and not native_mxfp8:\n                        storage_dtype = torch.int8\n                elif native_mxfp8 and vllm_config.quant_config is not None:\n                    storage_dtype = torch.float8_e4m3fn\n                embed = AscendParallelEngramEmbedding(\n                    rows,\n                    config.engram_head_dim,\n                    head_sizes,\n                    slot,\n                    storage_dtype=storage_dtype,\n                    cpu_offload=cpu_offload,\n                    dp_shared_memory=self.engram_dp_shared_memory,\n                )\n                embed.bind_checkpoint(self.engram_weight_root, f\"layers.{layer_id}.engram.embed.weight\")\n                self.layers[layer_id].engram.embed_tokens = embed\n        self.engram_hash = None\n        self._engram_input_buffers = None\n        # ExternalEvent pairs for FULL graph capture. V1 keys by the forward\n        # context's batch descriptor; V2 preparation runs outside any forward\n"
+    },
+    {
+      "first": 1644,
+      "last": 1650,
+      "text": "        self.moe_comm_methods = {kind: get_moe_comm_method(kind) for kind in MoECommType}\n\n    requires_raw_input_tokens = True\n    _DEFERRED_WEIGHT_MARKERS: tuple[str, ...] = ()\n    _DEFERRED_WEIGHT_PREFIXES = (\"aligner.\", \"vision.\", \"image_\", \"mtp.\")\n\n    def prepare_engram_inputs(\n"
+    },
+    {
+      "first": 1720,
+      "last": 1753,
+      "text": "                    lookback_token_ids=lookback_token_ids,\n                    **graph_inputs,\n                )\n        return self.model(\n            input_ids,\n            positions,\n            intermediate_tensors,\n            inputs_embeds,\n            engram_lookups=engram_lookups,\n            engram_mask=engram_mask,\n            engram_pending=engram_pending,\n            engram_graph_events=engram_graph_events,\n            lookback_token_ids=lookback_token_ids,\n            engram_mask_ready_event=engram_mask_ready_event,\n        )\n\n    @property\n    def token_lookback_depth(self) -> int:\n        \"\"\"Tokens before a chunk start the engram hash needs; the runner passes\n        them as ``lookback_token_ids``.\"\"\"\n        engram_hash = self.model.engram_hash\n        return engram_hash.lookback_depth if engram_hash is not None else 0\n\n    @classmethod\n    def _is_milestone_weight(cls, name):\n        return not name.startswith(cls._DEFERRED_WEIGHT_PREFIXES) and not any(\n            marker in name for marker in cls._DEFERRED_WEIGHT_MARKERS\n        )\n\n    def load_weights(self, weights: Iterable[tuple[str, torch.Tensor]]) -> set[str]:\n        if not self.model.has_engram:\n            return self._load_model_weights((name, tensor) for name, tensor in weights if \".engram.\" not in name)\n        loaded = self._load_model_weights((name, tensor) for name, tensor in weights if self._is_milestone_weight(name))\n        return loaded\n"
+    },
+    {
+      "first": 1844,
+      "last": 1873,
+      "text": "            if \".w1.\" in name:\n                name = name.replace(\".w1.\", \".gate_proj.\")\n            if \".w2.\" in name:\n                name = name.replace(\".w2.\", \".down_proj.\")\n            if \".w3.\" in name:\n                name = name.replace(\".w3.\", \".up_proj.\")\n\n            if \"model.head.\" in name and \"model.lm_head.\" not in name:\n                name = name.replace(\"model.head.\", \"lm_head.\")\n            if \"model.lm_head.\" in name:\n                name = name.replace(\"model.lm_head.\", \"lm_head.\")\n            if name.endswith(\".engram.embed.scale\"):\n                name = name.removesuffix(\".scale\") + \".weight_scale_inv\"\n            if \"embed.\" in name and \"embed_token.\" not in name:\n                name = name.replace(\"embed.\", \"embed_tokens.\")\n            if \"attn\" in name and \"self_attn\" not in name:\n                name = name.replace(\".attn.\", \".self_attn.\")\n            if \".ffn.\" in name:\n                name = name.replace(\".ffn.\", \".mlp.\")\n            if \".ffn_norm.\" in name:\n                name = name.replace(\".ffn_norm.\", \".post_attention_layernorm.\")\n            if \".attn_norm.\" in name:\n                name = name.replace(\".attn_norm.\", \".input_layernorm.\")\n            if name.endswith(\".scale\"):\n                name = name.replace(\".scale\", \".weight_scale\")\n\n            if \"rotary_emb.inv_freq\" in name:\n                continue\n            if \".gate.bias_vl\" in name:\n                # The parameter keeps the checkpoint name on Ascend. It is\n"
+    },
+    {
+      "first": 2010,
+      "last": 2043,
+      "text": "                            else:\n                                loaded_params.add(name_mapped)\n                            break\n                    else:\n                        if is_expert_weight:\n                            # We've checked that this is an expert weight\n                            # However it's not mapped locally to this rank\n                            # So we simply skip it\n                            continue\n\n                        # Skip loading extra bias for GPTQ models.\n                        if name.endswith(\".bias\") and name not in params_dict:\n                            continue\n\n                        # Remapping the name of FP8 kv-scale.\n                        name = maybe_remap_kv_scale_name(name, params_dict)\n                        if name is None:\n                            continue\n\n                        if is_pp_missing_parameter(name, self):\n                            continue\n\n                        param = params_dict[name]\n                        weight_loader = getattr(param, \"weight_loader\", default_weight_loader)\n                        weight_loader(param, loaded_weight)\n            if not is_fusion_moe_shared_experts_layer:\n                loaded_params.add(name)\n\n        return loaded_params\n\n    @property\n    def engram_cache_layer_name(self) -> str | None:\n        if not self.model.has_engram:\n            return None\n"
+    }
+  ],
+  "scope": "Exact listed line text from complete current raw source; full raw body remains local. No unseen ranges claimed inspected."
+}

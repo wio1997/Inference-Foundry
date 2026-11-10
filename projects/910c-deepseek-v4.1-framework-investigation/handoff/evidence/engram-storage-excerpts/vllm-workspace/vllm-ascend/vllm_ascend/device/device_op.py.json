@@ -1,0 +1,47 @@
+{
+  "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/device/device_op.py",
+  "full_file_sha256": "01ce13ea60e46f901ad69ad4c71e4be0e31cd69fbc56ebb7d898f957d5e54f67",
+  "full_file_bytes": 73699,
+  "full_body_public": false,
+  "reviewed_ranges": [
+    [
+      40,
+      113
+    ],
+    [
+      65,
+      113
+    ],
+    [
+      1026,
+      1030
+    ],
+    [
+      2032,
+      2041
+    ]
+  ],
+  "excerpts": [
+    {
+      "first": 40,
+      "last": 113,
+      "text": "ACL_HOST_REG_MAPPED = 0x2\nACL_HOST_REG_PINNED = 0x10000000\n\n\nif HAS_TRITON:\n    from vllm_ascend.ops.triton.rms_norm import triton_q_rms  # noqa: F811\nelse:\n    triton_q_rms = None  # type: ignore\n\n\nclass BaseDeviceAdaptor:\n    @staticmethod\n    def get_dsv41_packed_cache_ops() -> type[\"MixedQuantPackedCacheOps\"] | None:\n        \"\"\"Return the packed-cache ABI implementation, or use standard caches.\"\"\"\n        return None\n\n    @staticmethod\n    def host_register_flags() -> int:\n        \"\"\"ACL host registration flags for the standard runtime ABI.\"\"\"\n        # PINNED prevents paging while MAPPED exposes the host allocation to\n        # NPU kernels. Both flags are required by the standard runtime path.\n        # TODO: unify flags when supported CANN runtimes accept the same ABI.\n        return ACL_HOST_REG_MAPPED | ACL_HOST_REG_PINNED\n\n    @staticmethod\n    def rms_norm_cast(x, weight, epsilon):\n        \"\"\"Return fused rounded/FP32 outputs, or None for the normal RMSNorm path.\"\"\"\n        from vllm_ascend.utils import enable_custom_op\n\n        if get_current_hardware_profile().supports(HardwareCapability.RMS_NORM_CAST) and enable_custom_op():\n            op = getattr(torch.ops._C_ascend, \"npu_rms_norm_cast\", None)\n            if op is not None:\n                return op(x, weight, epsilon)\n        return None\n\n    @staticmethod\n    def apply_partial_rotary_inplace(x, cos, sin, *, start, end, inverse=False):\n        \"\"\"Adapt rank and inverse-RoPE arguments without copying the destination.\"\"\"\n        work = x.unsqueeze(-2) if x.ndim == 2 else x\n        work = work.unsqueeze(1) if work.ndim == 3 else work\n        supports_negate_sin = get_current_hardware_profile().supports(\n            HardwareCapability.INPLACE_PARTIAL_ROTARY_MUL_NEGATE_SIN\n        )\n        torch.ops._C_ascend.inplace_partial_rotary_mul(\n            work,\n            cos,\n            -sin if inverse and not supports_negate_sin else sin,\n            rotary_mode=\"interleave\",\n            partial_slice=[start, end],\n            **({\"negate_sin\": inverse} if supports_negate_sin else {}),\n        )\n        return x\n\n    @classmethod\n    def scatter_cache(cls, var: torch.Tensor, indices: torch.Tensor, updates: torch.Tensor) -> None:\n        \"\"\"Dispatch a cache scatter with the original operator's arguments.\n\n        Callers retain their existing views and slices. SK and generic scatter\n        receive the original tensors; A5 adapts their layout for PA without\n        copying the destination, truncating updates, or filtering slots.\n        \"\"\"\n        if cls._is_row_cache(var, indices, updates) and cls._scatter_cache(var, indices, updates):\n            return\n        torch_npu.npu_scatter_nd_update_(var, indices, updates)\n\n    @staticmethod\n    def _is_row_cache(var, indices, updates) -> bool:\n        # This adaptor optimizes row writes: var[N, D], indices[T, 1],\n        # updates[T, D]. These checks bound the cache optimization, not SK's\n        # full shape support. Other inputs retain the original scatter path.\n        if var.ndim != 2 or indices.ndim != 2 or updates.ndim != 2:\n            return False\n        if indices.shape[1] != 1 or updates.shape != (indices.shape[0], var.shape[1]):\n            return False\n"
+    },
+    {
+      "first": 65,
+      "last": 113,
+      "text": "    def rms_norm_cast(x, weight, epsilon):\n        \"\"\"Return fused rounded/FP32 outputs, or None for the normal RMSNorm path.\"\"\"\n        from vllm_ascend.utils import enable_custom_op\n\n        if get_current_hardware_profile().supports(HardwareCapability.RMS_NORM_CAST) and enable_custom_op():\n            op = getattr(torch.ops._C_ascend, \"npu_rms_norm_cast\", None)\n            if op is not None:\n                return op(x, weight, epsilon)\n        return None\n\n    @staticmethod\n    def apply_partial_rotary_inplace(x, cos, sin, *, start, end, inverse=False):\n        \"\"\"Adapt rank and inverse-RoPE arguments without copying the destination.\"\"\"\n        work = x.unsqueeze(-2) if x.ndim == 2 else x\n        work = work.unsqueeze(1) if work.ndim == 3 else work\n        supports_negate_sin = get_current_hardware_profile().supports(\n            HardwareCapability.INPLACE_PARTIAL_ROTARY_MUL_NEGATE_SIN\n        )\n        torch.ops._C_ascend.inplace_partial_rotary_mul(\n            work,\n            cos,\n            -sin if inverse and not supports_negate_sin else sin,\n            rotary_mode=\"interleave\",\n            partial_slice=[start, end],\n            **({\"negate_sin\": inverse} if supports_negate_sin else {}),\n        )\n        return x\n\n    @classmethod\n    def scatter_cache(cls, var: torch.Tensor, indices: torch.Tensor, updates: torch.Tensor) -> None:\n        \"\"\"Dispatch a cache scatter with the original operator's arguments.\n\n        Callers retain their existing views and slices. SK and generic scatter\n        receive the original tensors; A5 adapts their layout for PA without\n        copying the destination, truncating updates, or filtering slots.\n        \"\"\"\n        if cls._is_row_cache(var, indices, updates) and cls._scatter_cache(var, indices, updates):\n            return\n        torch_npu.npu_scatter_nd_update_(var, indices, updates)\n\n    @staticmethod\n    def _is_row_cache(var, indices, updates) -> bool:\n        # This adaptor optimizes row writes: var[N, D], indices[T, 1],\n        # updates[T, D]. These checks bound the cache optimization, not SK's\n        # full shape support. Other inputs retain the original scatter path.\n        if var.ndim != 2 or indices.ndim != 2 or updates.ndim != 2:\n            return False\n        if indices.shape[1] != 1 or updates.shape != (indices.shape[0], var.shape[1]):\n            return False\n"
+    },
+    {
+      "first": 1026,
+      "last": 1030,
+      "text": "    @staticmethod\n    def host_register_flags() -> int:\n        # A5 runtime rejects the redundant PINNED hint with error 107000.\n        # MAPPED works for both malloc-host allocations and shared mappings.\n        return ACL_HOST_REG_MAPPED\n"
+    },
+    {
+      "first": 2032,
+      "last": 2041,
+      "text": "def get_device_adaptor() -> type[\"BaseDeviceAdaptor\"]:\n    adaptor_by_family = {\n        DeviceAdaptorFamily.STANDARD: BaseDeviceAdaptor,\n        DeviceAdaptorFamily.FP8_OPTIMIZED: A5DeviceAdaptor,\n        DeviceAdaptorFamily.COMPATIBILITY: Ascend310PDeviceAdaptor,\n    }\n    return adaptor_by_family[get_current_hardware_profile().device_adaptor_family]\n\n\nDeviceOperator: type[\"BaseDeviceAdaptor\"] = get_device_adaptor()\n"
+    }
+  ],
+  "scope": "Exact listed line text from complete current raw source; full raw body remains local. No unseen ranges claimed inspected."
+}

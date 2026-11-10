@@ -1,5 +1,18 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10：Engram lookup整段低值，转原生双缓存epilogue
+
+**配平数据补充**：旧loop036原件冻结后获知：配平复采已完成并恢复原服务。新集合为前4条prompt镜像，不能直接沿用旧8条请求比例；32worker窗口中steady lookup union中位约0.03034%/0.03029%。四个native算子族全部站点的松包络约5.009%/5.083%窗口，含其它target/draft，下一步需绑定实际indexK/longKV调用，不能作为候选收益。 [分负载补充](evidence/engram-storage-balanced-supplement.json)。
+
+**Goal ACTIVE；loop036限定source/原生旧价PIVOTED，loop037 RUNNING。全链路未扫全，每个替换原语逐位一致。**
+
+介绍：Engram checkpoint code/E8M0scale→成对加载→共享UVA注册owner/pointer bank→lookup/dequant与退役。到了哪里：12当前source/header pins、11非空ranges；3236Python字面caller搜索；2当前I8/E8M0header且payload读0；7248原native lookup/906TP8group与固定C8端点匹配。结果：weight回调成对写、scale回调no-op；910C flags为MAPPED|PINNED，normalclose有同步/注销失败保留owner，但热graph/reload与半初始化事务仍未证明。仅改dtype/开MXFP8/热复用旧ptr非法。先价整个lookup：全免且替代0，TTFT条件最多1.761056ms/.118045%，整批最多8.599814ms/.046259%；同旧1%固定延迟预算的compactscale/groupbroadcast/lookup-only开发停止，不再补小NPU实验。共享host请求payload差18,432,548,400B单列，非实际释放RAM或NPUKV容量；较大input-owner/WKV/iteration仍待确认。本轮新原语准入0，全链路未扫全，每个替换原语逐位一致。
+
+[整段判断](evidence/Engram成对UVA寿命与整段lookup价值判断.md) · [源审阅](evidence/engram-storage-source-review.json) · [当前前沿](evidence/engram-storage-frontier.json) · [完整旧价与906组记录](evidence/engram-storage-price.json) · [原件/摘录范围](evidence/engram-storage-public-source-manifest.json)。未做新原语NPU验收，不再为已低值lookup小范围补证。
+
+loop037 Run run-20261110T035955Z：indexK/longKV的RMS→inplacepartialRoPE→DynamicQuant→code/halfscale scatter实际原生交付。6当前source匹配；已读indexer.update_keys、AscendRMSNorm.forward_oot无residual与bias_loaded分支、DeviceOperator旋转/散写和ops导入。继续OOT注册/实际选中callee、TorchNPU/CANN/自定义kernel tile/舍入、slot/cache代次与末读。归入已有input-ready/query/SWA较大parent，条件全免2.1327%/half-h20us1.0449%不是小epilogue收益；先整段净价，不干扰配平profile控制器。 [新入口](evidence/cache-epilogue-entry.json)，Run仍PLANNED。此源码扫描无新NPU/模型/请求/profile/显式远端写入/服务动作，独立配平控制器未操作。
+
+
 ## 当前断点 · 2026-11-10：SMLA原序L1与尾块已判，转Engram注册交付
 
 **Goal ACTIVE；loop035限定source/CPU/条件价格PIVOTED，loop036 RUNNING。全链路未扫全，每个替换原语逐位一致。**
@@ -434,13 +447,15 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-实现条件或调优价值还有关键问题。优先看 C08、C09 和 K03。
+**2026-11-10 当前资格**：按真实执行链继续扫，当前进入 [原生双缓存 epilogue](evidence/cache-epilogue-entry.json)。C09 原序直达 L1/两块尾 pin 仍待原生逐位、真实 K/分组与付成本；K03 wholeDFC 已核为24AIC/48AIV，旧20/40闲核前提撤回；Engram lookup-only 由[整段全免预算](evidence/engram-storage-frontier.json)归入已停止，主机容量与更大 input-owner/WKV 另列缺口。
+
+实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
 | [M03 Attention 主体](../modules/M03.md) · [📄 C08](opportunities.md#c08) producer/通信重排 | 待确认；已测local-M与stock AGMM直接替换已因位差停止 | 同M真实root/P2P和保留原归约的流水待协议/净价；不继承旧30.27ms或7/8计算信用。 |
-| [M03 Attention 主体](../modules/M03.md) · [📄 C09](opportunities.md#c09) SMLA 分页 KV 直读（[历史 F07](opportunities.md#history46-f07)） · 读写融合 | 待确认；本次已核对具名合同/门槛 | 原KV pair有物理偏移重排、尾部fallback和负索引停止；新直读须匹配packed plane或过数值验收。原17.78ms仍为条件情景，实际K/整核速度待证。 |
-| [M06 MoE](../modules/M06.md) · [📄 K03](opportunities.md#k03) DFC 尾部承接共享 GateUp · megakernel  | 待确认。条件净性能已复算；需τ/吞吐/覆盖 | τ20µs/h5µs、40层时：Up吞吐ρ1省0.600ms/周期（中位1.080%）；ρ0.9仅0.486ms（0.876%）。同一局部周期情景，不是整请求实测。 |
+| [M03 Attention 主体](../modules/M03.md) · [📄 C09](opportunities.md#c09) 原序selected-KV直达L1与尾块复用 · 读写融合 | 待确认；已核原pair/半区顺序、910C uint16元素stride与QK/PV布局，CPU地址通过不作NPU位准入 | 两块L1尾pin与direct/首段联合待真实K/分组、padding/LoadData/MMAD逐位、新flags/预取净价；[当前证据](evidence/smla-direct-l1-frontier.json)，不继承旧17.78ms为实测。 |
+| [M06 MoE](../modules/M06.md) · [📄 K03](opportunities.md#k03) DFC与共享分支联合 · megakernel | 待确认；wholeDFC实际24AIC/48AIV，旧20/40闲核前提已撤回；4/8独立原语位证明不等于共驻 | 原GMM/激活/别名/flags及有成本整段价已分开；实际共驻、原语逐位和净请求收益仍缺，旧τ20us局部周期只保留为历史场景。 |
 | [M00 输入与元数据](../modules/M00.md) · [📄 C01](opportunities.md#c01) 增量发布 block 表 · 提交合并 | 待核对可省的主机提交时间 | 部件预算：C8 旧整批 23.66 ms（0.127%），仅计上传数据。 |
 | [M00 输入与元数据](../modules/M00.md) · [📄 C04](opportunities.md#c04) 目标与草稿共享 DP 计数 · 调度与同步 | 待确认；本次已核对具名合同/门槛 | 目标24行桶不能决定草稿5/20行；直接复用子项C04a停止。扩展packet须含B/K/角色/epoch及一致fallback；协调净关键省仍未知。 |
 | [M01 Engram](../modules/M01.md) · [📄 C06](opportunities.md#c06) Engram 完整结果复用 · 计算消除与复用 | 待确认；本次已核对具名合同/门槛 | 71.1%–96.3%是需消除的可缓存耗时比例，不是row-hit率。部分miss可保留整次WKV；缺完整键命中和残余调用成本。 |
@@ -465,7 +480,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 已确认可实现
 
-已有代码或验证证据支持在指定条件下实现。收益注明估算或实测。
+以下保留历史已落地/现用事实及其限定基线。**历史服务性能或文本一致本身不建立当前每个替换原语逐位准入**；新替换须另看限定原语证据。当前全链路未扫全，本轮新增准入0。
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
@@ -475,6 +490,10 @@ M09 --> M11 -->|下一轮| M00
 | [M11 下轮状态](../modules/M11.md) · [📄 C03](opportunities.md#c03) 26 项 slot 批写（[历史 F02](opportunities.md#history46-f02)） · 提交合并 | 服务实测 · B4 | 历史服务实测：B4 两组整批耗时分别下降 3.39% 和 2.22%。 |
 
 ### 已停止
+
+| 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
+|---|---|---|
+| M01 · standalone compact E8M0 / group broadcast / lookup-only融合 | 成对加载/UVA owner已追，7248原生lookup/906TP8组已绑定 | 整段lookup全免的固定C8端点条件上界：TTFT最多0.118045%、整批0.046259%；停止同旧1%延迟预算小开发。主机容量/更大联合另列，见[判断](evidence/Engram成对UVA寿命与整段lookup价值判断.md)。 |
 
 当前版本和负载下结束排查。每项保留停止原因，条件改变可重开。
 
