@@ -387,7 +387,7 @@ const el=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g
 const fmt=(n,d=3)=>Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
 const S=D.sample;let stage='';
 function deviceDetails(x){if(!x.device_operator)return '';const o=x.device_operator;return '<details class="df-source"><summary>同窗设备数据 · '+esc(o.name)+' · '+fmt(o.union_ms_per_rank)+'ms/卡</summary><p>'+esc(o.shape_note)+'</p>'+o.shape_cases.map((c,i)=>'<details class="df-source"><summary>样例 '+(i+1)+' · EP'+c.ep+'</summary><pre>'+esc(Object.entries(c.fields).map(([k,v])=>k+': '+v).join('\n'))+'</pre></details>').join('')+'</details>';}
-const localHref=p=>{const base=location.pathname.includes('/evidence/balanced-profile-171/')?'../':'audit/';return base+p.replace(/^audit\//,'');};
+const localHref=p=>{if(p.startsWith('../'))return p;const base=location.pathname.includes('/evidence/balanced-profile-171/')?'../':'audit/';return base+p.replace(/^audit\//,'');};
 el('df-summary').innerHTML=[['65.1%','输入准备空档，集中在 CP build、base build 和 local-token helper。'],['28 项','操作/数据关系已展开，区分准备、反馈、设备真实读写和条件分支。'],['字段时间未测','现有计时到函数；同一函数处理多个字段，字段卡片不重复计价。']].map(([v,t])=>'<div><strong>'+esc(v)+'</strong><small>'+esc(t)+'</small></div>').join('');
 el('df-scope').textContent='细函数诊断 · 16卡各11个闭合周期 · 每卡平均窗口 '+fmt(S.window_ms)+'ms，其中设备空档 '+fmt(S.free_ms)+'ms，准备阶段与空档相交 '+fmt(S.prepare_free_ms)+'ms。新增标记边界 '+fmt(S.marker_prepare_free_ms)+'ms 已单列；仍不是无探针生产耗时。本轮新采集0。';
 el('df-stages').innerHTML=D.stages.map(x=>'<button class="df-stage" data-df-stage="'+x.id+'" aria-pressed="false"><b>'+x.id+'</b><strong>'+esc(x.title)+'</strong><small>'+esc(x.what)+'</small><small>交付：'+esc(x.out)+'</small></button>').join('');
