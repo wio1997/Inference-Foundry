@@ -1,5 +1,20 @@
 # 融合优化逐项说明
 
+## 当前断点 · 2026-11-10 V1输入实际读者与packet边界：70源码约束，86位待追
+
+介绍：从V1实际caller的默认参数、PP/async、Engram准备字典和QSL输入→packet交付继续扫。到了哪里：16当前Python依赖/11当前原生source；新增21处受限源码绑定，原156位现70绑定/86仍待追；原Engram方法16个stub控制、原base32个owner控制及3个反例、原GenMetadata12个本机C++写范围控制。结果：canonical输出QSL不代表所有闭包输入QSL已共享；5个packet key首owner与每物理组C2地址映射首owner不同。显式重绑incomingQSL的大parent值得深入，尚无原语/框架新准入，未扫全。
+
+待确认：较大CPU/scalar/canonicalQSL/device长度frame，保留原物理映射/packet owner并核全部读者、输入不可变租约、producer_done+consumer_done及最早写前acquire；逐原语完整bytes、空query/尾部/错误/FULL和真实净价仍缺。原source packet struct只含整数，Gen分别写3600/3456B而wrapper各分配4096B，496/640B外部初始化未闭合，不能默许忽略padding或当NPU实测。MM预处理即使纯文本也可能先embed再copy，配置与实现待下一段绑定。
+
+已有同serve SHA诊断：CP/base/helper互斥self-Free合计311.050016ms/卡/11周期，占独立1025.503ms窗30.3315%，含必要首producer/物理工作，不是全可删。假设实删10%/转移50%/新增0.1ms每frame，条件净1.314ms/frame、镜像配平C8轻量整批1.8924%；默认未知比例0，非实测，不迁移原不同prompt C8 TTFT或六普通，不加旧device-only/CPU原型收益。
+
+已确认可实现：此前受限CPU原型1保留，本轮融合替换0。已停止：删除首全局QSL H2D（中间slot mapping/logits已读），只因batch命中就删各privateQSL而不重绑incoming（SMLA/QLI/C2反例）。这不停止按owner共享及更大frame；86位不是86个算子，递归调用图/全部消费者仍未闭合。
+
+[本段判断](evidence/V1输入到原生packet的owner与完整字节判断.md) · [70/86逐位账](evidence/v1-input-source-review.json) · [owner控制](evidence/v1-qsl-owner-controls.json) · [packet写边界](evidence/v1-packet-write-extent.json) · [整段条件价](evidence/v1-input-parent-price.json) · [限定源行段](evidence/v1-input-source-excerpts.json)。
+
+下一条待扫：loop047 Run133903Z（PLANNED）：沿继承的V1 _preprocess绑定supports_mm_inputs/配置convertor/embedding真实实现→持久input→首HC消费者；并追globalQSL/物理block-slot经Engram和DSpark per-group视图的全部末读/最早覆写。继续86位及递归helper，不以具名缺口当扫完；已有匹配profile优先，每替换原语逐位一致，无Torch/NPU/模型/新profile/服务动作。
+
+
 ## 当前断点 · 2026-11-10 全模型注册与继承绑定：49源码约束，107输入控制位仍待扫
 
 介绍：从真实注册、C3/别名、冻结配置与逐层职责建立执行入口，再与旧范围相交。到了哪里：40当前源码、config43d3/serve c297未变；16方法解析与Python C3对照、40target角色/3draft与私有128专家TopK3标量控制；156原静态分支/循环/上下文位逐项记录。结果：49受限源码/角色/排除绑定，107仍未闭合，不是107算子或已完成路径。DSpark继承/别名与实际_propose已补，rawMTPbank存在但固定DSpark数值路径不消费；同预算旧terminal小方案不重开。新框架/原语准入0，全链路未扫全，每替换原语逐位一致。

@@ -1,5 +1,20 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 V1输入实际读者与packet边界：70源码约束，86位待追
+
+介绍：从V1实际caller的默认参数、PP/async、Engram准备字典和QSL输入→packet交付继续扫。到了哪里：16当前Python依赖/11当前原生source；新增21处受限源码绑定，原156位现70绑定/86仍待追；原Engram方法16个stub控制、原base32个owner控制及3个反例、原GenMetadata12个本机C++写范围控制。结果：canonical输出QSL不代表所有闭包输入QSL已共享；5个packet key首owner与每物理组C2地址映射首owner不同。显式重绑incomingQSL的大parent值得深入，尚无原语/框架新准入，未扫全。
+
+待确认：较大CPU/scalar/canonicalQSL/device长度frame，保留原物理映射/packet owner并核全部读者、输入不可变租约、producer_done+consumer_done及最早写前acquire；逐原语完整bytes、空query/尾部/错误/FULL和真实净价仍缺。原source packet struct只含整数，Gen分别写3600/3456B而wrapper各分配4096B，496/640B外部初始化未闭合，不能默许忽略padding或当NPU实测。MM预处理即使纯文本也可能先embed再copy，配置与实现待下一段绑定。
+
+已有同serve SHA诊断：CP/base/helper互斥self-Free合计311.050016ms/卡/11周期，占独立1025.503ms窗30.3315%，含必要首producer/物理工作，不是全可删。假设实删10%/转移50%/新增0.1ms每frame，条件净1.314ms/frame、镜像配平C8轻量整批1.8924%；默认未知比例0，非实测，不迁移原不同prompt C8 TTFT或六普通，不加旧device-only/CPU原型收益。
+
+已确认可实现：此前受限CPU原型1保留，本轮融合替换0。已停止：删除首全局QSL H2D（中间slot mapping/logits已读），只因batch命中就删各privateQSL而不重绑incoming（SMLA/QLI/C2反例）。这不停止按owner共享及更大frame；86位不是86个算子，递归调用图/全部消费者仍未闭合。
+
+[本段判断](evidence/V1输入到原生packet的owner与完整字节判断.md) · [70/86逐位账](evidence/v1-input-source-review.json) · [owner控制](evidence/v1-qsl-owner-controls.json) · [packet写边界](evidence/v1-packet-write-extent.json) · [整段条件价](evidence/v1-input-parent-price.json) · [限定源行段](evidence/v1-input-source-excerpts.json)。
+
+下一条待扫：loop047 Run133903Z（PLANNED）：沿继承的V1 _preprocess绑定supports_mm_inputs/配置convertor/embedding真实实现→持久input→首HC消费者；并追globalQSL/物理block-slot经Engram和DSpark per-group视图的全部末读/最早覆写。继续86位及递归helper，不以具名缺口当扫完；已有匹配profile优先，每替换原语逐位一致，无Torch/NPU/模型/新profile/服务动作。
+
+
 ## 当前断点 · 2026-11-10 全模型注册与继承绑定：49源码约束，107输入控制位仍待扫
 
 介绍：从真实注册、C3/别名、冻结配置与逐层职责建立执行入口，再与旧范围相交。到了哪里：40当前源码、config43d3/serve c297未变；16方法解析与Python C3对照、40target角色/3draft与私有128专家TopK3标量控制；156原静态分支/循环/上下文位逐项记录。结果：49受限源码/角色/排除绑定，107仍未闭合，不是107算子或已完成路径。DSpark继承/别名与实际_propose已补，rawMTPbank存在但固定DSpark数值路径不消费；同预算旧terminal小方案不重开。新框架/原语准入0，全链路未扫全，每替换原语逐位一致。
@@ -522,7 +537,7 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
-当前源码覆盖：40源注册/C3/别名/逐层角色已绑定；156原静态位中49受限源码约束、107输入/控制/消费者未闭合。新增框架准入0，全链路未扫全。默认时间线入口已加当前状态，旧数据/全局图/恢复历史保留。[派发与分支判断](evidence/全模型派发继承与合法分支覆盖判断.md)。
+当前源码覆盖：本段16Python/11native当前source和1prior exactSHA引用；原156位累计70受限源码绑定、86未闭合。新框架准入0；继续V1预处理真实MM/embedding和Engram/DSpark坐标读者。详见本文最新断点与限定源行段，历史数保留原时间和资格。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
@@ -613,7 +628,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每替换原语逐位一致。受限CPU原型1保留，新增框架替换0，完整路径搜索未完成。40当前source/16方法解析与PythonC3、原标量40层角色和private draft128/3/3已核；156静态位中49有受限源码/角色约束，107仍须追输入/控制与消费者，不计为算子或已完成路径。配置stub两形态不代表真实Transformers/对象字段；纯文本或arch-info False不能证明vision-bias不存在。rawMTPbank分配并写但固定DSpark数值getter不消费，旧同预算小方案不重开；大共同frame/owner条件QSL/输入租约与双端退役仍待确认。loop047 Run114154Z PASS/NA仅此界，Run124045Z仍PLANNED。
+**2026-11-10 当前资格**：每个替换原语逐位一致。此前受限CPU原型1保留，本轮原语/框架准入0。原156位70受限源码约束、86待追，完整递归调用/消费者/运行人口未闭合；位数不是算子或已扫全证明。Run124045Z PASS/NA只覆盖V1caller/显式stub/CPU serializer写边界，Run133903Z仍PLANNED。canonical incomingQSL、完整packet496/640B外围初始化、全部输入租约/双端退役与真实净价仍待确认；311.050ms是含保留工作的gross诊断价，非实测可省。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
