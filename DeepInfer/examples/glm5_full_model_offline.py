@@ -47,7 +47,12 @@ def main():
     p.add_argument('--cache-bytes', type=int, default=2147483648)
     p.add_argument('--batch-smoke-cases', type=Path)
     p.add_argument('--graph-decode', action='store_true')
+    p.add_argument('--breakable-graph', action='store_true')
     a = p.parse_args()
+    if a.breakable_graph and not a.graph_decode:
+        p.error('breakable graph requires explicit graph-decode')
+    if a.breakable_graph:
+        os.environ['VLLM_USE_BREAKABLE_CUDAGRAPH'] = '1'
     if a.graph_decode and a.compute_backend != 'sdk-batch':
         p.error('graph decode requires SDK compute backend')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
@@ -118,7 +123,7 @@ def main():
             runtime = prepare_sdk_compute(a.model, device=self.device,
                 native_group=PG.context_parallel_group(), local_rank=a.local_device,
                 init_method=a.init_method, max_context=a.max_context,
-                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode)
+                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph)
             runtime.install(self)
             model = runtime.compute_worker.get_model()
             (out / 'loaded.json').write_text(json.dumps({'rank': a.rank,
@@ -127,6 +132,7 @@ def main():
                 'enforce_eager': runtime.config.model_config.enforce_eager,
                 'cudagraph_mode': str(runtime.config.compilation_config.cudagraph_mode),
                 'capture_sizes': runtime.config.compilation_config.cudagraph_capture_sizes,
+                'breakable_graph_enabled': a.breakable_graph,
                 'parameter_numel_by_device': {d: sum(p.numel() for p in model.parameters() if p.device.type == d)
                     for d in {p.device.type for p in model.parameters()}},
                 'state': 'loaded;native batch execution unverified'})+'\n')

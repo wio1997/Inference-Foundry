@@ -12,6 +12,9 @@ DeepInfer原生框架已完成GLM-5.3-Flash-W8A8的45层完整模型执行、8di
 
 ## 正式性能结果
 
+分段图的有效参考已完成：同8die/TP8/DP1/EP关闭、PIECEWISE、compile mode0、capture[1,2,4,8]、`VLLM_USE_BREAKABLE_CUDAGRAPH=1`，vLLM C4=62.8418、C8=109.5219输出token/s，两档各32成功0失败，原始时间戳独立核验。DeepInfer同设置已通过两个并发工程guard，正式计分进行中。源码显式`--graph-decode --breakable-graph`，不改变默认eager路径。[分段图证据](validation/native-sdk-breakable-graph-20261110/result.json)。
+
+
 新增显式`--graph-decode`复用SDK的`FULL_DECODE_ONLY`，capture sizes=[1,2,4,8]、compile mode=0。真实日志确认4/4图捕获完成并启用ACL replay；模型数学、量化、缓存状态协议不变。源码`f05f912bdbdc6c19009295853951732d3a83db39`，默认eager路径保留。
 
 |图执行并发|DeepInfer输出token/s|TTFT中位ms|TPOT中位ms|同图vLLM|
