@@ -485,6 +485,8 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+2026-11-10 **全量融合地图与空档覆盖条件模型**：[交互图](evidence/balanced-profile-171/index.html) · [分析/公式](evidence/overlap-timeline-171/REPORT.md) · [全量位置CSV](evidence/overlap-timeline-171/candidate-coverage.csv)。72条主台账历史记录+P01流水研究项、45条执行重审均映射到12模块；保留状态、scope和重复关系。复用16卡旧稳态样本：平均Free38.38%，全部消失的平均窗口容量界1.623×；另一轮固定CPU账本条件界1.047×，不是融合总上限。滑块展示数据释放/独立CPU/缓冲/新增成本的假设，默认新增覆盖0，不把历史百分比相加。本轮新NPU/请求/服务动作0。
+
 源码扫描：loop044已追DFC原R/dummy/count/zero-group flags至GMM与Unpermute末读，旧固定消费者输入-only停止保留；loop045转有新函数归因的共同frame。介绍：DFC原mask/排序/inverse/count发布→远端搬运→GMM与Unpermute末读，再转同代共同metadata/frame。到了哪里：11当前DFC源/10限定body，454完整EP16路由组/7264ranklayer调用、80原生inverse witness、21792纯字节映射；5当前metadata源/4入口body与新16rank函数自身账、144付首producer/新增成本情景。结果：原R与dummy/zero-group flags保留，删gmA写不等于释放activation arena；历史5路由免费输入1.543–6.922us低于旧小预算，原样输入-only维持停止。新metadata仅helper共享的条件净1.995%诊断窗，CP自身25%也共享为3.622%，全base保留；非请求预测。新准入0，全链路未扫全，每替换原语逐位一致。 [函数自身与付成本价](evidence/共同metadata函数自身归因与保留首生产者的净价.md)。保留8c237b2完整timeline/覆盖与恢复记录，本文未重采。
 
 

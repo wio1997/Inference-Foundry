@@ -1,0 +1,126 @@
+{
+  "status": "CODE_VALUE_SCREEN_WITH_CONDITIONS_NOT_IMPLEMENTATION_ACCEPTANCE",
+  "rows": [
+    {
+      "补证序": "1",
+      "切口ID": "K03",
+      "较大执行段": "DFC内部Cube尾部承接shared GateUp",
+      "适用负载": "target SP本地M3；prefill/draft另判",
+      "可消工作": "隐藏原串行shared Up关键时间；必要MAC与EP保留",
+      "理论值/上界/门槛": "τ20/h5、40层：ρ1净0.600ms/周期(中位1.080%)；ρ0.9仅0.486ms(0.876%)",
+      "决定性条件": "τ20/h5需ρ中位0.9584；只20层即使Up全隐藏也不足周期1%；每关键迭代省0.60ms需310次才到旧整批1%；原量化/屏障保护",
+      "来源归属": "当前C13范围内具体阶段派生；新离线模型；不是旧fork重测或首次机制发现",
+      "status": "LOCAL_SINGLE_LAUNCH_DFC_EXTENSION_TAIL_PARAMETER_PENDING"
+    },
+    {
+      "补证序": "2",
+      "切口ID": "K01",
+      "较大执行段": "Post/HcPre/RMS到本地KV-ready的前端",
+      "适用负载": "长prefill；三C2源保持raw；入口/Engram/aux各守时点",
+      "可消工作": "局部转发和少spill/调用；owner重排另消重复投影与宽AG",
+      "理论值/上界/门槛": "owner毛包络计算22.412+通信38.132ms；各50%再扣额外5ms净25.272ms(旧TTFT尺度1.694%)",
+      "决定性条件": "50%暴露的额外净成本限额15.354ms；megakernel相对同owner分kernel的边际未知；保留KV-ready早截止与换M精度",
+      "来源归属": "owner机制/估价沿用历史；本轮新增单launch边界和早晚结果截止约束",
+      "status": "LOCAL_SINGLE_LAUNCH_CANDIDATE_NUMERIC_AND_PUBLICATION_GATES"
+    },
+    {
+      "补证序": "3",
+      "切口ID": "K02",
+      "较大执行段": "SMLA direct/partial到inverse RoPE与可选OA send producer",
+      "适用负载": "长prefill G64；实际有效K；小shape不外推",
+      "可消工作": "KV gather/partial交接；更大分支输出payload65536→16384B/query",
+      "理论值/上界/门槛": "K256等速direct基准17.777ms；OA净增关键惩罚≤2.859ms仍到旧TTFT尺度1%；联合点预测未知",
+      "决定性条件": "仅PV读速75%余量0.883ms；两侧75%基准13.827ms已不足；另一cohort中位0.214ms不相加；额外OA权重2240MiB/rank",
+      "来源归属": "旧direct/OA方向复用；本轮新增完整producer边界及额外容量账；不同cohort预算不相加",
+      "status": "LOCAL_SINGLE_LAUNCH_CANDIDATE_RESOURCE_AND_JOINT_VALUE_GATES"
+    },
+    {
+      "补证序": "4",
+      "切口ID": "K05",
+      "较大执行段": "aux owner到main norm与三套context KV",
+      "适用负载": "DSpark context；实际所需行、三个physical组",
+      "可消工作": "宽aux交付、重复重组与全局KV投影；主norm和不同WKV保留",
+      "理论值/上界/门槛": "原prefix1.050ms；到同周期1%需净删52.71%；尚无新实现预计值",
+      "决定性条件": "完整main权重多137.63MB/rank；BF16/main norm不得穿越；旧primitive余量4.61µs，不做原样拼接",
+      "来源归属": "历史大producer范围复用；本轮按单launch与main权重/归约限制收紧",
+      "status": "ROW_OWNER_SINGLE_LAUNCH_CANDIDATE_VERY_TIGHT_VALUE"
+    },
+    {
+      "补证序": "5",
+      "切口ID": "K04",
+      "较大执行段": "DSpark三层或whole-draft常驻",
+      "适用负载": "三层一次五query；EP16/128/K3；头五步依赖",
+      "可消工作": "重复调用/交接/初始化；必要TP/EP、cache及GEMM保留",
+      "理论值/上界/门槛": "三层仅gap免费后仍需删native24.32%；whole draft需11.62%；都是同周期门槛",
+      "决定性条件": "需接入设备TP/CP协议、metadata/flag epochs、资源和精度；不能把host层循环当成megakernel",
+      "来源归属": "重复体来自代码；本轮新增gap与native工作分账；不是现成单launch方案",
+      "status": "DEVICE_TP_PROTOCOL_REQUIRED_NOT_HOST_LOOP_FUSION"
+    },
+    {
+      "补证序": "6",
+      "切口ID": "K10",
+      "较大执行段": "末层需求驱动selected query/FFN/readout producer",
+      "适用负载": "layer39长prefill；SWA全实际行保留",
+      "可消工作": "无读者的非logit行query/output、FFN/readout；不删远端服务",
+      "理论值/上界/门槛": "FFN+readout有利上界22.992ms；需净兑现64.89%；不是预计值",
+      "决定性条件": "先合法退役raw bank/observer/图发布；query metadata/换M精度/EP及全SWA状态保留",
+      "来源归属": "历史需求裁剪预算复用；megakernel只是实现组织，裁行收益只计一次",
+      "status": "DEMAND_REWRITE_CONDITIONAL_NOT_KERNEL_PACKING_GAIN"
+    },
+    {
+      "补证序": "参考",
+      "切口ID": "K07",
+      "较大执行段": "跨组slot与共同输入publisher",
+      "适用负载": "B4真实26-job已有历史价值；B1另判",
+      "可消工作": "重复索引/slot任务、提交与共同plan交付",
+      "理论值/上界/门槛": "历史B4整批3.39%/2.22%；共同输入已定价设备全免61.73ms",
+      "决定性条件": "更大输入publisher还需其它净省124.17ms/旧整批；host镜像/DP协调保留；已有13组linear slot不重复计",
+      "来源归属": "已有批量多任务融合；不称本轮新megakernel收益",
+      "status": "BATCHED_SLOT_HISTORY_RETAINED_INPUT_ONLY_CONDITIONAL"
+    },
+    {
+      "补证序": "排除局部",
+      "切口ID": "K06",
+      "较大执行段": "Engram固定位置plane融合",
+      "适用负载": "层1/14 TP8 CPU-UVA/rotated BF16 WKV",
+      "可消工作": "中间plane/局部lookup/gate交付",
+      "理论值/上界/门槛": "所列gate+lookup全免最高约0.743%同周期，局部停止",
+      "决定性条件": "完整内容缓存或数学/owner重写另判；需旧cacheable work消失71.1%–96.3%再扣新成本",
+      "来源归属": "旧同范围预算匹配；没有把cache命中当fusion自动收益",
+      "status": "PLANE_ONLY_FUSION_LOW_VALUE_LARGER_ALGORITHM_CONDITIONAL"
+    },
+    {
+      "补证序": "排除局部",
+      "切口ID": "K08",
+      "较大执行段": "五Markov与局部head融合",
+      "适用负载": "五步全vocab greedy；ID依赖保留",
+      "可消工作": "局部add/argmax/copy/调用；必要dot保留",
+      "理论值/上界/门槛": "五步55任务即全免最高0.8504%周期；保持dot的target/draft联合旧整批179.925ms<185.908ms",
+      "决定性条件": "局部整组停止；更大controller只计新增可删工作",
+      "来源归属": "已有整段预算复用；没有逐个重做小kernel",
+      "status": "LOCAL_TAIL_MEGAKERNEL_LOW_VALUE"
+    },
+    {
+      "补证序": "协议研究",
+      "切口ID": "K09",
+      "较大执行段": "40层或跨迭代无限常驻",
+      "适用负载": "全部TP8/EP16参与与CPU scheduler交互",
+      "可消工作": "潜在跨阶段提交/驻留，尚无可信净收益值",
+      "理论值/上界/门槛": "当前未具备可接入实现或可报告性能值，不排在局部方案前",
+      "决定性条件": "需设备TP、host命令/epoch、output-ready与cache-retired分离；当前default-stream完成/页回收合同不能直接沿用",
+      "来源归属": "当前ABI与状态读者形成的边界判断；不是证明所有大kernel理论不可能",
+      "status": "NEW_ENGINE_PROTOCOL_REQUIRED_NOT_ADMITTED_AS_CURRENT_CUT"
+    },
+    {
+      "补证序": "已有",
+      "切口ID": "K00",
+      "较大执行段": "当前DFC megakernel",
+      "适用负载": "target384/K6和draft128/K3按各自参数",
+      "可消工作": "基线已融合routing quant/EP/GMM1/act quant/GMM2/return/unpermute",
+      "理论值/上界/门槛": "基线事实；无第二份融合收益",
+      "决定性条件": "保留CombineV1/V2、权重/scales、mask、peer计数/flags与退休",
+      "来源归属": "冻结C++源已存在，不作本轮新增发现",
+      "status": "ALREADY_FUSED_NO_SECOND_CREDIT"
+    }
+  ]
+}

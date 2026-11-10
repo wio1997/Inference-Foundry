@@ -62,6 +62,8 @@ detail_path=P.parent/'performance-breakdown-171'/'findings.json'
 if detail_path.exists():data['detailed']=json.loads(detail_path.read_text())
 reconciliation_path=P.parent/'performance-breakdown-171'/'reconciliation-summary.json'
 if reconciliation_path.exists():data['reconciliation']=json.loads(reconciliation_path.read_text())
+overlap_path=P.parent/'overlap-timeline-171'/'view-data.json'
+if overlap_path.exists():data['overlap']=json.loads(overlap_path.read_text())
 function_path=P.parent/'framework-timing-171'/'view-data.json'
 if function_path.exists():data['function_view']=json.loads(function_path.read_text())
 idle_path=P.parent/'idle-attribution-171'/'findings.json'
@@ -78,9 +80,9 @@ html=(P/'chain-template.html').read_text().replace('__CHAIN_JSON__',json.dumps(c
 html=html.replace('<title>171 · 推理全链路与卡点</title>','<title>171 · 推理时间花在哪里</title>')
 html=html.replace('171 配平后的推理链路与卡点','171 · 推理时间花在哪里')
 html=html.replace('DP0 / DP1 各4条镜像请求已验证 · 默认展示配平后的稳态热点','先看时间分布，再看最耗时的算子与待查原因')
-html=html.replace('</style>',(P/'global-view.css').read_text()+(P/'performance-view.css').read_text()+'</style>',1)
+html=html.replace('</style>',(P/'global-view.css').read_text()+(P/'performance-view.css').read_text()+(P/'overlap-view.css').read_text()+'</style>',1)
 html=html.replace('<section class="endpoint">','<div id="overview-panel" class="view-panel" hidden><section class="endpoint">',1)
-html=html.replace('<footer class="footer">','</div>'+(P/'global-view-fragment.html').read_text()+(P/'idle-view-fragment.html').read_text()+(P/'performance-fragment.html').read_text()+(P/'function-fragment.html').read_text()+'<footer class="footer">',1)
+html=html.replace('<footer class="footer">','</div>'+(P/'global-view-fragment.html').read_text()+(P/'idle-view-fragment.html').read_text()+(P/'performance-fragment.html').read_text()+(P/'function-fragment.html').read_text()+(P/'overlap-fragment.html').read_text()+'<footer class="footer">',1)
 marker='<div id="overview-panel"'
 nav='''<nav class="view-nav" aria-label="性能图层级"><button data-view="bill" aria-pressed="true">时间花在哪里</button><button data-view="overview">完整链路</button><button data-view="kernels">算子明细</button><button data-view="ranks">16卡时间线</button><button data-view="calls">提交与等待</button><button data-view="scope">数据范围</button></nav>'''
 html=html.replace(marker,nav+(P/'plain-summary.html').read_text()+marker,1)
@@ -94,12 +96,15 @@ if 'detailed' in data:
 if 'function_view' in data:
     html=html.replace('<button data-view="performance" aria-pressed="true">详细时间账单</button>','<button data-view="functions" aria-pressed="true">函数与算子全景</button><button data-view="performance">上一轮详细账单</button>',1)
     html=html.replace('同一份稳态采样：空档细分、CPU操作和全部设备算子','完整请求 → 调度器 → worker函数 → 同窗设备算子')
+if 'overlap' in data:
+    html=html.replace('<button data-view="functions" aria-pressed="true">函数与算子全景</button>','<button data-view="overlap" aria-pressed="true">空档覆盖与融合地图</button><button data-view="functions">函数与算子全景</button>',1)
+    html=html.replace('完整请求 → 调度器 → worker函数 → 同窗设备算子','实测重叠 → 数据与资源约束 → 条件覆盖 → 全量融合地图')
 html=html.replace('目标与草稿的同类设备事件尚未分开，当前合计值同时包含两者。','DFC已按目标/草稿分开；其余同类事件可同时包含两者，各节点预算可重叠。')
-script='<script id="global-data" type="application/json">'+json.dumps(data,ensure_ascii=False,separators=(',',':')).replace('</','<\\/')+'</script><script>'+(P/'global-view.js').read_text()+'</script><script>'+(P/'performance-view.js').read_text()+'</script><script>'+(P/'function-view.js').read_text()+'</script>'
+script='<script id="global-data" type="application/json">'+json.dumps(data,ensure_ascii=False,separators=(',',':')).replace('</','<\\/')+'</script><script>'+(P/'global-view.js').read_text()+'</script><script>'+(P/'performance-view.js').read_text()+'</script><script>'+(P/'function-view.js').read_text()+'</script><script>'+(P/'overlap-model.js').read_text()+'</script><script>'+(P/'overlap-view.js').read_text()+'</script>'
 html=html.replace('</body>',script+'</body>')
 if P.parent.name=='evidence':
-    html=html.replace('audit/balanced-profile-171/','').replace('audit/idle-attribution-171/','../idle-attribution-171/').replace('audit/performance-breakdown-171/','../performance-breakdown-171/').replace('audit/framework-timing-171/','../framework-timing-171/').replace('tools/framework-timing/','../framework-timing-171/tool/')
+    html=html.replace('audit/balanced-profile-171/','').replace('audit/idle-attribution-171/','../idle-attribution-171/').replace('audit/performance-breakdown-171/','../performance-breakdown-171/').replace('audit/framework-timing-171/','../framework-timing-171/').replace('tools/framework-timing/','../framework-timing-171/tool/').replace('audit/overlap-timeline-171/','../overlap-timeline-171/')
     output=P/'index.html'
 else:output=ROOT/'171-框架Profile热点.html'
-output.write_text(html)
+temporary=output.with_name(output.name+'.tmp');temporary.write_text(html);temporary.replace(output)
 print('Built',len(html.encode()),'bytes;',len(groups['steady']['dp0']['operators']),'steady operator types')
