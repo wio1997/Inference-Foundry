@@ -1,5 +1,16 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 DFC原路由与末读闭合：转有函数归因的共同metadata大交付
+
+介绍：DFC原mask/排序/inverse/count发布→远端搬运→GMM与Unpermute末读，再转同代共同metadata/frame。到了哪里：11当前DFC源/10限定body，454完整EP16路由组/7264ranklayer调用、80原生inverse witness、21792纯字节映射；5当前metadata源/4入口body与新16rank函数自身账、144付首producer/新增成本情景。结果：原R与dummy/zero-group flags保留，删gmA写不等于释放activation arena；历史5路由免费输入1.543–6.922us低于旧小预算，原样输入-only维持停止。新metadata仅helper共享的条件净1.995%诊断窗，CP自身25%也共享为3.622%，全base保留；非请求预测。新准入0，全链路未扫全，每替换原语逐位一致。
+
+待确认：改变GMM读法/提前publication/largeM/shared资源的原生位、phase/资源/末读与净价；metadata共同字段的实际caller兼容性、不可变CPU快照、device权威长度及每资源发布、图事件和原语位。已确认可实现：本轮0。已停止：历史固定GMM/flags的M3输入-only，sorted position/topK代原行、删dummy inverse/zero-group flags的具体配方；跨代shape-only或跨物理组整metadata复用仍停。保留不同GMM/大parent，未把旧排序参考改成用户门槛。
+
+[DFC路由与末读](evidence/DFC原路由行映射与GMM末读判断.md) · [共同metadata函数自身与净价](evidence/共同metadata函数自身归因与保留首生产者的净价.md) · [454路由/5原生旧实验](evidence/dfc-row-map-delivery.json) · [144条件价](evidence/common-frame-measured-price.json)。
+
+下一条待扫：loop045 Run run-20261110T100641Z：同代frame最小字段key→CP/global/localbase实际caller与闭包→CPUhelper返回值mutation→每资源固定deviceQSL/slot/table/C2/nativeattrs发布；复用原acquire-before-mainwrite及CPU/producer/consumer双退役，价实际保留工作和新增成本。只读源码/已有诊断，不做NPU/框架进口/新profile/服务动作。
+
+
 ## 当前断点 · 2026-11-10 Engram全局owner付成本剪枝与DFC输入行共享：继续真实路由读者
 
 介绍：全局Engram rows→WKV/gate/HC付成本判断，再沿较大DFC的BF16输入/量化/路由/跨EP搬运追到首GMM。到了哪里：Engram9源、56几何/4字节oracle、108C8/216短窗价、544比例与六普通代理；DFC9源18限定行段、原host DoTiling CPU12形状、1032匹配父段。结果：Engram仅明确小预算子情景停止，大parent待确认；DFC单核已共享但跨核仍重复，localM3有18次量化/3输入行，prefill416仅多20次，不能统一取6倍。targetDFC占自身两窗15.979%/17.537%，删整段10%另付h5条件净1.343%/1.496%窗口，量化内部占比未知。新准入0，全链路未扫全，每替换原语逐位一致。
@@ -474,6 +485,9 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+源码扫描：loop044已追DFC原R/dummy/count/zero-group flags至GMM与Unpermute末读，旧固定消费者输入-only停止保留；loop045转有新函数归因的共同frame。介绍：DFC原mask/排序/inverse/count发布→远端搬运→GMM与Unpermute末读，再转同代共同metadata/frame。到了哪里：11当前DFC源/10限定body，454完整EP16路由组/7264ranklayer调用、80原生inverse witness、21792纯字节映射；5当前metadata源/4入口body与新16rank函数自身账、144付首producer/新增成本情景。结果：原R与dummy/zero-group flags保留，删gmA写不等于释放activation arena；历史5路由免费输入1.543–6.922us低于旧小预算，原样输入-only维持停止。新metadata仅helper共享的条件净1.995%诊断窗，CP自身25%也共享为3.622%，全base保留；非请求预测。新准入0，全链路未扫全，每替换原语逐位一致。 [函数自身与付成本价](evidence/共同metadata函数自身归因与保留首生产者的净价.md)。保留8c237b2完整timeline/覆盖与恢复记录，本文未重采。
+
+
 2026-11-10 **完整timeline逻辑与逐函数诊断**：[方法/验收](evidence/framework-timing-171/tool/TIMELINE.md) · [覆盖账](evidence/framework-timing-171/COVERAGE.md) · [函数到算子报告](evidence/framework-timing-171/REPORT.md) · [全景HTML](evidence/balanced-profile-171/index.html)。完整请求18进程轻量15.967999s/513.026输出token/s；16卡细窗42种已执行函数、84类设备/通信。主要Host候选为CP metadata重复构造；EngineCore调度/更新每组约172ms，等worker不能当同等调度成本。新增标记边界与时钟误差单列，保留API、批次关联、全请求连续设备及DFC内部缺口。一次有界补采已恢复health200/8-token/11 SHA不变，无新增性能实现。
 
 当前源码扫描已转loop044 DFC输入行量化/路由/跨EP交付至首GMM。介绍：全局Engram rows→WKV/gate/HC付成本判断，再沿较大DFC的BF16输入/量化/路由/跨EP搬运追到首GMM。到了哪里：Engram9源、56几何/4字节oracle、108C8/216短窗价、544比例与六普通代理；DFC9源18限定行段、原host DoTiling CPU12形状、1032匹配父段。结果：Engram仅明确小预算子情景停止，大parent待确认；DFC单核已共享但跨核仍重复，localM3有18次量化/3输入行，prefill416仅多20次，不能统一取6倍。targetDFC占自身两窗15.979%/17.537%，删整段10%另付h5条件净1.343%/1.496%窗口，量化内部占比未知。新准入0，全链路未扫全，每替换原语逐位一致。 [DFC实际读者与缺口](evidence/DFC输入行量化共享与首GMM交付判断.md)。既有完整性能页、采集/恢复记录和历史停止判断保留。
@@ -549,7 +563,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每个替换原语逐位一致，末位差异失败。本轮新准入0；全链路未扫全。Engram仅明确独立子情景按旧排序参考停止，完整owner/lookup/gate/HC保留具体缺口。DFC原host CPU回放发现localM3跨核重复18次/3行，prefill多数已共享；这不是activekey/NPU位或性能验收。完整DFC大段仍有价值，继续稳定路由map、mask/dummy/zero-work flags、peer/gather/GMM operand及bank末读。Run092257Z PASS仅源码/host/旧价格，Run094003Z仍PLANNED。
+**2026-11-10 当前资格**：每替换原语逐位一致，末位差异失败。本轮新准入0、全链路未扫全。DFC原R/flags/lastreader仅限定源码与opaque CPU，历史五路由output/packet证据只覆盖其合成positive slots，非新原语验收；固定GMM输入-only旧小预算维持停止，改变GMM/提前发布/大M仍有具体缺口。新metadata16rank函数自身归因只提供144条件情景，base整段保留、marker边界已扣、首producer均值proxy明示，不当请求或生产收益。loop045 Run100200Z PASS仅入口/价格，Run100641Z仍PLANNED。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
