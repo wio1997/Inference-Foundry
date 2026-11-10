@@ -1,0 +1,58 @@
+{
+  "status": "TARGET_PROMPT_LOGPROBS_SOURCE_AND_FROZEN_ELIGIBILITY_REVIEWED",
+  "classification": {
+    "待确认": [
+      "较大的末层 attention/FFN 选行交付。冻结请求已排除提示词评分读者，仍需核对其他行读者、KV/index/cache、原 M/tile 与跨卡时序。",
+      "其他合法启用评分的负载。按实际 chunk、评分行、K、端点分母和逐位证明重定价完整词表与回传交付。"
+    ],
+    "已确认可实现": [],
+    "已停止": [
+      "冻结 C8 与六组普通负载下独立提示词评分的整段和所有同预算子方案。额外设备执行为零。"
+    ]
+  },
+  "previous_goal_turn_classification": "PROGRESS: target metadata producers and FULL graph roles were reviewed, priced against the prior archive and published.",
+  "scope": {
+    "platform": "910C CANN 9.2.0 TP8 DP2 EP16 PP1 async scheduler DSpark K=5",
+    "load": "Frozen v168 C8 with 32768 prompt, 1024 generation, approximately 90% prefix. Archived six ordinary load configurations and separate matching-shape profiles.",
+    "run": "run-20261110T231834Z",
+    "source_pins": 26,
+    "control_cases": 11,
+    "every_replacement_bitwise": true
+  },
+  "coverage": {
+    "request": "Explicit prompt_logprobs or echo-derived logprobs. K=0 remains active. The streaming validator blocks explicit K>0/-1 and the frozen service cap of 20 blocks whole vocabulary. Prompt scoring defaults to skipping prefix-cache reads. Trace decode excludes prompt scoring.",
+    "ownership": "Finished request state and count map are cleared before a same-ID resubmit gets a fresh row. Unscheduled/preempted and embeds legs skip scoring. Current CPU buffers are owned by request until publication.",
+    "rows": "Current true query offset, S completed, next token S+1, D2H into S. At scheduled==L-(S+1) compute and retain. At scheduled>remaining publish and remove, even at zero new score rows. Single-token prompt yields a zero-row tensor tuple.",
+    "projection": "Actual registered AscendLogitsProcessor STANDARD head with TP-local apply, inherited TP all-gather and vocab padding trim. Scored rows skip decode-side processors and preserve chunk shape.",
+    "scores": "Four score modes, topk including K=0, chosen column first, native Top-K ordering, count(score >= chosen), duplicate IDs and output dtypes. Normalize first in logprobs modes.",
+    "consumers": "D2H destination INT32 IDs, FP32 scores and INT32 ranks. NPU sync before result returns to ordinary PP1 drafting. Scheduler output packet, frontend context-aware token verification, DELTA pop, FINAL/full response and echo streaming. Preserve list null versus flat empty first-position semantics and the public full response clamp.",
+    "qualification": "Source and Python branch replay with host stand-ins. Native numeric outputs and alternate load performance remain unmeasured."
+  },
+  "price": {
+    "eligibility": "Pinned original v168 client and PLAN, ordinary client, and matching-shape framework and balanced profile drivers independently show absence of prompt_logprobs, logprobs and echo.",
+    "active_score_rows": 0,
+    "active_head_calls": 0,
+    "active_three_slice_D2H_batches": 0,
+    "active_publish_device_syncs": 0,
+    "local_device_work_savable_ms_upper": 0,
+    "request_latency_savable_ms_upper": 0,
+    "request_latency_savable_percent_upper": 0,
+    "empty_host_guard_outside_budget": true,
+    "conditional_k5_cold_1464_local_estimate_ms": [0.79, 2.20],
+    "conditional_k5_cold_1464_with_summary_estimate_ms": [2.42, 4.82],
+    "conditional_estimate_sha256": "47ed1a8a0e3c5c516ad1acff3a0879fa262c73e20ae65c5feb8ce9307a64c352",
+    "conditional_endpoint_denominator": null,
+    "older_larger_selected_row_parent_P90_upper_ms": 22.9921
+  },
+  "evidence": [
+    "Target提示词分数与分块回传判断.md",
+    "target-prompt-logprobs-controls.json"
+  ],
+  "new_NPU_work": 0,
+  "service_requests": 0,
+  "new_profile_collection": 0,
+  "remote_writes": [],
+  "new_primitive_admissions": 0,
+  "whole_chain_complete": false,
+  "next_action": "从 AsyncModelRunnerOutput 追 worker MessageQueue 的 pickle、共享内存和溢出分支，再追 EngineCore 输出编码到前端解码的对象所有权与回收。先用同负载旧 profile 估算完整交付的暴露时间。"
+}
