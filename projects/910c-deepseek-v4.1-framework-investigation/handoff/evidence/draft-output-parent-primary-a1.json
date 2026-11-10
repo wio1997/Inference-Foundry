@@ -1,0 +1,43 @@
+{
+  "status": "SOURCE_FIRST_WHOLE_DSPARK_LOGITS_MARKOV_TOKEN_DELIVERY_BEFORE_PRICE",
+  "created_utc": "2026-11-10T18:59:46.368694+00:00",
+  "scope": [
+    "Final draft hidden/collapse and selected query rows -> norm/TP LMHead/base logits -> Markov embed + replicated W2 bias -> exact biased logits / sequential K5 argmax -> complete draft ID buffer/view, optional probabilities/confidence -> target verification and next scheduler.",
+    "Final target logits/sampling constraints/bonus token/rejection -> complete sampled IDs and valid counts/CPU-GPU handoff; preserve state/RNG/leases and all legal dynamic cases."
+  ],
+  "candidates": [
+    "Keep base logits and Markov projection vocabulary-sharded, preserving original per-cell dot/rounding, then bias/add/local argmax and K global value+index reductions with exact tie/pad rules; pay K small collective phases against one large full-vocab gather.",
+    "Fuse replicated Markov W2 -> original-rounded bias + in-place add/argmax to eliminate dense intermediate writes/reads, keeping sequential token dependence and full observable logits mutations at the chosen boundary.",
+    "Cache only deterministic Markov-bias results under actual native geometry/row/dtype/weights/format key; do not cache hidden-dependent base logits. Whole transition-table precompute/host placement must pay capacity/copy and original shape-bit obligations.",
+    "Share lookup/input preparation with confidence only when its actual consumer is enabled; never price a merely allocated unused head."
+  ],
+  "known_conditions": [
+    "DSV41 draft_id_to_target_id class attribute None/full vocab.",
+    "Markov W2 disable_tp=True is explicitly resolved replicated before head-prefix sharding; base LMHead default TP plan separate.",
+    "Source loop has true K sequential Markov dependencies; cannot parallelize all5 transitions or replace biased argmax with base top1.",
+    "Frozen saved config default draft sampling and dynamic confidence guards being bound; optional probability/RNG and grammar/logprob callers must remain separate."
+  ],
+  "gaps": [
+    "Exact selected native projection/add/argmax dtype/rounding and tie/pad ordering, all outputs/mutations/alias/view.",
+    "Actual inherited probability/verification and async scheduler/count consumers/leases.",
+    "Matched whole-parent costs/local net, request exposure/sixordinary and decisive native keys/cache hit population."
+  ],
+  "inputs": [
+    {
+      "path": "audit/execution-search/draft-output-dependencies.json",
+      "sha256": "bceec3954b84ef1d69a246251b30a05c5f4b9f4f2b0a346599bd88a1f5e4b212"
+    },
+    {
+      "path": "audit/execution-search/draft-output-config.json",
+      "sha256": "cd207b9b67e3afc97d0f7b45ec6c8f9d0c379c95b55b6c6acb25eb58c968062e"
+    }
+  ],
+  "whole_chain_complete": false,
+  "every_replacement_bitwise": true,
+  "new_primitive_admissions": 0,
+  "new_framework_replacement_admissions": 0,
+  "new_NPU_work": 0,
+  "new_profile": 0,
+  "service_requests": 0,
+  "remote_writes": []
+}
