@@ -1,6 +1,10 @@
 # 171 框架到算子性能数据包
 
-## 当前入口：空档覆盖与融合地图
+## 当前入口：空档操作与数据
+
+全局HTML默认展开“空档里具体在准备什么”：28项操作/数据关系、8个交付阶段、实际消费者和代码片段，绑定已有28个函数自身计时。先区分 KV 地址/metadata 与设备真实 KV 数据，再判断共享、删除和提前。[详细说明](../gap-dataflow-171/REPORT.md) · [机器接续入口](../gap-dataflow-171/STATUS.md)。字段独立时间未测，不把同一函数引用重复相加；本轮无新采集。
+
+## 其它图层：空档覆盖与融合地图
 
 全局HTML默认展示实测Host/设备重叠、数据与CPU/缓冲约束，以及可调的条件覆盖预算。主台账72条历史记录+P01流水研究项、45条执行重审记录均映射到12模块；记录数不等于独立算子数。旧函数账单、算子、16卡时间线保留。
 
@@ -8,7 +12,7 @@
 
 入口为[全局性能图](index.html)，结论见[REPORT.md](REPORT.md)，断点见[STATUS.md](STATUS.md)。本次是配平诊断采集，原服务已经恢复。整个融合搜索尚未完成。
 
-默认首页现为[同窗详细性能账单](../performance-breakdown-171/REPORT.md)：用同一次阶段标签采样列空档细分、CPU具体操作、全部79计算/辅助类与5通信类；可查完整shape签名并导出CSV。旧balanced采样仍作为对照保留，不混用窗口。
+“上一轮详细账单”为[同窗详细性能账单](../performance-breakdown-171/REPORT.md)：用同一次阶段标签采样列空档细分、CPU具体操作、全部79计算/辅助类与5通信类；可查完整shape签名并导出CSV。旧balanced采样仍作为对照保留，不混用窗口。
 
 79类型相加57.30%，并行去重后Computing为54.19%；[可加总核准](../performance-breakdown-171/RECONCILIATION.md)及[逐函数计时方案](../performance-breakdown-171/TIMING-PLAN.md)已提供。构建时还会读取同级performance-breakdown-171/reconciliation-summary.json，页面分别保留排行和互斥分账。
 
