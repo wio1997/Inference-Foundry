@@ -1,6 +1,19 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
 
+## 当前断点 · 2026-11-10：SMLA分核包已判，继续selected-KV到L1
+
+**Goal ACTIVE；loop034限定source/CPU控制/条件价格PIVOTED，loop035 RUNNING。全链路未扫全，每替换原语逐位一致。**
+
+介绍：沿长度/掩码/平台/确定性→AICPU分核包→arch22 FA/FD与QK/PV实际读者，判selected-KV大交付。到了哪里：21实际源pin/18限定ranges；原标量323–1631的7个本机CPUfixture；1840原C8 native/2560窗/30typed组，6旧值精确复现、54付plan/协调成本情景。结果：packet已按batch ratio共享，900词已定义/124尾词未写；默认整行，q3 level3可生成6FA/3FD/48vec。更正旧“未传FLASH_DECODE”原因：入口会传，但host/key选择FD0；未继续消费的是BATCH_CONSISTENCY算术。停止flag-only安全跨S2和重复38层metadata信用；不是服务故障/NPU精度结论。12B计划/.75稀疏参考/h5us，K256条件最有利请求.727%–.875%，K512为1.101%–1.395%；后者继续深入。13负请求信用保留，均非实测/P90。新增原语准入0，全链路未扫全，每替换原语逐位一致。
+
+loop035 Run run-20261110T023853Z：原序selected-KV64位地址+transfer计划→Cube QK/PV精确L1布局。已读Vector pair/large-stride fallback、Cube panel ND2NZ和DataCopyPA片段；继续vendor Nd2NzParams字段/stride/padding、PV布局/LoadData/flags、原ring与源/page/index代次，先找匹配旧搬运数据，再只补影响去留的门槛。保留原metadata/逻辑TopK及所有MMA/softmax/FP16-BF16边界。
+
+[判断](evidence/SMLA分核包与原顺序交付判断.md) · [具体缺口](evidence/smla-schedule-frontier.json) · [下一入口](evidence/smla-direct-kv-entry.json)。
+
+包文件只读复核先遇一次SSH认证错误，随后主机核对与同一读重试成功；custom op-api/SMLA.o旧SHA和6 compiled keys一致。[包复核](evidence/smla-package-recheck.json)。仅当前磁盘包，不是逐调用key/设备loaded状态。新增NPU/模型/请求/新profile/显式远端写入/服务变化0；没有新增原语准入。
+
+
 ## 当前断点 · 2026-11-10：workspace寿命已判，进入SMLA分核包
 
 **Goal ACTIVE；loop033限定源/寿命/容量PIVOTED，loop034 RUNNING。全链路未扫全，每替换原语逐位一致。**
