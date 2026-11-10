@@ -1,5 +1,16 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 head布局分支与共同metadata：继续真实寿命和消费者
+
+介绍：贯穿Qb→全局query SMLA→inverseRoPE→TP O投影，并转向同代CP共同metadata交付。到了哪里：17当前head/native源、原标量25packet fixture与有限坐标；两个代表rank各480目标样本拆456CSA/24纯SWA；另9当前metadata源追到真实helper、base共享和SMLA/QLI闭包。结果：CSA的KV逻辑访问扩大8倍、Cube M padding2倍，纯SWA不同；原条件净价须付新增成本。共同plan仍有大范围价值，但31ms提交前边界非全可删或精确函数；首段源码/72条件价格已记。新原语准入0，全链路未扫全，每替换原语逐位一致。
+
+待确认：贯穿head布局的native位/metadata/NZowner/资源/请求净价；共同frame的alias/双完成栅栏/实际归因与净成本。已确认可实现：本轮0。已停止：cache-only packet借作globalquery、跨物理组整对象或shape-only跨代缓存、CPU上界替device长度；不剪完整动态协议或更大parent。
+
+[head分支与净价](evidence/head布局贯穿SMLA的分支与净价判断.md) · [共同metadata实际生产/价格](evidence/同代CP共同metadata的实际生产与价格判断.md)。
+
+下一条待扫：loop040 Run run-20261110T063608Z：共同QSL/CPUlength/device length/positions的全部observer与mutation、闭包attrs，canonical frame在主流覆写前的producer_done+consumer_done栅栏；emptyquery/emptyDP/error/abort/FULL事件集合与顺序。保留每资源slot/ring与原native attrs，沿实际读者补证后继续下一交付。仅只读源码/旧数据，不重采、不操作服务。
+
+
 ## 当前断点 · 2026-11-10：Engram lookup整段低值，转原生双缓存epilogue
 
 **配平数据补充**：旧loop036原件冻结后获知：配平复采已完成并恢复原服务。新集合为前4条prompt镜像，不能直接沿用旧8条请求比例；32worker窗口中steady lookup union中位约0.03034%/0.03029%。四个native算子族全部站点的松包络约5.009%/5.083%窗口，含其它target/draft，下一步需绑定实际indexK/longKV调用，不能作为候选收益。 [分负载补充](evidence/engram-storage-balanced-supplement.json)。
@@ -419,6 +430,9 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+当前源码排查：loop039限定source/CPU/价格已PIVOT；loop040继续共同metadata真实寿命。介绍：贯穿Qb→全局query SMLA→inverseRoPE→TP O投影，并转向同代CP共同metadata交付。到了哪里：17当前head/native源、原标量25packet fixture与有限坐标；两个代表rank各480目标样本拆456CSA/24纯SWA；另9当前metadata源追到真实helper、base共享和SMLA/QLI闭包。结果：CSA的KV逻辑访问扩大8倍、Cube M padding2倍，纯SWA不同；原条件净价须付新增成本。共同plan仍有大范围价值，但31ms提交前边界非全可删或精确函数；首段源码/72条件价格已记。新原语准入0，全链路未扫全，每替换原语逐位一致。 [判断](evidence/同代CP共同metadata的实际生产与价格判断.md)。另一流程的同窗84类详细账单及旧profile保持原样。
+
+
 2026-11-10 同窗84类详细性能账单：[完整排行/CSV/逐卡数据](evidence/performance-breakdown-171/REPORT.md) · [入口](evidence/balanced-profile-171/README.md)。同次阶段标记样本16卡各11完整轮，目标DFC144.54ms/17.22%、量化矩阵乘43.57ms/5.19%、MatMulV2 34.37ms/4.10%。输入准备的309.77ms空档继续按去嵌套CPU事件展开，其中155.35ms仍未定位到具体Python函数。79计算/辅助类+5通信全列，完整shape/图内分属可查；新NPU测试/实现0。
 
 ### 2026-11-10 QKV原生次序与head布局贯穿Attention：继续较大consumer
@@ -475,7 +489,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每个替换原语逐位一致。沿实际Q/KV发现[head布局贯穿Attention](evidence/QKV原生反量化与贯穿Attention的head布局判断.md)的较大交付，付旧AG参考/new Qb quarter/h5us条件1.228%–1.299%窗口，不是请求预测。INT32无溢出仍须原反量化次序；[CPU公式反例](evidence/qkv-dequant-order-cpu.json)最终BF16不同。两处head8 guard通过只属源码入口。继续global query/selected-ID/SMLA原MMAD与TP O投影；既有C09/K03更正与Engram lookup停止等限定继续有效。
+**2026-11-10 当前资格**：每个替换原语逐位一致，BF16末位也不能不同。head贯穿SMLA已追到CSA/dense分支与条件净价，增加KV/M-padding成本后仍待native bit、globalquery plan和请求净价。当前loop040继续同代共同metadata的输入observer/alias/闭包attrs与producer_done+consumer_done；本轮准入0，全链路未扫全。旧C09/K03更正、Engram lookup停止等限定继续有效。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
