@@ -1,0 +1,90 @@
+{
+  "status": "g46 measured performance meets threshold;teardown failed;g47 correction validation pending",
+  "measured_overlay_sha256": "c605e7a62cfa6a18d6dd0dc3d944407987df80bd0bc776fec51ff6a68eab9955",
+  "correction_overlay_sha256": "9f1d988b12f5fd4bd2962750a65e56b9265cefd7d01abecb610c83e207b0d497",
+  "source_base_commit": "4e25b588f3ef9ec8fb229b0f2f1d17e253037edb",
+  "hardware": "Ascend910C;7 physical cards;8 active dies;TP8 DP1 EPoff PP1",
+  "image_sha256": "ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "core_vllm": "0.30.0+empty",
+  "ascend_plugin": "0.30.0rc2 g8fde6d4e3",
+  "common_configuration": {
+    "max_sequences": 8,
+    "max_model_len": 2048,
+    "max_num_batched_tokens": 1792,
+    "kv_cache_bytes_per_rank": 2147483648,
+    "dtype": "bfloat16",
+    "checkpoint_quantization": "W8A8",
+    "offload": "none;all nonempty weights on NPU",
+    "async_scheduling": false,
+    "prefix_caching": false,
+    "compile_mode": 0,
+    "cudagraph_mode": "PIECEWISE",
+    "capture_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "breakable_graph": true
+  },
+  "optimization": "Use original SDK KDA pure-decode implementation inside the root graph;SDK metadata hook supplies dummy metadata. Math unchanged;native capture coverage intentionally expands versus reference. g47 adds exact-shape/small-prefill force_eager and idempotent close.",
+  "measured_requests": {
+    "concurrencies": [
+      4,
+      8
+    ],
+    "requests_each": 32,
+    "input_tokens_each": 1024,
+    "output_tokens_each": 256,
+    "warmups_excluded_each": 2,
+    "full_decoded_outputs_identical_to_reference": 64
+  },
+  "g46_teardown": {
+    "all_rank_exit_codes": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "error": "flush_finished and stop both drain;second hook close was not idempotent",
+    "claims_released": true,
+    "overall_passed": false
+  },
+  "g47_pure_python_hook_check": "double close, ownership preservation, exact/odd/mixed/prefill dispatch passed;does not substitute for live model validation",
+  "results": {
+    "C4": {
+      "requests": 32,
+      "successful": 32,
+      "failed": 0,
+      "input_tokens": 32768,
+      "output_tokens": 8192,
+      "benchmark_seconds": 79.57223137999244,
+      "output_token_throughput": 102.95048734877865,
+      "ttft_median_ms": 490.0006600000779,
+      "tpot_median_ms": 34.989295725501826,
+      "timestamps_finite_nondecreasing": true,
+      "official_global_throughput_agrees": true,
+      "reference_output_tps": 62.84180017672184,
+      "native_reference_ratio": 1.6382485393363073
+    },
+    "C8": {
+      "requests": 32,
+      "successful": 32,
+      "failed": 0,
+      "input_tokens": 32768,
+      "output_tokens": 8192,
+      "benchmark_seconds": 41.571419290005,
+      "output_token_throughput": 197.0584632401425,
+      "ttft_median_ms": 738.2368600010523,
+      "tpot_median_ms": 37.964209372533816,
+      "timestamps_finite_nondecreasing": true,
+      "official_global_throughput_agrees": true,
+      "reference_output_tps": 109.52192117724522,
+      "native_reference_ratio": 1.7992604687899163
+    }
+  }
+}

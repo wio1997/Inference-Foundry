@@ -60,16 +60,15 @@ class SDKComputeRuntime:
         import torch
         get_offloader().join_after_forward()
         torch.npu.synchronize(self.compute_worker.device)
-        if getattr(self, "conv_leaf", None) is not None:
+        if getattr(self, "kda_capture", None) is not None:
             import json
-            if getattr(self, "conv_leaf_stats_path", None) is not None:
-                self.conv_leaf_stats_path.write_text(json.dumps(self.conv_leaf.snapshot())+"\n")
-            self.conv_leaf.close()
+            self.kda_capture.close()
+            self.kda_capture_stats_path.write_text(json.dumps(self.kda_capture.snapshot())+"\n")
 
 
 def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         init_method, max_context=2048, max_step=1792,
-                        max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, conv_leaf_graph=False):
+                        max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, kda_decode_capture=False):
     import torch
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
@@ -122,13 +121,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                 or get_pp_group().world_size != 1 or get_dp_group().world_size != 1):
             raise ValueError('SDK compute TP membership differs from native Worker')
         worker.load_model()
-        leaf = None
-        if conv_leaf_graph:
-            if not graph_decode or not breakable_graph:
-                raise ValueError("convolution leaf graph requires explicit breakable graph")
-            from .conv_leaf_graph import install_conv_leaf_graphs
-            leaf = install_conv_leaf_graphs(max_requests=max_requests,
-                capture_sizes=config.compilation_config.cudagraph_capture_sizes)
+        kda_capture = None
+        if kda_decode_capture:
+            if not (graph_decode and breakable_graph):
+                raise ValueError("KDA capture requires PIECEWISE graph mode")
+            from .kda_graph_capture import install_kda_decode_capture
+            kda_capture = install_kda_decode_capture(config, worker.model_runner, max_requests=max_requests)
         if not isinstance(get_offloader(), NoopOffloader):
             raise ValueError('candidate requires full NPU residency')
         model = worker.get_model()
@@ -165,11 +163,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                 log_stats=False, dcp_world_size=1, pcp_world_size=1,
                 watermark=config.scheduler_config.watermark,
                 enable_mamba_fine_grained_prefix_cache=False)
-        if leaf is not None:
-            if rank == 0 and manager.block_pool.null_block.block_id != 0:
-                raise RuntimeError("convolution capture requires reserved null page zero")
-            leaf.enabled = True
-    runtime = SDKComputeRuntime(config, worker, physical, scheduler_cache,
+    result = SDKComputeRuntime(config, worker, physical, scheduler_cache,
                              manager, max_requests, all_memory, native_group)
-    runtime.conv_leaf = leaf
-    return runtime
+    result.kda_capture = kda_capture
+    return result
