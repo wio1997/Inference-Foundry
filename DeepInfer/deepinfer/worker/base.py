@@ -128,7 +128,7 @@ class WorkerBase:
             self.start_slave_worker_loop()
 
     def _init_bounded_glm_process(self) -> None:
-        """Start only the explicit four-rank, single-request GLM NPU process.
+        """Start the explicit single-request GLM NPU process group.
 
         This intentionally does not allocate a V4 cache, load weights, or make
         the engine production-ready. The driver must call the explicit GLM
@@ -139,10 +139,10 @@ class WorkerBase:
         pc = self.parallel_config
         if (not PLATFORM.is_npu or self.engine_type != EngineType.NORMAL
                 or self.model_config.architecture != "Glm5NextForConditionalGeneration"
-                or pc.world_size != 4 or pc.context_parallel_size != 4
+                or pc.world_size not in (4, 16) or pc.context_parallel_size != pc.world_size
                 or pc.data_parallel_size != 1 or pc.expert_parallel_size != 1
                 or pc.engram_parallel_size != 1 or pc.engine_rank != 0
-                or not 0 <= self.cp_rank < 4 or self.local_rank < 0
+                or not 0 <= self.cp_rank < pc.context_parallel_size or self.local_rank < 0
                 or bool(self.is_driver_worker) != (self.cp_rank == 0)
                 or self.nextn != 0 or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING):
             raise ValueError("unsupported bounded GLM Worker configuration")

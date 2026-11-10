@@ -202,20 +202,27 @@ class LLMEngine:
                     or bounded_glm_worker.model_config.model != model_config.model
                     or engine_type != EngineType.NORMAL or not offline_inference or log_stats
                     or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING or envs.DEEPINFER_PROFILE_HTTP_ENABLE
-                    or scheduler_config.max_num_seqs != 1 or parallel_config.context_parallel_size != 4
+                    or scheduler_config.max_num_seqs != 1
+                    or parallel_config.context_parallel_size not in (4, 16)
+                    or parallel_config.context_parallel_size != PG.context_parallel_group().size()
                     or parallel_config.data_parallel_size != 1 or parallel_config.expert_parallel_size != 1
                     or parallel_config.engram_parallel_size != 1 or cache_config.lookahead_tokens != 0
                     or model_config.runtime_max_model_len > runtime.runner.max_context_tokens
                     or scheduler_config.max_num_batched_tokens < cache_config.block_size
                     or type(bounded_glm_logical_blocks) is not int
-                    or bounded_glm_logical_blocks < 2 + (model_config.runtime_max_model_len - 1) // cache_config.block_size):
+                    or bounded_glm_logical_blocks < 3 + (model_config.runtime_max_model_len - 1) // cache_config.block_size):
                 raise ValueError("unsupported bounded GLM engine configuration")
         elif bounded_glm_logical_blocks is not None:
             raise ValueError("logical block count requires an explicit bounded GLM Worker")
         self._bounded_glm_engine = bounded_glm
         self._bounded_glm_max_step_tokens = runtime.runner.boundary.max_tokens if bounded_glm else None
-        gpu_ids = list(map(int, os.environ["CUDA_VISIBLE_DEVICES"].split(",")))
-        self.driver_gpu_id = gpu_ids[0]
+        if bounded_glm:
+            # Adopt the already selected and externally verified NPU Worker.
+            # CUDA visibility is not a source of Ascend device ownership.
+            self.driver_gpu_id = bounded_glm_worker.device.index
+        else:
+            gpu_ids = list(map(int, os.environ["CUDA_VISIBLE_DEVICES"].split(",")))
+            self.driver_gpu_id = gpu_ids[0]
 
         self.model_config = model_config
         self.cache_config = cache_config
@@ -324,7 +331,7 @@ class LLMEngine:
         self.block_manager = BlockManager(cache_config.num_gpu_blocks)
         self.state_manager = BlockManager(cache_config.num_state_seqs) if cache_config.bytes_of_state_per_seqs > 0 else None
         self.scheduler = self._create_scheduler()
-        self.scheduler.decode_perf_curve = None if bounded_glm else self.driver_worker.decode_perf_curve
+        self.scheduler.decode_perf_curve = [] if bounded_glm else self.driver_worker.decode_perf_curve
         if self.multi_modal_processor is not None:
             self.multi_modal_processor.scheduler = self.scheduler
         self.sequence_metadata_pool = SequenceMetadataPool()
@@ -549,6 +556,26 @@ class LLMEngine:
             offline_inference=engine_args.offline_inference,
         )
 
+    @classmethod
+    def from_bounded_glm_worker(
+        cls, engine_args: EngineArgs, *, worker: Any, logical_blocks: int
+    ) -> LLMEngine:
+        """Adopt an already initialized bounded GLM Worker for offline text.
+
+        The caller initializes and owns the four-rank Worker group until the
+        constructor succeeds. Logical blocks are scheduler bookkeeping only.
+        The existing constructor validates supported model, ranks and bounds;
+        this entry does not create a service or allocate a paged model cache.
+        """
+        if (engine_args.engine_type != EngineType.NORMAL
+                or not engine_args.offline_inference
+                or not engine_args.disable_log_stats):
+            raise ValueError("bounded GLM entry requires offline normal engine without stats")
+        configs = engine_args.create_engine_configs()
+        return cls(*configs, log_stats=False, engine_type=engine_args.engine_type,
+                   offline_inference=True, bounded_glm_worker=worker,
+                   bounded_glm_logical_blocks=logical_blocks)
+
     @cpu_timer.record("add_request")
     def add_request(
         self,
@@ -603,11 +630,14 @@ class LLMEngine:
             if (self.get_num_unfinished_requests() or multi_modal_data is not None
                     or extra or not enqueue or chunk_checkpoints):
                 raise ValueError("bounded GLM engine accepts one plain text request at a time")
-            # The scheduler requires a logical batch >= block size. One plain
-            # request may still never submit more tokens than the actual runner
-            # step allocation, so reject longer prompts before scheduler state.
-            if not isinstance(prompt_token_ids, np.ndarray) or prompt_token_ids.ndim != 1 or prompt_token_ids.size > self._bounded_glm_max_step_tokens:
-                raise ValueError("bounded GLM prompt exceeds the runner step limit")
+            # Bound each scheduled prompt span to the worker allocation using
+            # the existing scheduler checkpoints, before scheduler mutation.
+            if not isinstance(prompt_token_ids, np.ndarray) or prompt_token_ids.ndim != 1 or prompt_token_ids.size > self.model_config.max_model_len:
+                raise ValueError("bounded GLM prompt exceeds the model context limit")
+            if prompt_token_ids.size > self._bounded_glm_max_step_tokens:
+                if not self.scheduler_config.chunked_prefill:
+                    raise ValueError("bounded GLM long prompts require chunked prefill")
+                chunk_checkpoints = list(range(self._bounded_glm_max_step_tokens, prompt_token_ids.size, self._bounded_glm_max_step_tokens))
         if sampling_params is None:
             sampling_params = {}
         if extra is None:
@@ -1064,8 +1094,19 @@ class LLMEngine:
         # scheduling pass. Reap it on the driver; the GLM adapter deliberately
         # does not accept placeholder execution on the workers.
         if self._bounded_glm_engine and scheduler_outputs.is_empty():
+            if not scheduler_outputs.finished_seqs:
+                # NORMAL scheduling attempts prefill at fixed decode intervals.
+                # A fresh request between intervals legitimately has no model
+                # work. Keep this driver-only; no placeholder may mutate state.
+                runtime = self.driver_worker._glm_worker_runtime
+                if (self.get_num_pendings() != 1
+                        or runtime.backend._owner is not None):
+                    raise RuntimeError("bounded GLM scheduler produced an unsupported empty step")
+                self.pre_sampler_sync(scheduler_outputs)
+                self.generate_step += 1
+                return np.empty(0, dtype=np.uint64)
             if len(scheduler_outputs.finished_seqs) != 1:
-                raise RuntimeError("bounded GLM scheduler produced an unsupported empty step")
+                raise RuntimeError("bounded GLM scheduler produced multiple terminal requests")
             from types import SimpleNamespace
 
             self.pre_sampler_sync(scheduler_outputs)

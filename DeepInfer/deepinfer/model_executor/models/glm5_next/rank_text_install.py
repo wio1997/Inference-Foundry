@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Opt-in bounded diagnostic distributed seams for an assembled text runner.
 
-Only dense gate/up rows and routed experts are sharded. Attention, router,
-embedding/head, down projections and residual/state are replicated. No model
+Dense gate/up rows and routed experts are sharded. Dense down projections
+remain replicated by default and may be explicitly input-sharded. Attention,
+router, embedding/head and residual/state remain replicated. No model
 registry or tensor-parallel guard is bypassed. On installation error the
 original modules are restored; this helper does not own request/process groups
 or a caller-supplied reusable cache session, which the caller must close.
@@ -16,9 +17,11 @@ from .rank_expert_adapter import install_rank_experts
 
 def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
                             max_assembled_bytes,max_intermediate_rows,max_packed_rows,group=None,cache_session=None,
-                            max_dense_input_tokens=8):
+                            max_dense_input_tokens=8,shard_dense_down=False):
     if type(world_size) is not int or world_size not in (1,2,4,8,16) or type(rank) is not int or not 0<=rank<world_size:
         raise ValueError('explicit supported rank/world required')
+    if type(shard_dense_down) is not bool or (shard_dense_down and world_size==1):
+        raise ValueError('dense down sharding requires an explicit multi-rank choice')
     if world_size>1:
         import hashlib,json,torch,torch.distributed as dist
         if not dist.is_initialized() or dist.get_world_size(group)!=world_size or dist.get_rank(group)!=rank:
@@ -50,13 +53,16 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
                         raise ValueError('explicit intermediate bound required')
                     if isinstance(layer.mlp.gate_proj,RankW8A8OutputLinear) or isinstance(layer.mlp.up_proj,RankW8A8OutputLinear):
                         raise ValueError('rank projections already installed')
-                    shape.append(['dense',layer.layer_id,width,spec.attention])
+                    activation=layer.mlp.activation_backend
+                    if activation not in ('torch_fp32','vllm_native'):
+                        raise ValueError('unsupported dense activation backend')
+                    shape.append(['dense',layer.layer_id,width,spec.attention,activation,layer.mlp.limit])
                 elif isinstance(layer.mlp,GlmMoEMLP) and isinstance(layer.mlp.experts,CheckpointSelectedExperts):
                     if spec.mlp!='sparse':raise ValueError('sparse layer disagrees with config')
                     shape.append(['sparse',layer.layer_id,spec.attention])
                 else:raise ValueError('unsupported or already installed layer')
             # Replicated ranks must agree on dimensions and runtime model settings too.
-            digest=hashlib.sha256(json.dumps({'layers':shape,'config':runner.stack.config.to_dict(),'layout_sha256':layout_hash,'max_dense_input_tokens':max_dense_input_tokens},sort_keys=True,separators=(',',':')).encode()).digest()
+            digest=hashlib.sha256(json.dumps({'layers':shape,'config':runner.stack.config.to_dict(),'layout_sha256':layout_hash,'max_dense_input_tokens':max_dense_input_tokens,'shard_dense_down':shard_dense_down},sort_keys=True,separators=(',',':')).encode()).digest()
             signature=[int.from_bytes(digest[i:i+8],'big',signed=True) for i in range(0,32,8)]
             count=len(shape)
         except Exception as exc:failure=exc
@@ -72,12 +78,12 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
     try:
         for layer in layers:
             if isinstance(layer.mlp,GlmDenseMLP):
-                saved.append(('dense',layer,layer.mlp.gate_proj,layer.mlp.up_proj))
+                saved.append(('dense',layer,layer.mlp.gate_proj,layer.mlp.up_proj,layer.mlp.down_proj))
                 install_rank_dense(layer,reader,'npu',rank=rank,world_size=world_size,
-                                   max_intermediate_rows=max_intermediate_rows,group=group,max_input_tokens=max_dense_input_tokens)
+                                   max_intermediate_rows=max_intermediate_rows,group=group,max_input_tokens=max_dense_input_tokens,shard_down=shard_dense_down)
                 dense.append(layer.layer_id)
             elif isinstance(layer.mlp,GlmMoEMLP) and isinstance(layer.mlp.experts,CheckpointSelectedExperts):
-                saved.append(('sparse',layer,layer.mlp.experts,None))
+                saved.append(('sparse',layer,layer.mlp.experts,None,None))
                 # A sparse adapter can reject rank-local reader/session state.
                 # Agree before any peer can enter the next dense collective.
                 if world_size>1:
@@ -100,8 +106,8 @@ def install_rank_text_seams(runner,reader,*,rank,world_size,cache_bytes,
                 sparse.append(layer.layer_id)
             else:raise ValueError('unsupported or already installed layer')
     except BaseException:
-        for kind,layer,old,up in reversed(saved):
-            if kind=='dense':layer.mlp.gate_proj,layer.mlp.up_proj=old,up
+        for kind,layer,old,up,down in reversed(saved):
+            if kind=='dense':layer.mlp.gate_proj,layer.mlp.up_proj,layer.mlp.down_proj=old,up,down
             else:layer.mlp.experts=old
         raise
     return {'dense_layers':dense,'sparse_layers':sparse,'rank':rank,'world_size':world_size}

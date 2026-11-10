@@ -36,7 +36,7 @@ class BoundedWorkerRuntime:
 def prepare_bounded_worker_runtime(reader, device, *, dsa_operations, bind_dsa, sampler,
         max_expert_checkpoint_bytes, max_expert_resident_bytes, max_context_tokens, max_step_tokens,
         rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows,
-        hc_backend, kda_backend):
+        hc_backend, kda_backend, shard_dense_down=False, dense_activation_backend='torch_fp32'):
     """Build one unpaged, single-request text runtime using explicit components.
 
     All four CP ranks must call with corresponding rank-local inputs, in the
@@ -64,7 +64,8 @@ def prepare_bounded_worker_runtime(reader, device, *, dsa_operations, bind_dsa, 
             max_expert_checkpoint_bytes=max_expert_checkpoint_bytes,max_expert_resident_bytes=max_expert_resident_bytes,
             vocab_start=0,vocab_stop=config.vocab_size,max_head_rows=config.vocab_size,
             max_tokens=max_step_tokens,max_context_tokens=max_context_tokens,logical_block_size=128,
-            expert_policy='selected_per_token',hc_backend=hc_backend,kda_backend=kda_backend,max_requests=1)
+            expert_policy='selected_per_token',hc_backend=hc_backend,kda_backend=kda_backend,max_requests=1,
+            dense_activation_backend=dense_activation_backend)
         for spec,layer in zip(config.layers,runner.stack.layers,strict=True):
             if spec.attention=='deepseek_sparse_attention':
                 operation=bind_dsa(layer,dsa_operations[spec.layer_id])
@@ -78,7 +79,7 @@ def prepare_bounded_worker_runtime(reader, device, *, dsa_operations, bind_dsa, 
         raise RuntimeError('bounded Worker component assembly failed on a rank') from failure
     installed=install_rank_text_seams(runner,reader,rank=rank,world_size=4,group=cp,
         cache_bytes=rank_cache_bytes,max_assembled_bytes=max_assembled_bytes,
-        max_intermediate_rows=max_intermediate_rows,max_packed_rows=max_packed_rows)
+        max_intermediate_rows=max_intermediate_rows,max_packed_rows=max_packed_rows,shard_dense_down=shard_dense_down)
     runner.enable_rank_commit_agreement(group=cp)
     if max_step_tokens>1:runner.enable_rank_batch_commit(max_tokens=max_step_tokens)
     bridge=SingleRequestWorkerBridge(runner,lambda request_id:initial_worker_text_state(runner,request_id))

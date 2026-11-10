@@ -4,6 +4,9 @@
 No backend, service, cache allocator or model registration is chosen here.
 The caller supplies factories and budgets and owns Worker/process-group lifetime.
 """
+import hashlib
+import json
+
 import torch
 import torch.distributed as dist
 
@@ -16,7 +19,7 @@ from .worker_runtime import prepare_bounded_worker_runtime
 @torch.inference_mode()
 def bootstrap_bounded_glm_worker(worker, reader, device, *, dsa_factory, bind_dsa, sampler_factory,
         max_expert_checkpoint_bytes, max_expert_resident_bytes, max_context_tokens, max_step_tokens,
-        rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows, hc_backend, kda_backend):
+        rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows, hc_backend, kda_backend, shard_dense_down=False, dense_activation_backend='torch_fp32'):
     """Prepare and install a single-request adapter on all four CP ranks.
 
     The Worker must already have initialized its device and process group. The
@@ -28,7 +31,7 @@ def bootstrap_bounded_glm_worker(worker, reader, device, *, dsa_factory, bind_ds
     cp=PG.context_parallel_group()
     if not dist.is_initialized() or cp.size()!=4 or dist.get_world_size(cp)!=4:
         raise ValueError('initialized four-rank CP group required')
-    rank=cp.rank();failure=None;ops=None;sampler=None
+    rank=cp.rank();failure=None;ops=None;sampler=None;signature=[0,0,0,0]
     try:
         if (worker.model_config.architecture!='Glm5NextForConditionalGeneration' or worker.nextn!=0
                 or worker.prev_step_state is not None or bool(worker.is_driver_worker)!=(rank==0)
@@ -36,6 +39,15 @@ def bootstrap_bounded_glm_worker(worker, reader, device, *, dsa_factory, bind_ds
             raise ValueError('fresh compatible non-speculative GLM Worker required')
         if not callable(dsa_factory) or not callable(bind_dsa) or not callable(sampler_factory):
             raise ValueError('explicit DSA, binding and sampler factories required')
+        # These options control rank-local model construction and collective
+        # shapes. Agreement is required before any model is assembled.
+        options=dict(hc_backend=hc_backend,kda_backend=kda_backend,
+            dense_activation_backend=dense_activation_backend,shard_dense_down=shard_dense_down,
+            max_expert_checkpoint_bytes=max_expert_checkpoint_bytes,max_expert_resident_bytes=max_expert_resident_bytes,
+            max_context_tokens=max_context_tokens,max_step_tokens=max_step_tokens,rank_cache_bytes=rank_cache_bytes,
+            max_assembled_bytes=max_assembled_bytes,max_intermediate_rows=max_intermediate_rows,max_packed_rows=max_packed_rows)
+        digest=hashlib.sha256(json.dumps(options,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).digest()
+        signature=[int.from_bytes(digest[i:i+8],'big',signed=True) for i in range(0,32,8)]
         config=Glm5NextConfig.from_checkpoint(reader.root)
         ops=dsa_factory(config)
         if rank==0:sampler=sampler_factory()
@@ -45,11 +57,16 @@ def bootstrap_bounded_glm_worker(worker, reader, device, *, dsa_factory, bind_ds
     dist.all_reduce(status,op=dist.ReduceOp.MAX,group=cp)
     if int(status.item()):
         raise RuntimeError('GLM Worker bootstrap preflight failed on a rank') from failure
+    metadata=torch.tensor(signature,dtype=torch.int64,device=device)
+    gathered=[torch.empty_like(metadata) for _ in range(4)]
+    dist.all_gather(gathered,metadata,group=cp)
+    if not all(torch.equal(gathered[0],item) for item in gathered[1:]):
+        raise RuntimeError('GLM Worker bootstrap settings differ across ranks')
     runtime=prepare_bounded_worker_runtime(reader,device,dsa_operations=ops,bind_dsa=bind_dsa,sampler=sampler,
         max_expert_checkpoint_bytes=max_expert_checkpoint_bytes,max_expert_resident_bytes=max_expert_resident_bytes,
         max_context_tokens=max_context_tokens,max_step_tokens=max_step_tokens,rank_cache_bytes=rank_cache_bytes,
         max_assembled_bytes=max_assembled_bytes,max_intermediate_rows=max_intermediate_rows,max_packed_rows=max_packed_rows,
-        hc_backend=hc_backend,kda_backend=kda_backend)
+        hc_backend=hc_backend,kda_backend=kda_backend,shard_dense_down=shard_dense_down, dense_activation_backend=dense_activation_backend)
     failure=None
     try:
         runtime.install(worker)
@@ -67,7 +84,7 @@ def bootstrap_bounded_glm_worker(worker, reader, device, *, dsa_factory, bind_ds
 @torch.inference_mode()
 def bootstrap_native_sfa_glm_worker(worker, device, *, sfa_library, max_read_bytes,
         max_expert_checkpoint_bytes, max_expert_resident_bytes, max_context_tokens, max_step_tokens,
-        rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows, hc_backend, kda_backend):
+        rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows, hc_backend, kda_backend, shard_dense_down=False, dense_activation_backend='torch_fp32'):
     """Open the Worker's checkpoint and select the installed SFA explicitly.
 
     Every rank reads the same configured checkpoint independently. Reader
@@ -102,4 +119,4 @@ def bootstrap_native_sfa_glm_worker(worker, device, *, sfa_library, max_read_byt
         sampler_factory=sampler_factory,max_expert_checkpoint_bytes=max_expert_checkpoint_bytes,
         max_expert_resident_bytes=max_expert_resident_bytes,max_context_tokens=max_context_tokens,
         max_step_tokens=max_step_tokens,rank_cache_bytes=rank_cache_bytes,max_assembled_bytes=max_assembled_bytes,
-        max_intermediate_rows=max_intermediate_rows,max_packed_rows=max_packed_rows,hc_backend=hc_backend,kda_backend=kda_backend)
+        max_intermediate_rows=max_intermediate_rows,max_packed_rows=max_packed_rows,hc_backend=hc_backend,kda_backend=kda_backend,shard_dense_down=shard_dense_down, dense_activation_backend=dense_activation_backend)

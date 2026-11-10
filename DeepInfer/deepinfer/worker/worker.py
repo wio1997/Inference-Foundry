@@ -95,7 +95,7 @@ class Worker(WorkerBase):
 
     def initialize_bounded_glm_text(self, *, sfa_library, max_read_bytes,
             max_expert_checkpoint_bytes, max_expert_resident_bytes, max_context_tokens, max_step_tokens,
-            rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows, hc_backend, kda_backend) -> None:
+            rank_cache_bytes, max_assembled_bytes, max_intermediate_rows, max_packed_rows, hc_backend, kda_backend, shard_dense_down=False, dense_activation_backend='torch_fp32') -> None:
         """Explicitly initialize the bounded installed-SFA text path on every rank."""
         from deepinfer.model_executor.models.glm5_next.worker_bootstrap import bootstrap_native_sfa_glm_worker
 
@@ -104,7 +104,7 @@ class Worker(WorkerBase):
             max_expert_resident_bytes=max_expert_resident_bytes, max_context_tokens=max_context_tokens,
             max_step_tokens=max_step_tokens, rank_cache_bytes=rank_cache_bytes, max_assembled_bytes=max_assembled_bytes,
             max_intermediate_rows=max_intermediate_rows, max_packed_rows=max_packed_rows,
-            hc_backend=hc_backend, kda_backend=kda_backend)
+            hc_backend=hc_backend, kda_backend=kda_backend, shard_dense_down=shard_dense_down, dense_activation_backend=dense_activation_backend)
 
     @torch.inference_mode()
     def execute_model_step(

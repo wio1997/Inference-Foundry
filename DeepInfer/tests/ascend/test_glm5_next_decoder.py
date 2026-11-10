@@ -16,6 +16,7 @@ def make_hc(hidden=8):
 def make_attention(hidden=8):
     layer=Glm5NextKDA();layer.num_heads=2;layer.head_dim=3
     layer.hidden_size=hidden;layer.conv_width=4;layer.lower_bound=-5.;layer.backend='torch';layer.norm_eps=1e-5
+    layer.in_proj_qkvbfg_a=None;layer.chunk_prefill_single=False;layer.reference_sharded_projection=False
     for attr,dim in [('q_proj',(hidden,6)),('k_proj',(hidden,6)),('v_proj',(hidden,6)),('b_proj',(hidden,2)),
                      ('f_a_proj',(hidden,3)),('f_b_proj',(3,6)),('g_a_proj',(hidden,3)),('g_b_proj',(3,6)),('o_proj',(6,hidden))]:
         setattr(layer,attr,nn.Linear(*dim,bias=False))

@@ -122,3 +122,87 @@ Sweeping the encoder goes through `sweep/ve_sweep.py`: it loads only the VE-side
 ## YoCo
 
 See [yoco/README.md](yoco/README.md) for the YoCo mask/compact equivalence verification.
+
+## Experimental bounded GLM offline entry
+
+`glm5_bounded_offline.py` runs one pre-tokenized GLM text request through the
+explicit bounded Worker and `LLMEngine` factory. An external resource manager
+must start four cooperating processes with ranks 0–3, one visible NPU per
+process, and the same `--init-method` rendezvous. It must also provide a local
+model directory and the installed Ascend SFA extension library. The example
+does not allocate or reserve devices.
+
+Each rank runs the following command with its own rank and device visibility;
+all other arguments must match:
+
+```bash
+python examples/glm5_bounded_offline.py --model MODEL_DIR \
+  --sfa-library INSTALLED_SFA_LIBRARY --init-method RENDEZVOUS_URL \
+  --rank RANK --tokens TOKEN_ID [TOKEN_ID ...] --max-tokens 2 --max-context 32
+```
+
+The experimental `--kda-backend ascendc_installed_decode` option selects the
+existing installed recurrent caller for all KDA layers. The default is
+`ascendc`; keep the same choice on every rank. The alternative has not passed
+full-model quality acceptance.
+The separate `--shard-dense-down` opt-in selects the existing rank-sharded
+dense down projection; its fixed-case quality is also unaccepted.
+The separate `--dense-activation vllm_native` option reuses the installed
+reference activation for dense layers; the default is `torch_fp32`. These
+options are experimental, and their combination has not passed quality
+acceptance. The startup agreement checks each dense layer's activation and
+clamp across ranks before installing sharded projections.
+
+To select all three existing operators together for a bounded comparison, use
+this command on each rank with the same prompt and options:
+
+```bash
+python examples/glm5_bounded_offline.py --model MODEL_DIR \
+  --sfa-library INSTALLED_SFA_LIBRARY --init-method RENDEZVOUS_URL \
+  --rank RANK --tokens TOKEN_ID [TOKEN_ID ...] --max-tokens 1 --max-context 64 \
+  --kda-backend ascendc_installed_decode --shard-dense-down \
+  --dense-activation vllm_native
+```
+
+This combination is opt-in and remains unaccepted for model quality. Keep the
+original defaults available as a fallback and compare identical token prefixes;
+a matching generated token alone does not establish numerical equivalence.
+
+The prompt and generated tokens together must fit the selected 32- or 64-token
+bound (32 by default). Rank 0 prints
+generated token IDs and closes the worker group. This is a bounded experimental
+entry, not a quality, general serving, or larger-scale acceptance claim.
+
+## Full-model GLM native Worker entry
+
+`glm5_full_model_offline.py` uses DeepInfer's C++ scheduler, Worker RPC and request
+lifecycle. The `glm5_next.full_model` package calls the pinned installed GLM
+model implementation and CANN/FLA operators; it does not construct a vLLM engine
+or use vLLM request scheduling. These model-level dependencies remain required.
+The package contains dependency/source hashes and rejects incompatible installs.
+
+An external, authorized launcher must reserve devices, initialize the complete
+rank group and approve the PID/device mapping through `--go-file`. The entry
+accepts explicit `--rank`, `--local-device`, `--world-size`, `--init-method`,
+`--model`, absolute `--output-dir`, and either `--tokens` or `--cases`.
+The default is four ranks. Sixteen-rank parameterization is prepared but has not
+passed eight-physical-card validation; four ranks do not mean eight cards.
+
+The complete-model development snapshot has run native prefill/decode and two
+sequential 64-token requests on aarch64 Ascend910C with four dies. This does not
+establish formal quality or performance, nor validate this relocated package in
+a clean environment. Packaging reproduction remains a separate acceptance gate.
+
+`--cases` accepts exactly24 unique pre-tokenized records with `case_id` and
+`token_ids`. It keeps the model resident and runs independent requests in order,
+using all checkpoint EOS IDs and the explicit generation cap. It writes raw
+completion/token IDs, finish reasons and owner release evidence per case. The
+checkpoint chat template opens `<think>`; the output protocol separates the
+text at its explicit `</think>` boundary and retains the full raw text. Missing
+closure is reported, with empty final content; answers are never extracted or
+repaired. This engineering screening is not a formal quality benchmark.
+
+Current limitations include one active request at a time, eager execution, no
+speculative generation, and no coordinated request abort. End-to-end quality,
+eight-card execution, production parallel scheduling and performance require
+separate measured acceptance.
