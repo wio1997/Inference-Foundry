@@ -97,7 +97,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
                 prompt = body.get('prompt')
                 if not isinstance(prompt, str) and not (
                     isinstance(prompt, list) and prompt and
-                    all(type(i) is int and 0 <= i < worker._glm_worker_runtime.backend.vocab_size
+                    all(type(i) is int and 0 <= i < worker._glm_worker_runtime.vocab_size
                         for i in prompt)):
                     raise ValueError('prompt must be text or a single token-id vector')
                 request = Pending(body)

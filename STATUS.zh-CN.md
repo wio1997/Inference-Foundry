@@ -42,3 +42,5 @@ DeepInfer/vLLM=0.6745233，尚未达标。详细数据见[对照统计](validati
 此候选复用固定SDK NPUWorker/ModelRunner与KVCacheManager，DeepInfer仍拥有LLMEngine、C++ scheduler、请求生命周期及输出回调。没有创建vLLM引擎、调度器或Executor。SDK调度输出数据结构仅作计算描述。默认reference后端保留；新的HTTP并发实现尚待实际验证，C4/C8和1.5倍收益均未宣称通过。
 
 HTTP候选采用原生队列容量感知的入队与终止回收；SDK批处理模式把prefill尝试间隔由旧默认70/100个decode step设为1，使DP1每次迭代检查新请求。上述HTTP/调度策略正在独立硬件验证，不能将此前batch2烟测当作其全部通过。未修改模型公式、量化方式或采样规则。
+
+HTTP硬件集成曾因数值token输入校验遗留旧runtime.backend字段失败，未进入性能计分；已改为SDK runtime的词表接口，并增加纯标准库的[入口回归检查](validation/native-sdk-batch-smoke-20261110/check_http_entry_contract.py)，覆盖实际Handler的token/text输入、非法输入和SSE结束帧。该检查不加载或模拟模型，也不能作为NPU/性能通过证据。修正版HTTP硬件验证仍在进行。

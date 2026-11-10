@@ -49,6 +49,9 @@ def main():
     a = p.parse_args()
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
+    if (a.compute_backend == 'sdk-batch' and (
+            not (a.serve or a.batch_smoke_cases is not None) or a.benchmark or a.cases is not None)):
+        p.error('SDK batch backend currently supports explicit serve or batch-smoke entry only')
     if not 1 <= a.port <= 65535 or a.serve_max_requests < 0:
         p.error('valid port and nonnegative service request bound required')
     if (not a.output_dir.is_absolute() or not a.go_file.is_absolute()
