@@ -1,0 +1,337 @@
+{
+  "status": "BOUNDED_NATIVE_WORKSPACE_OWNERSHIP_AND_CAPACITY_FRONTIER",
+  "whole_chain_complete": false,
+  "every_replacement_bitwise": true,
+  "report": "原生workspace寿命与融合容量判断.md",
+  "source_review": "native-workspace-source-review.json",
+  "catalog": "native-workspace-catalog.json",
+  "backend_records": "native-workspace-backend-records.json",
+  "actual_path": [
+    "actual EXEC_NPU_CMD GetWorkspaceSize/executor",
+    "Byte at::empty -> selected TensorFactories empty -> NPUCachingAllocator.allocate -> getCurrentNPUStreamNoWait -> stream-keyed block pool",
+    "scope-local tensor releases before handler; local_raw_delete -> free(Block), cache insertion or recorded-other-stream events, no implicit device completion",
+    "raw pointer/std::function captured; OpCommand Run direct or queued COMPILE_AND_EXECUTE -> copied ExecuteParas/customHandler -> ExecFunc -> opApi captured aclstream",
+    "kernel entry/DFC WorkspaceInfo and original GMM/activation/combine/flag last readers; keep old source layout and real stream order",
+    "graph capture stream/model-specific private pool, replay ExecuteAsync using recorded addresses, releasePool refcount after graph use; tensor destruction != physical release"
+  ],
+  "source_policy": {
+    "initial_worker_environments": [
+      {
+        "pid": 1444,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 1445,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 2630,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 2631,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 3762,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 3763,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 4930,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 4940,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 5810,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 5811,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 6970,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 6972,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 733,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 734,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 749,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      },
+      {
+        "pid": 750,
+        "initial_selected_environment": {
+          "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+        }
+      }
+    ],
+    "default_if_not_overridden": {
+      "TASK_QUEUE_ENABLE": 1,
+      "PER_STREAM_QUEUE": 0,
+      "ASCEND_LAUNCH_BLOCKING": 0,
+      "MULTI_STREAM_MEMORY_REUSE": 2
+    },
+    "guards": [
+      "TASK_QUEUE dynamic atomic override or sync-launch stream may select direct path; initial /proc environment is not current cached OptionsManager state.",
+      "Graph capture rejects queue mode2/default/external capture stream; captured native custom handler allowed; replay may use a different current stream.",
+      "CheckForceUncached selects physical malloc/free outside capture; not inferred active from absence of environment.",
+      "NPU empty has deterministic fill only if all3 runtime flags true; no blanket zero-fill saving.",
+      "Dedicated NPUWorkspaceAllocator is a different explicit unsafe_empty_workspace(size,stream) path; macro at::empty does not select it."
+    ]
+  },
+  "ownership_findings": [
+    "Caching allocator retains stream-keyed blocks; free/requested counters and Tensor scope do not show physical release. Same-stream submission order can allow reuse after previously submitted device work; no global fence was found in the selected allocate/deleter path.",
+    "The macro captures a raw workspace address, not its Tensor. Queued callback copying retains std::function, not a missing workspace Tensor lease. This alone does not prove an observed fault; interleaving/allocation/current binary runtime details are not measured. New fusion/aux-stream work must hold an explicit last-reader lease or prove complete ordering.",
+    "Recorded foreign streams create events; capture may defer these. recordStream cannot be replaced by merely recording that an API callback returned.",
+    "Private pools can share by explicit handle/refcount; replay does not rerun host empty/GetWorkspaceSize per native node. Cross-layer or graph-bucket pools cannot be assumed independent or all already shared.",
+    "Selected DFC holds input/scale/C1-C2/A-activation/counters/flags through routing+MMA+activation+combine/peer protocol. QLI output candidate/index persists beyond scratch, and current arch22 empty LD epilogue still touches reset/init/prefetch/sync. No arbitrary all-workspace alias from C++ scope or empty payload."
+  ],
+  "conditional_capacity_formulas": [
+    {
+      "M": 3,
+      "topK": 6,
+      "local_experts": 24,
+      "conditional_capacity": 65536,
+      "two_payload_banks_bytes": 1006632960,
+      "cocWorkspace_bytes": 1007216128,
+      "system_prefix_bytes": 16777216,
+      "total_formula_if_coc_dominates_bytes": 1023993344,
+      "not_measured": true,
+      "guard": "All16 sender row count <=M for this invocation, capacity/clipping semantics and alignment preserved; actual workspace is 16MiB + max(cocWorkspace,initRoutingWorkspace). API result/system prefix/inner scratch/pool high-water not observed. M3/top6 is conditional example, not declared actual target geometry."
+    },
+    {
+      "M": 3,
+      "topK": 6,
+      "local_experts": 24,
+      "conditional_capacity": 288,
+      "two_payload_banks_bytes": 4423680,
+      "cocWorkspace_bytes": 4484864,
+      "system_prefix_bytes": 16777216,
+      "total_formula_if_coc_dominates_bytes": 21262080,
+      "not_measured": true,
+      "guard": "All16 sender row count <=M for this invocation, capacity/clipping semantics and alignment preserved; actual workspace is 16MiB + max(cocWorkspace,initRoutingWorkspace). API result/system prefix/inner scratch/pool high-water not observed. M3/top6 is conditional example, not declared actual target geometry."
+    },
+    {
+      "M": 24,
+      "topK": 6,
+      "local_experts": 24,
+      "conditional_capacity": 65536,
+      "two_payload_banks_bytes": 1006632960,
+      "cocWorkspace_bytes": 1007216128,
+      "system_prefix_bytes": 16777216,
+      "total_formula_if_coc_dominates_bytes": 1023993344,
+      "not_measured": true,
+      "guard": "All16 sender row count <=M for this invocation, capacity/clipping semantics and alignment preserved; actual workspace is 16MiB + max(cocWorkspace,initRoutingWorkspace). API result/system prefix/inner scratch/pool high-water not observed. M3/top6 is conditional example, not declared actual target geometry."
+    },
+    {
+      "M": 24,
+      "topK": 6,
+      "local_experts": 24,
+      "conditional_capacity": 2304,
+      "two_payload_banks_bytes": 35389440,
+      "cocWorkspace_bytes": 35466752,
+      "system_prefix_bytes": 16777216,
+      "total_formula_if_coc_dominates_bytes": 52243968,
+      "not_measured": true,
+      "guard": "All16 sender row count <=M for this invocation, capacity/clipping semantics and alignment preserved; actual workspace is 16MiB + max(cocWorkspace,initRoutingWorkspace). API result/system prefix/inner scratch/pool high-water not observed. M3/top6 is conditional example, not declared actual target geometry."
+    },
+    {
+      "M": 3,
+      "topK": 3,
+      "local_experts": 8,
+      "conditional_capacity": 65536,
+      "two_payload_banks_bytes": 1006632960,
+      "cocWorkspace_bytes": 1007179264,
+      "system_prefix_bytes": 16777216,
+      "total_formula_if_coc_dominates_bytes": 1023956480,
+      "not_measured": true,
+      "guard": "All16 sender row count <=M for this invocation, capacity/clipping semantics and alignment preserved; actual workspace is 16MiB + max(cocWorkspace,initRoutingWorkspace). API result/system prefix/inner scratch/pool high-water not observed. M3/top6 is conditional example, not declared actual target geometry."
+    },
+    {
+      "M": 3,
+      "topK": 3,
+      "local_experts": 8,
+      "conditional_capacity": 144,
+      "two_payload_banks_bytes": 2211840,
+      "cocWorkspace_bytes": 2235008,
+      "system_prefix_bytes": 16777216,
+      "total_formula_if_coc_dominates_bytes": 19012224,
+      "not_measured": true,
+      "guard": "All16 sender row count <=M for this invocation, capacity/clipping semantics and alignment preserved; actual workspace is 16MiB + max(cocWorkspace,initRoutingWorkspace). API result/system prefix/inner scratch/pool high-water not observed. M3/top6 is conditional example, not declared actual target geometry."
+    }
+  ],
+  "old_matched_parent_price": {
+    "source": "dfc-gemm-tile-profile.json",
+    "sha256": "8d2e6e76e9a91a330fb40fa0b9a40e3b4bd73720d2f738fb8238c3402cd1ca55",
+    "reference_conditions": [
+      {
+        "kind": "common_suffix",
+        "common_critical_stage_fraction": 1,
+        "removable_or_hidden_fraction": 1,
+        "added_us_per_layer": 0,
+        "clock_endpoint": 0,
+        "reference_rate_GBs": null,
+        "P90_saved_ms": 299.7188080000001,
+        "P90_percent": 20.09034660509621
+      },
+      {
+        "kind": "common_suffix",
+        "common_critical_stage_fraction": 1,
+        "removable_or_hidden_fraction": 1,
+        "added_us_per_layer": 0,
+        "clock_endpoint": 1,
+        "reference_rate_GBs": null,
+        "P90_saved_ms": 338.5092460000001,
+        "P90_percent": 22.69049488936236
+      },
+      {
+        "kind": "common_suffix",
+        "common_critical_stage_fraction": 0.25,
+        "removable_or_hidden_fraction": 0.5,
+        "added_us_per_layer": 5,
+        "clock_endpoint": 0,
+        "reference_rate_GBs": null,
+        "P90_saved_ms": 36.664851,
+        "P90_percent": 2.4576688054031237
+      },
+      {
+        "kind": "common_suffix",
+        "common_critical_stage_fraction": 0.25,
+        "removable_or_hidden_fraction": 0.5,
+        "added_us_per_layer": 5,
+        "clock_endpoint": 1,
+        "reference_rate_GBs": null,
+        "P90_saved_ms": 41.51365575,
+        "P90_percent": 2.782687340936392
+      }
+    ],
+    "scope": "2560 actual old C8 first-token DFC tasks/all16 and8 typed groups, closed old clock endpoints. Reused conditional whole native suffix prices only; no new capacity->latency conversion, no sum with QLI or other parents.",
+    "one_percent_phase_threshold": [
+      {
+        "removable_fraction": 0.5,
+        "added_us_per_layer": 5,
+        "required_common_critical_stage_fraction_by_clock_endpoint": [
+          0.10488863541723382,
+          0.09286924109600218
+        ]
+      },
+      {
+        "removable_fraction": 0.5,
+        "added_us_per_layer": 20,
+        "required_common_critical_stage_fraction_by_clock_endpoint": [
+          0.12090364639378891,
+          0.10704906057425655
+        ]
+      },
+      {
+        "removable_fraction": 0.75,
+        "added_us_per_layer": 5,
+        "required_common_critical_stage_fraction_by_clock_endpoint": [
+          0.06992575694482256,
+          0.06191282739733479
+        ]
+      },
+      {
+        "removable_fraction": 0.75,
+        "added_us_per_layer": 20,
+        "required_common_critical_stage_fraction_by_clock_endpoint": [
+          0.08060243092919261,
+          0.0713660403828377
+        ]
+      }
+    ]
+  },
+  "database_limit": "Only rank0 original DB memory/schema inspected: no allocation/free or PYTORCH_API table. CANN workspace APIs are duration observations over whole DB, not exact bytes, allocator time or selected160 DFC native first-token matches. E.g.InnerDFC853 API vs160 selected native calls prevents direct attribution.",
+  "confirmed_implementable": [],
+  "stopped": [
+    {
+      "recipe": "Per-layer960MiB/QLI declaration multiplied by40 or16 = newly freed VRAM",
+      "reason": "Same-stream caching/private pools and already aliased payloads; no actual physical-peak/disjoint-allocation evidence."
+    },
+    {
+      "recipe": "Per-native malloc/free saving multiplied by captured decode iterations",
+      "reason": "Native host allocation/query callbacks execute during capture, replay uses recorded addresses; zero recurring host-empty credit for those nodes."
+    },
+    {
+      "recipe": "Use current scope end or callback return as workspace last-device-read",
+      "reason": "No device-completion proof; raw pointer plus cached/graph memory can remain live."
+    },
+    {
+      "recipe": "Remove all workspace zeroing by replacing macro with dedicated allocator",
+      "reason": "No unconditional workspace zeroing in selected source; dedicated allocator is a separate path and has its own grow synchronization."
+    }
+  ],
+  "pending": [
+    {
+      "candidate": "Per-bucket/shape-bounded DFC capacity and safe shared scratch for larger joint fusion",
+      "gap": "Global all16 sender row maximum/clipping for each eager/padded/dummy target/draft/prefill; actual GetWorkspaceSize & inner routing max; allstream/system/HCCL last readers; pool pointer/physical peak and retained prefill graph pools; per-primitive bit and net resource costs."
+    },
+    {
+      "candidate": "QLI scratch contraction + stable address/index/panel plan",
+      "gap": "Actual CANN LibAPI/system prefix, execution tiling/workspace result and scratch pointer map; arch22 LD epilogue touches; graph-bucket union and source reader leases. Source99.023MiB vs4.6875MiB not measured release."
+    },
+    {
+      "candidate": "Aux-stream/co-resident/megakernel schedule using the reduced scratch",
+      "gap": "Lease and queue/current-stream integration plus capture/replay address stability, peer flags and exception retirement; new space only valuable if removes actual capacity constraint or improves critical schedule. DFC24/48 launch corrected, no free4/8 grant."
+    },
+    {
+      "candidate": "Graph/host query cache and allocation coalescing",
+      "gap": "Actual misses/capture/rebuild cohorts, executor/converted-parameter/version keys, exclusive CPU cost and overlap; whole-DB API durations cannot become per-request savings."
+    }
+  ],
+  "next_entry": "smla-metadata-delivery-entry.json",
+  "new_NPU_work": 0,
+  "new_profile_collection": 0,
+  "model_loads": 0,
+  "service_requests": 0,
+  "remote_writes": [],
+  "service_changes": []
+}
