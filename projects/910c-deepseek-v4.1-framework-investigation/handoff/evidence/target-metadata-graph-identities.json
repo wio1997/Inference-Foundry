@@ -1,0 +1,72 @@
+{
+  "container_id": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
+  "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "container_state": "running",
+  "read_method": "docker cp individual file to stdout tar, parsed in memory; no extraction or process in container",
+  "sources": [
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/mla_v1.py",
+      "local_sha256": null,
+      "runtime_sha256": "34ea644ddf4147c99de350d8feb59f2106c988d3d1844d8f4e783b85ce1535cb",
+      "matches_local": false,
+      "reviewed_ranges": [
+        {
+          "first": 87,
+          "last": 103,
+          "sha256": "7cf055d062339097155afe181f91042beb7374286c98fd80282d62c86557c4de",
+          "text": "class AscendMLABackend(AttentionBackend):\n    accept_output_buffer: bool = True\n\n    @staticmethod\n    def get_name() -> str:\n        return \"ASCEND_MLA\"\n\n    @staticmethod\n    def get_builder_cls():\n        dcp_enabled = enable_dcp()\n        if dcp_enabled:\n            from vllm_ascend.attention.context_parallel.mla_cp import AscendMlaDCPMetadataBuilder\n\n            return AscendMlaDCPMetadataBuilder\n        return AscendMLAMetadataBuilder\n\n    @staticmethod\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/compilation/updatable_graph.py",
+      "local_sha256": null,
+      "runtime_sha256": "d41d912ce8f4183228fdc182dbdb6a504f07642fddb8872c657e7f4429ac0729",
+      "matches_local": false,
+      "reviewed_ranges": [
+        {
+          "first": 29,
+          "last": 39,
+          "sha256": "ebab59c72905b3409de94b1e34a24657c400e0a071ccdc5f889761ecf81019bd",
+          "text": "@dataclass(frozen=True, slots=True)\r\nclass ContextSource:\r\n    context: Any\r\n\r\n    def get(\r\n        self,\r\n        provider: ParamProvider,\r\n    ) -> Sequence[Params]:\r\n        return (provider.resolve(self.context),)\r\n\r\n\r\n"
+        },
+        {
+          "first": 147,
+          "last": 154,
+          "sha256": "7daa457216d534283d614414c00fb60a2b51782b0d3e799e1da44be1a9b4cade",
+          "text": "    def resolve_tasks(\r\n        self,\r\n        source: ParamSource,\r\n    ) -> tuple[GraphUpdateTask, ...]:\r\n        params_by_provider = {provider: source.get(provider) for provider in self.provider_sizes}\r\n        for provider, size in self.provider_sizes.items():\r\n            assert len(params_by_provider[provider]) == size\r\n        return tuple(task.bind(params_by_provider[task.provider][task.provider_index]) for task in self.tasks)\r\n"
+        },
+        {
+          "first": 177,
+          "last": 204,
+          "sha256": "ed319516e1d16379911317343451ad06f601170894f9ce44d557784444818be3",
+          "text": "def register_task(\r\n    operation: Callable[..., Any],\r\n    kwargs: dict[str, Any],\r\n    provider: ParamProvider,\r\n) -> None:\r\n    graph = _ACTIVE_GRAPH.get()\r\n    if graph is None:\r\n        operation(**kwargs)\r\n    else:\r\n        graph.register_task(operation, kwargs, provider)\r\n\r\n\r\ndef get_capture_resource(\r\n    key: Hashable,\r\n    factory: Callable[[], Any],\r\n    use_max_workspace: bool = False,\r\n) -> Any:\r\n    graph = _ACTIVE_GRAPH.get()\r\n    if graph is None:\r\n        return factory()\r\n    return graph.get_capture_resource(key, factory, use_max_workspace)\r\n\r\n\r\ndef _get_ws_key(kwargs):\r\n    def _sig(t: Any) -> tuple | None:\r\n        if t is None:\r\n            return (None, None)\r\n        return (t.shape, t.dtype)\r\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm/vllm/compilation/breakable_cudagraph.py",
+      "local_sha256": null,
+      "runtime_sha256": "3cc427612a08e2b9b3fee47548026400c1d0776e2d4747535e59ef5512bdf1e8",
+      "matches_local": false,
+      "reviewed_ranges": [
+        {
+          "first": 53,
+          "last": 54,
+          "sha256": "1237df4c573ab416dab5050e98cb3d24858a82cae48ebe4c116d2986a7763d22",
+          "text": "def is_breakable_cudagraph_enabled() -> bool:\n    return bool(envs.VLLM_USE_BREAKABLE_CUDAGRAPH)\n"
+        },
+        {
+          "first": 413,
+          "last": 443,
+          "sha256": "1feabf126817bc470c54aa23267e85cca2f7a84b1e60b4726819a2daf021c786",
+          "text": "    def _replay(\n        self,\n        entry: _BreakableEntry,\n        args: tuple[Any, ...],\n        kwargs: dict[str, Any],\n    ) -> Any:\n        if self.is_debugging_mode and entry.input_addresses is not None:\n            new_addresses = self._collect_tensor_addresses(args, kwargs)\n            assert new_addresses == entry.input_addresses, (\n                \"Input tensor addresses changed between capture and replay \"\n                f\"for {entry.batch_descriptor}. Expected \"\n                f\"{entry.input_addresses}, got {new_addresses}.\"\n            )\n        # Sync the offloader's copy stream before replay so any external\n        # dependencies from pre-capture prefetches are satisfied.\n        get_offloader().sync_prev_onload()\n        assert entry.capture is not None\n        entry.capture.replay()\n        return entry.output\n"
+        }
+      ]
+    }
+  ],
+  "new_NPU_work": 0,
+  "service_requests": 0,
+  "new_profile_collection": 0,
+  "remote_writes": []
+}
