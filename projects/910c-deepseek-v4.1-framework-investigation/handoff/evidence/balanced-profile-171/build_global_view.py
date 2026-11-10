@@ -60,13 +60,15 @@ data={'findings':findings,'groups':groups,'ranks':workers,
       'timeline':load('activity-timeline.json')}
 (P/'global-view-data.json').write_text(json.dumps(data,ensure_ascii=False,indent=2))
 html=(P/'chain-template.html').read_text().replace('__CHAIN_JSON__',json.dumps(chain,ensure_ascii=False))
-html=html.replace('<title>171 · 推理全链路与卡点</title>','<title>171 · 框架到算子全局性能图</title>')
+html=html.replace('<title>171 · 推理全链路与卡点</title>','<title>171 · 推理时间花在哪里</title>')
+html=html.replace('171 配平后的推理链路与卡点','171 · 推理时间花在哪里')
+html=html.replace('DP0 / DP1 各4条镜像请求已验证 · 默认展示配平后的稳态热点','先看时间分布，再看最耗时的算子与待查原因')
 html=html.replace('</style>',(P/'global-view.css').read_text()+'</style>',1)
-html=html.replace('<section class="endpoint">','<div id="overview-panel" class="view-panel"><section class="endpoint">',1)
+html=html.replace('<section class="endpoint">','<div id="overview-panel" class="view-panel" hidden><section class="endpoint">',1)
 html=html.replace('<footer class="footer">','</div>'+(P/'global-view-fragment.html').read_text()+'<footer class="footer">',1)
 marker='<div id="overview-panel"'
-nav='''<nav class="view-nav" aria-label="性能图层级"><button data-view="overview" aria-pressed="true">全链路地图</button><button data-view="ranks">16卡与框架</button><button data-view="kernels">全部算子</button><button data-view="calls">提交 → 执行</button><button data-view="scope">采集范围与证据</button></nav><div class="summary-strip"><div><small>无profile · 整批参考中位</small><strong>16.091 <em>秒</em></strong><span>509.11 输出token/s · 总并发8</span></div><div><small>稳态 · 两组共有的设备空档</small><strong>38.39 / 38.44 <em>%</em></strong><span>优先追实际生产者 · 原因待确认</span></div><div><small>稳态 · 目标DFC累计卡内中位</small><strong>150.25 / 162.74 <em>ms</em></strong><span>最大设备单项 · 目标 / 草稿已区分</span></div></div>'''
-html=html.replace(marker,nav+marker,1)
+nav='''<nav class="view-nav" aria-label="性能图层级"><button data-view="bill" aria-pressed="true">时间花在哪里</button><button data-view="overview">完整链路</button><button data-view="kernels">算子明细</button><button data-view="ranks">16卡时间线</button><button data-view="calls">提交与等待</button><button data-view="scope">数据范围</button></nav>'''
+html=html.replace(marker,nav+(P/'plain-summary.html').read_text()+marker,1)
 html=html.replace('目标与草稿的同类设备事件尚未分开，当前合计值同时包含两者。','DFC已按目标/草稿分开；其余同类事件可同时包含两者，各节点预算可重叠。')
 script='<script id="global-data" type="application/json">'+json.dumps(data,ensure_ascii=False,separators=(',',':')).replace('</','<\\/')+'</script><script>'+(P/'global-view.js').read_text()+'</script>'
 html=html.replace('</body>',script+'</body>')

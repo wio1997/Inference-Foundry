@@ -4,9 +4,16 @@ const C=JSON.parse(document.getElementById('chain-data').textContent);
 const el=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(v,d=2)=>v===null||v===undefined?'—':Number(v).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
 const pct=v=>fmt(v)+'%';
-let currentView='overview',selectedEP=0,selectedOp='DFC_target_top6',shownOperators=[];
+let currentView='bill',selectedEP=0,selectedOp='DFC_target_top6',shownOperators=[];
 function view(name){currentView=name;document.querySelectorAll('.view-panel').forEach(p=>p.hidden=p.id!==name+'-panel');document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===name)));if(name==='ranks')drawTimeline();}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
+document.querySelectorAll('[data-bill-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.billView)));
+function renderBill(){
+const s=D.findings.phases.steady,a=s.dp0,b=s.dp1;
+el('bill-exact-rows').innerHTML=[['采样窗口','window'],['算子执行','compute'],['设备空档','free'],['未重叠通信','communication']].map(([label,k])=>'<tr><td>'+label+'</td><td>'+(k==='window'?fmt(a.window_ms)+' ms':fmt(a.union_ms[k])+' ms / '+pct(a.pct[k]))+'</td><td>'+(k==='window'?fmt(b.window_ms)+' ms':fmt(b.union_ms[k])+' ms / '+pct(b.pct[k]))+'</td></tr>').join('');
+const spec=[['MoE路由专家','DFC · 目标与草稿合计','DispatchFFNCombine',true],['量化矩阵乘','QuantBatchMatmulV3','QuantBatchMatmulV3'],['普通矩阵乘','MatMulV2','MatMulV2'],['残差混合','HcPre','HcPre'],['注意力索引选择','QLI','VllmAscendQuantLightningIndexerV2'],['稀疏注意力','SMLA','SparseFlashMla']];
+el('bill-hotspots').innerHTML='<p class="compact">横条刻度为0–20%；右侧均为占整个设备采样窗口的比例。</p>'+spec.map(([label,code,name,combined])=>{const xs=combined?[a.pct[name],b.pct[name]]:['dp0','dp1'].map(dp=>D.groups.steady[dp].operators.find(o=>o.name===name).m.window_pct);const mean=(xs[0]+xs[1])/2,value=combined?fmt(Math.min(...xs),1)+'%–'+fmt(Math.max(...xs),1)+'%':'约 '+fmt(mean,1)+'%';return '<div class="bill-op"><div><strong>'+label+'</strong><small>'+code+'</small></div><div class="bill-op-track"><i style="width:'+Math.min(100,mean/20*100)+'%"></i></div><div class="bill-op-value">'+value+'</div></div>';}).join('');
+}
 const phaseRanks=phase=>D.ranks.filter(r=>r.phase===phase).sort((a,b)=>a.ep-b.ep);
 function heat(value){return '<span class="heat" style="background:rgba(218,98,45,'+(Math.min(value/100,1)*.5+.04)+')">'+fmt(value)+'</span>';}
 function rankDetail(){const row=phaseRanks(el('rank-phase').value).find(r=>r.ep===selectedEP);if(!row)return;let html='<h3>DP'+row.dp+' / EP'+row.ep+' · '+esc(row.phase)+'</h3><div class="rank-summary"><span>窗口 '+fmt(row.device_window_ms)+'ms</span><span>Free '+fmt(row.union_ms.free)+'ms</span><span>Free ∩ Gloo '+fmt(row.gloo_and_free_ms)+'ms</span><span>Free ∩ Event '+fmt(row.event_and_free_ms)+'ms</span></div>';
@@ -45,7 +52,7 @@ el('call-detail').innerHTML='<h3>'+esc(x.operator)+'</h3><p class="call-id">'+es
 el('call-rank').innerHTML=Array.from({length:16},(_,i)=>'<option value="'+i+'">DP'+Math.floor(i/8)+' / EP'+i+'</option>').join('');el('call-phase').addEventListener('change',renderCallOptions);el('call-rank').addEventListener('change',renderCallOptions);el('call-example').addEventListener('change',renderCall);
 const first=D.gaps.find(g=>g.ep===0),second=D.gaps.find(g=>g.ep===8);el('host-overlap').innerHTML=Object.keys(first.intervals).map(k=>'<tr><td class="mono">'+esc(k)+'</td><td class="num">'+fmt(first.intervals[k].union_ms)+'</td><td class="num">'+fmt(first.intervals[k].overlap_free_ms)+'</td><td class="num">'+fmt(second.intervals[k]?.union_ms)+'</td><td class="num">'+fmt(second.intervals[k]?.overlap_free_ms)+'</td></tr>').join('');
 function renderRequests(){const round=C.requests[el('request-round').value];el('request-rows').innerHTML=round.requests.map(r=>'<tr><td>'+r.index+'</td><td>DP'+r.dp_rank+' / Pair'+r.pair_id+'</td><td class="num">'+fmt((r.first_token_mono_ns-r.start_mono_ns)/1e9,3)+'</td><td class="num">'+fmt((r.end_mono_ns-r.start_mono_ns)/1e9,3)+'</td><td class="num">'+r.usage.prompt_tokens+' / '+r.usage.completion_tokens+'</td></tr>').join('');}el('request-round').addEventListener('change',renderRequests);
-renderOperators();renderRanks();renderCallOptions();renderRequests();
+renderBill();renderOperators();renderRanks();renderCallOptions();renderRequests();view('bill');
 // Trigger initial stage-to-kernel link after both scripts have initialized.
 const selected=document.querySelector('[data-node][aria-pressed="true"]');if(selected)selected.click();
 })();

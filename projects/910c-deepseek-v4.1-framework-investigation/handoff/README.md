@@ -419,6 +419,8 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+2026-11-10 性能图首页改为时间账单：[入口](evidence/balanced-profile-171/README.md)。稳态设备窗口中算子53%–55%、空档约38%、未重叠通信7%–9%；纯调度占比未分清。先看时间分布与MoE/DFC热点，再展开详细证据；本次仅展示更新，无新增采集。
+
 2026-11-10 配平复采完成：[框架→算子全局性能图与复用包](evidence/balanced-profile-171/README.md) · [报告](evidence/balanced-profile-171/REPORT.md)。DP各4镜像请求，参考中位16.091秒、509.11输出token/s；32worker/2前端trace，early88类/steady84类设备算子。稳态Gloo仅1.53%/2.21%，两组共有Free约38.4%，目标DFC最大。Free生产者及可省量待确认，新增优化实现0；灰色段仍待归因，不能标记全链路搜索完成。原服务已恢复。
 
 2026-11-10 新采集：[171 框架 CPU/CANN/设备 profile](evidence/framework-profile-171.md)。冻结 C8 请求完整执行，worker覆盖前12迭代。旧首段DP1的Gloo与Free重叠中位约710ms；后续配平复采的steady两组Gloo均低，旧首段不可外推为稳态瓶颈。原服务已恢复。

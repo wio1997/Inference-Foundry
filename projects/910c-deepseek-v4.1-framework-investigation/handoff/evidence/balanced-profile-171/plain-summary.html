@@ -1,0 +1,22 @@
+<section id="bill-panel" class="view-panel">
+<section class="bill-hero">
+<p class="bill-kicker">先看结论</p><h2>时间最多花在算子执行。<br>其次是设备空档，原因还没分清。</h2>
+<p>在已经采到的稳态设备时间里，大约每 <strong>100 毫秒</strong>：</p>
+<div class="bill-bar" role="img" aria-label="约54毫秒算子执行，38毫秒设备空档，8毫秒未被计算覆盖的通信；短窗口四舍五入示意"><div class="bill-compute" style="width:54%">算子执行 54</div><div class="bill-gap" style="width:38%">设备空档 38</div><div class="bill-comm" style="width:8%">8</div></div>
+<div class="bill-key"><span><i class="bill-compute"></i>算子执行</span><span><i class="bill-gap"></i>设备空档</span><span><i class="bill-comm"></i>卡间通信</span></div>
+<div class="bill-rows">
+<div><span class="bill-rank">1</span><div><h3>算子执行</h3><p>设备在执行算子，包括算子内部的数据读写和等待。</p></div><strong>53%–55%<small>最大的已知时间开销</small></strong></div>
+<div><span class="bill-rank">2</span><div><h3>设备空档</h3><p>这段没有记录到计算或通信。需要查它在等什么。</p></div><strong>约 38%<small>原因待查</small></strong></div>
+<div><span class="bill-rank">3</span><div><h3>卡间通信</h3><p>只计没有被计算覆盖的部分；与计算重叠的通信不再加一次。</p></div><strong>7%–9%<small>单独暴露的通信时间</small></strong></div>
+</div>
+<p class="bill-scope">范围：配平后的稳态短采样，每卡约1秒。上方100毫秒为四舍五入示意；精确值见下方。<strong>这不是把整批16秒按比例拆开。</strong></p>
+</section>
+<section class="bill-answer"><div><p class="bill-kicker">调度占多少？</p><h2>目前不能把这 38% 全算成调度。</h2><p>空档可能来自 CPU 准备输入、提交工作、依赖等待或框架调度。现有采集还没把它们分开，因此<strong>不能说“调度就是最大瓶颈”</strong>。</p><p>已确认的跨组协调等待仅约 <strong>1.5% / 2.2%</strong>，与算子执行、空档会重叠，不再单独加进上面的时间条。</p></div></section>
+<section class="card bill-hotspots"><div class="panel-heading"><p class="bill-kicker">算子里面，谁最耗时？</p><h2>MoE 的 DFC 最重，优先看它。</h2><p>DFC 把分发 token、专家计算和结果汇合放在一个大算子内。它的执行时间也包含内部搬运、同步和等待。</p></div>
+<div id="bill-hotspots"></div>
+<p class="bill-scope">下表全部以同一个“设备采样窗口”为分母，已经包含在上方算子执行中。DFC约17%–18%，不能再加到约54%上；不同算子也可能重叠。</p>
+<div class="bill-actions"><button data-bill-view="kernels">展开全部算子 →</button><button data-bill-view="overview">查看完整链路 →</button></div></section>
+<section class="bill-next"><h3>现在值得做的两件事</h3><p><strong>找优化点：</strong>先拆 MoE / DFC 内部，看计算、搬运与等待各占多少。</p><p><strong>找框架问题：</strong>把约38%的设备空档绑定到实际前置工作，判断输入准备、提交、依赖和调度各占多少。</p><p>以上占时均不等于可省时间；需要判断其中哪些工作能减少或重叠。</p></section>
+<details class="bill-exact"><summary>查看精确数据与计量范围</summary><div class="table-wrap"><table><thead><tr><th>设备时间</th><th>DP0</th><th>DP1</th></tr></thead><tbody id="bill-exact-rows"></tbody></table></div><p>每组先按卡计算占比，再取8卡中位；不同列的中位数相加可能略有偏差。Computing表示算子任务处于执行区间，不等于所有计算单元都在做有效乘加。设备空档来自CANN的计算/通信覆盖分析，原因还需归因。</p></details>
+<p class="bill-reference">整批参考：8条请求，每条32,768输入 / 1,024输出；无profile三轮中位 <strong>16.091秒</strong>，<strong>509.11 输出token/s</strong>。原服务已恢复。</p>
+</section>
