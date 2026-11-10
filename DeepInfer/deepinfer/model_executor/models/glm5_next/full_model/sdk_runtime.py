@@ -64,7 +64,7 @@ class SDKComputeRuntime:
 
 def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         init_method, max_context=2048, max_step=1792,
-                        max_requests=8, cache_bytes=2*1024**3):
+                        max_requests=8, cache_bytes=2*1024**3, graph_decode=False):
     import torch
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
@@ -94,7 +94,9 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     args = EngineArgs(model=str(root), tensor_parallel_size=len(ranks),
         pipeline_parallel_size=1, data_parallel_size=1,
         enable_expert_parallel=False, distributed_executor_backend='external_launcher',
-        dtype='bfloat16', seed=0, enforce_eager=True,
+        dtype='bfloat16', seed=0, enforce_eager=not graph_decode,
+        compilation_config=({'mode': 0, 'cudagraph_mode': 'FULL_DECODE_ONLY',
+            'cudagraph_capture_sizes': [1, 2, 4, 8]} if graph_decode else {}),
         max_model_len=max_context, max_num_seqs=max_requests,
         max_num_batched_tokens=max_step, enable_chunked_prefill=True,
         enable_prefix_caching=False, block_size=128, mamba_block_size=128,
@@ -136,6 +138,11 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             raise ValueError('physical cache cannot honor the declared native sequence capacity')
         worker.initialize_from_config(physical)
         worker.compile_or_warm_up_model()
+        if graph_decode:
+            from vllm.config.compilation import CUDAGraphMode
+            if (config.model_config.enforce_eager or
+                    config.compilation_config.cudagraph_mode.decode_mode() != CUDAGraphMode.FULL):
+                raise RuntimeError("requested decode graph fell back; do not score as graph")
         scheduler_block, hash_block = resolve_kv_cache_block_sizes(scheduler_cache, config)
         manager = None
         if rank == 0:

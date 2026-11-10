@@ -46,7 +46,10 @@ def main():
     p.add_argument('--max-sequences', type=int, default=1)
     p.add_argument('--cache-bytes', type=int, default=2147483648)
     p.add_argument('--batch-smoke-cases', type=Path)
+    p.add_argument('--graph-decode', action='store_true')
     a = p.parse_args()
+    if a.graph_decode and a.compute_backend != 'sdk-batch':
+        p.error('graph decode requires SDK compute backend')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
     if (a.compute_backend == 'sdk-batch' and (
@@ -115,12 +118,15 @@ def main():
             runtime = prepare_sdk_compute(a.model, device=self.device,
                 native_group=PG.context_parallel_group(), local_rank=a.local_device,
                 init_method=a.init_method, max_context=a.max_context,
-                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes)
+                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode)
             runtime.install(self)
             model = runtime.compute_worker.get_model()
             (out / 'loaded.json').write_text(json.dumps({'rank': a.rank,
                 'backend': 'SDK compute worker under native scheduler;no SDK engine/scheduler',
                 'max_sequences': a.max_sequences, 'cache_bytes': a.cache_bytes,
+                'enforce_eager': runtime.config.model_config.enforce_eager,
+                'cudagraph_mode': str(runtime.config.compilation_config.cudagraph_mode),
+                'capture_sizes': runtime.config.compilation_config.cudagraph_capture_sizes,
                 'parameter_numel_by_device': {d: sum(p.numel() for p in model.parameters() if p.device.type == d)
                     for d in {p.device.type for p in model.parameters()}},
                 'state': 'loaded;native batch execution unverified'})+'\n')
