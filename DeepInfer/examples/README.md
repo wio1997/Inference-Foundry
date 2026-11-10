@@ -206,3 +206,27 @@ Current limitations include one active request at a time, eager execution, no
 speculative generation, and no coordinated request abort. End-to-end quality,
 eight-card execution, production parallel scheduling and performance require
 separate measured acceptance.
+
+### Resident weights and native latency measurement
+
+The full-model entry accepts `--world-size 4`, `8`, or `16`. Each TP size must
+also divide the checkpoint's head and projection dimensions. For this checkpoint,
+64 attention/KDA heads prohibit TP12 and TP14; physical-card count must not be
+substituted for rank count. An explicitly mapped TP8 group may span seven
+physical cards using eight dies. Report both counts and the actual mapping.
+
+`--weight-offload none` selects the installed `NoopOffloader` and rejects
+non-NPU model parameters after loading. The default `prefetch` retains the
+previous CPU weight offloading route. Residency changes do not change the
+checkpoint, quantization rules or model operators.
+
+`--benchmark` records native offline single-active-request latency. Use
+`--benchmark-tokens` with a pre-tokenized engineering batch to run both phases
+in one model load. Timing defaults to one warmup and three measured requests,
+64 generated tokens, ignored EOS for fixed output length. Every request and
+warmup is retained; timestamps are taken when native engine steps return tokens,
+with no per-token disk writes in the timed window. TTFT excludes model loading;
+TPOT is `(last_token_time-first_token_time)/(output_tokens-1)`. Per-rank NPU
+allocator memory counters are collected outside the timing window. These are
+not HTTP serving or concurrent-batch throughput measurements. Frozen-case
+quality scoring remains a separate validity check.

@@ -203,7 +203,7 @@ class LLMEngine:
                     or engine_type != EngineType.NORMAL or not offline_inference or log_stats
                     or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING or envs.DEEPINFER_PROFILE_HTTP_ENABLE
                     or scheduler_config.max_num_seqs != 1
-                    or parallel_config.context_parallel_size not in (4, 16)
+                    or parallel_config.context_parallel_size not in (4, 8, 16)
                     or parallel_config.context_parallel_size != PG.context_parallel_group().size()
                     or parallel_config.data_parallel_size != 1 or parallel_config.expert_parallel_size != 1
                     or parallel_config.engram_parallel_size != 1 or cache_config.lookahead_tokens != 0

@@ -73,7 +73,7 @@ class LoadedReferenceModel:
 
 
 def create_reference_config(model_dir, *, tensor_parallel_size,
-                            max_context_tokens, max_step_tokens):
+                            max_context_tokens, max_step_tokens, weight_offload="prefetch"):
     """Use round599's fixed eager W8A8/prefetch route, no engine allocation."""
     if any(type(n) is not int or n < 1 for n in
            (tensor_parallel_size, max_context_tokens, max_step_tokens)):
@@ -88,13 +88,18 @@ def create_reference_config(model_dir, *, tensor_parallel_size,
     # cache/output directory environment settings; do not write to home here.
     os.environ['VLLM_WEIGHT_OFFLOADING_DISABLE_PIN_MEMORY'] = '1'
     from vllm.engine.arg_utils import EngineArgs
+    if weight_offload not in ('prefetch', 'none'):
+        raise ValueError('unsupported weight residency mode')
+    offload_options = ({'offload_backend': 'prefetch', 'offload_group_size': 2,
+                        'offload_num_in_group': 1, 'offload_prefetch_step': 1,
+                        'offload_params': {'w13_weight', 'w2_weight'}}
+                       if weight_offload == 'prefetch' else
+                       {'offload_backend': 'auto', 'offload_group_size': 0, 'cpu_offload_gb': 0})
     args = EngineArgs(
         model=str(root), tensor_parallel_size=tensor_parallel_size,
         pipeline_parallel_size=1, data_parallel_size=1,
         distributed_executor_backend='external_launcher', enforce_eager=True,
-        offload_backend='prefetch', offload_group_size=2,
-        offload_num_in_group=1, offload_prefetch_step=1,
-        offload_params={'w13_weight', 'w2_weight'},
+        **offload_options,
         max_model_len=max_context_tokens, max_num_seqs=1,
         max_num_batched_tokens=max_context_tokens,
         enable_chunked_prefill=False, enable_prefix_caching=False,
@@ -111,7 +116,7 @@ def create_reference_config(model_dir, *, tensor_parallel_size,
 
 @torch.inference_mode()
 def load_reference_model(model_dir, device, *, worker_group, local_rank,
-                         max_context_tokens, max_step_tokens):
+                         max_context_tokens, max_step_tokens, weight_offload="prefetch"):
     """All Worker ranks call once; initialization failures are process-fatal.
 
     The Worker has selected/claimed its NPU and initialized distributed WORLD.
@@ -125,7 +130,7 @@ def load_reference_model(model_dir, device, *, worker_group, local_rank,
     verify_installed_reference_sources()
     config = create_reference_config(
         model_dir, tensor_parallel_size=dist.get_world_size(worker_group),
-        max_context_tokens=max_context_tokens, max_step_tokens=max_step_tokens)
+        max_context_tokens=max_context_tokens, max_step_tokens=max_step_tokens, weight_offload=weight_offload)
     from vllm.config import set_current_vllm_config
     from vllm_ascend.ascend_config import init_ascend_config
     from vllm_ascend.distributed.parallel_state import init_ascend_model_parallel
@@ -156,7 +161,7 @@ def load_reference_model(model_dir, device, *, worker_group, local_rank,
     if list(get_mc2_group().ranks) != dist.get_process_group_ranks(worker_group):
         raise ValueError('Ascend MC2 group differs from Worker TP membership/order')
     from vllm.model_executor.model_loader import get_model
-    from vllm.model_executor.offloader.base import set_offloader
+    from vllm.model_executor.offloader.base import set_offloader, NoopOffloader
     from vllm_ascend.model_executor.offloader import create_offloader
     from vllm_ascend.model_executor.offloader.prefetch import AscendPrefetchOffloader
     from vllm_ascend.models.glm5next.model import Glm5NextForCausalLM
@@ -164,14 +169,17 @@ def load_reference_model(model_dir, device, *, worker_group, local_rank,
 
     with _torch_cuda_wrapper(), torch.device(device), set_current_vllm_config(config):
         offloader = create_offloader(config.offload_config)
-        if not isinstance(offloader, AscendPrefetchOffloader):
-            raise TypeError('fixed route requires the Ascend NZ-aware prefetch offloader')
+        expected_offloader = AscendPrefetchOffloader if weight_offload == 'prefetch' else NoopOffloader
+        if not isinstance(offloader, expected_offloader):
+            raise TypeError('offloader differs from explicit residency mode')
         set_offloader(offloader)
         root_model = get_model(vllm_config=config)
         # Matches NPUModelRunner.load_model: post_init follows get_model and
         # all quant postload work. Never manually run quant transforms twice.
         offloader.post_init()
         root_model.eval()
+        if weight_offload == "none" and any(p.numel() and p.device.type != "npu" for p in root_model.parameters()):
+            raise ValueError("full-resident mode found non-NPU model parameters")
     model = (root_model if isinstance(root_model, Glm5NextForCausalLM)
              else getattr(root_model, 'language_model', None))
     if not isinstance(model, Glm5NextForCausalLM):
@@ -208,7 +216,7 @@ class ReferenceWorkerRuntime:
 
 def prepare_reference_worker_runtime(model_dir, device, *, worker_group,
                                      local_rank, sampler,
-                                     max_context_tokens, max_step_tokens):
+                                     max_context_tokens, max_step_tokens, weight_offload="prefetch"):
     """Concrete assembly entry, called by each already initialized Worker rank.
 
     Driver uses DeepInfer's installed sampler. The returned runtime installs at
@@ -226,7 +234,7 @@ def prepare_reference_worker_runtime(model_dir, device, *, worker_group,
 
     loaded = load_reference_model(
         model_dir, device, worker_group=worker_group, local_rank=local_rank,
-        max_context_tokens=max_context_tokens, max_step_tokens=max_step_tokens)
+        max_context_tokens=max_context_tokens, max_step_tokens=max_step_tokens, weight_offload=weight_offload)
     with set_current_vllm_config(loaded.vllm_config):
         cache = ReferenceCacheRuntime(loaded, max_context_tokens=max_context_tokens)
     agreement = TorchRankAgreement(worker_group, device, get_tp_group)

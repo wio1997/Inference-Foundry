@@ -139,7 +139,7 @@ class WorkerBase:
         pc = self.parallel_config
         if (not PLATFORM.is_npu or self.engine_type != EngineType.NORMAL
                 or self.model_config.architecture != "Glm5NextForConditionalGeneration"
-                or pc.world_size not in (4, 16) or pc.context_parallel_size != pc.world_size
+                or pc.world_size not in (4, 8, 16) or pc.context_parallel_size != pc.world_size
                 or pc.data_parallel_size != 1 or pc.expert_parallel_size != 1
                 or pc.engram_parallel_size != 1 or pc.engine_rank != 0
                 or not 0 <= self.cp_rank < pc.context_parallel_size or self.local_rank < 0

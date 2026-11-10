@@ -16,7 +16,7 @@ from types import SimpleNamespace
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--model', required=True)
-    p.add_argument('--world-size', type=int, default=4, choices=(4, 16))
+    p.add_argument('--world-size', type=int, default=4, choices=(4, 8, 16))
     p.add_argument('--rank', type=int, required=True)
     p.add_argument('--local-device', type=int, required=True)
     p.add_argument('--init-method', required=True)
@@ -29,6 +29,12 @@ def main():
     p.add_argument('--num-requests', type=int, default=1, choices=(1, 2, 3))
     p.add_argument('--max-context', type=int, default=128)
     p.add_argument('--max-step', type=int, default=128)
+    p.add_argument('--benchmark', action='store_true')
+    p.add_argument('--benchmark-tokens', type=int, nargs='+')
+    p.add_argument('--benchmark-output-tokens', type=int, default=64)
+    p.add_argument('--warmup-requests', type=int, default=1)
+    p.add_argument('--measured-requests', type=int, default=3)
+    p.add_argument('--weight-offload', choices=('prefetch', 'none'), default='prefetch')
     a = p.parse_args()
     if (not a.output_dir.is_absolute() or not a.go_file.is_absolute()
             or not 0 <= a.rank < a.world_size
@@ -37,6 +43,11 @@ def main():
             or (a.cases is not None and (not a.cases.is_absolute() or not a.cases.is_file()))
             or not 1 <= a.max_step <= a.max_context):
         p.error('absolute task output/go paths and positive bounded token sizes required')
+    if a.benchmark and (not (a.benchmark_tokens or a.tokens)
+            or not 2 <= a.benchmark_output_tokens <= 512
+            or not 1 <= a.warmup_requests <= 8 or not 1 <= a.measured_requests <= 32
+            or len(a.benchmark_tokens or a.tokens) + a.benchmark_output_tokens > a.max_context):
+        p.error('benchmark requires explicit tokens, fitting context, warmup and bounded repetitions')
     os.environ['DEEPINFER_USE_NEXTN_DECODE'] = '0'
     os.environ['DEEPINFER_ZERO_OVERHEAD_SCHEDULING'] = '0'
     os.environ['HF_HUB_OFFLINE'] = '1'
@@ -79,15 +90,34 @@ def main():
         runtime = prepare_reference_worker_runtime(
             a.model, self.device, worker_group=PG.context_parallel_group(),
             local_rank=a.local_device, sampler=AscendSampler() if self.is_driver_worker else None,
-            max_context_tokens=a.max_context, max_step_tokens=a.max_step)
+            max_context_tokens=a.max_context, max_step_tokens=a.max_step, weight_offload=a.weight_offload)
         runtime.install(self)
         (out / 'loaded.json').write_text(json.dumps({
             'rank': a.rank, 'cache_layers': runtime.cache.roles,
+            'weight_offload': a.weight_offload,
+            'offloader_type': type(runtime.loaded.offloader).__name__,
+            'parameter_numel_by_device': {device: sum(p.numel() for p in runtime.loaded.root_model.parameters() if p.device.type == device) for device in {p.device.type for p in runtime.loaded.root_model.parameters()}},
             'source_identity': 'reference-runtime-pins.json',
             'state': 'loaded; native request execution not yet established'}, indent=2) + '\n')
 
     # Reuse Worker's own collective RPC and native worker loop. The only new
     # RPC constructs/installs our model backend; it never invokes vLLM schedule.
+    def benchmark_memory_snapshot(self, reset=False):
+        if reset:
+            torch_npu.npu.reset_peak_memory_stats(self.device)
+        stats = [torch_npu.npu.memory_allocated(self.device),
+                 torch_npu.npu.memory_reserved(self.device),
+                 torch_npu.npu.max_memory_allocated(self.device),
+                 torch_npu.npu.max_memory_reserved(self.device)]
+        group = PG.context_parallel_group()
+        value = torch.tensor(stats, dtype=torch.int64, device=self.device)
+        gathered = [torch.empty_like(value) for _ in range(group.size())]
+        dist.all_gather(gathered, value, group=group)
+        return [{'rank': i, 'allocated_bytes': int(v[0]), 'reserved_bytes': int(v[1]),
+                 'peak_allocated_bytes': int(v[2]), 'peak_reserved_bytes': int(v[3])}
+                for i, v in enumerate(torch.stack(gathered).cpu().tolist())]
+
+    Worker.benchmark_memory_snapshot = benchmark_memory_snapshot
     Worker.initialize_reference_glm = initialize_reference_glm
     parallel = SimpleNamespace(world_size=a.world_size, context_parallel_size=a.world_size,
         data_parallel_size=1, expert_parallel_size=1, engram_parallel_size=1,
@@ -110,7 +140,18 @@ def main():
         llm = LLMEngine.from_bounded_glm_worker(config, worker=worker, logical_blocks=logical_blocks)
         if a.cases is not None:
             from deepinfer.model_executor.models.glm5_next.full_model.engineering_batch import run_engineering_batch
-            run_engineering_batch(llm, worker, a, out)
+            quality_out = out / 'engineering' if a.benchmark else out
+            quality_out.mkdir(parents=True, exist_ok=True)
+            run_engineering_batch(llm, worker, a, quality_out)
+            if not a.benchmark:
+                return
+        if a.benchmark:
+            from deepinfer.model_executor.models.glm5_next.full_model.native_benchmark import run_native_benchmark
+            measured = run_native_benchmark(llm, worker, a, out / 'benchmark')
+            (out / 'result.json').write_text(json.dumps({
+                'status': 'executed', 'scope': 'native benchmark; engineering scoring separate',
+                'worker_ranks': a.world_size, 'driver_owner_released': True,
+                'benchmark': measured}, indent=2) + '\n')
             return
         params = SamplingParams(temperature=0, max_tokens=a.max_new_tokens, ignore_eos=True, seq_seed=0)
         request_results = []
