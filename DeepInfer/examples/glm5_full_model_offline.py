@@ -25,6 +25,12 @@ def main():
     inputs = p.add_mutually_exclusive_group(required=True)
     inputs.add_argument('--tokens', type=int, nargs='+')
     inputs.add_argument('--cases', type=Path)
+    inputs.add_argument('--serve', action='store_true')
+    p.add_argument('--host', default='127.0.0.1')
+    p.add_argument('--port', type=int, default=18080)
+    p.add_argument('--served-model-name', default='glm53flash')
+    p.add_argument('--serve-max-requests', type=int, default=0,
+                   help='zero serves until launcher deadline; positive bounds integration runs')
     p.add_argument('--max-new-tokens', type=int, default=3)
     p.add_argument('--num-requests', type=int, default=1, choices=(1, 2, 3))
     p.add_argument('--max-context', type=int, default=128)
@@ -36,6 +42,8 @@ def main():
     p.add_argument('--measured-requests', type=int, default=3)
     p.add_argument('--weight-offload', choices=('prefetch', 'none'), default='prefetch')
     a = p.parse_args()
+    if not 1 <= a.port <= 65535 or a.serve_max_requests < 0:
+        p.error('valid port and nonnegative service request bound required')
     if (not a.output_dir.is_absolute() or not a.go_file.is_absolute()
             or not 0 <= a.rank < a.world_size
             or not 1 <= a.max_new_tokens <= 512
@@ -138,6 +146,10 @@ def main():
             disable_log_stats=True, offline_inference=True)
         logical_blocks = 3 + (a.max_context - 1) // 128
         llm = LLMEngine.from_bounded_glm_worker(config, worker=worker, logical_blocks=logical_blocks)
+        if a.serve:
+            from deepinfer.model_executor.models.glm5_next.full_model.native_http import serve_native_engine
+            serve_native_engine(llm, worker, a, out)
+            return
         if a.cases is not None:
             from deepinfer.model_executor.models.glm5_next.full_model.engineering_batch import run_engineering_batch
             quality_out = out / 'engineering' if a.benchmark else out
