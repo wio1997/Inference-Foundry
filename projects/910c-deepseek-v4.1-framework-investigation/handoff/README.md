@@ -1,5 +1,16 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 共同frame分层key与26caller：CPU原语受限通过，继续device读者
+
+介绍：共同frame按rawCPU/postCPU/device/每资源交付分层，追真实caller、变异和图地址。到了哪里：12当前源/11限定body/29行段；16worker旧CPUparent日志确认每frame目标26+draft1；原CPU AST标量1728例，实际TorchCPU1728例/44928字节比较，guard变体3模式/78比较。结果：封闭不可变租约内CPU复用原型已确认可实现，服务框架替换准入0；v1 inference Tensor版本读取失败原件保留，模式guard通过但不证明不可变。CPU v1六组26call配对净省2.226–2.445ms/frame，非请求收益；真实caller/保留首body的新条件价1.964%/3.275%诊断窗。全链路未扫全，每替换原语逐位一致。
+
+已确认可实现：仅封闭CPU输入租约下的隔离原语原型，含optional-out旁路和inference-aware key；未安装到服务。待确认：框架实际集成/全部保护负载、较大公共device投影的所有读者/地址/原生位与关键路径净价。已停止：全局helper cache漏out写、CPU双mirror合并、shape/版本号当不可变证明、遗漏TP/causal/dtype/actualTokens，以及假定V41draft继承Legacy缓存或有26次重复。旧大frame异步writer-only配方仍停，不剪原主流完整方案。
+
+[分层key、caller与CPU原语](evidence/共同frame分层键与真实caller及CPU原语判断.md) · [CPU模式资格补充](evidence/共同frame_CPU模式资格补充.md) · [真实caller与付成本价](evidence/common-frame-caller-price.json) · [实际CPU字节/局部成本](evidence/common-frame-torch-cpu.json) · [inference反例与guard](evidence/common-frame-cpu-modes.json)。
+
+下一条待扫：loop046 Run run-20261110T105846Z：一次原主流CP suffix/clamp/where→base首batchcache与全部common字段/原生closure读者→稳定QSL和capture/event firstowner。保留各builder QSL复制与物理输出，查是否能只删重复device长度投影；只读源码/已有profile，不新增NPU/模型/服务动作。CPU模式门槛Run110329Z已PASS，不能以guard省略输入租约。
+
+
 ## 当前断点 · 2026-11-10 DFC原路由与末读闭合：转有函数归因的共同metadata大交付
 
 介绍：DFC原mask/排序/inverse/count发布→远端搬运→GMM与Unpermute末读，再转同代共同metadata/frame。到了哪里：11当前DFC源/10限定body，454完整EP16路由组/7264ranklayer调用、80原生inverse witness、21792纯字节映射；5当前metadata源/4入口body与新16rank函数自身账、144付首producer/新增成本情景。结果：原R与dummy/zero-group flags保留，删gmA写不等于释放activation arena；历史5路由免费输入1.543–6.922us低于旧小预算，原样输入-only维持停止。新metadata仅helper共享的条件净1.995%诊断窗，CP自身25%也共享为3.622%，全base保留；非请求预测。新准入0，全链路未扫全，每替换原语逐位一致。
@@ -485,6 +496,9 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+共同frame当前：loop045已做分层key/真实26+draft1 caller与CPU原语核验；loop046继续原主流deviceprojection读者。介绍：共同frame按rawCPU/postCPU/device/每资源交付分层，追真实caller、变异和图地址。到了哪里：12当前源/11限定body/29行段；16worker旧CPUparent日志确认每frame目标26+draft1；原CPU AST标量1728例，实际TorchCPU1728例/44928字节比较，guard变体3模式/78比较。结果：封闭不可变租约内CPU复用原型已确认可实现，服务框架替换准入0；v1 inference Tensor版本读取失败原件保留，模式guard通过但不证明不可变。CPU v1六组26call配对净省2.226–2.445ms/frame，非请求收益；真实caller/保留首body的新条件价1.964%/3.275%诊断窗。全链路未扫全，每替换原语逐位一致。 [CPU模式资格](evidence/共同frame_CPU模式资格补充.md)。既有完整timeline、诊断/恢复、DFC及其它结果保留。
+
+
 2026-11-10 **全量融合地图与空档覆盖条件模型**：[交互图](evidence/balanced-profile-171/index.html) · [分析/公式](evidence/overlap-timeline-171/REPORT.md) · [全量位置CSV](evidence/overlap-timeline-171/candidate-coverage.csv)。72条主台账历史记录+P01流水研究项、45条执行重审均映射到12模块；保留状态、scope和重复关系。复用16卡旧稳态样本：平均Free38.38%，全部消失的平均窗口容量界1.623×；另一轮固定CPU账本条件界1.047×，不是融合总上限。滑块展示数据释放/独立CPU/缓冲/新增成本的假设，默认新增覆盖0，不把历史百分比相加。本轮新NPU/请求/服务动作0。
 
 源码扫描：loop044已追DFC原R/dummy/count/zero-group flags至GMM与Unpermute末读，旧固定消费者输入-only停止保留；loop045转有新函数归因的共同frame。介绍：DFC原mask/排序/inverse/count发布→远端搬运→GMM与Unpermute末读，再转同代共同metadata/frame。到了哪里：11当前DFC源/10限定body，454完整EP16路由组/7264ranklayer调用、80原生inverse witness、21792纯字节映射；5当前metadata源/4入口body与新16rank函数自身账、144付首producer/新增成本情景。结果：原R与dummy/zero-group flags保留，删gmA写不等于释放activation arena；历史5路由免费输入1.543–6.922us低于旧小预算，原样输入-only维持停止。新metadata仅helper共享的条件净1.995%诊断窗，CP自身25%也共享为3.622%，全base保留；非请求预测。新准入0，全链路未扫全，每替换原语逐位一致。 [函数自身与付成本价](evidence/共同metadata函数自身归因与保留首生产者的净价.md)。保留8c237b2完整timeline/覆盖与恢复记录，本文未重采。
@@ -565,7 +579,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每替换原语逐位一致，末位差异失败。本轮新准入0、全链路未扫全。DFC原R/flags/lastreader仅限定源码与opaque CPU，历史五路由output/packet证据只覆盖其合成positive slots，非新原语验收；固定GMM输入-only旧小预算维持停止，改变GMM/提前发布/大M仍有具体缺口。新metadata16rank函数自身归因只提供144条件情景，base整段保留、marker边界已扣、首producer均值proxy明示，不当请求或生产收益。loop045 Run100200Z PASS仅入口/价格，Run100641Z仍PLANNED。
+**2026-11-10 当前资格**：每替换原语逐位一致。隔离CPU结果复用原型受限确认1，服务框架替换准入仍0，全链路未扫全。v1普通CPU1728例/44928比较通过，inference-created Tensor 的_version读取实际失败；guard变体3模式/78比较通过，仍须不可变输入租约，不能靠版本号发现NumPy写入。六组配对CPU成本属于v1普通模式，不充当guard服务收益。新caller价1.964%/3.275%只是独立诊断敏感性，非请求预测。目标26与draft1、CPU双mirror/原base缓存/每资源地址分开；Run110329Z CPU模式门槛PASS，Run105846Z device读者仍PLANNED。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 

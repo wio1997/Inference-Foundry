@@ -1,0 +1,86 @@
+{
+  "container_id": "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
+  "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "host_root": "/data/tiankuan/wio/main/vllm-ascend-reproduce-172-on-166-20261030/runtime/cpu-frame-run-20261110T110329Z",
+  "container_root": "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/cpu-frame-run-20261110T110329Z",
+  "command": [
+    "docker",
+    "exec",
+    "-w",
+    "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/cpu-frame-run-20261110T110329Z",
+    "-e",
+    "TORCH_DEVICE_BACKEND_AUTOLOAD=0",
+    "-e",
+    "OMP_NUM_THREADS=1",
+    "-e",
+    "MKL_NUM_THREADS=1",
+    "-e",
+    "OPENBLAS_NUM_THREADS=1",
+    "-e",
+    "TMPDIR=/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/cpu-frame-run-20261110T110329Z/tmp",
+    "-e",
+    "XDG_CACHE_HOME=/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/cpu-frame-run-20261110T110329Z/cache",
+    "3be44e7b5c292de6ef7fc51085bfbbad5552acc97fae39c0ae176fe8cfb387eb",
+    "python3",
+    "-B",
+    "-I",
+    "-S",
+    "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/cpu-frame-run-20261110T110329Z/probe.py",
+    "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/cpu-frame-run-20261110T110329Z"
+  ],
+  "probe_sha256": "28b8431a16e67dad35e907e9264e4b546e63ce0ffbd33ac48fa593f1d4a58411",
+  "new_NPU_work": 0,
+  "service_actions": 0,
+  "returncode": 0,
+  "elapsed_s": 1.7795165311545134,
+  "stdout": "{\"status\": \"PASS_CPU_MODE_KEY_GATE_WITH_LIMITED_V1_COUNTEREXAMPLE\", \"modes\": [{\"create_inference\": false, \"call_inference\": false, \"input_is_inference\": false, \"v1_error\": null, \"guarded_byte_comparisons\": 26, \"guarded_us_per_frame_sensitivity\": 230.2776}, {\"create_inference\": false, \"call_inference\": true, \"input_is_inference\": false, \"v1_error\": null, \"guarded_byte_comparisons\": 26, \"guarded_us_per_frame_sensitivity\": 203.52883333333332}, {\"create_inference\": true, \"call_inference\": true, \"input_is_inference\": true, \"v1_error\": \"Inference tensors do not track version counter.\", \"guarded_byte_comparisons\": 26, \"guarded_us_per_frame_sensitivity\": 195.90583333333333}], \"guarded_comparisons\": 78, \"new_NPU_work\": 0}\n",
+  "stderr": "",
+  "started": {
+    "status": "RUNNING_CPU_MODE_GATE",
+    "pid": 33691
+  },
+  "result": {
+    "status": "PASS_CPU_MODE_KEY_GATE_WITH_LIMITED_V1_COUNTEREXAMPLE",
+    "modes": [
+      {
+        "create_inference": false,
+        "call_inference": false,
+        "input_is_inference": false,
+        "v1_error": null,
+        "guarded_byte_comparisons": 26,
+        "guarded_us_per_frame_sensitivity": 230.2776
+      },
+      {
+        "create_inference": false,
+        "call_inference": true,
+        "input_is_inference": false,
+        "v1_error": null,
+        "guarded_byte_comparisons": 26,
+        "guarded_us_per_frame_sensitivity": 203.52883333333332
+      },
+      {
+        "create_inference": true,
+        "call_inference": true,
+        "input_is_inference": true,
+        "v1_error": "Inference tensors do not track version counter.",
+        "guarded_byte_comparisons": 26,
+        "guarded_us_per_frame_sensitivity": 195.90583333333333
+      }
+    ],
+    "guarded_comparisons": 78,
+    "bitwise_mismatches": 0,
+    "prototype_v1_scope": "NormalCPUinput version readable; fails for inputs createdunderinference_mode.",
+    "guarded_variant": "Same frame/prototype, only replace _version reads with None iftensor.is_inference() else _version. Explicit immutable-input lease remainsmandatory; no NumPywrite safety invented.",
+    "guarded_source": "class GuardedCPUFrame:\n    \"\"\"One caller-supplied immutable input lease, not a global memo table.\n\n        Tensor versions do not detect NumPy writes. Eligibility requires the\n        runner's closed invocation: no writer until the frame is retired.\n        \"\"\"\n\n    def __init__(self, epoch):\n        self.epoch = epoch\n        self.key = None\n        self.value = None\n        self.inputs = None\n\n    def call(self, nreq, ninput, q, l, local_query_start_loc=None, local_seq_lens=None, start_pos_out=None, is_noncausal=False):\n        if q.device.type != 'cpu' or l.device.type != 'cpu' or any((v is not None for v in [local_query_start_loc, local_seq_lens, start_pos_out])):\n            return original._build_local_token_metadata(nreq, ninput, q, l, local_query_start_loc, local_seq_lens, start_pos_out, is_noncausal)\n        key = (self.epoch, id(q), id(l), version_token(q), version_token(l), q.dtype, l.dtype, tuple(q.shape), tuple(l.shape), group.world_size, group.rank_in_group, nreq, ninput, bool(is_noncausal))\n        if self.key is None:\n            self.inputs = (q, l, q.clone(), l.clone())\n            self.key = key\n            self.value = original._build_local_token_metadata(nreq, ninput, self.inputs[2], self.inputs[3], is_noncausal=is_noncausal)\n            return self.value\n        if key != self.key:\n            return original._build_local_token_metadata(nreq, ninput, q, l, is_noncausal=is_noncausal)\n        return self.value",
+    "guarded_source_sha256": "d9b271fde2090eda78b5f3b1f21619014586f48bd149f0d2d73aff1be3793113",
+    "torch_version": "2.10.0+cpu",
+    "no_NPU_libraries": true,
+    "new_NPU_work": 0,
+    "new_profile": 0,
+    "model_loads": 0,
+    "service_actions": 0,
+    "service_requests": 0
+  },
+  "result_sha256": "c9413efb7e5190e46e4f527f6423b7abaea2bca6bb618cb4d0ae2d6f30f36b08",
+  "launcher_sha256": "254b9042e6460758ccf2cbe198ca93f9ef9af0c9ae09393470bcd50956a9b734"
+}
