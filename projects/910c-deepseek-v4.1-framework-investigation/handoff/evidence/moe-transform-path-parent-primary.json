@@ -1,0 +1,41 @@
+{
+  "status": "SOURCE_FIRST_MOE_TRANSFORM_REDUCTION_AND_SHARED_COMBINE_PARENT_BEFORE_NEW_PRICE",
+  "scope": "Actual DeepseekV41MoE original normalized input/FP32 router input -> gate/topK and shared branch -> selected EP/TP communication + routed FFN -> optional original routed/shared input/output transforms and reductions -> original shared+routed BF16 combine -> final truncation/zero-expert output -> original HCPost and next HC consumers. Cover all visible output, dtype/alias/ready flags and legal None/no-shared/TP/SP/comm alternatives; frozen alternatives need actual selected dispatch, not a generic flag assumption.",
+  "current_source_pins": 11,
+  "source_findings_so_far": [
+    "DeepseekV41MoE ctor passes no routed_input_transform or routed_output_transform to FusedMoEFactory; original factory/runner signatures default bothNone and pass them through. Finish actual Ascend factory registration/default binding before declaring frozenNone.",
+    "Ascend apply_routed_input_transform always creates PreparedSharedExpertInput and delegates original MoERunner; extra async gather requires a nonNone routed transform plus shared multistream overlap and SEQUENCE_PARALLEL_ONLY mode. Do not invent latent-projection compute or extra gather on V41.",
+    "_maybe_reduce_shared_expert_output returns unchanged for sharedNone or mode!=TENSOR_PARALLEL. _should_reduce_routed_before_combine checks sharedDPonly first, then output_transformNone orSP, thenTP/EP sizes. Bind actual selectedSP_SEDP enum/mode, do not use a textualmode shortcut.",
+    "_maybe_reduce_final_output uses staticSP/early-reduction policy, not output_is_reduced tracing boolean. Preserve runtime custom-op comm-specific decisions and final optional truncation view.",
+    "_fused_output_is_reduced derives from actualcommType MC2/ALLTOALL/FUSED_MC2 orALLGATHER+SP. A compiler-specialized boolean alone cannot justify dropping an original reduce.",
+    "Actual model comments on routed scaling are insufficient; preserve factory apply_routed_scale_to_output and native router/runner arithmetic after exact binding."
+  ],
+  "alternatives": [
+    "Shared input/quant/weight staging plus routed input dispatch as one whole delivery; policies and native rounding may prevent directtensor reuse.",
+    "Routed/shared output plus HCPost retaining BF16 combine boundary, all state/counters/native alias effects and residual readers.",
+    "Original optional transform/comm/reduction scheduling only when actual receiver and original primitive contract selected; absent transforms are no removable compute.",
+    "Host control/dispatch sharing under a wider frame/input parent, no independent timing credit from shorthelper body counts."
+  ],
+  "next_source": "Resolve AscendSharedExperts.parallel_mode/multistream constructor, actual FusedMoEFactory override, custom maybe_all_reduce registry implementation and MoERunner.forward call order; then exactSHA old output/DFC price intersection. Continue remaining concrete body evidence ranges after this selected receiver leg.",
+  "every_replacement_bitwise": true,
+  "whole_chain_complete": false,
+  "new_primitive_admissions": 0,
+  "new_NPU_work": 0,
+  "new_profile": 0,
+  "remote_writes": [],
+  "service_requests": 0,
+  "inputs": [
+    {
+      "path": "audit/execution-search/moe-transform-path-dependencies.json",
+      "sha256": "31ac0b8853b6eb301106c8b3095ec423565f53e384b1ba430c10889eb458d2f6"
+    },
+    {
+      "path": "audit/execution-search/whole-forward-frozen-config.json",
+      "sha256": "c24aa1965601793292f7909313dc7e7e8d7010d6151d3db551a0637c8601e186"
+    },
+    {
+      "path": "audit/execution-search/recursive-semantic-frontier.json",
+      "sha256": "a7cd1fc9df98baa6f7d90a4687c9ff926ac0cdf0739e5e467a8931c360808c50"
+    }
+  ]
+}

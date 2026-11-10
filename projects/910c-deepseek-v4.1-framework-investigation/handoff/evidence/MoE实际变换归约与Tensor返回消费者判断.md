@@ -1,0 +1,15 @@
+# 2026-11-11 MoE变换与归约实路：无latent投影，Tensor返回合同不能改
+
+介绍：沿V41 factory→AscendMoERunner的输入/输出transform、shared布局、runtime归约与combine，追到外层DeepseekV41MoE及HC消费者。到了哪里：15当前源码身份、8组原Python协议控制；补齐缺全文记录的helper与custom-op实际绑定，复用同SHA整段价。结果：冻结SP+SEDP且两个routed transform均None，没有latent投影/额外shared gather/重复TP归约可删；内部tuple必须还原成最终Tensor，否则外层会再次scale/add及TP reduce。已有add→HC与较大shared/DFC父段保留，新增native准入0，全链路未闭合。
+
+实际静态边界：V41构造未传routed_input_transform/output_transform；Ascend factory转发kwargs、原factory缺省None并传runner，OOT class表将MoERunner/RoutedExperts绑定Ascend实现。shared并行模式按物理tp_group.world_size判断，不能用EP重写后的moe_config.tp_size=1代替。冻结FlashComm/SP和enable_shared_expert_dp=True选中SEQUENCE_PARALLEL_SEDP，shared本卡原M直接算，无SP-only gather/RS或DP-only切分再gather；enable_fused_mc2=1还强制shared multistream=False。两个transform为None使原super仅返回输入alias/原输出，不存在可省的latent GEMM或对应提前gather/wait。
+
+归约与调用协议：_should_reduce_routed_before_combine在SP+SEDP/None时false；shared hook对非TP模式返回原对象，final hook在SP下不补TP reduce。非SP或其它合法模式不能用此结论：PrivateUse1真实maybe_all_reduce_*读取本次_EXTRActx comm及runner静态SP，fake_impl返回alias不是实际恒等证明。8组原主体控制涵盖四comm/两traceflag的冻结alias、DP-only与TP替代归约、原截断view、原super tuple首项与ready事件、层名cursor及外层返回类型；全部是opaque Tensor/TP/event控制，不是native逐位验收。旧LayerName/字符串表示中，from_forward_context按每个原custom-op调用推进moe_layer_index；合大原语仍须保存原顺序和游标，不为不影响去留的版本字段新增探测。
+
+完整返回与数值边界：_forward_entry的内部(shared,routed)先_unpack，经原归约/scale/transform后ForeachAdd成Tensor，外层DeepseekV41MoE才读到它。实际runnerfactor=1，router侧接1.5；model里的旧注释不能覆盖factory apply_routed_scale_to_output=False。外层看到Tensor时不再scale；若替换把内部tuple直接暴露，原外层会走legacy muls_add(1.5)和TP reduce，原主体opaque反例已验证两次额外调用。Tensor类型、shape/view、所有BF16 combine舍入、最终残差/HcPost读者必须保留。当前没有ZeroExpertRouter额外输出的需求，不把其它模型latent/zero-expert/padding分支的计算当作本负载机会；通用替代路径仍留原合同。
+
+价值与去重：本轮helper闭合没有引入新融合机制，也不为已不存在的投影/通信记收益。15当前源与旧MoE输出证据的精确SHA交集及完整价格另存。旧global24 EP0/8的norm-ready→Post完成包络22.884425%代表窗，其中原DFC16.758165%；保留DFC的宽松余段6.126260%，含必要shared/router/等待和HC数学，不能全免。旧Foreach本体1.066954%、HCPost0.379898%；保留原HC成本、另付5us/call，条件局部净7.572826ms/0.810240%，付20us仅0.040098%。原C8首token全16卡2560对的极宽松固定carrier模型，add免最高0.371417%个体TTFT、付5us最高0.316674%；不是实测净收益或全部decode/客户端上界。六普通和实际曝光仍缺，新请求信用0。global20另列，不能迁移global24价。
+
+结果：已停止——在本冻结路由寻找latent投影/额外shared TP通信/runner后置scale或重复归约、用fake alias或captured bool抹掉运行时归约、将内部tuple直接交外层、擦除Foreach BF16边界/原样flag-only重叠。待确认——保持原rounding的Foreach→HC原语及更大的shared/DFC/input/quant/megakernel：需完整native位值/NaN/format/tiling、全部可见输出与alias/capture、两路不同量化策略、EP资源/通信及六普通/请求付成本曝光。已确认可实现——本轮新增0。其它高值metadata/gid12、Engram owner/input、Markov/host-context继续按原缺口，不借这几个helper的零新增工作排除其父段。
+
+下一条待扫：loop047下一Run：用累计递归前沿去重后，批量追Scheduler._request_blocks_can_be_freed/_free_request_blocks及异步/停止/缓存归还消费者，再核GPUModelRunner剩余encoder/cache与sampling RNG helper在冻结文本负载的实际选择。把输入/输出/history/slot代次闭合到下一轮真实消费者，按完整host/frame/metadata交付价格判断，避免为无设备工作的小helper补测。继续展开剩余实际receiver/native/closure边，全文/节点计数不代替合法分支闭合；每替换原语逐位一致。源码Run无新Torch/NPU/模型/profile/请求/服务/远端写入。

@@ -1,5 +1,16 @@
 # 171 融合算子团队开发清单
 
+## 当前断点 · 2026-11-11 MoE变换与归约实路：无latent投影，Tensor返回合同不能改
+
+介绍：沿V41 factory→AscendMoERunner的输入/输出transform、shared布局、runtime归约与combine，追到外层DeepseekV41MoE及HC消费者。到了哪里：15当前源码身份、8组原Python协议控制；补齐缺全文记录的helper与custom-op实际绑定，复用同SHA整段价。结果：冻结SP+SEDP且两个routed transform均None，没有latent投影/额外shared gather/重复TP归约可删；内部tuple必须还原成最终Tensor，否则外层会再次scale/add及TP reduce。已有add→HC与较大shared/DFC父段保留，新增native准入0，全链路未闭合。
+
+原scope与整段价保留：没有从无操作helper认领延迟；runtime comm、层名cursor、最终Tensor返回和BF16 combine边界均为大融合合同。累计全文证据只作索引，不作为合法分支完成率。
+
+[本段判断](evidence/MoE实际变换归约与Tensor返回消费者判断.md) · [实际源与分支](evidence/moe-transform-path-review.json) · [逐边派发](evidence/moe-transform-path-recursive-intersections.json) · [累计源码前沿](evidence/moe-transform-path-cumulative-frontier.json) · [完整分支与付成本价](evidence/moe-transform-path-price.json)。
+
+下一条待扫：loop047下一Run：用累计递归前沿去重后，批量追Scheduler._request_blocks_can_be_freed/_free_request_blocks及异步/停止/缓存归还消费者，再核GPUModelRunner剩余encoder/cache与sampling RNG helper在冻结文本负载的实际选择。把输入/输出/history/slot代次闭合到下一轮真实消费者，按完整host/frame/metadata交付价格判断，避免为无设备工作的小helper补测。继续展开剩余实际receiver/native/closure边，全文/节点计数不代替合法分支闭合；每替换原语逐位一致。源码Run无新Torch/NPU/模型/profile/请求/服务/远端写入。
+
+
 ## 当前断点 · 2026-11-11 Engram实际hash与UVA内核：补齐覆盖，完整父段继续保留
 
 介绍：从实际prepare_engram调用追V1 history写入、两层hash、共享UVA查表/反量化、TP heads交付，到SP行上的Wkv/rotated gate与后继HC。到了哪里：17当前源码身份；补齐实际适配器、上游history和Triton hash/lookup主体，并与exact-SHA旧合同去重；旧两代表卡24完整双层交付定价。结果：整段native包络1.954322%代表窗，不能停止整个父段；lookup本体0.031226%、私有预零0.008845%，同预算小方案不重测。该父段与机制已有旧记录，本轮是覆盖/组合价补全，不冒充新发现。新增原生准入0，全链路未闭合。

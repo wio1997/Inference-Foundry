@@ -1,5 +1,16 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-11 MoE变换与归约实路：无latent投影，Tensor返回合同不能改
+
+介绍：沿V41 factory→AscendMoERunner的输入/输出transform、shared布局、runtime归约与combine，追到外层DeepseekV41MoE及HC消费者。到了哪里：15当前源码身份、8组原Python协议控制；补齐缺全文记录的helper与custom-op实际绑定，复用同SHA整段价。结果：冻结SP+SEDP且两个routed transform均None，没有latent投影/额外shared gather/重复TP归约可删；内部tuple必须还原成最终Tensor，否则外层会再次scale/add及TP reduce。已有add→HC与较大shared/DFC父段保留，新增native准入0，全链路未闭合。
+
+原scope与整段价保留：没有从无操作helper认领延迟；runtime comm、层名cursor、最终Tensor返回和BF16 combine边界均为大融合合同。累计全文证据只作索引，不作为合法分支完成率。
+
+[本段判断](evidence/MoE实际变换归约与Tensor返回消费者判断.md) · [实际源与分支](evidence/moe-transform-path-review.json) · [逐边派发](evidence/moe-transform-path-recursive-intersections.json) · [累计源码前沿](evidence/moe-transform-path-cumulative-frontier.json) · [完整分支与付成本价](evidence/moe-transform-path-price.json)。
+
+下一条待扫：loop047下一Run：用累计递归前沿去重后，批量追Scheduler._request_blocks_can_be_freed/_free_request_blocks及异步/停止/缓存归还消费者，再核GPUModelRunner剩余encoder/cache与sampling RNG helper在冻结文本负载的实际选择。把输入/输出/history/slot代次闭合到下一轮真实消费者，按完整host/frame/metadata交付价格判断，避免为无设备工作的小helper补测。继续展开剩余实际receiver/native/closure边，全文/节点计数不代替合法分支闭合；每替换原语逐位一致。源码Run无新Torch/NPU/模型/profile/请求/服务/远端写入。
+
+
 ## 当前断点 · 2026-11-11 Engram实际hash与UVA内核：补齐覆盖，完整父段继续保留
 
 介绍：从实际prepare_engram调用追V1 history写入、两层hash、共享UVA查表/反量化、TP heads交付，到SP行上的Wkv/rotated gate与后继HC。到了哪里：17当前源码身份；补齐实际适配器、上游history和Triton hash/lookup主体，并与exact-SHA旧合同去重；旧两代表卡24完整双层交付定价。结果：整段native包络1.954322%代表窗，不能停止整个父段；lookup本体0.031226%、私有预零0.008845%，同预算小方案不重测。该父段与机制已有旧记录，本轮是覆盖/组合价补全，不冒充新发现。新增原生准入0，全链路未闭合。
@@ -766,7 +777,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-当前源码覆盖：17当前身份、43具名body/range、19条receiver路由（原工作表16边交集）。实际Engram V1 history/hash/UVA到双层残差主体补齐，旧机制去重；24完整双层交付native包络1.954322%旧代表窗，父段保留，小lookup沿旧预算停止。累计前沿138节点全文记录仅供证据，不作为合法路径完成率；每替换原语逐位一致，native新增0，全链路未闭合。
+当前源码覆盖：15当前身份、46具名body/range、21条receiver路由（原工作表14边交集）、8原Python协议组。冻结SP_SEDP/None routed transform归位，runtime归约/层名cursor/最终Tensor返回保留；内部tuple直出会激活外层legacy scale/add与TP reduce。旧add-HC/sharedDFC大父段保留。累计148节点有全文证据、171缺全文记录，只是证据索引；每替换原语逐位一致，native新增0，全链路未闭合。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
