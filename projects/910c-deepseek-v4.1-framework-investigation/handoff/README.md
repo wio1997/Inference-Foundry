@@ -1,5 +1,18 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 实际embedding入口与首层静态段：77源码约束，79位待追
+
+介绍：独立沿V1预处理→OOT注册→STANDARD TP8/FLOAT查表→持久input→首HC/QKV及DSpark公共/物理地址交付，再与旧范围相交。到了哪里：23当前Python源+1prior HF精确SHA，29原方法受限控制；新增7处，原156位77绑定/79待追；原C8 3624活跃rank窗的Qb/KVnorm末端全资格。结果：eager用外部embeds，FULL捕获rawIDs/None并执行内部lookup；SP mask入口等待与Engram producer仍属大交付。新原语/框架准入0，全链路未闭合，每替换原语逐位一致。
+
+待确认、值得深入：大input/Engram/graph-entry交付原C8活跃请求gross2.356753%TTFT/5.058344%整批，含必要工作不能全删；实删且暴露25%、新增0.1ms/波，条件净0.555673%/1.142482%，50%为1.144861%/2.407068%。未知比例默认0，非已兑现。首HC到pre-RoPE单独gross0.710251%/0.456940%，不再含空query动态Oproj等待；静态cache仍缺native精确位/shape-key/热行成本/六普通整段价。453活跃DP组不等于454物理组，synthetic8rank未价；不迁移并发padding行比例或另cohort诊断。
+
+DSpark公共IDs/positions/sampleindices不依赖物理组，slot依赖group table/size/DCP；5query为anchor+4noise，cad属性重绑不是旧Tensor退役。实际draft组人口/次序、全部末读、producer/consumer双退役和packet完整bytes继续待确认。已确认可实现：本轮0，旧封闭CPU租约原型1资格保留。已停止：旧lookup/copy/SP-only同预算小方案继续停；不以纯文本排除MM、不以runtime embeds推断FULL内部lookup跳过、不按5×实际请求认shape、不以BF16尾位容差放行。较大parent保留。
+
+[本段判断](evidence/词嵌入实际派发与首层静态计算整段判断.md) · [77/79逐位账及29控制](evidence/embedding-static-source-review.json) · [原C8整段价](evidence/first-static-parent-price.json) · [源行段](evidence/embedding-static-source-excerpts.json)。
+
+下一条待扫：loop047 Run150110Z（PLANNED）：继续79位及递归helper，从selected资源组构造走Engram V1 slot-cache hash输入、DSpark公共/每组输出到全部异步末读和最早storage写；含空/synthetic DP、FULL与错误退役。优先大input-frame交付，保留DP/TP与physical first-owner次序；先复用旧记录核人口/净价，每替换原语逐位一致，无Torch/NPU/模型/新profile/请求/服务或远端变更。
+
+
 ## 当前断点 · 2026-11-10 V1输入实际读者与packet边界：70源码约束，86位待追
 
 介绍：从V1实际caller的默认参数、PP/async、Engram准备字典和QSL输入→packet交付继续扫。到了哪里：16当前Python依赖/11当前原生source；新增21处受限源码绑定，原156位现70绑定/86仍待追；原Engram方法16个stub控制、原base32个owner控制及3个反例、原GenMetadata12个本机C++写范围控制。结果：canonical输出QSL不代表所有闭包输入QSL已共享；5个packet key首owner与每物理组C2地址映射首owner不同。显式重绑incomingQSL的大parent值得深入，尚无原语/框架新准入，未扫全。
@@ -539,7 +552,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-当前源码覆盖：本段16Python/11native当前source和1prior exactSHA引用；原156位累计70受限源码绑定、86未闭合。新框架准入0；继续V1预处理真实MM/embedding和Engram/DSpark坐标读者。详见本文最新断点与限定源行段，历史数保留原时间和资格。
+当前源码覆盖：本段23当前Python源+1prior HF精确SHA、29原方法stub控制；原156位77受限源码绑定/79待追。eager/FULL lookup路径已分开，较大input/Engram交付仍值得深入，新原语/框架准入0。位数不是算子数、运行人口或全链路完成率。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
@@ -630,7 +643,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每个替换原语逐位一致。此前受限CPU原型1保留，本轮原语/框架准入0。原156位70受限源码约束、86待追，完整递归调用/消费者/运行人口未闭合；位数不是算子或已扫全证明。Run124045Z PASS/NA只覆盖V1caller/显式stub/CPU serializer写边界，Run133903Z仍PLANNED。canonical incomingQSL、完整packet496/640B外围初始化、全部输入租约/双端退役与真实净价仍待确认；311.050ms是含保留工作的gross诊断价，非实测可省。
+**2026-11-10 当前资格**：每替换原语逐位一致，BF16末位差异失败。本轮原语/框架准入0，旧封闭CPU租约原型1保留。77源码约束/79待追；Run133903Z有界PASS/NA，Run150110Z PLANNED。大input/Engram交付25%实删暴露、额外0.1ms/波的原C8条件整批净价1.142482%，非实测；453活跃DP组不等于454物理组，不代填六普通负载。所有native位、最后读者/退役和packet完整bytes等具体缺口保留，尚未扫全。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
