@@ -1,6 +1,6 @@
 # 当前适配与性能验证状态（2026-11-10）
 
-DeepInfer原生框架已完成GLM-5.3-Flash-W8A8的45层完整模型执行、8die权重全驻留、真实批处理与HTTP服务接入。**新图执行候选正式AISBench达到C4=104.2310、C8=197.0904输出token/s，两档各32成功0失败；相同图配置的vLLM在正式负载中发生CausalConv1d设备错误，整批对照无效，至少1.5倍框架收益尚未证明。此前eager同条件对照分别为参考的0.9033/0.9695倍。**
+DeepInfer原生框架已完成GLM-5.3-Flash-W8A8的45层模型执行、8die权重全驻留、真实批处理与HTTP接入。**最新PIECEWISE同条件正式对照：C4为参考0.9463倍，C8为1.0083倍，至少1.5倍目标未达成；单轮0.8%差值不足以证明稳定领先。**
 
 ## 已验证的执行架构
 
@@ -12,7 +12,14 @@ DeepInfer原生框架已完成GLM-5.3-Flash-W8A8的45层完整模型执行、8di
 
 ## 正式性能结果
 
-分段图的有效参考已完成：同8die/TP8/DP1/EP关闭、PIECEWISE、compile mode0、capture[1,2,4,8]、`VLLM_USE_BREAKABLE_CUDAGRAPH=1`，vLLM C4=62.8418、C8=109.5219输出token/s，两档各32成功0失败，原始时间戳独立核验。DeepInfer同设置已通过两个并发工程guard，正式计分进行中。源码显式`--graph-decode --breakable-graph`，不改变默认eager路径。[分段图证据](validation/native-sdk-breakable-graph-20261110/result.json)。
+分段图同条件对照已完成：共同8die/TP8/DP1/EP关闭、PIECEWISE、compile mode0、capture[1,2,4,8]、`VLLM_USE_BREAKABLE_CUDAGRAPH=1`。两边每档32成功0失败、1024入/256出、2热身排除，原始时间戳独立核验。
+
+|分段图并发|DeepInfer输出token/s|vLLM输出token/s|DeepInfer/vLLM|
+|---|---:|---:|---:|
+|C4|59.4676|62.8418|0.9463|
+|C8|110.4295|109.5219|1.0083|
+
+DeepInfer两个并发工程guard通过，总70HTTP请求正常结束、8rank exit0、owner清空、占用释放。源码`4e25b588f3ef9ec8fb229b0f2f1d17e253037edb`，显式`--graph-decode --breakable-graph`，默认eager保持。配置/数据SHA、8rank映射、实际图模式及源码文件身份均核验。[分段图证据](validation/native-sdk-breakable-graph-20261110/result.json)、[配对结果](validation/native-sdk-breakable-graph-20261110/comparison.json)。
 
 
 新增显式`--graph-decode`复用SDK的`FULL_DECODE_ONLY`，capture sizes=[1,2,4,8]、compile mode=0。真实日志确认4/4图捕获完成并启用ACL replay；模型数学、量化、缓存状态协议不变。源码`f05f912bdbdc6c19009295853951732d3a83db39`，默认eager路径保留。
@@ -52,8 +59,8 @@ C1来自旧源码`1b0101b41395e66335461feb884a5dfdc18a258b`和reference组装后
 
 ## 剩余验收
 
-1. 同条件C4/C8单轮对照已完成，每档双方32/32成功、0失败，原始时间戳、配置和数据SHA及实际设备映射已核验；详见[对照结果](validation/aisbench-native-sdk-tp8-c4-c8-20261110/comparison.json)。本轮不支持优于参考或1.5倍收益，亦不据单轮小差值宣称稳定的微小退化。
-2. CPU/NPU采样已完成，rank0带剖析窗口显示主要主机提交间隔，缓存准备及采样仅约3ms/步；据此实现解码图候选并完成正式C4/C8。相同图配置的vLLM C4仅5成功27失败、生成长度不完整，CausalConv1d设备日志报非法地址；不能使用该批吞吐作为分母。下一步核查模型声明的可分段图边界与完整图捕获的兼容性，再取得有效同条件对照；不以graph/eager不匹配的比较充当收益。
+1. 同配置1.5倍目标尚未达成。以有效分段图参考计算，C4/C8至少需要94.2627/164.2829输出token/s；当前为59.4676/110.4295。不能用完整图原生与分段图参考相除宣布达标。
+2. 已有剖析显示KDA卷积调用包含非连续状态的暂存/写回。下一项先核对共享物理页与复制协议，只选择不破坏状态归属的干预；不继续扩展数值或后端开关组合。现成矩阵乘加归约接口仅确认API存在，尚未实施或证明收益。
 3. 长上下文、正式大规模质量、生产服务范围及8物理卡/TP16不在当前已验证范围内。
 
 原始请求、token向量、SQLite时间戳及版本清单保留在私有任务档案；不公开服务器地址、私有路径、凭据、权重或镜像二进制。框架元数据和生命周期适配未被描述为新开发CANN底层算子。
