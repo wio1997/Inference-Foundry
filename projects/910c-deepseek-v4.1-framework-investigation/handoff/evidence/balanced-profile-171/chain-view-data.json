@@ -1,0 +1,614 @@
+{
+  "nodes": {
+    "request": {
+      "title": "请求接收",
+      "location": "API Server · 完整客户端边界",
+      "work": "接收请求、解析参数，交给引擎；生成的文本以流式 chunk 返回。",
+      "problem": "客户端起止已记录，网络、HTTP解析和引擎排队的独立耗时还没有逐项分开。",
+      "next": "上方时间条展示最后完成请求的首个输出与完整耗时。",
+      "evidence": "collect_remote.py 的流式客户端；request-boundaries.json。",
+      "stats": null,
+      "status": "边界已记录",
+      "scope": "完整8请求；上方显示当轮最后完成的请求。首个可见文本包含输入处理、等待和首轮计算。"
+    },
+    "tokenize": {
+      "title": "输入分词",
+      "location": "前端 CPU · 文本 → token IDs",
+      "work": "将请求文本编码为模型输入的 token IDs。",
+      "problem": "early前端完整请求中，8次encode_batch累计约473.72ms。输入文本两组相同，分词时长按跨线程累计记录。",
+      "next": "若优化首token，继续定位每个请求的分词完成时间与引擎接收时间。",
+      "evidence": "前端 Python trace 的 tokenizers.Tokenizer.encode_batch。",
+      "stats": [
+        {
+          "label": "8请求累计",
+          "value": "473.72 ms",
+          "sub": "early前端窗口"
+        },
+        {
+          "label": "每次平均",
+          "value": "59.22 ms",
+          "sub": "累计时长 / 调用数"
+        }
+      ],
+      "status": "已有计时",
+      "scope": "前端完整请求窗口。数值为Python追踪自身区间累计。"
+    },
+    "scheduler": {
+      "title": "排队与调度",
+      "location": "EngineCore / Scheduler",
+      "work": "管理等待请求、分配执行批次，决定每轮目标模型和草稿要处理的请求与token。",
+      "problem": "本轮没有直接采到 EngineCore 中 Python scheduler 的内部耗时，不能把设备空档全部归给调度器。",
+      "next": "先用请求入队、schedule、worker启动的关联事件拆出排队与调度耗时。",
+      "evidence": "vLLM v1/core/sched/scheduler.py；本轮前端与worker trace。",
+      "stats": null,
+      "status": "耗时待拆",
+      "scope": "worker 前12迭代；DP0 / DP1 分别为8卡中位数。目标与草稿的同类事件按窗口合计，区间可重叠。"
+    },
+    "metadata": {
+      "title": "输入与 metadata 准备",
+      "location": "M00 · Host → Worker",
+      "work": "生成本轮 token、position、slot、长度和注意力 metadata，准备缓存地址及Host到设备的交付。",
+      "problem": "稳态代表卡EP0/EP8中，where、copy、slice、empty等张量类CPU事件与Free交集约174.51/171.91ms。具体属于输入、metadata还是其他生产者，仍要逐调用绑定。",
+      "next": "按这些CPU事件的调用范围核对共同输入、索引、发布与生命周期，再选择能减少整个交付段的方案。",
+      "evidence": "steady-host-gaps.json；本轮仅同时区间证据，未直接采到EngineCore调度器Python内部。",
+      "stats": null,
+      "status": "耗时待拆",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "gloo": {
+      "title": "CPU 跨 DP 协调",
+      "location": "Host 协调 · 目标 / 草稿的重复执行",
+      "work": "各进程用CPU通信交换执行所需的计数或状态，等待参与方就绪后推进。",
+      "problem": "已验证DP各4请求、同输入与缓存命中。稳态Gloo等待中位仅14.35/20.42ms，约占1.53%/2.21%。early仍有暂态差异，不能把旧首段的大等待外推到稳态。",
+      "next": "继续保持配平负载，优先追两组共同存在的计算/通信空档。Gloo是否还能复用需按真实协调合同另判。",
+      "evidence": "worker trace 的 gloo:all_reduce 与同卡 Free 区间交集；_sync_metadata_across_dp 是待核对的源码入口。",
+      "stats": [
+        {
+          "label": "DP0",
+          "value": "14.35 ms",
+          "sub": "占对应卡窗口 1.53%"
+        },
+        {
+          "label": "DP1",
+          "value": "20.42 ms",
+          "sub": "占对应卡窗口 2.21%"
+        }
+      ],
+      "status": "稳态开销较低",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "engram": {
+      "title": "Engram 输入与残差",
+      "location": "M01 · 指定目标层",
+      "work": "按token内容查表，完成投影、门控和残差更新；并准备指定下游所需状态。",
+      "problem": "本轮trace中的矩阵乘和搬运尚未与Engram完整阶段绑定，因此该段总耗时仍待拆。",
+      "next": "先关联实际层和调用，再看lookup、投影与交付中哪些工作可复用。",
+      "evidence": "models/deepseek_v41/engram/embedding.py、layer.py 与目标model.py。",
+      "stats": null,
+      "status": "耗时待拆",
+      "scope": "worker 前12迭代；DP0 / DP1 分别为8卡中位数。目标与草稿的同类事件按窗口合计，区间可重叠。"
+    },
+    "hc": {
+      "title": "Attention 前 mHC / RMS",
+      "location": "M02 · 目标层入口",
+      "work": "将残差混合成Attention输入，并产生后续合并需要的系数和状态。",
+      "problem": "HcPre在目标Attention、FFN及草稿各位置的累计为36.62/36.83ms，尚未按单个入口拆开；两个节点共享这一预算。",
+      "next": "沿Post→Pre数据交付寻找可以共用的归约与中间读写，核对舍入和所有读者。",
+      "evidence": "model.py 的 hc_pre / rms_norm_cast；设备HcPre事件。",
+      "stats": [
+        {
+          "label": "DP0",
+          "value": "36.63 ms",
+          "sub": "占对应卡窗口 3.95%"
+        },
+        {
+          "label": "DP1",
+          "value": "36.83 ms",
+          "sub": "占对应卡窗口 3.99%"
+        }
+      ],
+      "status": "已有同类计时",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "hc_ffn": {
+      "title": "FFN 前 mHC / RMS",
+      "location": "M05 · Attention输出 → MoE输入",
+      "work": "对Attention输出完成Post/Pre衔接与归一化，分别交给router、共享专家和路由专家。",
+      "problem": "HcPre在目标Attention、FFN及草稿各位置的累计为36.62/36.83ms，尚未按单个入口拆开；两个节点共享这一预算。",
+      "next": "把两处入口按原始任务ID分开归因，再核对输入是否可共同生产。",
+      "evidence": "model.py 的 hc_post / hc_pre / rms_norm_cast；MoE _prepare_router_input。",
+      "stats": [
+        {
+          "label": "DP0",
+          "value": "36.63 ms",
+          "sub": "占对应卡窗口 3.95%"
+        },
+        {
+          "label": "DP1",
+          "value": "36.83 ms",
+          "sub": "占对应卡窗口 3.99%"
+        }
+      ],
+      "status": "已有同类计时",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "attention": {
+      "title": "Attention 投影、索引与稀疏计算",
+      "location": "M03 / M04 · Q/KV → QLI → SMLA → OA/OB",
+      "work": "投影与更新KV，QLI选择候选位置，SMLA执行注意力，随后投影并把结果交给FFN侧。",
+      "problem": "SMLA本体是时间链的一部分。某一次EP0的SMLA，通过同一flow关联到Host的CANN launch，提交事件到执行开始隔了约24.15ms，而kernel本体仅77.82µs。",
+      "next": "先检查提交到执行之间的前序工作和依赖，随后再看kernel本身。排队差可能是必要工作，不能按每个算子重复加总。",
+      "evidence": "同一次调用：stream 45 / task 52532；Node@launch耗时9.49µs；提交事件到kernel开始24.152ms；kernel 77.82µs。详见balanced-analysis.json。",
+      "stats": [
+        {
+          "label": "DP1 · QLI累计",
+          "value": "29.68 ms",
+          "sub": "目标与草稿同类事件"
+        },
+        {
+          "label": "DP1 · SMLA累计",
+          "value": "24.49 ms",
+          "sub": "目标与草稿同类事件"
+        }
+      ],
+      "status": "已有计时",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "moe": {
+      "title": "MoE 路由与专家返回",
+      "location": "M06 · Routed + Shared experts",
+      "work": "主路dispatch发送token，经专家GMM1、激活量化、GMM2后返回combine；共享专家在旁路计算并汇合。",
+      "problem": "DFC仍是最大设备单项，稳态占约16.90%/18.38%。按实际TopK6/3分开后，目标DFC累计150.25/162.74ms，草稿DFC约6.5ms。",
+      "next": "目标DFC的MAC活跃约7%，MTE2搬运活跃约49%–55%。优先核对权重读取与复用、小M效率和内部等待；用有效字节与关键路径核算收益。",
+      "evidence": "kernel_details.csv按Input Shapes中的TopK6/3区分；各卡先累计AIC活跃时间再取组中位。管线活动比与峰值带宽利用率分别计量。",
+      "stats": [
+        {
+          "label": "DP0",
+          "value": "156.71 ms",
+          "sub": "占对应卡窗口 16.90%"
+        },
+        {
+          "label": "DP1",
+          "value": "169.23 ms",
+          "sub": "占对应卡窗口 18.38%"
+        }
+      ],
+      "status": "优先排查",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "post": {
+      "title": "残差交付到下一层",
+      "location": "M07 · FFN输出 → 下一层入口",
+      "work": "合并共享与路由结果，执行HcPost并保留下一层、Engram和aux所需的残差与状态。",
+      "problem": "Post、加法和下一Pre存在明确交付关系，本轮未单独归并该段总耗时。",
+      "next": "以实际下游读者确定能否少落一次中间张量，并核对数值边界。",
+      "evidence": "model.py 的 hc_post / DecoderLayer.forward；HcPost和ForeachAddList事件。",
+      "stats": null,
+      "status": "耗时待拆",
+      "scope": "worker 前12迭代；DP0 / DP1 分别为8卡中位数。目标与草稿的同类事件按窗口合计，区间可重叠。"
+    },
+    "verify": {
+      "title": "末层读出、校验与采样",
+      "location": "M08 / M09 · 目标模型结果",
+      "work": "将末层结果投到词表，校验上一轮草稿，决定本轮接受的token、采样结果及下轮seed。",
+      "problem": "末层读出、验证和采样的完整阶段时间尚未从本轮trace独立拆出。",
+      "next": "关联logits、接受数和输出事件，确认是否有等待不必要结果的交付。",
+      "evidence": "model.py 的 compute_logits；rejection_sampler.py；sample_tokens。",
+      "stats": null,
+      "status": "耗时待拆",
+      "scope": "worker 前12迭代；DP0 / DP1 分别为8卡中位数。目标与草稿的同类事件按窗口合计，区间可重叠。"
+    },
+    "draft": {
+      "title": "DSpark context与三层草稿",
+      "location": "M10 · 生成下一轮候选",
+      "work": "消费目标模型aux和seed，更新context KV，执行三层decoder并完成五步候选选词。",
+      "problem": "稳态代表卡中草稿Attention与MoE的Host包装各36次，表明三层草稿在逐层提交。其与Free的交集很少，整段其他准备与交付仍需拆分。",
+      "next": "优先关联草稿前后的输入/metadata、token更新和提交队列；已有目标FULL图和草稿eager配置需要分别评估。",
+      "evidence": "dspark_proposer.py、dspark.py、llm_base_proposer.py；本轮worker trace。",
+      "stats": null,
+      "status": "耗时待拆",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "iteration": {
+      "title": "下一轮输入与状态退役",
+      "location": "M11 · 迭代闭环",
+      "work": "发布草稿ID、接受数、slot和状态，保证下轮输入可用，同时保持cache与页安全回收。",
+      "problem": "存在跨轮依赖和Host/Device就绪事件，本轮尚未把Gloo与Event等待逐条绑定到这里。",
+      "next": "分别定位下一轮输入就绪、客户端token可见和cache可回收的时刻，核对哪些等待必须串行。",
+      "evidence": "model_runner_v1.py 的 propose_draft_token_ids / sample_tokens；输出和cache生命周期。",
+      "stats": null,
+      "status": "耗时待拆",
+      "scope": "worker 前12迭代；DP0 / DP1 分别为8卡中位数。目标与草稿的同类事件按窗口合计，区间可重叠。"
+    },
+    "decode": {
+      "title": "流式输出解码",
+      "location": "API前端 · token IDs → 文本",
+      "work": "把已接受的token逐步转换为文本，保留分词器的流式解码状态。",
+      "problem": "early前端完整请求中8192次DecodeStream调用累计约101.21ms。",
+      "next": "若排查客户端尾延迟，可进一步看每轮批量解码和首个非空文本的交付。",
+      "evidence": "前端 Python trace 的 tokenizers.decoders.DecodeStream.step。",
+      "stats": [
+        {
+          "label": "early完整请求累计",
+          "value": "101.21 ms",
+          "sub": "8192次输出解码"
+        },
+        {
+          "label": "每次平均",
+          "value": "12.35 µs",
+          "sub": "跨请求累计 / 调用数"
+        }
+      ],
+      "status": "已有计时",
+      "scope": "前端完整请求窗口；跨请求累计，可与其他工作重叠。"
+    },
+    "http": {
+      "title": "流式HTTP返回",
+      "location": "API前端 → 客户端",
+      "work": "将输出文本封装为流式chunk并发送给客户端，客户端记录首次非空文本和完成时刻。",
+      "problem": "early前端完整请求中HTTP发送累计约98.06ms。参考请求三轮中位16.091秒。",
+      "next": "结合输出就绪与客户端收到chunk的时刻定位真实返回延迟。",
+      "evidence": "uvicorn httptools_impl.send；客户端SSE边界记录。",
+      "stats": [
+        {
+          "label": "early HTTP发送累计",
+          "value": "98.06 ms",
+          "sub": "前端完整请求窗口"
+        },
+        {
+          "label": "参考整批中位",
+          "value": "16.091 s",
+          "sub": "509.11 输出token/s"
+        }
+      ],
+      "status": "已有计时",
+      "scope": "前端完整请求窗口；HTTP发送时长包含运行时可见的等待与提交。"
+    },
+    "idle": {
+      "title": "设备空档集中在DP1",
+      "location": "跨阶段现象 · Overlap Analysis / Free",
+      "work": "Free标记设备时间线中没有被计算或通信区间覆盖的部分，可能对应等Host、等输入或其他前置工作。",
+      "problem": "两组在稳态都有约38%的计算/通信空档：356.07/353.62ms。与Gloo的交集仅7.28/0.72ms，大部分空档有其他前置工作。",
+      "next": "代表卡的张量类CPU事件与空档重叠约174.51/171.91ms。先把索引、copy、where归回真实输入/metadata生产者，再核对可消除的提交和中间交付。",
+      "evidence": "steady-host-gaps.json代表EP0/EP8；32份设备trace中逐卡Free与CPU/Gloo交集。代表卡观察不外推为8卡中位。",
+      "stats": [
+        {
+          "label": "DP0",
+          "value": "356.07 ms",
+          "sub": "占对应卡窗口 38.39%"
+        },
+        {
+          "label": "DP1",
+          "value": "353.62 ms",
+          "sub": "占对应卡窗口 38.44%"
+        }
+      ],
+      "status": "优先排查",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    },
+    "event": {
+      "title": "Host等待设备事件完成",
+      "location": "跨阶段现象 · Event::synchronize",
+      "work": "Host等待此前提交的某个设备事件完成，等待期间设备可能仍在执行必要工作。",
+      "problem": "Host事件等待为101.69/100.63ms，与Free交集仅3.33/3.36ms，多数等待期间设备仍在工作。",
+      "next": "沿对应未完成工作追踪，核对等待是否阻碍后续生产；保持与其他等待、设备执行的区间去重。",
+      "evidence": "worker Event::synchronize与Free区间交集，原请求窗口内。",
+      "stats": [
+        {
+          "label": "DP0",
+          "value": "101.69 ms",
+          "sub": "占对应卡窗口 10.93%"
+        },
+        {
+          "label": "DP1",
+          "value": "100.63 ms",
+          "sub": "占对应卡窗口 10.79%"
+        }
+      ],
+      "status": "已有计时",
+      "scope": "配平后的稳态短窗口。DP0/DP1各8卡中位；窗口约927/921ms。窗口占比与整批请求时间分别计量。"
+    }
+  },
+  "requests": {
+    "reference": {
+      "start_mono_ns": 6026328077398873,
+      "end_mono_ns": 6026344168166656,
+      "requests": [
+        {
+          "index": 0,
+          "dp_rank": 0,
+          "pair_id": 0,
+          "prompt_sha256": "34d5271d49ca6eb9c3b00709f8a791a1d6718157dfdfda288e6ad722178d618d",
+          "start_mono_ns": 6026328100390903,
+          "start_wall_ns": 1794280699624042474,
+          "first_token_mono_ns": 6026329324170367,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026343511772955,
+          "end_wall_ns": 1794280715035425036,
+          "output_sha256": "25960ec56f4f309f95d322bacdbe65455d8ab290bd4ecca577309e1f8131b985",
+          "output_chars": 4064
+        },
+        {
+          "index": 1,
+          "dp_rank": 0,
+          "pair_id": 1,
+          "prompt_sha256": "d830c5b4fcfb395db8b500dbe4babb2a1337647f77bc86ee15e9638b9ad307ae",
+          "start_mono_ns": 6026328099096109,
+          "start_wall_ns": 1794280699622747630,
+          "first_token_mono_ns": 6026328720968068,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026343768998491,
+          "end_wall_ns": 1794280715292650192,
+          "output_sha256": "5fc0147acf4b5d2116b82adc6cb8261dfba3ab2bfc228771333036fa2060dfc0",
+          "output_chars": 4071
+        },
+        {
+          "index": 2,
+          "dp_rank": 0,
+          "pair_id": 2,
+          "prompt_sha256": "1ea2e5fd261b77a230e33da6d605b5afb348db8bdee29ed87b2673e558a4dd12",
+          "start_mono_ns": 6026328100816261,
+          "start_wall_ns": 1794280699624467812,
+          "first_token_mono_ns": 6026328721048911,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026343576488238,
+          "end_wall_ns": 1794280715100139889,
+          "output_sha256": "3e443f2127708020ab78fffa5483087ebdf942fcba571d73a1a0e7c5e08f927d",
+          "output_chars": 4074
+        },
+        {
+          "index": 3,
+          "dp_rank": 0,
+          "pair_id": 3,
+          "prompt_sha256": "d1086fc11449c3feba669683b77b89eef41641ac3f75121570f6eeadb6c49897",
+          "start_mono_ns": 6026328099523527,
+          "start_wall_ns": 1794280699623174868,
+          "first_token_mono_ns": 6026329323992989,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026344153989834,
+          "end_wall_ns": 1794280715677641335,
+          "output_sha256": "29fc3c1d062e8ce0ee8cbfaa41141e19a53168d1e3f0de69035b2df5781322ee",
+          "output_chars": 4091
+        },
+        {
+          "index": 4,
+          "dp_rank": 1,
+          "pair_id": 0,
+          "prompt_sha256": "34d5271d49ca6eb9c3b00709f8a791a1d6718157dfdfda288e6ad722178d618d",
+          "start_mono_ns": 6026328101245129,
+          "start_wall_ns": 1794280699624896720,
+          "first_token_mono_ns": 6026329323752759,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026343575931965,
+          "end_wall_ns": 1794280715099583876,
+          "output_sha256": "25960ec56f4f309f95d322bacdbe65455d8ab290bd4ecca577309e1f8131b985",
+          "output_chars": 4064
+        },
+        {
+          "index": 5,
+          "dp_rank": 1,
+          "pair_id": 1,
+          "prompt_sha256": "d830c5b4fcfb395db8b500dbe4babb2a1337647f77bc86ee15e9638b9ad307ae",
+          "start_mono_ns": 6026328099934164,
+          "start_wall_ns": 1794280699623585655,
+          "first_token_mono_ns": 6026328916739706,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026344022018711,
+          "end_wall_ns": 1794280715545670372,
+          "output_sha256": "5fc0147acf4b5d2116b82adc6cb8261dfba3ab2bfc228771333036fa2060dfc0",
+          "output_chars": 4071
+        },
+        {
+          "index": 6,
+          "dp_rank": 1,
+          "pair_id": 2,
+          "prompt_sha256": "1ea2e5fd261b77a230e33da6d605b5afb348db8bdee29ed87b2673e558a4dd12",
+          "start_mono_ns": 6026328101671757,
+          "start_wall_ns": 1794280699625323198,
+          "first_token_mono_ns": 6026329323846663,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026343704692134,
+          "end_wall_ns": 1794280715228343915,
+          "output_sha256": "3e443f2127708020ab78fffa5483087ebdf942fcba571d73a1a0e7c5e08f927d",
+          "output_chars": 4074
+        },
+        {
+          "index": 7,
+          "dp_rank": 1,
+          "pair_id": 3,
+          "prompt_sha256": "d1086fc11449c3feba669683b77b89eef41641ac3f75121570f6eeadb6c49897",
+          "start_mono_ns": 6026328098245854,
+          "start_wall_ns": 1794280699621897395,
+          "first_token_mono_ns": 6026328397178392,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026343833386190,
+          "end_wall_ns": 1794280715357037701,
+          "output_sha256": "29fc3c1d062e8ce0ee8cbfaa41141e19a53168d1e3f0de69035b2df5781322ee",
+          "output_chars": 4091
+        }
+      ]
+    },
+    "profiled": {
+      "start_mono_ns": 6026586344333225,
+      "end_mono_ns": 6026603476785084,
+      "requests": [
+        {
+          "index": 0,
+          "dp_rank": 0,
+          "pair_id": 0,
+          "prompt_sha256": "34d5271d49ca6eb9c3b00709f8a791a1d6718157dfdfda288e6ad722178d618d",
+          "start_mono_ns": 6026586367599356,
+          "start_wall_ns": 1794280957891250727,
+          "first_token_mono_ns": 6026587021926901,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026602883328852,
+          "end_wall_ns": 1794280974406980753,
+          "output_sha256": "25960ec56f4f309f95d322bacdbe65455d8ab290bd4ecca577309e1f8131b985",
+          "output_chars": 4064
+        },
+        {
+          "index": 1,
+          "dp_rank": 0,
+          "pair_id": 1,
+          "prompt_sha256": "d830c5b4fcfb395db8b500dbe4babb2a1337647f77bc86ee15e9638b9ad307ae",
+          "start_mono_ns": 6026586366135655,
+          "start_wall_ns": 1794280957889787046,
+          "first_token_mono_ns": 6026587021801536,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026603391680699,
+          "end_wall_ns": 1794280974915332460,
+          "output_sha256": "5fc0147acf4b5d2116b82adc6cb8261dfba3ab2bfc228771333036fa2060dfc0",
+          "output_chars": 4071
+        },
+        {
+          "index": 2,
+          "dp_rank": 0,
+          "pair_id": 2,
+          "prompt_sha256": "1ea2e5fd261b77a230e33da6d605b5afb348db8bdee29ed87b2673e558a4dd12",
+          "start_mono_ns": 6026586368036405,
+          "start_wall_ns": 1794280957891687856,
+          "first_token_mono_ns": 6026587642314288,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026603138849697,
+          "end_wall_ns": 1794280974662501318,
+          "output_sha256": "3e443f2127708020ab78fffa5483087ebdf942fcba571d73a1a0e7c5e08f927d",
+          "output_chars": 4074
+        },
+        {
+          "index": 3,
+          "dp_rank": 0,
+          "pair_id": 3,
+          "prompt_sha256": "d1086fc11449c3feba669683b77b89eef41641ac3f75121570f6eeadb6c49897",
+          "start_mono_ns": 6026586366571604,
+          "start_wall_ns": 1794280957890223005,
+          "first_token_mono_ns": 6026587642223524,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026603458867946,
+          "end_wall_ns": 1794280974982519837,
+          "output_sha256": "29fc3c1d062e8ce0ee8cbfaa41141e19a53168d1e3f0de69035b2df5781322ee",
+          "output_chars": 4091
+        },
+        {
+          "index": 4,
+          "dp_rank": 1,
+          "pair_id": 0,
+          "prompt_sha256": "34d5271d49ca6eb9c3b00709f8a791a1d6718157dfdfda288e6ad722178d618d",
+          "start_mono_ns": 6026586368462553,
+          "start_wall_ns": 1794280957892113894,
+          "first_token_mono_ns": 6026587228385396,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026602882602142,
+          "end_wall_ns": 1794280974406254433,
+          "output_sha256": "25960ec56f4f309f95d322bacdbe65455d8ab290bd4ecca577309e1f8131b985",
+          "output_chars": 4064
+        },
+        {
+          "index": 5,
+          "dp_rank": 1,
+          "pair_id": 1,
+          "prompt_sha256": "d830c5b4fcfb395db8b500dbe4babb2a1337647f77bc86ee15e9638b9ad307ae",
+          "start_mono_ns": 6026586367157448,
+          "start_wall_ns": 1794280957890808909,
+          "first_token_mono_ns": 6026587622357374,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026603328549081,
+          "end_wall_ns": 1794280974852200753,
+          "output_sha256": "5fc0147acf4b5d2116b82adc6cb8261dfba3ab2bfc228771333036fa2060dfc0",
+          "output_chars": 4071
+        },
+        {
+          "index": 6,
+          "dp_rank": 1,
+          "pair_id": 2,
+          "prompt_sha256": "1ea2e5fd261b77a230e33da6d605b5afb348db8bdee29ed87b2673e558a4dd12",
+          "start_mono_ns": 6026586368874160,
+          "start_wall_ns": 1794280957892525591,
+          "first_token_mono_ns": 6026587622240979,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026603138288443,
+          "end_wall_ns": 1794280974661940664,
+          "output_sha256": "3e443f2127708020ab78fffa5483087ebdf942fcba571d73a1a0e7c5e08f927d",
+          "output_chars": 4074
+        },
+        {
+          "index": 7,
+          "dp_rank": 1,
+          "pair_id": 3,
+          "prompt_sha256": "d1086fc11449c3feba669683b77b89eef41641ac3f75121570f6eeadb6c49897",
+          "start_mono_ns": 6026586365691587,
+          "start_wall_ns": 1794280957889343248,
+          "first_token_mono_ns": 6026586696664143,
+          "usage": {
+            "prompt_tokens": 32768,
+            "total_tokens": 33792,
+            "completion_tokens": 1024
+          },
+          "end_mono_ns": 6026603203073680,
+          "end_wall_ns": 1794280974726725601,
+          "output_sha256": "29fc3c1d062e8ce0ee8cbfaa41141e19a53168d1e3f0de69035b2df5781322ee",
+          "output_chars": 4091
+        }
+      ]
+    }
+  }
+}

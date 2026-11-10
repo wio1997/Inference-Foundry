@@ -406,7 +406,9 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
-2026-11-10 新采集：[171 框架 CPU/CANN/设备 profile](evidence/framework-profile-171.md)。冻结 C8 请求完整执行，worker覆盖前12迭代。DP1的Gloo等待与设备Free重叠中位约710ms，框架协调/组间进度为优先排查线索；具体可省量待确认。原服务已恢复。
+2026-11-10 配平复采完成：[框架→算子全局性能图与复用包](evidence/balanced-profile-171/README.md) · [报告](evidence/balanced-profile-171/REPORT.md)。DP各4镜像请求，参考中位16.091秒、509.11输出token/s；32worker/2前端trace，early88类/steady84类设备算子。稳态Gloo仅1.53%/2.21%，两组共有Free约38.4%，目标DFC最大。Free生产者及可省量待确认，新增优化实现0；灰色段仍待归因，不能标记全链路搜索完成。原服务已恢复。
+
+2026-11-10 新采集：[171 框架 CPU/CANN/设备 profile](evidence/framework-profile-171.md)。冻结 C8 请求完整执行，worker覆盖前12迭代。旧首段DP1的Gloo与Free重叠中位约710ms；后续配平复采的steady两组Gloo均低，旧首段不可外推为稳态瓶颈。原服务已恢复。
 
 优化点按当前决定分为三组。点编号查看代码和证据，megakernel 标在方案类型里。[逐项说明](opportunities.md) · [早期 42 族](evidence/priority-42.md)
 
