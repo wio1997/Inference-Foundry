@@ -1,0 +1,46 @@
+{
+  "status": "SOURCE_FIRST_ENGRAM_NGRAM_UVA_PAYLOAD_TO_RESIDUAL_AND_NEXT_LAYER_BEFORE_PRICE",
+  "scope": "V1 frozen Engram layers1/14: input IDs/positions/current chunk+prompt lookback+slot-cache state -> alive/dead mask and ngram hashes -> TP-head-sharded registered shared host INT8/FP32 group32 table lookup/dequant -> BF16 full head-order rows -> persistent publication, TP head gather and actualSP row slice -> original unquantized Wkv and rotated gate -> in-place HC residual plus next layer HcPre; retain all future hash/state readers, dummy/empty/negative/out-of-shard IDs, graph padding/zero tails, owner/layout/retirement and failure paths.",
+  "current_source_pins": 13,
+  "current_disk_matches": 13,
+  "scope_notes": [
+    "Actual prepare_engram calls table.embed_gathered with one slot slice per layer; gather_engram_hashes is shared before the layer loop. Embedding.forward exists but is not that selected path.",
+    "Frozen saved serve SHA c2972011 matches whole-forward current identity and prior storage manifest: cpu_offload=true, dp_shared_memory=true. With TP8,24heads anddim256 each local lookup has3heads; EDP per-step hash gather/rowexchange bypass under shared memory. Do not invent those communication savings.",
+    "Native gather/dequant already combines table reads and scale multiplication; BF16 result rounds before Wkv. Codes are INT8, scalesFP32/group32 per checkpoint metadata, not model-global W8A8 assumptions. A5 MXFP8/E8M0 path is separate.",
+    "Current read selected host lookup widens IDs toINT64 before owned/subtract and chunk addressing, invalid IDs select row0 and produce exact outputzeros, local head columns all written; PAD_HEADS suffix untouched in general wrapper.",
+    "Every embed_gathered local output element appears overwritten by selected lookup before same-stream communication; private zero initialization may be redundant under complete-write/error/readiness proof. This is a nested preparation child, not the whole parent.",
+    "Actual rotated gate uses existing original projection/FP32 gate operations; no new tensor reduction or changedM/tiling bit identity assumed. Existing async preparation/graph generation needs actual flag binding, not an invented existing wait."
+  ],
+  "alternatives": [
+    "Whole lookup/gather/SP-consumer delivery using original numerical tile and row owner placement; preserve output aliases/graph persistent consumers before eliminating full row intermediate.",
+    "Joint hash/deadmask/table fetch/dequant producer for both layer outputs with native BF16 boundary; shared hash preparation already exists and two tables/rows are distinct.",
+    "Host pointer/scale group data reuse or memoized repeatedrow decode per registered table generation, respecting host registration and all hidden readers; price hit exposure/guard/cache cost before experiments.",
+    "Redundant zero-init and direct fixedbuffer publication only as children of whole price; no repeated tiny native test if optimistic parent fails budget.",
+    "Overlap layer14 production with earlier target layers only after actual current overlap flag and all memory/collective/resource/capture/error dependencies are established; no free gap accounting."
+  ],
+  "bounds_policy": "Historical performance/decisions only after source parent is fixed. Match exactSHA old evidence and original frozen C8/sixordinary. Larger owner/query/metadata parents keep independent obligations; no8x owner latency or logical-byte-to-time claim. No new Torch/NPU/model/profile/request/service/remote writes in this source Run.",
+  "every_replacement_bitwise": true,
+  "whole_chain_complete": false,
+  "new_primitive_admissions": 0,
+  "new_NPU_work": 0,
+  "remote_writes": [],
+  "inputs": [
+    {
+      "path": "audit/execution-search/engram-lookup-path-dependencies.json",
+      "sha256": "5b1376ba65066bc31d2c05e9d31112c1fd5b8d293c4ff16f70d354c59257fb06"
+    },
+    {
+      "path": "audit/execution-search/whole-forward-frozen-config.json",
+      "sha256": "c24aa1965601793292f7909313dc7e7e8d7010d6151d3db551a0637c8601e186"
+    },
+    {
+      "path": "audit/execution-search/engram-storage-dependencies.json",
+      "sha256": "a41d8bf841de71a01e9f1d31e5247572cd7f308f6335ad0f72f7e144a780d055"
+    },
+    {
+      "path": "audit/execution-search/engram-joint-entry.json",
+      "sha256": "f7809f2d093846e98b6aa1c56e4f0d8e5592cb2c0a428018650c4150aeba8ce7"
+    }
+  ],
+  "next_source": "Acquire exact create_engram_hash_state adapter/selected upstream NgramHashState and device hash implementation; inspect finite pointer/head/gather mapping then exactSHA prior overlap/alias/native/price intersections. Preserve prior13source primary; extensions get a separate manifest."
+}

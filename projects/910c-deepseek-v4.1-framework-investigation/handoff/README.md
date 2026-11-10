@@ -1,5 +1,16 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-11 Engram实际hash与UVA内核：补齐覆盖，完整父段继续保留
+
+介绍：从实际prepare_engram调用追V1 history写入、两层hash、共享UVA查表/反量化、TP heads交付，到SP行上的Wkv/rotated gate与后继HC。到了哪里：17当前源码身份；补齐实际适配器、上游history和Triton hash/lookup主体，并与exact-SHA旧合同去重；旧两代表卡24完整双层交付定价。结果：整段native包络1.954322%代表窗，不能停止整个父段；lookup本体0.031226%、私有预零0.008845%，同预算小方案不重测。该父段与机制已有旧记录，本轮是覆盖/组合价补全，不冒充新发现。新增原生准入0，全链路未闭合。
+
+实际V1先发布slot history再hash，shared DP绕过每步DP查表通信，UVA lookup已含反量化与BF16 cast；先TP heads再SP行，原Wkv/gate/残差全部读者保留。旧exact-SHA合同与失败配方去重，0新增数值测试。累计前沿只验证全文/调用证据，未将其变成全部分支或native准入。
+
+[本段判断](evidence/Engram实际hash与UVA查表到双层残差的覆盖判断.md) · [实际源与分支](evidence/engram-lookup-path-review.json) · [逐边派发](evidence/engram-lookup-path-recursive-intersections.json) · [累计源码前沿](evidence/recursive-semantic-frontier.json) · [完整分支与付成本价](evidence/engram-lookup-path-price.json)。
+
+下一条待扫：loop047下一Run：先把旧源全文范围、当前实际receiver与aux/Compressor/Engram侧表合成累计递归覆盖前沿，保留每项的精确SHA/分支/消费者/历史价及未闭合原因，避免重复扫已有主体。再从未归位的AscendMoERunner.apply_routed_input_transform、_maybe_reduce_*、shared/routed transform与最终combine实际消费者继续，绑定冻结SEDP/DFC与合法替代分支；按完整输出交付审共享、数学/量化/布局和megakernel，再用已有同负载价。不要用319节点、34输入谓词或具名缺口声称全链路闭合；每替换原语逐位一致。本源码Run无新Torch/NPU/模型/profile/请求/服务/远端写入。
+
+
 ## 当前断点 · 2026-11-11 C1/C2压缩器完整交付：双cache与环形状态，独立小方案停止
 
 介绍：从C1/C2真实输入投影追到索引K/FP16 scale、长KV两路发布，及下一迭代FP32环形状态和QLI/SMLA实际读者。到了哪里：16当前源码身份、15原Python协议/有限控制；旧两代表卡96完整源交付，原C8全16卡历史分别匹配。结果：C2绕过Compressor.forward，零化/未完成行与整页状态都是合同；同预算独立后处理/池化写环/压缩历史小方案停止，更大输入/query/SWA/QLI/SMLA联合交付保留。每替换原语逐位一致，native新增准入0，全链路未闭合。
@@ -755,7 +766,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-当前源码覆盖：16当前身份、30具名body/range、11条receiver路由（原工作表15边交集）、15原Python/有限控制。C1/C2投影→完整ring与K/scale、长KV→QLI/SMLA读者；96完整源交付定价，同预算独立小方案停止，较大输入/query/SWA/QLI/SMLA保留。原122/34未变，每替换原语逐位一致，native新增0，全链路未闭合。
+当前源码覆盖：17当前身份、43具名body/range、19条receiver路由（原工作表16边交集）。实际Engram V1 history/hash/UVA到双层残差主体补齐，旧机制去重；24完整双层交付native包络1.954322%旧代表窗，父段保留，小lookup沿旧预算停止。累计前沿138节点全文记录仅供证据，不作为合法路径完成率；每替换原语逐位一致，native新增0，全链路未闭合。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
