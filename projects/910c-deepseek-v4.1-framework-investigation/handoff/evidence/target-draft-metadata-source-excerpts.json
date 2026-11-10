@@ -1,0 +1,145 @@
+{
+  "qualification": "Opaque original-Python controls/source facts and old diagnostic intervals only. Not Torch/native equality, live graph read-set, runtime race evidence or measured net speedup.",
+  "methods": [
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+      "owner": "_ReplicatedCacheImpl",
+      "method": "_global_layer_metadata",
+      "first": 171,
+      "last": 185,
+      "lines": [
+        "    def _global_layer_metadata(self, metadata_by_prefix):",
+        "        global_by_prefix = {}",
+        "        # The runner also includes DSpark's native DSA metadata in this map.",
+        "        # Resolve only the cache planes consumed by this target layer.",
+        "        for prefix in (",
+        "            self.swa_prefix,",
+        "            self.long_kv_source_prefix,",
+        "            self.index_k_source_prefix,",
+        "            self.compressor_state_prefix,",
+        "        ):",
+        "            if prefix is None:",
+        "                continue",
+        "            metadata = metadata_by_prefix[prefix]",
+        "            global_by_prefix[prefix] = metadata.global_metadata",
+        "        return self._get_layer_metadata(global_by_prefix)"
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+      "owner": "AscendDSAV41MetadataBuilder",
+      "method": "build_for_drafting",
+      "first": 839,
+      "last": 842,
+      "lines": [
+        "    def build_for_drafting(self, common_attn_metadata, draft_index, **kwargs):",
+        "        # DSpark issues one eager block per step. Group-local tables and slots",
+        "        # remain independent; the builder owns the operator metadata buffers.",
+        "        return self.build(0, common_attn_metadata)"
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+      "owner": "AscendDSAV41MetadataBuilder",
+      "method": "_publish_task",
+      "first": 879,
+      "last": 900,
+      "lines": [
+        "    def _publish_task(",
+        "        self,",
+        "        shared: dict[str, Any],",
+        "        key: str,",
+        "        buffer: torch.Tensor,",
+        "        stage: DeviceMetadataStage,",
+        "        run,",
+        "    ) -> torch.Tensor:",
+        "        existing = shared.get(key)",
+        "        if existing is not None:",
+        "            return existing",
+        "        shared[key] = buffer",
+        "        if self._device_metadata_enabled and not (",
+        "            self._device_metadata_in_graph and stage == DeviceMetadataStage.COMPRESSOR",
+        "        ):",
+        "            self._device_metadata_tasks = (",
+        "                *self._device_metadata_tasks,",
+        "                DeviceMetadataTask(stage, run, id(buffer)),",
+        "            )",
+        "        else:",
+        "            run()",
+        "        return buffer"
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+      "owner": "AscendDSAV41MetadataBuilder",
+      "method": "take_device_metadata_tasks",
+      "first": 874,
+      "last": 877,
+      "lines": [
+        "    def take_device_metadata_tasks(self) -> tuple[DeviceMetadataTask, ...]:",
+        "        tasks = self._device_metadata_tasks",
+        "        self._device_metadata_tasks = ()",
+        "        return tasks"
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "owner": "NPUModelRunner",
+      "method": "_update_full_graph_params_if_needed",
+      "first": 3147,
+      "last": 3167,
+      "lines": [
+        "    def _update_full_graph_params_if_needed(",
+        "        self,",
+        "        forward_context: ForwardContext,",
+        "        num_tokens_padded: int,",
+        "    ) -> None:",
+        "        if (",
+        "            forward_context.cudagraph_runtime_mode == CUDAGraphMode.FULL",
+        "            and not forward_context.capturing",
+        "            and not self.use_sparse and not self.use_compress",
+        "        ):",
+        "            if self.enable_enpu:",
+        "                torch.npu.current_stream().synchronize()",
+        "",
+        "            update_full_graph_params(",
+        "                self.attn_backend,",
+        "                self.update_stream,",
+        "                forward_context,",
+        "                num_tokens_padded,",
+        "                self.vllm_config,",
+        "                self.speculative_config,",
+        "            )"
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py",
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "owner": "NPUModelRunner",
+      "method": "_maybe_eager_restore_copy_sfa_tails",
+      "first": 3434,
+      "last": 3447,
+      "lines": [
+        "    def _maybe_eager_restore_copy_sfa_tails(self, attn_metadata: PerLayerAttnMetadata) -> None:",
+        "        if not self._copy_sfa_need_eager_tail_restore:",
+        "            return",
+        "        self._copy_sfa_need_eager_tail_restore = False",
+        "        groups = attn_metadata if isinstance(attn_metadata, list) else [attn_metadata]",
+        "        for group in groups:",
+        "            if not isinstance(group, dict):",
+        "                continue",
+        "            for metadata in group.values():",
+        "                if getattr(metadata, \"fused_copy_sfa_enabled\", False) and getattr(",
+        "                    metadata, \"copy_sfa_copy_src_offsets\", None",
+        "                ) is not None:",
+        "                    get_sparse_kv_offload_manager().restore_copy_sfa_tails(metadata)",
+        "                    return"
+      ]
+    }
+  ]
+}
