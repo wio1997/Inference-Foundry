@@ -1,0 +1,31 @@
+--- a/vllm_ascend/attention/context_parallel/dsa_v41_cp.py
++++ b/vllm_ascend/attention/context_parallel/dsa_v41_cp.py
+@@ -132,14 +132,20 @@
+         # Device lengths are authoritative after speculative rejection; the
+         # CPU mirror may still be an upper bound. Remove only the query suffix
+         # beyond this rank's token interval from each request's device length.
+-        query_ends = common.query_start_loc_cpu[1 : common.num_reqs + 1]
+-        suffix = query_ends - query_ends.clamp(min=actual_start, max=actual_end)
+-        if not bool(getattr(common, "causal", True)):
+-            suffix = torch.zeros_like(suffix)
+-        local_seq_lens = (
+-            common.seq_lens[: common.num_reqs] - suffix.pin_memory().to(common.seq_lens.device, non_blocking=True)
+-        ).clamp_min(0)
+-        local_seq_lens = torch.where(query_start_loc[1:] > query_start_loc[:-1], local_seq_lens, 0)
++        # Reuse only the original local batch owner, within this build.
++        _cp_batch = kwargs.get("common_v41_batch_metadata")
++        _cp_cached = None if _cp_batch is None else _cp_batch.get("batch")
++        if _cp_cached is None:
++            query_ends = common.query_start_loc_cpu[1 : common.num_reqs + 1]
++            suffix = query_ends - query_ends.clamp(min=actual_start, max=actual_end)
++            if not bool(getattr(common, "causal", True)):
++                suffix = torch.zeros_like(suffix)
++            local_seq_lens = (
++                common.seq_lens[: common.num_reqs] - suffix.pin_memory().to(common.seq_lens.device, non_blocking=True)
++            ).clamp_min(0)
++            local_seq_lens = torch.where(query_start_loc[1:] > query_start_loc[:-1], local_seq_lens, 0)
++        else:
++            local_seq_lens = _cp_cached["seq_lens"]
+         local_common = common.replace(
+             query_start_loc=query_start_loc,
+             query_start_loc_cpu=qsl,

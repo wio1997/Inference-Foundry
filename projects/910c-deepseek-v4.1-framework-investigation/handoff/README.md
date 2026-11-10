@@ -1,5 +1,18 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 共同设备投影命中后死工作：保留原首owner，转全模型分支覆盖
+
+介绍：设备权威长度经CP投影→原base缓存→C2/native与最终消费者。到了哪里：17当前源/11限定body/18行段、39个common读取点，原base符号哨兵960例与miss反例；16旧trace共4576次目标调用/4400命中段。结果：已有batch命中后的25段新长度值无消费者，原首投影/持久复制保留，独立补丁固定保留各QSL但未证明每份必要；精确补丁可审查但未安装。缩入时钟余量后平均45.234547ms/11周期Free，转移.5/新增.1ms每周期条件净2.098217%独立诊断窗。无原生/框架新准入，全链路未扫全，每替换原语逐位一致。
+
+待确认，值得开发：已有local batch hit的死投影删除；源码边界闭合，仍缺私有clone真实Torch/NPU/原生packet和地址/空尾与capture逐位、无探针成本、全请求与六普通人口/转移。已确认可实现：上轮受限CPU原型1保留，本轮新增框架替换0。已停止：删首投影、CPU上界替设备值、无owner判别删全部QSL、writer-only异步化、跨代cache与空query跳QLI的具体配方；按owner有条件删非首QSL/pin/H2D及CPUscalar/setup的大parent保留，此投影价不当整段上界。
+
+请求另列：同镜像配平C8轻量参考15.967999s，真实metadata frame229/231；人口.5/转移.5/h.1ms的条件整批省1.336721%，人口1则2.817479%，默认未知比例0，非实测，不迁移原不同prompt C8/TTFT/普通。CPU微基准、不同窗口及并发时间线收益不相加。
+
+[完整判断](evidence/共同设备长度投影的死工作与真实消费者判断.md) · [原源码消费者](evidence/common-device-source-review.json) · [精确待审补丁](evidence/common-device-hit-elision.diff) · [局部与请求条件价](evidence/common-device-price.json) · [下一段静态入口](evidence/whole-forward-entry.json)。
+
+下一条待扫：loop047 Run run-20261110T114154Z：沿当前模型/DSpark/Engram/attention的18个静态入口递归解析callee与合法guard，绑定冻结flag后再与同SHA旧审阅范围相交，分别记录源码已读/分支人口/消费者/原生证据；挑最大未扫交付。入口Run114347Z已PASS：16当前源、295语法callsite/156分支位，均不当唯一算子或执行覆盖。只读源码/配置/旧数据，无Torch/NPU/模型/新profile/服务动作。
+
+
 ## 当前断点 · 2026-11-10 共同frame分层key与26caller：CPU原语受限通过，继续device读者
 
 介绍：共同frame按rawCPU/postCPU/device/每资源交付分层，追真实caller、变异和图地址。到了哪里：12当前源/11限定body/29行段；16worker旧CPUparent日志确认每frame目标26+draft1；原CPU AST标量1728例，实际TorchCPU1728例/44928字节比较，guard变体3模式/78比较。结果：封闭不可变租约内CPU复用原型已确认可实现，服务框架替换准入0；v1 inference Tensor版本读取失败原件保留，模式guard通过但不证明不可变。CPU v1六组26call配对净省2.226–2.445ms/frame，非请求收益；真实caller/保留首body的新条件价1.964%/3.275%诊断窗。全链路未扫全，每替换原语逐位一致。
@@ -496,6 +509,9 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+共同设备投影：保留首owner与各builderQSL，已有batch hit的25段死工作已源码闭合并生成未安装补丁；新框架准入0。继续当前代码全模型分支覆盖，不把静态入口计数当执行。介绍：设备权威长度经CP投影→原base缓存→C2/native与最终消费者。到了哪里：17当前源/11限定body/18行段、39个common读取点，原base符号哨兵960例与miss反例；16旧trace共4576次目标调用/4400命中段。结果：已有batch命中后的25段新长度值无消费者，原首投影/持久复制保留，独立补丁固定保留各QSL但未证明每份必要；精确补丁可审查但未安装。缩入时钟余量后平均45.234547ms/11周期Free，转移.5/新增.1ms每周期条件净2.098217%独立诊断窗。无原生/框架新准入，全链路未扫全，每替换原语逐位一致。 [消费者、补丁与价](evidence/共同设备长度投影的死工作与真实消费者判断.md)。既有完整timeline/恢复/覆盖与先前结果全部保留。
+
+
 共同frame当前：loop045已做分层key/真实26+draft1 caller与CPU原语核验；loop046继续原主流deviceprojection读者。介绍：共同frame按rawCPU/postCPU/device/每资源交付分层，追真实caller、变异和图地址。到了哪里：12当前源/11限定body/29行段；16worker旧CPUparent日志确认每frame目标26+draft1；原CPU AST标量1728例，实际TorchCPU1728例/44928字节比较，guard变体3模式/78比较。结果：封闭不可变租约内CPU复用原型已确认可实现，服务框架替换准入0；v1 inference Tensor版本读取失败原件保留，模式guard通过但不证明不可变。CPU v1六组26call配对净省2.226–2.445ms/frame，非请求收益；真实caller/保留首body的新条件价1.964%/3.275%诊断窗。全链路未扫全，每替换原语逐位一致。 [CPU模式资格](evidence/共同frame_CPU模式资格补充.md)。既有完整timeline、诊断/恢复、DFC及其它结果保留。
 
 
@@ -579,7 +595,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每替换原语逐位一致。隔离CPU结果复用原型受限确认1，服务框架替换准入仍0，全链路未扫全。v1普通CPU1728例/44928比较通过，inference-created Tensor 的_version读取实际失败；guard变体3模式/78比较通过，仍须不可变输入租约，不能靠版本号发现NumPy写入。六组配对CPU成本属于v1普通模式，不充当guard服务收益。新caller价1.964%/3.275%只是独立诊断敏感性，非请求预测。目标26与draft1、CPU双mirror/原base缓存/每资源地址分开；Run110329Z CPU模式门槛PASS，Run105846Z device读者仍PLANNED。
+**2026-11-10 当前资格**：每替换原语逐位一致。隔离CPU原型受限通过1，新增框架替换准入0，全链路未扫全。本轮17current source、39common读取、960原base符号哨兵及4576旧trace序列闭合已有batch hit的死投影边界；哨兵不是原生位验收。精确补丁未安装，原首投影/base复制/各builderQSL/native输出与stage-group保留。device-only转移.5/h.1ms条件净2.098217%独立诊断窗；全请求1.336721%/2.817479%仅人口与转移假设敏感性、默认0，不能迁移原不同promptC8/TTFT/普通。loop046PIVOTED；loop047静态入口16源/18root/295语法调用/156分支位，selected dispatch及合法分支仍UNKNOWN，Run114154Z仍PLANNED。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
