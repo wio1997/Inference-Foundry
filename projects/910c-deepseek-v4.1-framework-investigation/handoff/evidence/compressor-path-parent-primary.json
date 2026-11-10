@@ -1,0 +1,52 @@
+{
+  "status": "SOURCE_FIRST_COMPRESSOR_COMPLETE_STATE_AND_TWO_CACHE_SINK_DELIVERY_BEFORE_PRICE",
+  "scope": "Frozen C1 source20 and C2 sources2/8/14: actual input hidden states -> original C1BF16 or paired C2FP32 projections -> C2 token-aligned pool and full FP32 ring-tail side effects -> BF16 RMS latent -> indexWk/norm/partialRoPE/dynamic INT8+FP16scale cache publication AND longKV partialRoPE/cache publication -> selected QLI/SMLA cross-layer readers plus next C2 residual reads. Include empty/short/append/reset/reuse and all visible buffer mutations, not only returned latent.",
+  "source_entry_correction": "C1 uses Compressor.forward; C2 bypasses forward and calls nn.Linear wkv/wgate then pool_projected/compressor_from_projected. Generic compressor/_proj_kernel and fused-norm TOKEN_ALIGNED=False branches are not selected C2.",
+  "fixed_roles": {
+    "C1_KV_and_K_source": [
+      20
+    ],
+    "C2_KV_and_K_sources": [
+      2,
+      8,
+      14
+    ],
+    "index_sources": [
+      2,
+      8,
+      14,
+      20,
+      24,
+      28,
+      32,
+      36
+    ]
+  },
+  "alternatives": [
+    "Whole original-rounding C1/C2 postprojection or postpool RMS/index-key/longKV dual-sink fusion, preserving raw pooled buffer zeros, cache dtype/strides and all scales/lengths/candidate outputs.",
+    "Joint two FP32 projection input/weight/layout planning: no credit for already shared hidden.float; changed N/tiling needs independent bit evidence, no substitution by legacy tolerance autotune.",
+    "Pool+ring-update megakernel only with previous-residual read-before-overwrite proof across programs, including wrap and long segment tails. No generic grid sync assumption.",
+    "Cross-card source ownership using original M/math may reduce duplicate work, but owner retains required compute and adds full state/output packet communication; no8x latency claim. Only broader query/source resource placement and paid critical-path value can justify it.",
+    "C2 complete-row pruning preserves ring updates and raw token-aligned output zeroing; changed M/partial native outputs are not admitted. C1 already reuses current RoPE; C2 source position is completion position minus1."
+  ],
+  "bounds_policy": "Price entire source state/key+KV publication and actual reader endpoint first, then nested mathematical/copy/scheduling children with mandatory work and added cost. Historical matching only after this source scope. Separate original C8, mirrored local windows and sixordinary; unknown request exposure defaults0.",
+  "every_replacement_bitwise": true,
+  "whole_chain_complete": false,
+  "new_primitive_admissions": 0,
+  "new_NPU_work": 0,
+  "remote_writes": [],
+  "inputs": [
+    {
+      "path": "audit/execution-search/compressor-path-dependencies.json",
+      "sha256": "8fe3e70d694740a3a7128c2548e5348c99cee2de50e01ffa4d159695e0c5e6bf"
+    },
+    {
+      "path": "audit/execution-search/whole-forward-dispatch.json",
+      "sha256": "dd7910e8cc628eaab9a579e4be64347d3b21480b333a4d7a01217021d1d4c4c9"
+    },
+    {
+      "path": "audit/execution-search/whole-forward-frozen-config.json",
+      "sha256": "c24aa1965601793292f7909313dc7e7e8d7010d6151d3db551a0637c8601e186"
+    }
+  ]
+}
