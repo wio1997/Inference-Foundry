@@ -172,7 +172,11 @@ class WorkerBase:
         if self._bounded_glm_startup:
             adapter = getattr(self, "_glm_single_request_adapter", None)
             if adapter is not None:
-                adapter.bridge.close()
+                close_adapter = getattr(adapter, "close", None)
+                if close_adapter is not None:
+                    close_adapter()
+                else:
+                    adapter.bridge.close()
             dist.barrier()
             PG.cleanup_shm_broadcast()
             dist.barrier()

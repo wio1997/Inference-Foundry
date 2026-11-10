@@ -195,6 +195,15 @@ class LLMEngine:
             from deepinfer.worker.worker import Worker
 
             runtime = getattr(bounded_glm_worker, "_glm_worker_runtime", None)
+            runtime_capacity = getattr(runtime, "max_requests", 1)
+            if hasattr(runtime, "max_context_tokens"):
+                runtime_context = runtime.max_context_tokens
+                runtime_step = runtime.max_step_tokens
+            elif runtime is not None:
+                runtime_context = runtime.runner.max_context_tokens
+                runtime_step = runtime.runner.boundary.max_tokens
+            else:
+                runtime_context = runtime_step = 0
             if (not isinstance(bounded_glm_worker, Worker) or runtime is None
                     or not getattr(bounded_glm_worker, "_bounded_glm_startup", False)
                     or not bounded_glm_worker.is_driver_worker
@@ -202,20 +211,21 @@ class LLMEngine:
                     or bounded_glm_worker.model_config.model != model_config.model
                     or engine_type != EngineType.NORMAL or not offline_inference or log_stats
                     or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING or envs.DEEPINFER_PROFILE_HTTP_ENABLE
-                    or scheduler_config.max_num_seqs != 1
+                    or not 1 <= scheduler_config.max_num_seqs <= runtime_capacity
                     or parallel_config.context_parallel_size not in (4, 8, 16)
                     or parallel_config.context_parallel_size != PG.context_parallel_group().size()
                     or parallel_config.data_parallel_size != 1 or parallel_config.expert_parallel_size != 1
                     or parallel_config.engram_parallel_size != 1 or cache_config.lookahead_tokens != 0
-                    or model_config.runtime_max_model_len > runtime.runner.max_context_tokens
+                    or model_config.runtime_max_model_len > runtime_context
                     or scheduler_config.max_num_batched_tokens < cache_config.block_size
                     or type(bounded_glm_logical_blocks) is not int
-                    or bounded_glm_logical_blocks < 3 + (model_config.runtime_max_model_len - 1) // cache_config.block_size):
+                    or bounded_glm_logical_blocks < scheduler_config.max_num_seqs * (3 + (model_config.runtime_max_model_len - 1) // cache_config.block_size)):
                 raise ValueError("unsupported bounded GLM engine configuration")
         elif bounded_glm_logical_blocks is not None:
             raise ValueError("logical block count requires an explicit bounded GLM Worker")
         self._bounded_glm_engine = bounded_glm
-        self._bounded_glm_max_step_tokens = runtime.runner.boundary.max_tokens if bounded_glm else None
+        self._bounded_glm_max_step_tokens = runtime_step if bounded_glm else None
+        self._bounded_glm_capacity = scheduler_config.max_num_seqs if bounded_glm else None
         if bounded_glm:
             # Adopt the already selected and externally verified NPU Worker.
             # CUDA visibility is not a source of Ascend device ownership.
@@ -627,9 +637,9 @@ class LLMEngine:
             >>> ...
         """
         if self._bounded_glm_engine:
-            if (self.get_num_unfinished_requests() or multi_modal_data is not None
+            if (self.get_num_unfinished_requests() >= self._bounded_glm_capacity or multi_modal_data is not None
                     or extra or not enqueue or chunk_checkpoints):
-                raise ValueError("bounded GLM engine accepts one plain text request at a time")
+                raise ValueError("bounded GLM engine request capacity or plain-text contract exceeded")
             # Bound each scheduled prompt span to the worker allocation using
             # the existing scheduler checkpoints, before scheduler mutation.
             if not isinstance(prompt_token_ids, np.ndarray) or prompt_token_ids.ndim != 1 or prompt_token_ids.size > self.model_config.max_model_len:
@@ -757,6 +767,11 @@ class LLMEngine:
             if so_pending:
                 self.so_matcher_builder.submit(seq, sampling_params.so_args, _enqueue)
             else:
+                if self._bounded_glm_engine:
+                    adapter = self.driver_worker._glm_single_request_adapter
+                    register = getattr(adapter, "register_request", None)
+                    if register is not None:
+                        register(request_id, prompt_token_ids.tolist(), sampling_params)
                 _enqueue(seq)
         return seq
 
@@ -1099,14 +1114,25 @@ class LLMEngine:
                 # A fresh request between intervals legitimately has no model
                 # work. Keep this driver-only; no placeholder may mutate state.
                 runtime = self.driver_worker._glm_worker_runtime
-                if (self.get_num_pendings() != 1
-                        or runtime.backend._owner is not None):
+                if hasattr(runtime, "max_requests"):
+                    controller = runtime.adapter.controller
+                    if (not self.has_unfinished_requests() or controller.pending is not None
+                            or runtime.adapter.poisoned or controller.poisoned):
+                        raise RuntimeError("native batch scheduler idle step has invalid lifecycle state")
+                elif (self.get_num_pendings() != 1 or runtime.backend._owner is not None):
                     raise RuntimeError("bounded GLM scheduler produced an unsupported empty step")
                 self.pre_sampler_sync(scheduler_outputs)
                 self.generate_step += 1
                 return np.empty(0, dtype=np.uint64)
-            if len(scheduler_outputs.finished_seqs) != 1:
-                raise RuntimeError("bounded GLM scheduler produced multiple terminal requests")
+            if not 1 <= len(scheduler_outputs.finished_seqs) <= self._bounded_glm_capacity:
+                raise RuntimeError("bounded GLM terminal batch exceeds declared capacity")
+            runtime = self.driver_worker._glm_worker_runtime
+            if hasattr(runtime, "max_requests"):
+                controller = runtime.adapter.controller
+                unreleased = [seq.request_id for seq in scheduler_outputs.finished_seqs
+                              if seq.request_id in controller.requests]
+                if unreleased:
+                    controller.finish(unreleased)
             from types import SimpleNamespace
 
             self.pre_sampler_sync(scheduler_outputs)

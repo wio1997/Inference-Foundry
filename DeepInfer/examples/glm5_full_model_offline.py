@@ -8,6 +8,7 @@ does not launch/reserve devices; validate every deployment against its source ma
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 import time
 from types import SimpleNamespace
@@ -41,7 +42,13 @@ def main():
     p.add_argument('--warmup-requests', type=int, default=1)
     p.add_argument('--measured-requests', type=int, default=3)
     p.add_argument('--weight-offload', choices=('prefetch', 'none'), default='prefetch')
+    p.add_argument('--compute-backend', choices=('reference', 'sdk-batch'), default='reference')
+    p.add_argument('--max-sequences', type=int, default=1)
+    p.add_argument('--cache-bytes', type=int, default=2147483648)
+    p.add_argument('--batch-smoke-cases', type=Path)
     a = p.parse_args()
+    if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
+        p.error('explicit SDK batch backend required for multi-sequence admission')
     if not 1 <= a.port <= 65535 or a.serve_max_requests < 0:
         p.error('valid port and nonnegative service request bound required')
     if (not a.output_dir.is_absolute() or not a.go_file.is_absolute()
@@ -56,6 +63,11 @@ def main():
             or not 1 <= a.warmup_requests <= 8 or not 1 <= a.measured_requests <= 32
             or len(a.benchmark_tokens or a.tokens) + a.benchmark_output_tokens > a.max_context):
         p.error('benchmark requires explicit tokens, fitting context, warmup and bounded repetitions')
+    if a.compute_backend == 'sdk-batch':
+        # DP1 online admission should inspect waiting work each iteration,
+        # rather than inheriting the legacy 70/100 decode-step polling cadence.
+        os.environ['DEEPINFER_PREFILL_ATTEMPT_INTERVAL'] = '1'
+        os.environ['DEEPINFER_PREFILL_ANY_ATTEMPT_INTERVAL'] = '1'
     os.environ['DEEPINFER_USE_NEXTN_DECODE'] = '0'
     os.environ['DEEPINFER_ZERO_OVERHEAD_SCHEDULING'] = '0'
     os.environ['HF_HUB_OFFLINE'] = '1'
@@ -95,6 +107,21 @@ def main():
         time.sleep(0.1)
 
     def initialize_reference_glm(self, **kwargs):
+        if a.compute_backend == 'sdk-batch':
+            from deepinfer.model_executor.models.glm5_next.full_model.sdk_runtime import prepare_sdk_compute
+            runtime = prepare_sdk_compute(a.model, device=self.device,
+                native_group=PG.context_parallel_group(), local_rank=a.local_device,
+                init_method=a.init_method, max_context=a.max_context,
+                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes)
+            runtime.install(self)
+            model = runtime.compute_worker.get_model()
+            (out / 'loaded.json').write_text(json.dumps({'rank': a.rank,
+                'backend': 'SDK compute worker under native scheduler;no SDK engine/scheduler',
+                'max_sequences': a.max_sequences, 'cache_bytes': a.cache_bytes,
+                'parameter_numel_by_device': {d: sum(p.numel() for p in model.parameters() if p.device.type == d)
+                    for d in {p.device.type for p in model.parameters()}},
+                'state': 'loaded;native batch execution unverified'})+'\n')
+            return
         runtime = prepare_reference_worker_runtime(
             a.model, self.device, worker_group=PG.context_parallel_group(),
             local_rank=a.local_device, sampler=AscendSampler() if self.is_driver_worker else None,
@@ -125,6 +152,10 @@ def main():
                  'peak_allocated_bytes': int(v[2]), 'peak_reserved_bytes': int(v[3])}
                 for i, v in enumerate(torch.stack(gathered).cpu().tolist())]
 
+    def flush_sdk_finished(self):
+        self._glm_worker_runtime.adapter.flush_finished()
+
+    Worker.flush_sdk_finished = flush_sdk_finished
     Worker.benchmark_memory_snapshot = benchmark_memory_snapshot
     Worker.initialize_reference_glm = initialize_reference_glm
     parallel = SimpleNamespace(world_size=a.world_size, context_parallel_size=a.world_size,
@@ -140,13 +171,21 @@ def main():
     try:
         worker.run_workers('initialize_reference_glm')
         config = EngineArgs(model=a.model, max_model_len=a.max_context,
-            max_num_batched_tokens=max(128, a.max_step), max_num_seqs=1,
+            max_num_batched_tokens=max(128, a.max_step), max_num_seqs=a.max_sequences,
             context_parallel_size=a.world_size, expert_parallel_size=1, engram_parallel_size=1,
             tokens_per_block=128, chunked_prefill=True,
             disable_log_stats=True, offline_inference=True)
-        logical_blocks = 3 + (a.max_context - 1) // 128
+        logical_blocks = a.max_sequences * (3 + (a.max_context - 1) // 128)
         llm = LLMEngine.from_bounded_glm_worker(config, worker=worker, logical_blocks=logical_blocks)
+        if a.batch_smoke_cases is not None:
+            from deepinfer.model_executor.models.glm5_next.full_model.sdk_smoke import run_batch_smoke
+            run_batch_smoke(llm, worker, a, out)
+            return
         if a.serve:
+            if a.compute_backend == 'sdk-batch':
+                from deepinfer.model_executor.models.glm5_next.full_model.sdk_http import serve_sdk_batch_engine
+                serve_sdk_batch_engine(llm, worker, a, out)
+                return
             from deepinfer.model_executor.models.glm5_next.full_model.native_http import serve_native_engine
             serve_native_engine(llm, worker, a, out)
             return
@@ -200,7 +239,12 @@ def main():
         print(json.dumps({'generated_token_ids': generated}), flush=True)
     finally:
         if llm is not None:
-            llm.close()
+            try:
+                if (a.compute_backend == 'sdk-batch' and sys.exc_info()[0] is None
+                        and not llm.has_unfinished_requests()):
+                    worker.run_workers('flush_sdk_finished')
+            finally:
+                llm.close()
         elif dist.is_initialized():
             worker.run_workers('stop')
 
