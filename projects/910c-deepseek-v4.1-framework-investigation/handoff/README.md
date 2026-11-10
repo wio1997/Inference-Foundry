@@ -419,6 +419,17 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+### 2026-11-10 原生缓存发布与SWA主辅流join：局部3%不等于净省
+
+介绍：真实OOT/native的indexK/longKV双发布扩大到SWA整段与Qb重叠。到了哪里：39当前source pins/29非空ranges；两个代表rank各48条十算子链、516条SWA三算子链与Qb/queryRoPE/SMLA一一关联，已有完整native CSV各35664行。结果：十算子链全免仅.427%–.432%窗口，独立旧小预算继续停止。SWA局部全免3.065%–3.080%，但固定Qb到达的join最多仅提前.648774%–.660879%窗口；不把局部3%当收益。保留RMS BF16与RoPE BF16边界、FP32三角表、原乘乘加及stride/skip；SK已融合地址计算。更大WKV/Q/input-ready资源与数学共享待确认，本轮准入0；窗口不是请求收益，全链路未扫全，每个替换原语逐位一致。
+
+[原生交付与局部价格](evidence/原生缓存发布与SWA整段融合判断.md) · [Qb重叠与join净价](evidence/SWA主辅流join与较大输入交付判断.md)。
+
+下一条待扫：loop038 Run run-20261110T050354Z：沿CVLinearWrapper/实际层方法与量化守卫→TorchNPU npu_quant_matmul→CANN9.2 QuantBatchMatmulV3 tiling/epilogue→FP32-trig query RoPE→SMLA实际读者。7当前磁盘source pins/5匹配，CV13–189与CP/量化入口已读；CP local-query/global-cache metadata不同，不能盲共享全张量。继续较大Q/KV整段价格和精度/布局/资源。owned容器最近读到exited，同image/id；用docker cp stdout只读源码成功，不启动/干扰其它采集，不冒称当前live服务健康。
+
+状态：待确认——更大Q/KV/input-ready与原生逐位/资源/请求净价；已确认可实现——本轮0；已停止——旧独立index尾段，固定Qb的SWA-only不以局部3%立项，不剪ordinary/任意资源重排或更大parent。全部大trace/逐链完整原件留本地，公开summary projection明确列SHA，不冒称全原件公开。
+
+
 2026-11-10 性能图首页改为时间账单：[入口](evidence/balanced-profile-171/README.md)。稳态设备窗口中算子53%–55%、空档约38%、未重叠通信7%–9%；纯调度占比未分清。先看时间分布与MoE/DFC热点，再展开详细证据；本次仅展示更新，无新增采集。
 
 2026-11-10 配平复采完成：[框架→算子全局性能图与复用包](evidence/balanced-profile-171/README.md) · [报告](evidence/balanced-profile-171/REPORT.md)。DP各4镜像请求，参考中位16.091秒、509.11输出token/s；32worker/2前端trace，early88类/steady84类设备算子。稳态Gloo仅1.53%/2.21%，两组共有Free约38.4%，目标DFC最大。Free生产者及可省量待确认，新增优化实现0；灰色段仍待归因，不能标记全链路搜索完成。原服务已恢复。
@@ -449,7 +460,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：按真实执行链继续扫，当前进入 [原生双缓存 epilogue](evidence/cache-epilogue-entry.json)。C09 原序直达 L1/两块尾 pin 仍待原生逐位、真实 K/分组与付成本；K03 wholeDFC 已核为24AIC/48AIV，旧20/40闲核前提撤回；Engram lookup-only 由[整段全免预算](evidence/engram-storage-frontier.json)归入已停止，主机容量与更大 input-owner/WKV 另列缺口。
+**2026-11-10 当前资格**：每个替换原语逐位一致。原生缓存发布已扫限定ranges；[SWA主辅流join](evidence/SWA主辅流join与较大输入交付判断.md)固定Qb上界仅.649%–.661%窗口，不用局部3%直接立项。继续[较大Q/KV producer](evidence/swa-query-producer-source-review.json)。C09原序L1与K03 wholeDFC更正、Engram lookup-only停止及较大容量/input-owner缺口继续有效。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 

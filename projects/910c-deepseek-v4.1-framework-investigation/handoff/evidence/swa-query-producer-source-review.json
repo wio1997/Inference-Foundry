@@ -1,0 +1,93 @@
+{
+  "status": "LARGER_QKV_PRODUCER_PYTHON_ENTRY_BOUNDED_NATIVE_MATMUL_PENDING",
+  "whole_chain_complete": false,
+  "every_replacement_bitwise": true,
+  "sources": [
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/cv_linear.py",
+      "path": "audit/execution-search/swa-query-producer-source/vllm-workspace/vllm-ascend/vllm_ascend/ops/cv_linear.py",
+      "sha256": "d2bf17c189f8748a9b7e5cbd42325c798eeb238da894755065792da982450b6d",
+      "reviewed_ranges": [
+        [
+          13,
+          189
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/linear.py",
+      "path": "audit/execution-search/swa-query-producer-source/vllm-workspace/vllm-ascend/vllm_ascend/ops/linear.py",
+      "sha256": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6",
+      "reviewed_ranges": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "sha256": "a67601ee596d9aa4ae72ea3638f67ff7236cd8df884564bcd19f33653a1e0910",
+      "reviewed_ranges": [
+        [
+          92,
+          139
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v1.py",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v1.py",
+      "sha256": "698765a3662332ad108fd9ef128eb87fd313544cd887f5154f924a5915ee123a",
+      "reviewed_ranges": [
+        [
+          1620,
+          1650
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "sha256": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305",
+      "reviewed_ranges": [
+        [
+          1445,
+          1475
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+      "reviewed_ranges": [
+        [
+          170,
+          220
+        ],
+        [
+          450,
+          490
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "reviewed_ranges": []
+    }
+  ],
+  "read_method": "docker cp individual file to stdout tar, parsed in memory; no extraction or process in container",
+  "container_state_at_read": "exited",
+  "limits": "Stopped-container disk identity, not live service/loadedkernel identity. Previous running-guard retrieval failed and retained separately.",
+  "findings": [
+    "CP target _prepare_inputs_and_caches passes local-query hidden_states[start:] and global cache hidden_states with distinct metadata; base share_inputs is identity check so generic full tensor quant reuse cannot be assumed for local3/global24.",
+    "CVLinearWrapper detects communication/customop and gather_output; communication returns raw input from quantize then full linear.forward. No extra communication deletion credit.",
+    "No-communication W8A8 path npu_dynamic_quant then npu_quant_matmul using weight_scale dtype for output; wrapped methods supported. Nonquant path quantize returns raw x,None then quant_method.apply. MXFP8 has separate group scales/dtypes, not this frozen W8A8 shortcut.",
+    "CV q_b output_dtype=weight_scale.dtype differs from generic W8A8 apply choosing x/output_dtype; exact instantiated method/weight_scale/bias needed before equality claim.",
+    "Native typed records show Wq_a/WKV MatMulV2 and Qb QuantBatchMatmulV3 with NZ weight, not all projections one identical quantized input. Source-only object values not verified."
+  ],
+  "next_action": "Bind actual model layer methods/weights/bias and source-config quant guards; trace TorchNPU npu_quant_matmul -> CANN9.2 QuantBatchMatmulV3 epilogue/RoPE readers and larger full input-ready scope using existing profiles. Preserve original BF16 query output before FP32 RoPE and real local/global row geometry.",
+  "new_NPU_work": 0,
+  "new_profile": 0,
+  "service_requests": 0,
+  "remote_writes": []
+}
