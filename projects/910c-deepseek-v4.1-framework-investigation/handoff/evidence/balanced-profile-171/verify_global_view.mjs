@@ -24,7 +24,10 @@ for(let i=0;i<100;i++){if(await evaluate("document.querySelector('#op-rows')?.ch
 const initial=await evaluate("({nodes:document.querySelectorAll('[data-node]').length,ops:document.querySelector('#op-rows').children.length,ranks:document.querySelector('#rank-table').children.length,requests:document.querySelector('#request-rows').children.length,error:document.querySelector('#error').textContent,title:document.querySelector('#detail h2').textContent})");
 assert(initial.nodes===18&&initial.ops===84&&initial.ranks===16&&initial.requests===8&&!initial.error,'Initial population: '+JSON.stringify(initial));
 assert(initial.title.includes('两组'),'Stale DP1-only idle label');
-assert(await evaluate("!document.querySelector('#bill-panel').hidden && document.querySelector('#overview-panel').hidden && document.querySelectorAll('.bill-op').length===6"),'Plain summary is not the default');
+assert(await evaluate("!document.querySelector('#bill-panel').hidden && document.querySelector('#overview-panel').hidden && document.querySelectorAll('#bill-hotspots .bill-op').length===6"),'Plain summary is not the default');
+assert(await evaluate("document.querySelector('#open-idle-detail') && document.querySelector('#bill-panel').textContent.includes('96%')"),'Idle findings missing on homepage');
+await evaluate("document.querySelector('#open-idle-detail').click()");
+assert(await evaluate("!document.querySelector('#idle-panel').hidden && document.querySelector('#idle-stage-rows').children.length===6 && document.querySelector('#idle-verdict').textContent.includes('96%')"),'Idle stage detail');
 await evaluate("document.querySelector('[data-view=overview]').click()");
 await evaluate("document.querySelector('[data-node=moe]').click()");await delay(50);
 assert(await evaluate("!!document.querySelector('#detail .operator-hint')"),'Missing module-to-kernel link');
@@ -51,9 +54,10 @@ await evaluate("document.querySelector('[data-view=scope]').click();document.que
 assert(await evaluate("document.querySelector('#request-rows').children.length===8"),'Request rows');
 await evaluate("document.querySelector('[data-view=overview]').click();document.querySelector('[data-node=idle]').click();window.scrollTo(0,0)");await shot('171-global-chain.png');
 await evaluate("document.querySelector('[data-view=bill]').click();window.scrollTo(0,0)");await shot('171-plain-time-bill.png');
+await evaluate("document.querySelector('[data-view=idle]').click();window.scrollTo(0,0)");await shot('171-idle-detail.png');
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
 const mobile=await evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})");assert(mobile.scroll<=mobile.width,'Mobile overflow '+JSON.stringify(mobile));
 assert(errors.length===0,'Browser errors '+JSON.stringify(errors));
-const result={passed:true,local_only:true,initial,mobile,checks:['plain time bill default','module drilldown','operator search','DP switch','16-rank timeline','early/steady','same-call flow','per-rank calls','8 request timings','mobile layout'],screenshots:['/tmp/171-plain-time-bill.png','/tmp/171-global-chain.png','/tmp/171-global-ranks.png','/tmp/171-global-kernels.png','/tmp/171-global-calls.png']};
+const result={passed:true,local_only:true,initial,mobile,checks:['plain time bill default','idle stage drilldown','module drilldown','operator search','DP switch','16-rank timeline','early/steady','same-call flow','per-rank calls','8 request timings','mobile layout'],screenshots:['/tmp/171-plain-time-bill.png','/tmp/171-idle-detail.png','/tmp/171-global-chain.png','/tmp/171-global-ranks.png','/tmp/171-global-kernels.png','/tmp/171-global-calls.png']};
 await writeFile(resolve(folder,'view-validation.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
 }finally{if(ws)ws.close();chrome.kill();}

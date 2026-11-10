@@ -1,0 +1,421 @@
+{
+  "date": "2026-11-10 Asia/Shanghai",
+  "status": "MEASURED_SCOPES_AND_RESTORED",
+  "scope": "one new targeted steady capture; 16 ranks; 11 closed target-graph cycles each",
+  "scoped": {
+    "ranks": 16,
+    "window": "closed_cycles",
+    "mean_device_window_ms": 839.31965625,
+    "mean_free_ms": 322.14765625,
+    "mean_free_pct_of_device": 38.38211695049647,
+    "rows": [
+      {
+        "key": "prepare input",
+        "label": "准备下一轮输入",
+        "work": "更新请求状态、token位置和长度、缓存映射；协调batch并构造各缓存组的注意力metadata。",
+        "code": "model_runner_v1.py:2287–2530；_prepare_inputs:1281；_build_attention_metadata:3449",
+        "mean_pct_of_free": 96.21499806347929,
+        "mean_free_ms": 309.767890625,
+        "mean_pct_of_device": 36.907087367281655
+      },
+      {
+        "key": "draft_token",
+        "label": "生成下一轮草稿",
+        "work": "准备DSpark输入、context/slot/metadata，运行草稿并交付后续候选。",
+        "code": "model_runner_v1.py:2890–2908；llm_base_proposer.py:1013–1398；dspark_proposer.py:226–357",
+        "mean_pct_of_free": 1.886643460714856,
+        "mean_free_ms": 6.068015625,
+        "mean_pct_of_device": 0.7229696991375014
+      },
+      {
+        "key": "forward",
+        "label": "目标整图启动",
+        "work": "将已准备的输入交给目标整图；Host范围与实际整图设备执行范围分开计量。",
+        "code": "model_runner_v1.py:2553–2598",
+        "mean_pct_of_free": 1.7658663814955502,
+        "mean_free_ms": 5.882859375,
+        "mean_pct_of_device": 0.7009597516540488
+      },
+      {
+        "key": "outside_recorded_worker_scopes",
+        "label": "其余未归类",
+        "work": "没有落入上述worker阶段的空档；不直接归为EngineCore调度。",
+        "code": "EngineCore自身未直接采集",
+        "mean_pct_of_free": 0.07899574561349958,
+        "mean_free_ms": 0.25684375,
+        "mean_pct_of_device": 0.030601272455653417
+      },
+      {
+        "key": "post process",
+        "label": "模型读出与结果整理",
+        "work": "整理目标输出、选择采样位置和读出所需数据。",
+        "code": "model_runner_v1.py:2610–2678",
+        "mean_pct_of_free": 0.03728006851117671,
+        "mean_free_ms": 0.119921875,
+        "mean_pct_of_device": 0.014288556973407375
+      },
+      {
+        "key": "sample_token",
+        "label": "校验与采样",
+        "work": "校验草稿并确定本轮接受的token。",
+        "code": "model_runner_v1.py:2812–2813",
+        "mean_pct_of_free": 0.01621628018563512,
+        "mean_free_ms": 0.052125,
+        "mean_pct_of_device": 0.00621030299419864
+      }
+    ]
+  },
+  "full_window": {
+    "ranks": 16,
+    "window": "all",
+    "mean_device_window_ms": 950.884078125,
+    "mean_free_ms": 387.806265625,
+    "mean_free_pct_of_device": 40.747745162849746,
+    "rows": [
+      {
+        "key": "prepare input",
+        "label": "准备下一轮输入",
+        "work": "更新请求状态、token位置和长度、缓存映射；协调batch并构造各缓存组的注意力metadata。",
+        "code": "model_runner_v1.py:2287–2530；_prepare_inputs:1281；_build_attention_metadata:3449",
+        "mean_pct_of_free": 94.07055233685482,
+        "mean_free_ms": 364.195171875,
+        "mean_pct_of_device": 38.28618621647045
+      },
+      {
+        "key": "forward",
+        "label": "目标整图启动",
+        "work": "将已准备的输入交给目标整图；Host范围与实际整图设备执行范围分开计量。",
+        "code": "model_runner_v1.py:2553–2598",
+        "mean_pct_of_free": 2.7224353517325777,
+        "mean_free_ms": 10.731359375,
+        "mean_pct_of_device": 1.1277082873942883
+      },
+      {
+        "key": "draft_token",
+        "label": "生成下一轮草稿",
+        "work": "准备DSpark输入、context/slot/metadata，运行草稿并交付后续候选。",
+        "code": "model_runner_v1.py:2890–2908；llm_base_proposer.py:1013–1398；dspark_proposer.py:226–357",
+        "mean_pct_of_free": 1.717695447402862,
+        "mean_free_ms": 6.632421875,
+        "mean_pct_of_device": 0.6977366991862466
+      },
+      {
+        "key": "outside_recorded_worker_scopes",
+        "label": "其余未归类",
+        "work": "没有落入上述worker阶段的空档；不直接归为EngineCore调度。",
+        "code": "EngineCore自身未直接采集",
+        "mean_pct_of_free": 1.4403977670128254,
+        "mean_free_ms": 6.0584375,
+        "mean_pct_of_device": 0.6162442770661947
+      },
+      {
+        "key": "post process",
+        "label": "模型读出与结果整理",
+        "work": "整理目标输出、选择采样位置和读出所需数据。",
+        "code": "model_runner_v1.py:2610–2678",
+        "mean_pct_of_free": 0.034068004080351544,
+        "mean_free_ms": 0.1315625,
+        "mean_pct_of_device": 0.013843267889641228
+      },
+      {
+        "key": "sample_token",
+        "label": "校验与采样",
+        "work": "校验草稿并确定本轮接受的token。",
+        "code": "model_runner_v1.py:2812–2813",
+        "mean_pct_of_free": 0.014851092916565979,
+        "mean_free_ms": 0.0573125,
+        "mean_pct_of_device": 0.006026414842926258
+      }
+    ]
+  },
+  "groups": {
+    "dp0": {
+      "ranks": 8,
+      "window": "closed_cycles",
+      "mean_device_window_ms": 839.2125,
+      "mean_free_ms": 323.3538125,
+      "mean_free_pct_of_device": 38.53094382736003,
+      "rows": [
+        {
+          "key": "prepare input",
+          "label": "准备下一轮输入",
+          "work": "更新请求状态、token位置和长度、缓存映射；协调batch并构造各缓存组的注意力metadata。",
+          "code": "model_runner_v1.py:2287–2530；_prepare_inputs:1281；_build_attention_metadata:3449",
+          "mean_pct_of_free": 95.9854510816801,
+          "mean_free_ms": 310.22259375,
+          "mean_pct_of_device": 36.966108866890835
+        },
+        {
+          "key": "forward",
+          "label": "目标整图启动",
+          "work": "将已准备的输入交给目标整图；Host范围与实际整图设备执行范围分开计量。",
+          "code": "model_runner_v1.py:2553–2598",
+          "mean_pct_of_free": 1.9725374129803337,
+          "mean_free_ms": 6.5419687500000006,
+          "mean_pct_of_device": 0.7796728982964923
+        },
+        {
+          "key": "draft_token",
+          "label": "生成下一轮草稿",
+          "work": "准备DSpark输入、context/slot/metadata，运行草稿并交付后续候选。",
+          "code": "model_runner_v1.py:2890–2908；llm_base_proposer.py:1013–1398；dspark_proposer.py:226–357",
+          "mean_pct_of_free": 1.9104069288739565,
+          "mean_free_ms": 6.16221875,
+          "mean_pct_of_device": 0.7342762929395033
+        },
+        {
+          "key": "outside_recorded_worker_scopes",
+          "label": "其余未归类",
+          "work": "没有落入上述worker阶段的空档；不直接归为EngineCore调度。",
+          "code": "EngineCore自身未直接采集",
+          "mean_pct_of_free": 0.07916869212693309,
+          "mean_free_ms": 0.25753125,
+          "mean_pct_of_device": 0.030687648373154464
+        },
+        {
+          "key": "post process",
+          "label": "模型读出与结果整理",
+          "work": "整理目标输出、选择采样位置和读出所需数据。",
+          "code": "model_runner_v1.py:2610–2678",
+          "mean_pct_of_free": 0.03750472733500669,
+          "mean_free_ms": 0.12115625,
+          "mean_pct_of_device": 0.014437212214336916
+        },
+        {
+          "key": "sample_token",
+          "label": "校验与采样",
+          "work": "校验草稿并确定本轮接受的token。",
+          "code": "model_runner_v1.py:2812–2813",
+          "mean_pct_of_free": 0.014931157003666403,
+          "mean_free_ms": 0.04834375,
+          "mean_pct_of_device": 0.0057609086457083925
+        }
+      ]
+    },
+    "dp1": {
+      "ranks": 8,
+      "window": "closed_cycles",
+      "mean_device_window_ms": 839.4268125,
+      "mean_free_ms": 320.9415,
+      "mean_free_pct_of_device": 38.2332900736329,
+      "rows": [
+        {
+          "key": "prepare input",
+          "label": "准备下一轮输入",
+          "work": "更新请求状态、token位置和长度、缓存映射；协调batch并构造各缓存组的注意力metadata。",
+          "code": "model_runner_v1.py:2287–2530；_prepare_inputs:1281；_build_attention_metadata:3449",
+          "mean_pct_of_free": 96.44454504527846,
+          "mean_free_ms": 309.3131875,
+          "mean_pct_of_device": 36.848065867672474
+        },
+        {
+          "key": "draft_token",
+          "label": "生成下一轮草稿",
+          "work": "准备DSpark输入、context/slot/metadata，运行草稿并交付后续候选。",
+          "code": "model_runner_v1.py:2890–2908；llm_base_proposer.py:1013–1398；dspark_proposer.py:226–357",
+          "mean_pct_of_free": 1.8628799925557553,
+          "mean_free_ms": 5.9738125,
+          "mean_pct_of_device": 0.7116631053354995
+        },
+        {
+          "key": "forward",
+          "label": "目标整图启动",
+          "work": "将已准备的输入交给目标整图；Host范围与实际整图设备执行范围分开计量。",
+          "code": "model_runner_v1.py:2553–2598",
+          "mean_pct_of_free": 1.5591953500107667,
+          "mean_free_ms": 5.22375,
+          "mean_pct_of_device": 0.6222466050116052
+        },
+        {
+          "key": "outside_recorded_worker_scopes",
+          "label": "其余未归类",
+          "work": "没有落入上述worker阶段的空档；不直接归为EngineCore调度。",
+          "code": "EngineCore自身未直接采集",
+          "mean_pct_of_free": 0.07882279910006608,
+          "mean_free_ms": 0.25615625,
+          "mean_pct_of_device": 0.03051489653815237
+        },
+        {
+          "key": "post process",
+          "label": "模型读出与结果整理",
+          "work": "整理目标输出、选择采样位置和读出所需数据。",
+          "code": "model_runner_v1.py:2610–2678",
+          "mean_pct_of_free": 0.03705540968734673,
+          "mean_free_ms": 0.1186875,
+          "mean_pct_of_device": 0.014139901732477835
+        },
+        {
+          "key": "sample_token",
+          "label": "校验与采样",
+          "work": "校验草稿并确定本轮接受的token。",
+          "code": "model_runner_v1.py:2812–2813",
+          "mean_pct_of_free": 0.017501403367603842,
+          "mean_free_ms": 0.05590625,
+          "mean_pct_of_device": 0.006659697342688888
+        }
+      ]
+    }
+  },
+  "original_submission": {
+    "scope": "16 original steady worker traces; same frozen load",
+    "decomposition": "per-rank percentages of Free, averaged over 16 ranks",
+    "ranks": 16,
+    "buckets": {
+      "before_next_submission_api_ms": 75.60985542759916,
+      "during_next_submission_api_ms": 4.389699615450446,
+      "after_next_submission_api_return_ms": 14.932472008044197,
+      "unmatched_or_next_activity_not_compute_ms": 1.3468443527672214,
+      "next_is_captured_graph_task_ms": 0.625215430011349,
+      "inside_target_graph": 3.095913166127379
+    },
+    "source": "idle-attribution.json"
+  },
+  "prepare_boundaries": [
+    {
+      "ep": 0,
+      "calls": 11,
+      "mean_prepare_wall_ms": 45.604113636363635,
+      "mean_prepare_free_ms": 28.804636363636362,
+      "parts": [
+        {
+          "key": "input_through_dp_sync",
+          "mean_wall_ms": 12.001636363636363,
+          "mean_free_ms": 0.3679090909090909,
+          "where_calls_per_prepare": 2
+        },
+        {
+          "key": "after_dp_before_first_metadata_submission",
+          "mean_wall_ms": 31.79,
+          "mean_free_ms": 27.717022727272727,
+          "where_calls_per_prepare": 243
+        },
+        {
+          "key": "metadata_submission_and_finish",
+          "mean_wall_ms": 1.8124772727272727,
+          "mean_free_ms": 0.7197045454545454,
+          "where_calls_per_prepare": 0
+        }
+      ]
+    },
+    {
+      "ep": 8,
+      "calls": 11,
+      "mean_prepare_wall_ms": 45.7345,
+      "mean_prepare_free_ms": 28.082136363636362,
+      "parts": [
+        {
+          "key": "input_through_dp_sync",
+          "mean_wall_ms": 12.847295454545455,
+          "mean_free_ms": 0.39447727272727273,
+          "where_calls_per_prepare": 2
+        },
+        {
+          "key": "after_dp_before_first_metadata_submission",
+          "mean_wall_ms": 30.98393181818182,
+          "mean_free_ms": 26.925113636363637,
+          "where_calls_per_prepare": 243
+        },
+        {
+          "key": "metadata_submission_and_finish",
+          "mean_wall_ms": 1.9032727272727272,
+          "mean_free_ms": 0.7625454545454545,
+          "where_calls_per_prepare": 0
+        }
+      ]
+    }
+  ],
+  "test": {
+    "reference_seconds": 15.791772973,
+    "reference_output_tokens_s": 518.7511252856965,
+    "profile_seconds": 17.355092973,
+    "profile_output_tokens_s": 472.0228242363562,
+    "reference_checks": {
+      "eight_requests": true,
+      "lengths_32k_1k": true,
+      "four_success_each_dp": true,
+      "input_tokens_equal": true,
+      "output_tokens_equal": true,
+      "cache_hits_equal": true,
+      "observed_four_running_each": true,
+      "matching_inputs": true,
+      "matching_outputs": true,
+      "no_preemption": true
+    },
+    "profile_checks": {
+      "eight_requests": true,
+      "lengths_32k_1k": true,
+      "four_success_each_dp": true,
+      "input_tokens_equal": true,
+      "output_tokens_equal": true,
+      "cache_hits_equal": true,
+      "observed_four_running_each": true,
+      "matching_inputs": true,
+      "matching_outputs": true,
+      "no_preemption": true
+    },
+    "restored": {
+      "health": 200,
+      "smoke_usage": {
+        "prompt_tokens": 1,
+        "total_tokens": 9,
+        "completion_tokens": 8,
+        "prompt_tokens_details": null,
+        "completion_tokens_details": null
+      },
+      "running": true,
+      "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+      "original_custom_scopes_env": [],
+      "source_files": {
+        "/data/tiankuan/wio/projects/910c-deepseek-v4.1-flash/scripts/serve.sh": {
+          "sha256": "c297201185b5676254af4d7693279f89bfa60f9c76eb340058a78ecf730b7bba"
+        },
+        "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py": {
+          "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c"
+        },
+        "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py": {
+          "sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91"
+        },
+        "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py": {
+          "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd"
+        },
+        "/vllm-workspace/vllm/vllm/v1/utils.py": {
+          "sha256": "5b6015d60ea96ab24b0f2e0b7701abaa90d6107bca01b51ac3d4bc361fbdfcff",
+          "lines": [
+            778,
+            794
+          ],
+          "scope_switch_source": "def record_function_or_nullcontext(name: str) -> AbstractContextManager:\n    global _PROFILER_FUNC\n\n    # fast path assume it is set\n    if _PROFILER_FUNC is not None:\n        return _PROFILER_FUNC(name)\n\n    func = contextlib.nullcontext\n    if envs.VLLM_CUSTOM_SCOPES_FOR_PROFILING:\n        func = record_function\n    elif envs.VLLM_NVTX_SCOPES_FOR_PROFILING:\n        import nvtx\n\n        func = nvtx.annotate\n\n    _PROFILER_FUNC = func\n    return func(name)"
+        }
+      },
+      "frozen_hashes_match": true
+    }
+  },
+  "priorities": [
+    {
+      "title": "先查输入/metadata的共同构造",
+      "reason": "约96%的空档发生在prepare input。代表卡的约31ms协调后参数构造窗口贡献约27ms空档，并出现243次where。先消除兼容同代视图/长度/掩码的重复构造，复用缓冲并合并交付。",
+      "code": "AscendDSAV41CPMetadataBuilder.build → _build_local_token_metadata；model_runner_v1._build_attention_metadata",
+      "status": "待确认；热点已测到，具体替换及净收益未验收"
+    },
+    {
+      "title": "将Host准备和设备融合一起计价",
+      "reason": "现有slot mapping已经有fused-groups路径；新增方案应减少剩余Host派发与输入生产，而不是重复实现已有融合。保留所有缓存组、精度、同步和代次合同。",
+      "code": "ascend-block_table.py:469；metadata-host / BatchFrame既有方向",
+      "status": "待确认；复用历史，不新增重复信用"
+    },
+    {
+      "title": "草稿和DP等待按本次实际预算排序",
+      "reason": "草稿Host阶段仅约2%的空档；DP协调和事件等待中有很多时间与设备工作重叠。优先完成输入准备大段的净价判断。",
+      "code": "draft_token；_sync_metadata_across_dp",
+      "status": "当前优先级降低；不等于这些阶段完全无优化空间"
+    }
+  ],
+  "limits": [
+    "Scope overlap identifies which worker phase is active, not a proof that every instruction in it causes idle or can be removed.",
+    "Closed cycles use first MODEL_EXECUTE through last MODEL_EXECUTE, excluding incomplete trace edges; full-window result is also retained.",
+    "EngineCore scheduler process is not directly profiled. Uncovered idle is not its CPU execution time or a universal upper bound.",
+    "The 31ms subwindow uses DP all_reduce end and first native metadata wrapper start. It is not an exact Python function boundary.",
+    "The legacy CP metadata builder is a source-supported lead. No full worker Python stack is available to bind each where to one function.",
+    "The profiler adds overhead. No optimization or 2x throughput improvement was implemented; do not extrapolate window ratios to all 16 seconds."
+  ]
+}

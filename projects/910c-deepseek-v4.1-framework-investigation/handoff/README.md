@@ -419,6 +419,8 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+2026-11-10 设备空档已定位到输入准备：[报告与代码入口](evidence/idle-attribution-171/REPORT.md) · [全局图](evidence/balanced-profile-171/README.md)。一次原生阶段标签补采，16卡闭合11循环：prepare input占Free约96.21%，草稿1.89%；代表卡协调后到首个metadata提交前约31ms，其中约27ms空档、243次where。优先价已有metadata-host / BatchFrame共同构造与交付，具体实现和净收益待确认，不重复旧信用。原服务已恢复，新增优化实现0。
+
 ### 2026-11-10 原生缓存发布与SWA主辅流join：局部3%不等于净省
 
 介绍：真实OOT/native的indexK/longKV双发布扩大到SWA整段与Qb重叠。到了哪里：39当前source pins/29非空ranges；两个代表rank各48条十算子链、516条SWA三算子链与Qb/queryRoPE/SMLA一一关联，已有完整native CSV各35664行。结果：十算子链全免仅.427%–.432%窗口，独立旧小预算继续停止。SWA局部全免3.065%–3.080%，但固定Qb到达的join最多仅提前.648774%–.660879%窗口；不把局部3%当收益。保留RMS BF16与RoPE BF16边界、FP32三角表、原乘乘加及stride/skip；SK已融合地址计算。更大WKV/Q/input-ready资源与数学共享待确认，本轮准入0；窗口不是请求收益，全链路未扫全，每个替换原语逐位一致。
