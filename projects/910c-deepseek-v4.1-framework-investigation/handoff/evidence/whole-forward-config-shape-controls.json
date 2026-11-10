@@ -1,0 +1,62 @@
+{
+  "status": "PASS_TWO_SOURCE_CONFIG_REPRESENTATION_CONTROLS",
+  "controls": [
+    {
+      "mode": "nested",
+      "initial": {
+        "experts": 384,
+        "topk": 6,
+        "vision_n_layers": 0,
+        "has_text_config": true
+      },
+      "result": {
+        "experts": 128,
+        "topk": 3,
+        "mtp_layers": 3,
+        "vision_n_layers": 0,
+        "constructor_vision_bias_predicate": false,
+        "arch_is_mm_prefix_lm": false,
+        "sample_from_anchor_default": true
+      },
+      "target_raw_unchanged": true
+    },
+    {
+      "mode": "original_flat_class_body_with_stub_super",
+      "initial": {
+        "experts": 384,
+        "topk": 6,
+        "vision_n_layers": 32,
+        "has_text_config": false
+      },
+      "result": {
+        "experts": 128,
+        "topk": 3,
+        "mtp_layers": 3,
+        "vision_n_layers": 32,
+        "constructor_vision_bias_predicate": true,
+        "arch_is_mm_prefix_lm": false,
+        "sample_from_anchor_default": true
+      },
+      "target_raw_unchanged": true
+    }
+  ],
+  "sources": [
+    {
+      "runtime_path": "/vllm-workspace/vllm/vllm/transformers_utils/configs/deepseek_v41.py",
+      "sha256": "5e7052bca7ce79dfa801a3bff20fa2c287ec15d82cf999d003f309b30bf6c1f0"
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/patch/platform/patch_speculative_config.py",
+      "sha256": "afdb32f354469434384a3ac71202f242c5be10d5b31663fc9b27c9ce548a7793"
+    }
+  ],
+  "parent_dispatch_sha256": "dd7910e8cc628eaab9a579e4be64347d3b21480b333a4d7a01217021d1d4c4c9",
+  "conclusion": "Both source representations normalize expert/topK/layer counts, but a flattened class-body path retains vision_n_layers32. Therefore neither text-only DSpark nor arch.is_mm_prefix_lm=False proves gate.bias_vl absent: model.py212 tests vision_n_layers independently and has no is_draft_layer filter. Inspect actual private hf_text_config/gate fields and token predicate before pruning that route. This is a source counter-control, not a loaded-object bug claim.",
+  "qualification": "Original config __init__ with pass-through PretrainedConfig superclass and original normalizer with registry stub. No actual Transformers initialization/runtime config identity, ownership or native bits established. Private inputs explicitly cloned in controls; target-unchanged is not independent proof of real SpecConfig ownership.",
+  "new_NPU_work": 0,
+  "new_profile": 0,
+  "service_requests": 0,
+  "new_framework_replacement_admissions": 0,
+  "remote_writes": [],
+  "reader_sha256": "a6254a6656370b63d7c891ce11847017b6e495955146689a3258e3aeb4e65dea"
+}

@@ -1,5 +1,18 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 全模型注册与继承绑定：49源码约束，107输入控制位仍待扫
+
+介绍：从真实注册、C3/别名、冻结配置与逐层职责建立执行入口，再与旧范围相交。到了哪里：40当前源码、config43d3/serve c297未变；16方法解析与Python C3对照、40target角色/3draft与私有128专家TopK3标量控制；156原静态分支/循环/上下文位逐项记录。结果：49受限源码/角色/排除绑定，107仍未闭合，不是107算子或已完成路径。DSpark继承/别名与实际_propose已补，rawMTPbank存在但固定DSpark数值路径不消费；同预算旧terminal小方案不重开。新框架/原语准入0，全链路未扫全，每替换原语逐位一致。
+
+待确认、值得深入：较大共同CP frame的CPU/scalar/canonical QSL/设备长度交付；冻结V1 executor不capture producer，A3 builder不启用metadata_in_graph，producer输入地址与model graph地址分开审查。不能据此跳过native位、全部读者/事件或输入租约，增加共享读者可延长末读；旧device-only2.098217%不是整parent上界。107处还须继续callsite/人口/消费者，不把源码行交集当搜索完成。
+
+配置补充：原HF类体展平控制保留vision_n_layers32，而draft arch-info的is_mm_prefix_lm=False；两者不是同一字段。纯文本/DSpark不能推出vision-router bias不存在，实际HF/text/gate与token谓词仍待绑定。已确认可实现：仅上轮受限CPU原型1保留，本轮新增融合0。已停止：静态18入口当全覆盖、flag1当CANN MegaMoe、raw bank不存在、凭text-only删除vision-bias与同预算独立terminal copy小方案；更大parent保留。
+
+[完整判断](evidence/全模型派发继承与合法分支覆盖判断.md) · [注册/C3/40角色](evidence/whole-forward-dispatch.json) · [156位与旧范围交集](evidence/whole-forward-coverage-delta.json) · [配置形态对照](evidence/whole-forward-config-shape-controls.json) · [源行段](evidence/whole-forward-binding-source-excerpts.json)。
+
+下一条待扫：loop047 Run run-20261110T124045Z：继续实际V1 worker metadata/input的107剩余位，核输入Tensor来源、selected builder/资源组、canonical QSL与每个first owner→全部base/native/model graph消费者和CPU/producer/consumer退役及覆写；区分V2/A5和固定/动态条件。40源派发Run114154Z已PASS/NA；新Run仍PLANNED，配置两形态标量补充不当真实对象或原生位。只读源码/旧数据，无Torch/NPU/模型/新profile/服务动作。
+
+
 ## 当前断点 · 2026-11-10 共同设备投影命中后死工作：保留原首owner，转全模型分支覆盖
 
 介绍：设备权威长度经CP投影→原base缓存→C2/native与最终消费者。到了哪里：17当前源/11限定body/18行段、39个common读取点，原base符号哨兵960例与miss反例；16旧trace共4576次目标调用/4400命中段。结果：已有batch命中后的25段新长度值无消费者，原首投影/持久复制保留，独立补丁固定保留各QSL但未证明每份必要；精确补丁可审查但未安装。缩入时钟余量后平均45.234547ms/11周期Free，转移.5/新增.1ms每周期条件净2.098217%独立诊断窗。无原生/框架新准入，全链路未扫全，每替换原语逐位一致。
@@ -509,6 +522,9 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+当前源码覆盖：40源注册/C3/别名/逐层角色已绑定；156原静态位中49受限源码约束、107输入/控制/消费者未闭合。新增框架准入0，全链路未扫全。默认时间线入口已加当前状态，旧数据/全局图/恢复历史保留。[派发与分支判断](evidence/全模型派发继承与合法分支覆盖判断.md)。
+
+
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
 
 共同设备投影：保留首owner与各builderQSL，已有batch hit的25段死工作已源码闭合并生成未安装补丁；新框架准入0。继续当前代码全模型分支覆盖，不把静态入口计数当执行。介绍：设备权威长度经CP投影→原base缓存→C2/native与最终消费者。到了哪里：17当前源/11限定body/18行段、39个common读取点，原base符号哨兵960例与miss反例；16旧trace共4576次目标调用/4400命中段。结果：已有batch命中后的25段新长度值无消费者，原首投影/持久复制保留，独立补丁固定保留各QSL但未证明每份必要；精确补丁可审查但未安装。缩入时钟余量后平均45.234547ms/11周期Free，转移.5/新增.1ms每周期条件净2.098217%独立诊断窗。无原生/框架新准入，全链路未扫全，每替换原语逐位一致。 [消费者、补丁与价](evidence/共同设备长度投影的死工作与真实消费者判断.md)。既有完整timeline/恢复/覆盖与先前结果全部保留。
@@ -597,7 +613,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每替换原语逐位一致。隔离CPU原型受限通过1，新增框架替换准入0，全链路未扫全。本轮17current source、39common读取、960原base符号哨兵及4576旧trace序列闭合已有batch hit的死投影边界；哨兵不是原生位验收。精确补丁未安装，原首投影/base复制/各builderQSL/native输出与stage-group保留。device-only转移.5/h.1ms条件净2.098217%独立诊断窗；全请求1.336721%/2.817479%仅人口与转移假设敏感性、默认0，不能迁移原不同promptC8/TTFT/普通。loop046PIVOTED；loop047静态入口16源/18root/295语法调用/156分支位，selected dispatch及合法分支仍UNKNOWN，Run114154Z仍PLANNED。
+**2026-11-10 当前资格**：每替换原语逐位一致。受限CPU原型1保留，新增框架替换0，完整路径搜索未完成。40当前source/16方法解析与PythonC3、原标量40层角色和private draft128/3/3已核；156静态位中49有受限源码/角色约束，107仍须追输入/控制与消费者，不计为算子或已完成路径。配置stub两形态不代表真实Transformers/对象字段；纯文本或arch-info False不能证明vision-bias不存在。rawMTPbank分配并写但固定DSpark数值getter不消费，旧同预算小方案不重开；大共同frame/owner条件QSL/输入租约与双端退役仍待确认。loop047 Run114154Z PASS/NA仅此界，Run124045Z仍PLANNED。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
