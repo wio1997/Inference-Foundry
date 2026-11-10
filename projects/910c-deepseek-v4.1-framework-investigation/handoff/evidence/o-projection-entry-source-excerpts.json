@@ -1,0 +1,111 @@
+{
+  "sources": [
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "full_source_sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+      "reviewed_ranges": [
+        [
+          209,
+          225
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 209,
+          "last": 225,
+          "text": "    def _project_output(self, attn, output, hidden_states, metadata, *, projected):\n        _, _, per_rank, _ = metadata.swa.cp_token_range\n        padded = output\n        if output.shape[0] != per_rank:\n            padded = output.new_zeros((per_rank, output.shape[1], output.shape[2]))\n            padded[: output.shape[0]] = output\n        exchanged = restore_tp_heads(padded, get_tp_group())\n        # DSpark's DP/FlashComm padding can extend hidden states beyond the\n        # metadata token interval. Restore that suffix before O projection so\n        # its TP reduction keeps the caller's padded output layout.\n        if exchanged.shape[0] < hidden_states.shape[0]:\n            padded_exchange = exchanged.new_zeros((hidden_states.shape[0], *exchanged.shape[1:]))\n            padded_exchange[: exchanged.shape[0]] = exchanged\n            exchanged = padded_exchange\n        # The inherited V4 module owns quantized weights and TP projection logic.\n        attn.dsa_attn.dsa_attn.impl._forward_o_proj(exchanged[: hidden_states.shape[0]], projected)\n        return projected"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "full_source_sha256": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305",
+      "reviewed_ranges": [
+        [
+          1657,
+          1683
+        ],
+        [
+          1754,
+          1801
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 1657,
+          "last": 1683,
+          "text": "    def _apply_wo_b(\n        self,\n        o_proj_input: torch.Tensor,\n        full_weight: bool,\n    ) -> torch.Tensor:\n        if not full_weight:\n            return self.wo_b(o_proj_input)\n        return self.wo_b.quant_method.apply(self.wo_b, o_proj_input, bias=None)\n\n    def _get_batched_wo_a_weight(self, num_groups: int) -> torch.Tensor:\n        \"\"\"Return wo_a in the DSA batched-matmul layout [group, input, rank].\"\"\"\n        weight = self.wo_a.weight\n        if weight.ndim == 3:\n            if weight.shape[0] == num_groups:\n                return weight\n            if weight.shape[1] == num_groups:\n                return weight.permute(1, 0, 2)\n            raise RuntimeError(\n                \"DSA-CP wo_a weight has no group axis matching the o_proj input: \"\n                f\"weight_shape={tuple(weight.shape)}, num_groups={num_groups}.\"\n            )\n\n        linear_method = getattr(self.wo_a.quant_method, \"quant_method\", self.wo_a.quant_method)\n        if isinstance(linear_method, AscendUnquantizedLinearMethod):\n            return weight.reshape(num_groups, -1, weight.shape[-1]).transpose(1, 2)\n        return weight.reshape(weight.shape[0], num_groups, -1).permute(1, 0, 2)\n"
+        },
+        {
+          "first": 1754,
+          "last": 1801,
+          "text": "    def _forward_o_proj(\n        self, o_proj_input: torch.Tensor, output: torch.Tensor | None = None, *, full_gather_wo_a_enabled: bool = False\n    ) -> torch.Tensor:\n        \"\"\"Project with the active weights; the caller owns their lifetime.\"\"\"\n        num_tokens = o_proj_input.shape[0]\n        o_proj_groups = self.n_group if full_gather_wo_a_enabled else self.n_local_groups\n        use_a5_quant_o_proj = self.support_fp8_attention and _has_weight_scale(self.wo_a)\n        if use_a5_quant_o_proj:\n            o = o_proj_input.view(num_tokens, o_proj_groups, -1)\n            wo_a_method = getattr(self.wo_a.quant_method, \"quant_method\", self.wo_a.quant_method)\n            if isinstance(wo_a_method, AscendUnquantizedLinearMethod):\n                o = torch.bmm(o.transpose(0, 1), self._get_batched_wo_a_weight(o_proj_groups)).transpose(0, 1)\n            else:\n                o, swiglu_out_scale = torch_npu.npu_dynamic_mx_quant(o, dst_type=torch.float8_e4m3fn)\n                o = torch_npu.npu_transpose_quant_batchmatmul(\n                    o,\n                    self._get_batched_wo_a_weight(o_proj_groups),\n                    dtype=torch.bfloat16,\n                    bias=None,\n                    group_sizes=(0, 0, 32),\n                    x1_scale=swiglu_out_scale.view(torch.float8_e8m0fnu),\n                    x2_scale=self._get_batched_wo_a_scale(o_proj_groups).view(torch.float8_e8m0fnu),\n                    perm_x1=(1, 0, 2),\n                    perm_x2=(0, 1, 2),\n                    perm_y=(1, 0, 2),\n                )\n            o_proj_input = o.reshape(num_tokens, -1)\n        else:\n            o_proj_input = o_proj_input.view(num_tokens, o_proj_groups, -1)\n            # A5 BF16 uses the same 3D [groups, hidden, rank] layout.\n            o_proj_input = torch_npu.npu_transpose_batchmatmul(\n                o_proj_input,\n                self._get_batched_wo_a_weight(o_proj_groups),\n                bias=None,\n                scale=None,\n                perm_x1=(1, 0, 2),\n                perm_x2=(0, 1, 2),\n                perm_y=(1, 0, 2),\n                batch_split_factor=1,\n            )\n            o_proj_input = o_proj_input.reshape(num_tokens, -1)\n        projected_output = self._apply_wo_b(o_proj_input, full_gather_wo_a_enabled)\n        if output is None:\n            return projected_output\n        output[...] = projected_output\n        return output\n\n    def _forward("
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v1.py",
+      "full_source_sha256": "698765a3662332ad108fd9ef128eb87fd313544cd887f5154f924a5915ee123a",
+      "reviewed_ranges": [
+        [
+          250,
+          279
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 250,
+          "last": 279,
+          "text": "        block_size: int,\n        num_kv_heads: int,\n        head_size: int,\n        cache_dtype_str: str = \"\",\n    ) -> tuple[int, ...]:\n        return num_blocks, block_size, num_kv_heads, head_size\n\n    @staticmethod\n    def get_scale_shape(num_blocks: int, block_size: int, scale_size: int) -> tuple[int, ...]:\n        return num_blocks, block_size, scale_size\n\n    @staticmethod\n    def get_impl_cls() -> type[AttentionImplBase[Any]]:\n        from vllm_ascend.utils import enable_dsa_cp\n\n        use_dsa_cp = enable_dsa_cp()\n        use_pcp = enable_pcp()\n        if use_dsa_cp and use_pcp:\n            raise ValueError(\"Legacy DSACP and PCP cannot be enabled at the same time.\")\n        if use_dsa_cp:\n            from vllm_ascend.attention.context_parallel.dsa_cp import AscendDSACPImpl\n\n            return AscendDSACPImpl\n        if use_pcp:\n            from vllm_ascend.attention.context_parallel.dsa_cp import AscendDSAPCPImpl\n\n            return AscendDSAPCPImpl\n        return AscendDSAImpl\n\n    @staticmethod"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/layer/attention/layer.py",
+      "full_source_sha256": "3ed52f4fe52f1c3b8106da67438fcf8dfe1ec34ec5a99a88d4b590db83bc34a7",
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/cv_linear.py",
+      "full_source_sha256": "d2bf17c189f8748a9b7e5cbd42325c798eeb238da894755065792da982450b6d",
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "full_source_sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "reviewed_ranges": [
+        [
+          879,
+          928
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 879,
+          "last": 928,
+          "text": "    def forward(\n        self,\n        positions,\n        hidden_states,\n        pre_mix,\n        llama_4_scaling=None,\n        input_ids=None,\n    ):\n        use_sequence_parallel = getattr(self, \"use_sequence_parallel\", False)\n        residual = hidden_states\n        x, attn_post, attn_comb, attn_pre = self.hc_pre(\n            hidden_states,\n            self.hc_attn_fn,\n            self.hc_attn_scale,\n            self.hc_attn_base,\n            pre_mix,\n        )\n        x = self.input_layernorm(x)\n        if use_sequence_parallel:\n            x = sp_all_gather(x)[: positions.shape[0]]\n        x = self.self_attn(positions, x, llama_4_scaling)\n        if use_sequence_parallel:\n            x = sp_reduce_scatter(x)\n        hidden_states = self.hc_post(x, residual, attn_post, attn_comb)\n\n        residual = hidden_states\n        x, ffn_post, ffn_comb, ffn_pre = self.hc_pre(\n            hidden_states,\n            self.hc_ffn_fn,\n            self.hc_ffn_scale,\n            self.hc_ffn_base,\n            attn_pre,\n        )\n        x, x_fp32 = self.rms_norm_cast(x)\n        x = self.mlp(\n            x,\n            input_ids=input_ids,\n            hidden_states_fp32=x_fp32,\n            already_sequence_parallel=use_sequence_parallel,\n        )\n        hidden_states = self.hc_post(x, residual, ffn_post, ffn_comb)\n        return hidden_states, ffn_pre\n\n\nclass DeepseekV41Model(nn.Module, EagleModelMixin):\n    \"\"\"V4.1 backbone with delayed HC collapse and shared attention state.\"\"\"\n\n    decoder_layer_cls = DeepseekV41DecoderLayer\n\n    def __init__(self, *, vllm_config, prefix=\"\"):"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/common/ops/sequence_parallel.py",
+      "full_source_sha256": "73bcf07050bce8b049dd0bbdb0a7504f6eba157a1e97a5033849ef31ef05fcb0",
+      "reviewed_ranges": [
+        [
+          71,
+          101
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 71,
+          "last": 101,
+          "text": "    # Avoid copying the full input when its token count is already aligned.\n    if sp_pad > 0:\n        pad_shape = [sp_pad, x.shape[1]]\n        x = torch.cat([x, x.new_zeros(pad_shape)], dim=0)\n    output = _custom_collective(\"custom_reduce_scatter\", x)\n    if output is not None:\n        return output\n    return tensor_model_parallel_reduce_scatter(x, 0)\n\n\ndef _ascend_sp_reduce_scatter_fake(x: torch.Tensor) -> torch.Tensor:\n    tp_size = get_tensor_model_parallel_world_size()\n    return torch.empty(\n        [cdiv(x.shape[0], tp_size), x.shape[1]],\n        dtype=x.dtype,\n        device=x.device,\n    )\n\n\ndirect_register_custom_op(\n    op_name=\"ascend_sp_reduce_scatter_impl\",\n    op_func=_ascend_sp_reduce_scatter_impl,\n    mutates_args=[],\n    fake_impl=_ascend_sp_reduce_scatter_fake,\n    dispatch_key=\"PrivateUse1\",\n)\n\n\ndef sp_reduce_scatter(x: torch.Tensor) -> torch.Tensor:\n    assert x.ndim == 2\n    return torch.ops.vllm.ascend_sp_reduce_scatter_impl(x)"
+        }
+      ]
+    }
+  ],
+  "qualification": "Only bounded actual caller/consumer entry ranges; empty identity-only; no nativebit/fullpath admission."
+}
