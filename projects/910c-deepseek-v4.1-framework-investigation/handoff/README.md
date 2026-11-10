@@ -1,5 +1,16 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 O投影资源剪枝与HC premix提前交付：继续真实系数和跨层读者
+
+介绍：OA/OB→SP→HC/FFN大交付，再沿实际HCPost/HCPreV3/RMS走到MLP和FFNPost。到了哪里：37O投影源/23限定body、20HC源/17限定body，两rank各516条源一致链，144 parent价、108资源价、144 fork/join价；原profile六条1800MHz记录。结果：当前M24单owner81.636us下界高于全部旧OA+OB，停止该schedule及擦掉OA舍入的预合成；多owner/大prefill待确认。premix存在时collapse不依赖本次新系数，提前交付e5/h5、无争用条件净1.340%/1.368%窗口，40us MLP争用会翻负；原BF16残差、collapse与RMS舍入/FP32扩宽均保留。新原语准入0，全链路未扫全，每替换原语逐位一致。
+
+待确认：多owner OA/OB的活跃key、原语位、聚合服务与净价；premix提前交付的原系数尾部/跨层代次/独立事件/FULL图/实际MLP争用；大prefill和普通请求曝光。已确认可实现：本轮0。已停止：擦掉OA舍入的普遍预合成、当前M24单owner全部OA/OB、原kernel间gap-only小范围；舍入前FP32直接喂router、删除后续FFNPost残差、无premix原样提前或跳过活跃coeff。只停止具体变换，不剪大parent。
+
+[O投影原生资源与大段价](evidence/O投影原生资源与SP残差FFN交付判断.md) · [HC原生与提前交付](evidence/HC原生舍入与premix提前交付判断.md) · [144 fork/join情景](evidence/hc-early-delivery-price.json)。
+
+下一条待扫：loop042 Run run-20261110T080543Z：HCPre stage2 post/comb/Sinkhorn/newpre到下一decoder、Engram与final读者及实际多流FULL图split/join；保留原coeff完整工作、原舍入/归约，查能改变去留的事件/资源/争用边界。仅只读源码/旧profile，不进口框架、不做NPU/服务/采样。
+
+
 ## 当前断点 · 2026-11-10 共同frame双端退役与packet净价：继续O投影大交付
 
 介绍：同代CP共同frame沿metadata producer/consumer走到下一代覆写，并补head8 query packet成本。到了哪里：15当前source identities、11限定body行段，Python回调提交时点与device/CPU存储寿命分开；20场景1033顺序模型、两rank各12帧/144成本情景；另7当前OA/OB→SP→mHC/FFN入口源已核。结果：release-only/devicewait-only pinned复用缺边，明确acquire须早于runner持久输入覆写，CPU快照与producer/consumer完成分别保护。三目标packet旧参考616–620us/迭代，不按层重复；替换与共存成本不同。大frame/head候选保留待确认，转O投影大段；新原语准入0，全链路未扫全，每替换原语逐位一致。
@@ -441,6 +452,9 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+当前源码排查：loop041完成限定O投影资源/整段价，loop042沿HC真实premix提前交付到后续读者。介绍：OA/OB→SP→HC/FFN大交付，再沿实际HCPost/HCPreV3/RMS走到MLP和FFNPost。到了哪里：37O投影源/23限定body、20HC源/17限定body，两rank各516条源一致链，144 parent价、108资源价、144 fork/join价；原profile六条1800MHz记录。结果：当前M24单owner81.636us下界高于全部旧OA+OB，停止该schedule及擦掉OA舍入的预合成；多owner/大prefill待确认。premix存在时collapse不依赖本次新系数，提前交付e5/h5、无争用条件净1.340%/1.368%窗口，40us MLP争用会翻负；原BF16残差、collapse与RMS舍入/FP32扩宽均保留。新原语准入0，全链路未扫全，每替换原语逐位一致。 [原生与交付判断](evidence/HC原生舍入与premix提前交付判断.md)。并发详细性能核准/可加总树及恢复历史保持原样。
+
+
 2026-11-10 54%计算总账核准与分函数计时方案：[可加总核准](evidence/performance-breakdown-171/RECONCILIATION.md) · [逐函数计时/优化方案](evidence/performance-breakdown-171/TIMING-PLAN.md)。16卡逐区间核对：79类各自时长合计57.30%，减并行重复3.11个百分点后为54.19%。Computing 454.87ms由单类型独占428.79ms、并行共享26.04ms、CSV未匹配边界0.04ms组成；时间树CSV完整保留。输入准备155.35ms仍需少数子函数标记，不伪称纯调度。新增采集/模型请求/实现0。
 
 当前源码排查：loop040完成限定frame寿命/packet价格判断并转loop041 O投影原生读者。介绍：同代CP共同frame沿metadata producer/consumer走到下一代覆写，并补head8 query packet成本。到了哪里：15当前source identities、11限定body行段，Python回调提交时点与device/CPU存储寿命分开；20场景1033顺序模型、两rank各12帧/144成本情景；另7当前OA/OB→SP→mHC/FFN入口源已核。结果：release-only/devicewait-only pinned复用缺边，明确acquire须早于runner持久输入覆写，CPU快照与producer/consumer完成分别保护。三目标packet旧参考616–620us/迭代，不按层重复；替换与共存成本不同。大frame/head候选保留待确认，转O投影大段；新原语准入0，全链路未扫全，每替换原语逐位一致。 [判断](evidence/共同frame的真实覆写与双端退役判断.md)。同窗详细性能账单及此前原件保留。
@@ -505,7 +519,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每个替换原语逐位一致，BF16末位差异失败。loop040已分清回调scalar与CPU/device存储，firstwrite、双端完成、pinned快照与partial-submit错误协议已具体化；仍待native/alias/位与净价。head8 packet按替换/共存分别收费。当前loop041继续OA/OB→SP→mHC/FFN大交付；本轮准入0，全链路未扫全。既有C09/K03更正与小范围停止限定继续有效。
+**2026-11-10 当前资格**：每替换原语逐位一致，BF16末位差异失败。O投影单owner M24与擦掉OA舍入的预合成停止，多owner/大prefill保留具体位/资源缺口。HC premix-present早交付有源码独立性，仍待原系数尾部/跨层代次、独立事件/FULL图、真实争用及逐原语位；FP32router来自舍入BF16扩宽。loop042 Run075729Z为限定source/price PASS、正确性NA；Run080543Z仍PLANNED。准入0，全链路未扫全，既有C09/K03更正与小范围停止限定有效。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
