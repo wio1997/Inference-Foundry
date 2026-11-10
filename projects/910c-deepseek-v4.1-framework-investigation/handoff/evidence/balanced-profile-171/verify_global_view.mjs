@@ -26,6 +26,7 @@ assert(initial.nodes===18&&initial.ops===84&&initial.ranks===16&&initial.request
 assert(initial.title.includes('两组'),'Stale DP1-only idle label');
 assert(await evaluate("!document.querySelector('#performance-panel').hidden && document.querySelector('#perf-all-ops').children.length===84 && document.querySelector('#perf-top-ops').children.length===12 && document.querySelector('#perf-comm').children.length===5"),'Same-sample detailed account missing');
 assert(await evaluate("document.querySelector('#perf-top-ops tr').textContent.includes('17.22') && document.querySelector('#perf-unknown').textContent.includes('155.35')"),'Detailed amounts mismatch');
+assert(await evaluate("document.querySelector('#perf-reconciliation').textContent.includes('57.30') && document.querySelector('#perf-reconciliation').textContent.includes('54.19') && document.querySelector('#perf-additive-total').textContent.includes('454.87')"),'Additive Computing reconciliation');
 await evaluate("document.querySelector('#perf-search').value='MatMulV2';document.querySelector('#perf-search').dispatchEvent(new Event('input'))");
 assert(await evaluate("document.querySelector('#perf-all-ops').children.length===1"),'Detailed operator search');
 await evaluate("document.querySelector('#perf-search').value='';document.querySelector('#perf-search').dispatchEvent(new Event('input'));document.querySelector('#perf-kind').value='communication';document.querySelector('#perf-kind').dispatchEvent(new Event('change'))");

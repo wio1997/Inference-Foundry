@@ -441,6 +441,8 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+2026-11-10 54%计算总账核准与分函数计时方案：[可加总核准](evidence/performance-breakdown-171/RECONCILIATION.md) · [逐函数计时/优化方案](evidence/performance-breakdown-171/TIMING-PLAN.md)。16卡逐区间核对：79类各自时长合计57.30%，减并行重复3.11个百分点后为54.19%。Computing 454.87ms由单类型独占428.79ms、并行共享26.04ms、CSV未匹配边界0.04ms组成；时间树CSV完整保留。输入准备155.35ms仍需少数子函数标记，不伪称纯调度。新增采集/模型请求/实现0。
+
 当前源码排查：loop040完成限定frame寿命/packet价格判断并转loop041 O投影原生读者。介绍：同代CP共同frame沿metadata producer/consumer走到下一代覆写，并补head8 query packet成本。到了哪里：15当前source identities、11限定body行段，Python回调提交时点与device/CPU存储寿命分开；20场景1033顺序模型、两rank各12帧/144成本情景；另7当前OA/OB→SP→mHC/FFN入口源已核。结果：release-only/devicewait-only pinned复用缺边，明确acquire须早于runner持久输入覆写，CPU快照与producer/consumer完成分别保护。三目标packet旧参考616–620us/迭代，不按层重复；替换与共存成本不同。大frame/head候选保留待确认，转O投影大段；新原语准入0，全链路未扫全，每替换原语逐位一致。 [判断](evidence/共同frame的真实覆写与双端退役判断.md)。同窗详细性能账单及此前原件保留。
 
 

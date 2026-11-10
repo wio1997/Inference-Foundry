@@ -60,6 +60,8 @@ data={'findings':findings,'groups':groups,'ranks':workers,
       'timeline':load('activity-timeline.json')}
 detail_path=P.parent/'performance-breakdown-171'/'findings.json'
 if detail_path.exists():data['detailed']=json.loads(detail_path.read_text())
+reconciliation_path=P.parent/'performance-breakdown-171'/'reconciliation-summary.json'
+if reconciliation_path.exists():data['reconciliation']=json.loads(reconciliation_path.read_text())
 idle_path=P.parent/'idle-attribution-171'/'findings.json'
 if idle_path.exists():
     data['idle']=json.loads(idle_path.read_text())

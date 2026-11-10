@@ -4,6 +4,8 @@
 
 默认首页现为[同窗详细性能账单](../performance-breakdown-171/REPORT.md)：用同一次阶段标签采样列空档细分、CPU具体操作、全部79计算/辅助类与5通信类；可查完整shape签名并导出CSV。旧balanced采样仍作为对照保留，不混用窗口。
 
+79类型相加57.30%，并行去重后Computing为54.19%；[可加总核准](../performance-breakdown-171/RECONCILIATION.md)及[逐函数计时方案](../performance-breakdown-171/TIMING-PLAN.md)已提供。构建时还会读取同级performance-breakdown-171/reconciliation-summary.json，页面分别保留排行和互斥分账。
+
 首页“时间花在哪里”先显示算子执行53%–55%、设备空档约38%、未重叠通信7%–9%，再列MoE/DFC等热点。首次采集尚未分清空档原因，后续阶段补采见下文；不能直接叫调度耗时。该分布来自每卡约1秒的稳态短窗口，不是整批16秒的完整分解。更详细的链路、16卡时间线和逐算子证据放在其余页签。
 
 后续已完成[空档阶段补采](../idle-attribution-171/REPORT.md)：闭合循环中约96%的Free与prepare input重叠，原服务已恢复；图中新增“空档在做什么”。旧样本绝对时间与新增阶段样本分开记账，不直接相加。纯EngineCore调度仍未直接采集。

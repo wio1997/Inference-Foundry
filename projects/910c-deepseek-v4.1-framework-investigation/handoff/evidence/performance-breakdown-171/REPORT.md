@@ -179,3 +179,5 @@ Overlap分类加总与闭合窗口有不到0.1%的边界差，保留原始分类
 4. 小Cast/Fill/单次量化：独立预算小，优先作为上述大段的附属项；不因单点时间小而剪掉能额外消除工作的大parent。
 
 所有优化方向保持待确认；本轮未新增优化实现或已兑现收益。findings.json包含全部类型、全shape签名、目标图内时间及PMU，rank-data.json保留逐卡原件，analyze_detailed.py和summarize.py可复算。输入阶段和算子表属于同一批数据；其子表是展开关系，不层层相加。仍不能将此约0.84秒窗口直接放大为整批16秒的精确分解。
+
+时间总账已另按逐区间去重核准：[54%核准](RECONCILIATION.md) · [可加总时间树CSV](computing-time-tree.csv) · [逐函数计时和框架优化推进方案](TIMING-PLAN.md)。排行与互斥分账是不同口径，不能直接相加。
