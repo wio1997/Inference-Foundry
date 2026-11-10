@@ -7,7 +7,7 @@ DeepInfer原生完整模型接入、7物理卡上的8 die/TP8权重全驻留和�
 - 请求由DeepInfer LLMEngine、原生C++ scheduler与Worker执行完整45层GLM-5.3-Flash-W8A8，模型计算复用固定镜像中的Ascend模型模块、CANN和FLA-NPU；目标路径不通过vLLM引擎调度。
 - TP8运行在8个活动die、7张物理卡上；全部非空模型参数位于NPU，NoopOffloader，无CPU权重卸载。不能把该结果称为8物理卡/TP16测试。
 - 冻结工程24用例在该TP8路径通过24/24。此前TP4开发版本及干净源码重建版本均为23/24，且独立参考引擎24项最终输出相同。这是工程筛查，不是正式通用质量benchmark。
-- 流式`/v1/completions`真实请求通过，串行请求的完成与状态释放已核验。默认reference后端仍只有一个活动模型请求；新增显式sdk-batch候选已通过原生双请求与槽位复用，但HTTP并发及C4/C8性能尚待验证，不能把默认HTTP排队当批处理。
+- 流式`/v1/completions`真实请求通过，串行请求的完成与状态释放已核验。默认reference后端仍只有一个活动模型请求；显式sdk-batch路径已完成原生双请求/槽位复用、HTTP并发及C4/C8 AISBench，详见文末；默认HTTP排队不代表该路径。
 - 源码`1b0101b41395e66335461feb884a5dfdc18a258b`完成AISBench正式C1测试：2次热身排除，32/32计分请求成功，0失败，每条1024输入/256输出token，输出吞吐**4.8031 token/s**。TTFT中位数261.8ms，TPOT中位数208.2ms；八个worker均exit0。
 
 公开的测量配置和统计见[本次AISBench结果](validation/aisbench-native-tp8-c1-20261110/result.json)及[延迟统计](validation/aisbench-native-tp8-c1-20261110/latency.csv)。原始请求、token向量及SQLite时间戳证据保留在私有任务档案中，不公开服务器路径或凭据。
@@ -44,3 +44,14 @@ DeepInfer/vLLM=0.6745233，尚未达标。详细数据见[对照统计](validati
 HTTP候选采用原生队列容量感知的入队与终止回收；SDK批处理模式把prefill尝试间隔由旧默认70/100个decode step设为1，使DP1每次迭代检查新请求。上述HTTP/调度策略正在独立硬件验证，不能将此前batch2烟测当作其全部通过。未修改模型公式、量化方式或采样规则。
 
 HTTP硬件集成曾因数值token输入校验遗留旧runtime.backend字段失败，未进入性能计分；已改为SDK runtime的词表接口，并增加纯标准库的[入口回归检查](validation/native-sdk-batch-smoke-20261110/check_http_entry_contract.py)，覆盖实际Handler的token/text输入、非法输入和SSE结束帧。该检查不加载或模拟模型，也不能作为NPU/性能通过证据。修正版HTTP硬件验证仍在进行。
+
+## 正式SDK批处理AISBench（C4/C8）
+
+源码77bbd9f在同组8die、TP8/DP1/EP关闭、maxseq8、2GiB缓存池、eager、2048上下文/1792批token预算下完成两档测试。每档32请求、每条1024入/256出，2热身排除，全部成功、0失败；原始SQLite时间戳已按请求引用逐一核验并独立重算。
+
+|并发|输出token/s|TTFT中位ms|TPOT中位ms|成功/失败|
+|---|---:|---:|---:|---:|
+|4|23.5156|487.4230|160.8599|32/0|
+|8|45.8135|733.2418|167.5923|32/0|
+
+真实模型批次达到8，8rank均exit0，终止后无缓存owner残留。结果见[完整配置和统计](validation/aisbench-native-sdk-tp8-c4-c8-20261110/result.json)。同容量/缓存预算/负载的vLLM C4/C8参考正在运行；不能据此声称已达到1.5倍。前述C1来自旧reference组装后端，与本节SDK批处理后端不同。
