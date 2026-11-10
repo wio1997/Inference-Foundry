@@ -1,23 +1,31 @@
 {
-  "status": "g46 measured performance meets threshold;teardown failed;g47 correction validation pending",
-  "measured_overlay_sha256": "c605e7a62cfa6a18d6dd0dc3d944407987df80bd0bc776fec51ff6a68eab9955",
-  "correction_overlay_sha256": "9f1d988b12f5fd4bd2962750a65e56b9265cefd7d01abecb610c83e207b0d497",
-  "source_base_commit": "4e25b588f3ef9ec8fb229b0f2f1d17e253037edb",
+  "status": "accepted for the declared fixed performance workload",
+  "goal_met": true,
+  "verified_at": "2026-11-10T18:21:32.120370+00:00",
+  "tested_code_commit": "59c980223e3805df3f8c6e606ada69f16d1fff95",
+  "tested_overlay_sha256": "9f1d988b12f5fd4bd2962750a65e56b9265cefd7d01abecb610c83e207b0d497",
+  "source_files_match_commit": 9,
+  "native_generation": 47,
+  "primary_reference_generation": 49,
+  "previous_reference_generation": 35,
   "hardware": "Ascend910C;7 physical cards;8 active dies;TP8 DP1 EPoff PP1",
   "image_sha256": "ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
   "core_vllm": "0.30.0+empty",
   "ascend_plugin": "0.30.0rc2 g8fde6d4e3",
+  "aisbench_version": "3.1.0",
+  "aisbench_commit": "525ed1779f50a8ac068b8638771f633a151e769f",
   "common_configuration": {
+    "dtype": "bfloat16",
+    "checkpoint_quantization": "W8A8",
     "max_sequences": 8,
     "max_model_len": 2048,
     "max_num_batched_tokens": 1792,
     "kv_cache_bytes_per_rank": 2147483648,
-    "dtype": "bfloat16",
-    "checkpoint_quantization": "W8A8",
-    "offload": "none;all nonempty weights on NPU",
-    "async_scheduling": false,
+    "weight_offload": false,
     "prefix_caching": false,
-    "compile_mode": 0,
+    "async_scheduling": false,
+    "chunked_prefill": true,
+    "compilation_mode": 0,
     "cudagraph_mode": "PIECEWISE",
     "capture_sizes": [
       1,
@@ -25,66 +33,157 @@
       4,
       8
     ],
-    "breakable_graph": true
+    "breakable_graph": true,
+    "temperature": 0,
+    "top_p": 1,
+    "seed": 0,
+    "ignore_eos": true
   },
-  "optimization": "Use original SDK KDA pure-decode implementation inside the root graph;SDK metadata hook supplies dummy metadata. Math unchanged;native capture coverage intentionally expands versus reference. g47 adds exact-shape/small-prefill force_eager and idempotent close.",
-  "measured_requests": {
-    "concurrencies": [
-      4,
-      8
-    ],
+  "workload": {
     "requests_each": 32,
     "input_tokens_each": 1024,
     "output_tokens_each": 256,
     "warmups_excluded_each": 2,
+    "dataset_sha256": "66e5190762fc5cd92022ac5b57322151a4200af5b49f2c65057d8c023cc84f0d",
+    "tokenizer_sha256": "19e773648cb4e65de8660ea6365e10acca112d42a854923df93db4a6f333a82d"
+  },
+  "native_acceptance": {
+    "all_rank_exit_codes": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "requests_completed": 72,
+    "driver_owner_released": true,
+    "claims_released_at": "2026-11-10T17:50:08.706065+00:00",
+    "captured_layers_each_rank": 34,
+    "captured_decode_calls_each_rank": 136,
+    "close_calls_each_rank": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "nonexact_or_prefill_eager_batches_each_rank": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "actual_batch_histogram": {
+      "3": 19,
+      "2": 530,
+      "1": 19,
+      "4": 2040,
+      "8": 1020
+    },
     "full_decoded_outputs_identical_to_reference": 64
   },
-  "g46_teardown": {
-    "all_rank_exit_codes": [
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1
-    ],
-    "error": "flush_finished and stop both drain;second hook close was not idempotent",
-    "claims_released": true,
-    "overall_passed": false
-  },
-  "g47_pure_python_hook_check": "double close, ownership preservation, exact/odd/mixed/prefill dispatch passed;does not substitute for live model validation",
+  "reference_claims_released_at": "2026-11-10T18:16:39.460924+00:00",
   "results": {
     "C4": {
-      "requests": 32,
-      "successful": 32,
-      "failed": 0,
-      "input_tokens": 32768,
-      "output_tokens": 8192,
-      "benchmark_seconds": 79.57223137999244,
-      "output_token_throughput": 102.95048734877865,
-      "ttft_median_ms": 490.0006600000779,
-      "tpot_median_ms": 34.989295725501826,
-      "timestamps_finite_nondecreasing": true,
-      "official_global_throughput_agrees": true,
-      "reference_output_tps": 62.84180017672184,
-      "native_reference_ratio": 1.6382485393363073
+      "native": {
+        "requests": 32,
+        "successful": 32,
+        "failed": 0,
+        "input_tokens": 32768,
+        "output_tokens": 8192,
+        "benchmark_seconds": 76.26682037000137,
+        "output_token_throughput": 107.41237094004019,
+        "ttft_median_ms": 491.07914000342134,
+        "tpot_median_ms": 35.018809509803724,
+        "timestamps_finite_nondecreasing": true,
+        "official_global_throughput_agrees": true
+      },
+      "reference": {
+        "requests": 32,
+        "successful": 32,
+        "failed": 0,
+        "input_tokens": 32768,
+        "output_tokens": 8192,
+        "benchmark_seconds": 127.17307745000289,
+        "output_token_throughput": 64.41614974066049,
+        "ttft_median_ms": 352.6648100014427,
+        "tpot_median_ms": 52.376398137244436,
+        "timestamps_finite_nondecreasing": true,
+        "official_global_throughput_agrees": true
+      },
+      "ratio": 1.6674758018366909,
+      "previous_reference_tps": 62.84180017672184,
+      "reference_drift_fraction": 0.02505258537329147,
+      "ratio_vs_faster_reference": 1.6674758018366909,
+      "full_decoded_outputs_identical": 32,
+      "config_sha256": "2e53be80d3e2119834c7b609210c2e57eaeb27e7c1ef9fe7cb0cbb772e630412"
     },
     "C8": {
-      "requests": 32,
-      "successful": 32,
-      "failed": 0,
-      "input_tokens": 32768,
-      "output_tokens": 8192,
-      "benchmark_seconds": 41.571419290005,
-      "output_token_throughput": 197.0584632401425,
-      "ttft_median_ms": 738.2368600010523,
-      "tpot_median_ms": 37.964209372533816,
-      "timestamps_finite_nondecreasing": true,
-      "official_global_throughput_agrees": true,
-      "reference_output_tps": 109.52192117724522,
-      "native_reference_ratio": 1.7992604687899163
+      "native": {
+        "requests": 32,
+        "successful": 32,
+        "failed": 0,
+        "input_tokens": 32768,
+        "output_tokens": 8192,
+        "benchmark_seconds": 42.924265130001004,
+        "output_token_throughput": 190.84776350135755,
+        "ttft_median_ms": 742.4504150039866,
+        "tpot_median_ms": 39.11223139216685,
+        "timestamps_finite_nondecreasing": true,
+        "official_global_throughput_agrees": true
+      },
+      "reference": {
+        "requests": 32,
+        "successful": 32,
+        "failed": 0,
+        "input_tokens": 32768,
+        "output_tokens": 8192,
+        "benchmark_seconds": 75.77428935999342,
+        "output_token_throughput": 108.11054869918891,
+        "ttft_median_ms": 518.3031350024976,
+        "tpot_median_ms": 55.67312007841275,
+        "timestamps_finite_nondecreasing": true,
+        "official_global_throughput_agrees": true
+      },
+      "ratio": 1.765301959870539,
+      "previous_reference_tps": 109.52192117724522,
+      "reference_drift_fraction": -0.01288666654935866,
+      "ratio_vs_faster_reference": 1.742553102154758,
+      "full_decoded_outputs_identical": 32,
+      "config_sha256": "acc27a0e935fb2ad565e3c2718bd6bef39c55dafad59e55e0a398abf63a9c0cd"
     }
+  },
+  "optimization": "DeepInfer owns engine/scheduler/Worker lifecycle. Original SDK model/cache kernels are reused. Native KDA pure decode is captured in the root graph using the SDK metadata hook. Nonexact/small-prefill batches use SDK force_eager. Math unchanged;actual graph coverage intentionally differs from reference.",
+  "guardrails": "Both primary and previous faster-reference denominators exceed1.5. Exact raw timestamps independently recomputed.64 complete decoded outputs match fresh reference. No kernel/dtype/quantization combination search.",
+  "limitations": [
+    "Fixed32x1024/256,C4/C8 only;not universal throughput or general model quality certification.",
+    "Compare TTFT separately:throughput improvement does not imply the same factor for every latency metric.",
+    "No claim of independently rebuilding the whole environment on another machine."
+  ],
+  "history": {
+    "g43": "Convolution leaf graph regressed C8;removed from current source.",
+    "g45": "No KDA capture metadata;0layers captured;AIS prevented by gate.",
+    "g46": "Measured1.638/1.799 versus previous reference,but double close caused8rank exit1;not accepted as final.",
+    "g48": "Launcher reprocessed already-converted flags;failed before model execution;no score."
+  },
+  "raw_evidence_sha256": {
+    "native_C4_frozen-1024-in-256-out_details.jsonl": "6e4f74d3eb8c073db87de307fdabe7c0fc076de79d296fdeba0d9a0f8922619b",
+    "native_C4_9218ebca.db": "9c91dc1abf51a13810cc7bb5d40dc6ccca82528f8eb357a91983749300684ff6",
+    "reference_C4_frozen-1024-in-256-out_details.jsonl": "4b3948384a8289e8a46a4bbc6cc9d51ab96cec6e1932f68f12dff96dd4ff521d",
+    "reference_C4_de6e303c.db": "23b423bb3d7add43f6949541700d67b79a823d804d2874c32adcb8058a7dad00",
+    "native_C8_frozen-1024-in-256-out_details.jsonl": "82b5809519f062187b9caaa275268b9b20c89e4aa8b738386553828f50aa4eea",
+    "native_C8_1cde2e5f.db": "b338aaf01708127a59cbf8bfac6ebbb1475b8c3d97df4bf6e5e507b759f2328d",
+    "reference_C8_frozen-1024-in-256-out_details.jsonl": "4c72747ce21bc9a7ad64e73a25cd76d365394d4e0df37a4b334121a80cf78552",
+    "reference_C8_f1c67fe0.db": "0a1e3c79e3825336bb2781d105423850a9f5b71d117f8804c66dda1f924f89af"
   }
 }
