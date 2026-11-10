@@ -1,0 +1,43 @@
+{
+  "status": "PRIMARY_ROTATED_ENGRAM_WKV_GATE_DELIVERY_BEFORE_PRICE",
+  "created_utc": "2026-11-10T17:33:49.133498+00:00",
+  "scope": [
+    "Layer1/14 prepared lookup rows -> quantized wkv -> key/value split -> original-basis32-block FP32 hidden rotation -> two RMS factors -> channel-weighted dot -> signed sqrt/sigmoid/mask -> residual BF16 output to decoder HC.",
+    "Consider exact persistent q_weight.float()*k_weight.float() reuse at the valid post-load immutable-weight lifetime, shared data reads, same-rounding pointwise fusion and a whole projection/rotation/gate megakernel boundary.",
+    "Do not substitute unrotated fused_engram_gate, move rotation algebraically into weights, reuse a norm across changed input, reassociate/FMA contractions, or ignore masked/padded output bytes under per-primitive bitwise contract."
+  ],
+  "source_facts": [
+    "Quant descriptor SHA2f4020 contains optional/quarot.safetensors; get_rotation_path and mapper retain optional metadata. Model eng_rotated follows nonNone path, not HF runtime_delta_rotation field.",
+    "AscendEngram.forward unrotated fused path requires rotationNone. Actual source path with nonNone rotation calls generic engram_gate regardless of unrotated capability.",
+    "Generic engram_gate first restores hidden FP32 via repeated32-block matrix, then key/original norms and channel dot; value projection already includes forward basis.",
+    "q_weight and k_weight are persistent BF16 parameters; original hot call casts and multiplies both into FP32. Actual loading/finalization/update/readers still need closure for cache admission."
+  ],
+  "candidate": "Whole rotated Engram projection/gate data delivery first, static channel-weight product and smaller pointwise recipes only as children; use existing matched full parent profile before new native work.",
+  "gaps": [
+    "Original/current matched profile intervals for complete rotated gate including WKV/rotation, not hash/table-only budget.",
+    "All post-load writers/weight epoch and buffer retirement if caching product; actual kernel primitive/capture values and complete output bit proof.",
+    "CANN FP32 matmul/reduction tree, rounding/contraction/quantization boundaries and exact native equivalence before changing computation.",
+    "Actual padding/token masks and all HC/aux readers of output; per-load/cohort eligible population and net overhead."
+  ],
+  "inputs": [
+    {
+      "path": "audit/execution-search/model-gate-dependencies.json",
+      "sha256": "aff083db9d1d95310e5df94a6916de16c4fe69ec30f3a15ee2832ae87973ed39"
+    },
+    {
+      "path": "audit/execution-search/model-gate-consumer-dependencies.json",
+      "sha256": "8d61771343b399624b158f996620bfe305b60eb2b3f4af2a24ed5bd16554ccf9"
+    },
+    {
+      "path": "audit/execution-search/model-gate-state.json",
+      "sha256": "e5834e5cee4427a48580754a1918d3dd8aa30f96a3e6854b85b4b5d2889491b6"
+    }
+  ],
+  "whole_chain_complete": false,
+  "new_primitive_admissions": 0,
+  "new_framework_replacement_admissions": 0,
+  "new_NPU_work": 0,
+  "new_profile": 0,
+  "service_requests": 0,
+  "remote_writes": []
+}
