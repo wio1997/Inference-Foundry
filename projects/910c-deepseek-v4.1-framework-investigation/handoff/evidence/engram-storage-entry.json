@@ -1,0 +1,61 @@
+{
+  "status": "ENGRAM_COMPACT_STORAGE_ENTRY_ONLY",
+  "whole_chain_complete": false,
+  "every_replacement_bitwise": true,
+  "sources": [
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/embedding.py",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/embedding.py",
+      "sha256": "a7741ed16522be4fe607e062e1c988c4e2435af7d258fe7db99f672d4508c4c9",
+      "reviewed_ranges": [
+        [
+          54,
+          80
+        ],
+        [
+          140,
+          169
+        ],
+        [
+          266,
+          331
+        ]
+      ],
+      "scope": "Entry ranges only. Registration/paired loading/close/reload and native exactness/value not completed."
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/npu.py",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/engram/npu.py",
+      "sha256": "2b2594a2126ef50ee6d77f508ab8e0d2f5b360d15ea700eea0d39923af8bc64f",
+      "reviewed_ranges": [
+        [
+          14,
+          27
+        ]
+      ],
+      "scope": "Entry ranges only. Registration/paired loading/close/reload and native exactness/value not completed."
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/triton/engram_lookup.py",
+      "path": "/Users/wio/work/branch-fusion-audit-20261104/evidence/retrieved-source/vllm-ascend/vllm_ascend/ops/triton/engram_lookup.py",
+      "sha256": "c2b1b46ea4eeb70513cb4a53a5fc584bd024c81269fff9f997431a3ff172899b",
+      "reviewed_ranges": [
+        [
+          1,
+          120
+        ]
+      ],
+      "scope": "Entry ranges only. Registration/paired loading/close/reload and native exactness/value not completed."
+    }
+  ],
+  "earlier_CPU_scale_gate": "engram-scale-representation-cpu.json",
+  "capacity_reference_bytes": 18432548400,
+  "current_findings": [
+    "INT8 storage currently allocatesFP32 scale; shared/localUVA shapes derive dtype. Newcompact must independently choose scale representation.",
+    "I8 load copies checkpoint scale intoFP32 without asserting E8M0; compact path must guard actualscale dtype/shape and preserve non-E8M0 fallback. MXFP8/generalfloat load branches can requantize and are separate legal paths.",
+    "Current UVA lookup chooses scale pointer type by MXFP8 code-type flag. NewINT8+E8M0 requires independent decoder selector, not enablingMXFP8 (which would also change code pointer type)."
+  ],
+  "next_action": "loop036 Run run-20261110T032750Z：Engram紧凑scale checkpoint→host/sharedUVA注册owner→device pointer bank→lookup/dequant→末读/close/reload。3当前source SHA匹配；已读storage/scale类型分配、I8与MXFP8加载分支和lookup入口。继续SharedUvaBuffer注册/失败回滚/各rank close、成对code/scale bank寿命和图稳定地址；保留原INT8×FP32→BF16与255 NaN位合同。只为会改变18.4325GB容量/大交付净价去留的参数补证；不干扰进行中的配平profile控制器。",
+  "new_NPU_work": 0,
+  "remote_writes": []
+}
