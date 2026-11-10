@@ -1,0 +1,38 @@
+{
+  "status": "待确认：source-derived distinct parent, not yet value-screened",
+  "介绍": "同一target aux层，将HC均值的发布延迟到原HC Pre+input RMS之后，与本来就要交给attention的SP输入合包，保留原均值/HC Pre/RMS数学和完整逻辑输出。它与三份aux在模型尾部集中打包是不同交付边界。",
+  "到了哪里": "冻结Decoder.forward889–899显示hc_pre→input_layernorm→sp_all_gather；Model.forward1560–1564在此前生成aux mean→sp_all_gather。两个SP调用是同一helper，但实际group/自定义collective、流等待及全peer时刻尚未闭合。",
+  "结果": "待确认，先用匹配旧全TP数据筛整段价值；不得用仅删aux AG/选行/concat的0.158914%预算上界该调度变体，也不将5.374410%的含必需trunk跨度当可省。没有实测收益或native准入。",
+  "candidate_outputs": [
+    "原HC4 mean的BF16值、原HC Pre全部tuple/pre_mix/残差义务",
+    "原input RMS/bias全部输出及attention所需完整SP输入",
+    "原三个aux逻辑值/顺序/行域和后续main输入；layout/alias/capture按实际读者闭合"
+  ],
+  "possible_effect": "若旧aux collective在HC Pre之前形成实际等待，合包可能把先全卡同步再本地计算改为先本地计算再共同发布；等待上界必须由实际依赖和peer到达时刻决定。若已有重叠或新包代价抵消，就停止该变体。",
+  "decisive_missing": [
+    "确认两个SP调用的实际communicator/group/axis和HC Pre流是否等待aux collective，保留全部collective相对顺序与分支一致性。",
+    "匹配原C8/六普通、同TP8/DP2的aux-ready、HC Pre/RMS-ready与后续attention集体到达时刻，求保留数学的全peer关键路径乐观上界。",
+    "新pack/两份payload collective/unpack或strided消费的增量成本，必需数学、地址/租约与每原语全部输出逐位合同。"
+  ],
+  "scope_provenance": "Defined after the aux aggregation/RoPE screen as a distinct source-derived parent. No claim this scope was priced by that earlier screen; no source manifest overwritten.",
+  "priority": "待确认具体缺口保留，先筛旧数据价值，不启动native；继续剩余Compressor执行路径。",
+  "every_replacement_bitwise": true,
+  "new_primitive_admissions": 0,
+  "whole_chain_complete": false,
+  "new_NPU_work": 0,
+  "remote_writes": [],
+  "inputs": [
+    {
+      "path": "audit/execution-search/aux-context-dependencies.json",
+      "sha256": "db2ff2ae8ba3a05fb47e6fd52d2623272f279d365d5b2b67f919c3ab503579ee"
+    },
+    {
+      "path": "audit/execution-search/aux-context-source-excerpts.json",
+      "sha256": "20385e9c9a3671c691f988710298001d7d5aa28b8e244e2dfe6b2a1016b9cdfb"
+    },
+    {
+      "path": "audit/execution-search/aux-context-price.json",
+      "sha256": "dcfc258ad39fb221c60b9da729a33b04028a5a24603006bce047a221a2f61253"
+    }
+  ]
+}

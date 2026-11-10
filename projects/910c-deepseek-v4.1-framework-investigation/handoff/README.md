@@ -1,5 +1,10 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 待确认补充：同层aux与既有SP输入交付
+
+介绍：考虑将aux发布与本层HC Pre/RMS后的既有SP输入合包。到了哪里：两处source调用已定位，尚缺实际group/流依赖、全8卡到达时刻和新增包成本。结果：这是影响后续计算等待的不同父段，不能套三aux集中打包的小方案上界；先筛匹配旧数据价值，不启动native。见[具体边界与缺口](evidence/aux-same-layer-collective-parent.json)。
+
+
 ## 当前断点 · 2026-11-11 三份aux到context cache：解析真实receiver，共享准备按原预算停止
 
 介绍：从target层37/38/39入口的HC均值，追三次SP交付、选行/concat、main投影/RMS和三个draft context cache，到各层SMLA实读。到了哪里：19当前源码身份、3份旧精确SHA回调源、15原Python/有限布局控制；24完整aux/main/三cache链、72panel。结果：A3 main投影不量化，RoPE有重复准备；同窗独立aux打包/准备共享沿原预算停止，更大的host/context共同producer保留。原122约束/34未定输入不变，native准入0，全链路未闭合。
