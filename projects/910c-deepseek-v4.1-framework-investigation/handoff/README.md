@@ -474,6 +474,8 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+2026-11-10 **完整timeline逻辑与逐函数诊断**：[方法/验收](evidence/framework-timing-171/tool/TIMELINE.md) · [覆盖账](evidence/framework-timing-171/COVERAGE.md) · [函数到算子报告](evidence/framework-timing-171/REPORT.md) · [全景HTML](evidence/balanced-profile-171/index.html)。完整请求18进程轻量15.967999s/513.026输出token/s；16卡细窗42种已执行函数、84类设备/通信。主要Host候选为CP metadata重复构造；EngineCore调度/更新每组约172ms，等worker不能当同等调度成本。新增标记边界与时钟误差单列，保留API、批次关联、全请求连续设备及DFC内部缺口。一次有界补采已恢复health200/8-token/11 SHA不变，无新增性能实现。
+
 当前源码扫描已转loop044 DFC输入行量化/路由/跨EP交付至首GMM。介绍：全局Engram rows→WKV/gate/HC付成本判断，再沿较大DFC的BF16输入/量化/路由/跨EP搬运追到首GMM。到了哪里：Engram9源、56几何/4字节oracle、108C8/216短窗价、544比例与六普通代理；DFC9源18限定行段、原host DoTiling CPU12形状、1032匹配父段。结果：Engram仅明确小预算子情景停止，大parent待确认；DFC单核已共享但跨核仍重复，localM3有18次量化/3输入行，prefill416仅多20次，不能统一取6倍。targetDFC占自身两窗15.979%/17.537%，删整段10%另付h5条件净1.343%/1.496%窗口，量化内部占比未知。新准入0，全链路未扫全，每替换原语逐位一致。 [DFC实际读者与缺口](evidence/DFC输入行量化共享与首GMM交付判断.md)。既有完整性能页、采集/恢复记录和历史停止判断保留。
 
 

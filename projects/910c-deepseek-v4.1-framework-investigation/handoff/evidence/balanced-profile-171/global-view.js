@@ -4,7 +4,7 @@ const C=JSON.parse(document.getElementById('chain-data').textContent);
 const el=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(v,d=2)=>v===null||v===undefined?'—':Number(v).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
 const pct=v=>fmt(v)+'%';
-let currentView=D.detailed?'performance':'bill',selectedEP=0,selectedOp='DFC_target_top6',shownOperators=[];
+let currentView=D.function_view?'functions':D.detailed?'performance':'bill',selectedEP=0,selectedOp='DFC_target_top6',shownOperators=[];
 function view(name){currentView=name;document.querySelectorAll('.view-panel').forEach(p=>p.hidden=p.id!==name+'-panel');document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===name)));if(name==='ranks')drawTimeline();}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
 document.querySelectorAll('[data-bill-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.billView)));
@@ -68,7 +68,7 @@ el('call-detail').innerHTML='<h3>'+esc(x.operator)+'</h3><p class="call-id">'+es
 el('call-rank').innerHTML=Array.from({length:16},(_,i)=>'<option value="'+i+'">DP'+Math.floor(i/8)+' / EP'+i+'</option>').join('');el('call-phase').addEventListener('change',renderCallOptions);el('call-rank').addEventListener('change',renderCallOptions);el('call-example').addEventListener('change',renderCall);
 const first=D.gaps.find(g=>g.ep===0),second=D.gaps.find(g=>g.ep===8);el('host-overlap').innerHTML=Object.keys(first.intervals).map(k=>'<tr><td class="mono">'+esc(k)+'</td><td class="num">'+fmt(first.intervals[k].union_ms)+'</td><td class="num">'+fmt(first.intervals[k].overlap_free_ms)+'</td><td class="num">'+fmt(second.intervals[k]?.union_ms)+'</td><td class="num">'+fmt(second.intervals[k]?.overlap_free_ms)+'</td></tr>').join('');
 function renderRequests(){const round=C.requests[el('request-round').value];el('request-rows').innerHTML=round.requests.map(r=>'<tr><td>'+r.index+'</td><td>DP'+r.dp_rank+' / Pair'+r.pair_id+'</td><td class="num">'+fmt((r.first_token_mono_ns-r.start_mono_ns)/1e9,3)+'</td><td class="num">'+fmt((r.end_mono_ns-r.start_mono_ns)/1e9,3)+'</td><td class="num">'+r.usage.prompt_tokens+' / '+r.usage.completion_tokens+'</td></tr>').join('');}el('request-round').addEventListener('change',renderRequests);
-renderBill();renderIdle();renderOperators();renderRanks();renderCallOptions();renderRequests();view(D.idle&&location.hash==='#idle'?'idle':location.hash==='#bill'?'bill':D.detailed?'performance':'bill');
+renderBill();renderIdle();renderOperators();renderRanks();renderCallOptions();renderRequests();view(D.idle&&location.hash==='#idle'?'idle':location.hash==='#bill'?'bill':D.function_view?'functions':D.detailed?'performance':'bill');
 // Trigger initial stage-to-kernel link after both scripts have initialized.
 const selected=document.querySelector('[data-node][aria-pressed="true"]');if(selected)selected.click();
 })();
