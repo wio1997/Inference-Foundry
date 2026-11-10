@@ -24,6 +24,15 @@ for(let i=0;i<100;i++){if(await evaluate("document.querySelector('#op-rows')?.ch
 const initial=await evaluate("({nodes:document.querySelectorAll('[data-node]').length,ops:document.querySelector('#op-rows').children.length,ranks:document.querySelector('#rank-table').children.length,requests:document.querySelector('#request-rows').children.length,error:document.querySelector('#error').textContent,title:document.querySelector('#detail h2').textContent})");
 assert(initial.nodes===18&&initial.ops===84&&initial.ranks===16&&initial.requests===8&&!initial.error,'Initial population: '+JSON.stringify(initial));
 assert(initial.title.includes('两组'),'Stale DP1-only idle label');
+assert(await evaluate("!document.querySelector('#performance-panel').hidden && document.querySelector('#perf-all-ops').children.length===84 && document.querySelector('#perf-top-ops').children.length===12 && document.querySelector('#perf-comm').children.length===5"),'Same-sample detailed account missing');
+assert(await evaluate("document.querySelector('#perf-top-ops tr').textContent.includes('17.22') && document.querySelector('#perf-unknown').textContent.includes('155.35')"),'Detailed amounts mismatch');
+await evaluate("document.querySelector('#perf-search').value='MatMulV2';document.querySelector('#perf-search').dispatchEvent(new Event('input'))");
+assert(await evaluate("document.querySelector('#perf-all-ops').children.length===1"),'Detailed operator search');
+await evaluate("document.querySelector('#perf-search').value='';document.querySelector('#perf-search').dispatchEvent(new Event('input'));document.querySelector('#perf-kind').value='communication';document.querySelector('#perf-kind').dispatchEvent(new Event('change'))");
+assert(await evaluate("document.querySelector('#perf-all-ops').children.length===5"),'Communication filter');
+await evaluate("document.querySelector('#perf-kind').value='all';document.querySelector('#perf-kind').dispatchEvent(new Event('change'));document.querySelector('#perf-group').value='dp1';document.querySelector('#perf-group').dispatchEvent(new Event('change'))");
+assert(await evaluate("document.querySelector('#perf-all-ops').children.length===84"),'DP detail switch');
+await evaluate("document.querySelector('#perf-group').value='all';document.querySelector('#perf-group').dispatchEvent(new Event('change'));document.querySelector('[data-view=bill]').click()");
 assert(await evaluate("!document.querySelector('#bill-panel').hidden && document.querySelector('#overview-panel').hidden && document.querySelectorAll('#bill-hotspots .bill-op').length===6"),'Plain summary is not the default');
 assert(await evaluate("document.querySelector('#open-idle-detail') && document.querySelector('#bill-panel').textContent.includes('96%')"),'Idle findings missing on homepage');
 await evaluate("document.querySelector('#open-idle-detail').click()");
@@ -55,9 +64,10 @@ assert(await evaluate("document.querySelector('#request-rows').children.length==
 await evaluate("document.querySelector('[data-view=overview]').click();document.querySelector('[data-node=idle]').click();window.scrollTo(0,0)");await shot('171-global-chain.png');
 await evaluate("document.querySelector('[data-view=bill]').click();window.scrollTo(0,0)");await shot('171-plain-time-bill.png');
 await evaluate("document.querySelector('[data-view=idle]').click();window.scrollTo(0,0)");await shot('171-idle-detail.png');
+await evaluate("document.querySelector('[data-view=performance]').click();window.scrollTo(0,0)");await shot('171-detailed-time-account.png');
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
 const mobile=await evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})");assert(mobile.scroll<=mobile.width,'Mobile overflow '+JSON.stringify(mobile));
 assert(errors.length===0,'Browser errors '+JSON.stringify(errors));
-const result={passed:true,local_only:true,initial,mobile,checks:['plain time bill default','idle stage drilldown','module drilldown','operator search','DP switch','16-rank timeline','early/steady','same-call flow','per-rank calls','8 request timings','mobile layout'],screenshots:['/tmp/171-plain-time-bill.png','/tmp/171-idle-detail.png','/tmp/171-global-chain.png','/tmp/171-global-ranks.png','/tmp/171-global-kernels.png','/tmp/171-global-calls.png']};
+const result={passed:true,local_only:true,initial,mobile,checks:['same-sample detailed account default','84 operator types','12 top operators','5 communication types','detailed search and DP/filter switch','plain summary','idle stage drilldown','module drilldown','operator search','16-rank timeline','early/steady','same-call flow','per-rank calls','8 request timings','mobile layout'],screenshots:['/tmp/171-detailed-time-account.png','/tmp/171-plain-time-bill.png','/tmp/171-idle-detail.png','/tmp/171-global-chain.png','/tmp/171-global-ranks.png','/tmp/171-global-kernels.png','/tmp/171-global-calls.png']};
 await writeFile(resolve(folder,'view-validation.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
 }finally{if(ws)ws.close();chrome.kill();}

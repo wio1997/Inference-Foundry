@@ -2,6 +2,8 @@
 
 入口为[全局性能图](index.html)，结论见[REPORT.md](REPORT.md)，断点见[STATUS.md](STATUS.md)。本次是配平诊断采集，原服务已经恢复。整个融合搜索尚未完成。
 
+默认首页现为[同窗详细性能账单](../performance-breakdown-171/REPORT.md)：用同一次阶段标签采样列空档细分、CPU具体操作、全部79计算/辅助类与5通信类；可查完整shape签名并导出CSV。旧balanced采样仍作为对照保留，不混用窗口。
+
 首页“时间花在哪里”先显示算子执行53%–55%、设备空档约38%、未重叠通信7%–9%，再列MoE/DFC等热点。首次采集尚未分清空档原因，后续阶段补采见下文；不能直接叫调度耗时。该分布来自每卡约1秒的稳态短窗口，不是整批16秒的完整分解。更详细的链路、16卡时间线和逐算子证据放在其余页签。
 
 后续已完成[空档阶段补采](../idle-attribution-171/REPORT.md)：闭合循环中约96%的Free与prepare input重叠，原服务已恢复；图中新增“空档在做什么”。旧样本绝对时间与新增阶段样本分开记账，不直接相加。纯EngineCore调度仍未直接采集。
@@ -22,6 +24,6 @@
 python3 audit/balanced-profile-171/build_global_view.py
 ```
 
-build_global_view.py使用同目录的chain-template.html、chain-view-data.json、plain-summary.html、global-view-fragment.html、idle-view-fragment.html、global-view.css和global-view.js，存在同级idle-attribution-171/findings.json时载入空档分解。若在GitHub工作台的evidence/balanced-profile-171目录恢复，执行同目录脚本会输出index.html。view-validation.json记录本地交互校验。export_activity_timeline.py和export_full_kernel_inventory.py只在已有trace目录做CPU复算；collect_remote.py属于已完成采集的记录，不是接手续跑命令。
+build_global_view.py使用同目录的chain-template.html、chain-view-data.json、plain-summary.html、global-view-fragment.html、idle-view-fragment.html、global-view.css/global-view.js，以及performance-fragment.html、performance-view.css/performance-view.js；载入同级idle-attribution-171/findings.json和performance-breakdown-171/findings.json。若在GitHub工作台的evidence/balanced-profile-171目录恢复，执行同目录脚本会输出index.html。view-validation.json记录本地交互校验。export_activity_timeline.py和export_full_kernel_inventory.py只在已有trace目录做CPU复算；collect_remote.py属于已完成采集的记录，不是接手续跑命令。
 
 后续先归因两组共有的Free与目标DFC内部成本，再按完整交付边界核算净收益。报告中的稳态窗口占比不等于完整请求占比。旧测试使用8条不同输入，本轮4条镜像，不能从新旧吞吐差直接认定DP路由收益。

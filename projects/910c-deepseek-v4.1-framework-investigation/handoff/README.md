@@ -419,6 +419,8 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+2026-11-10 同窗84类详细性能账单：[完整排行/CSV/逐卡数据](evidence/performance-breakdown-171/REPORT.md) · [入口](evidence/balanced-profile-171/README.md)。同次阶段标记样本16卡各11完整轮，目标DFC144.54ms/17.22%、量化矩阵乘43.57ms/5.19%、MatMulV2 34.37ms/4.10%。输入准备的309.77ms空档继续按去嵌套CPU事件展开，其中155.35ms仍未定位到具体Python函数。79计算/辅助类+5通信全列，完整shape/图内分属可查；新NPU测试/实现0。
+
 ### 2026-11-10 QKV原生次序与head布局贯穿Attention：继续较大consumer
 
 介绍：沿真实Q/KV输入、Wq_a/WKV、QR量化、Wq_b到SWA/query读者，扩大到head布局贯穿SMLA并直接交付TP O投影。到了哪里：当前源码/量化描述/142个checkpoint header（payload0），两代表rank各516完整Q/KV段、480目标样本和96真实QLI producer；CANN pertoken/basic/opt舍入边界。结果：保留原三GEMM、其它全免仅1.020%–1.025%窗口；只拆Qb仍被SWA挡住。贯穿SMLA删除原transpose/A2A、Qb取1/4耗时、用旧AG参考付新通信并另付h5us，SWA不变条件净1.228%–1.299%窗口，SWA半省为2.646%–2.723%；不是请求预测。INT32 K1280无溢出不代表最终BF16等价，CPU反例0x44d2对0x44d1证明scale重结合不能盲换。新准入0，全链路未扫全，每替换原语逐位一致。
