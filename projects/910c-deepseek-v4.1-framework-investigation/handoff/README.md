@@ -1,5 +1,12 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 请求归还到下一轮缓存映射
+
+沿请求结束和抢占、KV 页归还与复用追到下一轮 attention、C2 和 DSpark 读者。前缀页引用为零后仍可命中。差分 H2D 需要跟踪图 padding 在设备侧的覆写。独立 slot 小方案的整核预算约占诊断窗口 0.023%，提交小合并的宽松墙钟预算约占另一个窗口 0.59%。整帧输入共享和终止行联合交付待确认，涉及全部读者退役、受影响行和付成本曝光。
+
+沿 DSpark 主组与 cache-only 组选取、逐层 metadata、图参数更新和 eager 草稿追实际注意力消费者。 [本段源码和定价](evidence/请求归还到下一轮缓存映射判断.md)。
+
+
 ## 当前断点 · 2026-11-11 MoE变换与归约实路：无latent投影，Tensor返回合同不能改
 
 介绍：沿V41 factory→AscendMoERunner的输入/输出transform、shared布局、runtime归约与combine，追到外层DeepseekV41MoE及HC消费者。到了哪里：15当前源码身份、8组原Python协议控制；补齐缺全文记录的helper与custom-op实际绑定，复用同SHA整段价。结果：冻结SP+SEDP且两个routed transform均None，没有latent投影/额外shared gather/重复TP归约可删；内部tuple必须还原成最终Tensor，否则外层会再次scale/add及TP reduce。已有add→HC与较大shared/DFC父段保留，新增native准入0，全链路未闭合。
@@ -777,7 +784,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-当前源码覆盖：15当前身份、46具名body/range、21条receiver路由（原工作表14边交集）、8原Python协议组。冻结SP_SEDP/None routed transform归位，runtime归约/层名cursor/最终Tensor返回保留；内部tuple直出会激活外层legacy scale/add与TP reduce。旧add-HC/sharedDFC大父段保留。累计148节点有全文证据、171缺全文记录，只是证据索引；每替换原语逐位一致，native新增0，全链路未闭合。
+本轮源码覆盖已延伸至 KV 归还、复用和下一轮 slot 消费者。全链路继续扫描。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
