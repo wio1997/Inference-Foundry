@@ -419,6 +419,17 @@ M09 --> M11 -->|下一轮| M00
 
 ## 4. 优化地图与研究阶段
 
+### 2026-11-10 QKV原生次序与head布局贯穿Attention：继续较大consumer
+
+介绍：沿真实Q/KV输入、Wq_a/WKV、QR量化、Wq_b到SWA/query读者，扩大到head布局贯穿SMLA并直接交付TP O投影。到了哪里：当前源码/量化描述/142个checkpoint header（payload0），两代表rank各516完整Q/KV段、480目标样本和96真实QLI producer；CANN pertoken/basic/opt舍入边界。结果：保留原三GEMM、其它全免仅1.020%–1.025%窗口；只拆Qb仍被SWA挡住。贯穿SMLA删除原transpose/A2A、Qb取1/4耗时、用旧AG参考付新通信并另付h5us，SWA不变条件净1.228%–1.299%窗口，SWA半省为2.646%–2.723%；不是请求预测。INT32 K1280无溢出不代表最终BF16等价，CPU反例0x44d2对0x44d1证明scale重结合不能盲换。新准入0，全链路未扫全，每替换原语逐位一致。
+
+[当前原生/付成本判断](evidence/QKV原生反量化与贯穿Attention的head布局判断.md) · [有限公式反例](evidence/qkv-dequant-order-cpu.json) · [SMLA head8入口](evidence/attention-head-layout-entry-review.json)。
+
+下一条待扫：loop039 Run run-20261110T054436Z：GSize8全局query host/AICPU packet→arch22 QK/PV行/head地址、原MMAD/softmax→inverseRoPE→原TP O投影布局；全局selected-ID的96次producer收集/同代复用、common TP24资格、zero-query/draft20/ordinary回退与图collective顺序。8当前SMLA/CP源SHA匹配，两处head guard允许8只属入口条件，不是完整合法性/原语位准入。继续完整付成本范围，不把新短窗或35MiB读范围兑换成请求/容量收益。
+
+待确认：head布局贯穿Attention/O投影的逐位、global query/selected-ID代次、资源/graph和请求净价；已确认可实现：本轮0；已停止：两个当前窗固定cache到达的Qb-only和普遍scale重结合，不剪更大parent。compiled source/guard/CPU反例均不当NPU或模型验收。
+
+
 2026-11-10 设备空档已定位到输入准备：[报告与代码入口](evidence/idle-attribution-171/REPORT.md) · [全局图](evidence/balanced-profile-171/README.md)。一次原生阶段标签补采，16卡闭合11循环：prepare input占Free约96.21%，草稿1.89%；代表卡协调后到首个metadata提交前约31ms，其中约27ms空档、243次where。优先价已有metadata-host / BatchFrame共同构造与交付，具体实现和净收益待确认，不重复旧信用。原服务已恢复，新增优化实现0。
 
 ### 2026-11-10 原生缓存发布与SWA主辅流join：局部3%不等于净省
@@ -462,7 +473,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每个替换原语逐位一致。原生缓存发布已扫限定ranges；[SWA主辅流join](evidence/SWA主辅流join与较大输入交付判断.md)固定Qb上界仅.649%–.661%窗口，不用局部3%直接立项。继续[较大Q/KV producer](evidence/swa-query-producer-source-review.json)。C09原序L1与K03 wholeDFC更正、Engram lookup-only停止及较大容量/input-owner缺口继续有效。
+**2026-11-10 当前资格**：每个替换原语逐位一致。沿实际Q/KV发现[head布局贯穿Attention](evidence/QKV原生反量化与贯穿Attention的head布局判断.md)的较大交付，付旧AG参考/new Qb quarter/h5us条件1.228%–1.299%窗口，不是请求预测。INT32无溢出仍须原反量化次序；[CPU公式反例](evidence/qkv-dequant-order-cpu.json)最终BF16不同。两处head8 guard通过只属源码入口。继续global query/selected-ID/SMLA原MMAD与TP O投影；既有C09/K03更正与Engram lookup停止等限定继续有效。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 

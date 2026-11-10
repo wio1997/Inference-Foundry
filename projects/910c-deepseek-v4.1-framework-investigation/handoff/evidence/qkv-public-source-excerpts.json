@@ -1,0 +1,1198 @@
+{
+  "strategy": "Exact listed source line excerpts/selected compiler JSON fields, full raw hashes/local paths; empty ranges identity only. All full raw bodies retained local. Counts do not prove all branches or loadedbinary precision.",
+  "sources": [
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3.cpp",
+      "full_raw_sha256": "860fbceb25fc465d0333c8f585a65cfc2904d996eb2f7290c94c87407d7e2319",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3.cpp",
+      "full_raw_bytes": 38383,
+      "reviewed_ranges": [
+        [
+          15,
+          94
+        ],
+        [
+          322,
+          430
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 15,
+          "last": 94,
+          "text": "\n#include \"quant_batch_matmul_v3.h\"\n#include \"quant_batch_matmul_v3_init_output.h\"\n#if (defined(__CCE_AICORE__) && __CCE_AICORE__ == 220) || \\\n    (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3003 || __NPU_ARCH__ == 3113))\n#include \"quant_batch_matmul_v3_cube_basic.h\"\n#if (ORIG_DTYPE_Y == DT_BF16 || ORIG_DTYPE_SCALE == DT_FLOAT)\n#include \"quant_batch_matmul_v3_bf16_basic.h\"\n#include \"quant_batch_matmul_v3_bf16.h\"\n#include \"quant_batch_matmul_v3_bf16_opt.h\"\n#include \"quant_batch_matmul_v3_pertoken.h\"\n#include \"quant_batch_matmul_v3_pertoken_basic.h\"\n#include \"quant_batch_matmul_v3_pertoken_opt.h\"\n#endif\n#endif\n#include \"kernel_operator.h\"\n#include \"quant_batch_matmul_v3_tiling_key.h\"\n#include \"quant_batch_matmul_v3_kernel_tiling_data.h\"\n#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200\n#include \"arch20/quant_batch_matmul_v3_pertoken_arch20.h\"\n#include \"arch20/pp_matmul_kernel.h\"\n#endif\n\n// if run with ttk without bias, can't get DTYPE_BIAS macro\n#undef DTYPE_BIAS\n#if defined(ORIG_DTYPE_X1) && defined(DT_INT8) && ORIG_DTYPE_X1 == DT_INT8\n// s8->s32\n#define DTYPE_BIAS int32_t\n#else\n// fp8/hif8->fp32\n#define DTYPE_BIAS float\n#endif\n\n#if (defined(ORIG_DTYPE_X1) && defined(ORIG_DTYPE_SCALE))\n#define SUPPORT_PERBLOCK             \\\n    (ORIG_DTYPE_SCALE == DT_FLOAT && \\\n     (ORIG_DTYPE_X1 == DT_HIFLOAT8 || ORIG_DTYPE_X1 == DT_FLOAT8_E4M3FN || ORIG_DTYPE_X1 == DT_FLOAT8_E5M2))\n#else\n#define SUPPORT_PERBLOCK false\n#endif\n\n#undef ORIG_DTYPE_PERTOKEN_SCALE\n#undef DTYPE_PERTOKEN_SCALE\n#define ORIG_DTYPE_PERTOKEN_SCALE DT_FLOAT\n#define DTYPE_PERTOKEN_SCALE float\n\nusing namespace AscendC;\nusing namespace matmul;\n\n#ifndef FORMAT_FRACTAL_NZ\n#define FORMAT_FRACTAL_NZ\n#endif\n\n#if defined(FORMAT_X1) && FORMAT_X1 == FORMAT_FRACTAL_NZ\nconstexpr CubeFormat format_x1 = CubeFormat::NZ;\n#else\nconstexpr CubeFormat format_x1 = CubeFormat::ND;\n#endif\n\n#if defined(FORMAT_X2) && FORMAT_X2 == FORMAT_FRACTAL_NZ\nconstexpr CubeFormat format_x2 = CubeFormat::NZ;\n#else\nconstexpr CubeFormat format_x2 = CubeFormat::ND;\n#endif\n\n#if defined(FORMAT_Y) && FORMAT_Y == FORMAT_FRACTAL_NZ\nconstexpr CubeFormat format_y = CubeFormat::NZ;\n#else\nconstexpr CubeFormat format_y = CubeFormat::ND;\n#endif\n\n#if defined(ORIG_DTYPE_X1) && defined(DT_INT8) && ORIG_DTYPE_X1 == DT_INT8\n#define DTYPE_LOC_LOCAL int32_t\n#else\n#define DTYPE_LOC_LOCAL float\n#endif\n\n#define INVOKE_QUANT_BATCH_MATMUL_V3_CUBE_IMPL(transposeX1, transposeX2)                                          \\\n    do {                                                                                                          \\\n        GET_TILING_DATA(tilingData, tiling);                                                                      \\\n"
+        },
+        {
+          "first": 322,
+          "last": 430,
+          "text": "#endif\n#if ORIG_DTYPE_Y == DT_INT32 && (defined(FORMAT_X1) && FORMAT_X1 != FORMAT_FRACTAL_NZ) && \\\n    (defined(FORMAT_X2) && FORMAT_X2 == FORMAT_FRACTAL_NZ)\n        TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS &&\n        KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&\n        PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN && OPTIONATTR == QUANT_BATCH_MATMUL_V3_NEED_ATOMICLEAN) {\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_SPLITK_IMPL(false, false);\n    } else if constexpr (\n#endif\n#if (defined(FORMAT_X1) && FORMAT_X1 != FORMAT_FRACTAL_NZ)\n        TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS &&\n        KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n        PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN && OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) {\n        INVOKE_QUANT_BATCH_MATMUL_V3_CUBE_IMPL(false, false);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) {\n        INVOKE_QUANT_BATCH_MATMUL_V3_CUBE_IMPL(false, true);\n#if ORIG_DTYPE_X1 == DT_INT8\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_A_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) {\n        INVOKE_QUANT_BATCH_MATMUL_V3_CUBE_IMPL(true, false);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_ALL_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) {\n        INVOKE_QUANT_BATCH_MATMUL_V3_CUBE_IMPL(true, true);\n#endif\n#endif\n    }\n#else\n    if constexpr (\n#if ORIG_DTYPE_X1 == DT_INT8\n        TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS &&\n        KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&\n        PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n        OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false false\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(false, false);\n    } else if constexpr (\n#if (defined(FORMAT_X1) && FORMAT_X1 != FORMAT_FRACTAL_NZ)\n        TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS &&\n        KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&\n        PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n        OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false true\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(false, true);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_A_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true false\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(true, false);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_ALL_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true true\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(true, true);\n    } else if constexpr (\n#endif\n        TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS &&\n        KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_OPT &&\n        PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n        OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false false\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_OPT_IMPL(false, false);\n#if (defined(FORMAT_X1) && FORMAT_X1 != FORMAT_FRACTAL_NZ)\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_OPT &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false true\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_OPT_IMPL(false, true);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_A_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_OPT &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true false\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_OPT_IMPL(true, false);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_ALL_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_OPT &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true true\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_OPT_IMPL(true, true);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_A_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true false\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_BASIC_IMPL(true, false);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_ALL_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true true\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_BASIC_IMPL(true, true);\n    } else if constexpr (\n#endif\n#endif\n#if (defined(FORMAT_X1) && FORMAT_X1 != FORMAT_FRACTAL_NZ)\n        TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS &&\n        KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n        PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n        OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false false\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_BASIC_IMPL(false, false);\n    } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS &&\n                         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC &&\n                         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&\n                         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false true\n        INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_BASIC_IMPL(false, true);\n#endif\n    }\n#endif\n#endif\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3.h",
+      "full_raw_sha256": "6023fe2d34cda8156fb95c1b5de237aef63dd514089ef1652836eb45e14ab504",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3.h",
+      "full_raw_bytes": 12562,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_base.h",
+      "full_raw_sha256": "5510b3bea6958a352a52f1c2c92d30f14b73092852fede7297c174d9621907b2",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_base.h",
+      "full_raw_bytes": 17195,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_basic_epilogue.h",
+      "full_raw_sha256": "8e1407e8eb97079573ecef57bf6c3a035670355ef8ca53b0872096cfd1a7ec9a",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_basic_epilogue.h",
+      "full_raw_bytes": 22664,
+      "reviewed_ranges": [
+        [
+          102,
+          139
+        ],
+        [
+          196,
+          255
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 102,
+          "last": 139,
+          "text": "    __aicore__ inline void PertokenCalculate(uint32_t basicBlockComputeInfo[], uint32_t mUbLoopIdx,\n                                             DataCopyPadParams& padParams, LocalTensor<float>& dstLocalFp32,\n                                             LocalTensor<float>& tmpdstLocal)\n    {\n        uint32_t curAivN = basicBlockComputeInfo[0];\n        uint32_t curAivM = basicBlockComputeInfo[1];\n        uint32_t ubResAlignedN = basicBlockComputeInfo[2];\n        uint32_t subBlockoffset = basicBlockComputeInfo[3]; // 数组下标3\n\n        DataCopyParams scale2UbParams{1, 0, 0, 0};\n        scale2UbParams.blockLen = curAivM * sizeof(float);\n        uint64_t offsetPertoken = offset_.offsetPertoken + mUbLoopIdx * ubCalcM_ + subBlockoffset;\n        uint32_t computedAivN = DequantBmm::Align(curAivN, 8U); // 8: 32B aligned for float\n\n        const uint32_t broadCastDst[M_N_TWO_DIMS] = {curAivM, computedAivN};\n        const uint32_t broadCastSrc[M_N_TWO_DIMS] = {curAivM, 1};\n\n        LocalTensor<float> broadcastFp32 = broadcastFp32Tmp_.Get<float>();\n        LocalTensor<float> pertokenScaleLocal = vecQuePertokenScale_.AllocTensor<float>();\n\n        DataCopyPad(pertokenScaleLocal, pertokenScaleGm_[offsetPertoken], scale2UbParams, padParams);\n        vecQuePertokenScale_.EnQue<float>(pertokenScaleLocal);\n        pertokenScaleLocal = vecQuePertokenScale_.DeQue<float>();\n\n        BroadCast<float, M_N_TWO_DIMS, 1>(broadcastFp32, pertokenScaleLocal, broadCastDst, broadCastSrc);\n\n        AscendC::PipeBarrier<PIPE_V>();\n\n        if (computedAivN == ubResAlignedN) {\n            Mul(tmpdstLocal, broadcastFp32, dstLocalFp32, computedAivN * curAivM);\n        } else {\n            for (auto i = 0; i < curAivM; i++) {\n                Mul(tmpdstLocal[ubResAlignedN * i], broadcastFp32[computedAivN * i], dstLocalFp32[computedAivN * i],\n                    computedAivN);\n            }\n        }\n        vecQuePertokenScale_.FreeTensor(pertokenScaleLocal);\n    }\n"
+        },
+        {
+          "first": 196,
+          "last": 255,
+          "text": "    __aicore__ inline void DequantCompute(EpilogueParams<yType, scaleType>& params, uint32_t dequantComputeInfo[],\n                                          DataCopyPadParams& padParams, DequantParams& dequantParams,\n                                          LocalTensor<float>& tmpdstLocal)\n    {\n        SetupParams(params);\n        uint32_t curAivM = dequantComputeInfo[0];\n        uint32_t curAivN = dequantComputeInfo[1];\n        uint32_t mUbLoopIdx = dequantComputeInfo[2];\n        uint32_t subBlockoffset = dequantComputeInfo[3];\n        LocalTensor<float> dstLocalFp32 = outFp32Tmp_.Get<float>();\n        LocalTensor<float> biasFp32;\n        LocalTensor<bfloat16_t> oriBiasBf16;\n        LocalTensor<half> oriBiasFp16;\n        LocalTensor<float> oriBiasFp32;\n\n        LocalTensor<int32_t> srcLocal = vecQueSrc_.AllocTensor<int32_t>();\n        LocalTensor<uint8_t> tmpLocal = vecQueTmp_.Get<uint8_t>();\n        // datacopypad 32B aligned\n        DataCopyParams gm2UbParams{1, 0, 0, 0};\n        DequantBmm::SetGm2UbParams(gm2UbParams, curAivM, curAivN);\n        DequantBmm::CopyMmOutToLocal(srcLocal, curMmOutGm_, gm2UbParams, padParams,\n                                     offsetWorkspaceC_ + mUbLoopIdx * ubCalcM_ * curAicN_ + subBlockoffset * curAicN_);\n        if (biasDtype_ != DT_INT32) {\n            BiasTensorInit(dstLocalFp32, biasFp32, oriBiasBf16, oriBiasFp16, oriBiasFp32);\n            BiasGm2Ub(oriBiasBf16, oriBiasFp16, oriBiasFp32, padParams,\n                      curAicN_); // 当bias不是int32时，在vector做+bias，将bias从gm搬到ub\n        }\n        if (isPerTensor_) {\n            AscendDequant(dstLocalFp32, srcLocal, scaleScalar_, tmpLocal, dequantParams);\n        } else {\n            LocalTensor<scaleType> scaleLocal = vecQueScale_.AllocTensor<scaleType>();\n            DequantBmm::Bf16ScaleGm2Ub<scaleType>(scaleLocal, scaleGm_, padParams, curAicN_, offset_.offsetScale);\n            AscendDequant(dstLocalFp32, srcLocal, scaleLocal, tmpLocal, dequantParams);\n            vecQueScale_.FreeTensor(scaleLocal);\n        }\n        uint32_t ubResAlignedN = DequantBmm::Align(curAivN); // 16: sizeof(yType) is 2, 32B / 2\n        uint32_t basicBlockComputeInfo[4] = {curAivN, curAivM, ubResAlignedN, subBlockoffset};\n        PertokenCalculate(basicBlockComputeInfo, mUbLoopIdx, padParams, dstLocalFp32, tmpdstLocal);\n\n        if (biasDtype_ != DT_INT32) {\n            CalBiasAdd(tmpdstLocal, biasFp32, oriBiasBf16, oriBiasFp16, oriBiasFp32, curAivN, curAivM);\n        }\n        vecQueSrc_.FreeTensor(srcLocal);\n        AscendC::PipeBarrier<PIPE_V>();\n    }\n\n    __aicore__ inline void CopyOutToGM(EpilogueParams<yType, scaleType>& params, LocalTensor<float>& tmpdstLocal,\n                                       uint32_t curAivM, uint32_t curAivN, uint32_t mUbLoopIdx, uint32_t subBlockoffset)\n    {\n        LocalTensor<yType> dstLocal = params.vecQueOut.template AllocTensor<yType>();\n        uint32_t ubResAlignedN = DequantBmm::Align(curAivN); // 16: sizeof(yType) is 2, 32B / 2\n        DataCopyExtParams ub2GmParams{1, 0, 0, 0, 0};\n        Cast(dstLocal, tmpdstLocal, RoundMode::CAST_RINT, curAivM * ubResAlignedN);\n        SetFlag<HardEvent::V_MTE3>(EVENT_ID2);\n        // dst from ub -> gm\n        DequantBmm::SetUb2GmParams<yType>(ub2GmParams, curAivM, curAivN, params.n);\n        WaitFlag<HardEvent::V_MTE3>(EVENT_ID2);\n        DequantBmm::CopyUbToGm<yType>(\n            params.offset.offsetC + mUbLoopIdx * params.ubCalcM * params.n + subBlockoffset * params.n, ub2GmParams,\n            dstLocal, params.yGm, params.vecQueOut);\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_bf16.h",
+      "full_raw_sha256": "a508657595c2617a89d7f2c09b9cab08e8bd4a95a3c97c6354cc56c334f9fc1d",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_bf16.h",
+      "full_raw_bytes": 26064,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_bf16_basic.h",
+      "full_raw_sha256": "ddd7dba728ac0e7bed5220bb0c7fa8e34e924f9ca846f79076055a33b22b8e06",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_bf16_basic.h",
+      "full_raw_bytes": 18479,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_bf16_opt.h",
+      "full_raw_sha256": "b507f0d9a184af85c39a9e513b05f9aa52462873f39bbef364301d5548f7b304",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_bf16_opt.h",
+      "full_raw_bytes": 26655,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_block.h",
+      "full_raw_sha256": "311016dab5d72f4f048952f7e0728cbd9daf455b20e7732356d889262be97425",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_block.h",
+      "full_raw_bytes": 9151,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_cube_basic.h",
+      "full_raw_sha256": "7e5899953aa6c8a11828b670d6189a82ab71dc12df8dede0b8b35afce9d030fd",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_cube_basic.h",
+      "full_raw_bytes": 6784,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_kernel_tiling_data.h",
+      "full_raw_sha256": "9159a8ea08f76678eea5950af0854b684cb0a170a46f294248d68814842fd580",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_kernel_tiling_data.h",
+      "full_raw_bytes": 2988,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_pertoken.h",
+      "full_raw_sha256": "297599ba776531d0b568f35e18829414ada9b2e9a2e21105fe998f5e715943f7",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_pertoken.h",
+      "full_raw_bytes": 28316,
+      "reviewed_ranges": [
+        [
+          453,
+          540
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 453,
+          "last": 540,
+          "text": "    __aicore__ inline void DequantCompute(GlobalTensor<int32_t>& curMmOutGm, uint64_t baseMOfffset,\n                                          uint64_t baseNOfffset, uint32_t curAicM, uint32_t curAicN)\n    {\n        LocalTensor<float> dstLocalFp32;\n        LocalTensor<float> biasFp32;\n        LocalTensor<bfloat16_t> oriBiasBf16;\n        LocalTensor<half> oriBiasFp16;\n        LocalTensor<float> oriBiasFp32;\n        uint32_t curAivM = ubCalcM_;\n        // calcN in ub is equal to aicN\n        uint32_t curAivN = curAicN;\n        uint32_t mUbLoops = DequantBmm::CeilDiv(curAicM, ubCalcM_);\n        DataCopyParams gm2UbParams{1, 0, 0, 0};\n        DataCopyExtParams ub2GmParams{1, 0, 0, 0, 0};\n        DataCopyPadParams padParams;\n        DequantParams dequantParams;\n        DequantBmm::CalcDequantParams(mUbLoops == 1 ? curAicM : ubCalcM_, curAicN, dequantParams);\n        dstLocalFp32 = outFp32Tmp_.Get<float>();\n        for (uint32_t mUbLoopIdx = 0; mUbLoopIdx < mUbLoops; ++mUbLoopIdx) {\n            if (mUbLoopIdx == mUbLoops - 1) {\n                curAivM = curAicM - ubCalcM_ * (mUbLoops - 1);\n                DequantBmm::CalcDequantParams(curAivM, curAicN, dequantParams, mUbLoops != 1 && curAivM != ubCalcM_);\n            }\n            LocalTensor<int32_t> srcLocal = vecQueSrc_.AllocTensor<int32_t>();\n            LocalTensor<yType> dstLocal = vecQueOut_.AllocTensor<yType>();\n            LocalTensor<uint8_t> tmpLocal = vecQueTmp_.Get<uint8_t>();\n            // datacopypad 32B aligned\n            gm2UbParams.blockLen = curAivN * sizeof(int32_t);\n            gm2UbParams.blockCount = curAivM;\n            gm2UbParams.srcStride = (curAicN - curAivN) * sizeof(int32_t);\n            uint64_t curAicAivOffset = static_cast<uint64_t>(mUbLoopIdx) * ubCalcM_ * curAicN;\n            DataCopyPad(srcLocal, curMmOutGm[curAicAivOffset], gm2UbParams, padParams);\n            SetFlag<HardEvent::MTE2_V>(EVENT_ID0);\n            WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);\n            if (biasDtype_ != DT_INT32) {\n                BiasTensorInit(dstLocalFp32, biasFp32, oriBiasBf16, oriBiasFp16, oriBiasFp32);\n                BiasGm2Ub(oriBiasBf16, oriBiasFp16, oriBiasFp32, padParams, baseNOfffset, curAicN);\n            }\n            if (isPerTensor_) {\n                AscendDequant(dstLocalFp32, srcLocal, scaleScalar_, tmpLocal, dequantParams);\n            } else {\n                LocalTensor<scaleType> scaleLocal = vecQueScale_.AllocTensor<scaleType>();\n                Bf16ScaleGm2Ub(scaleLocal, scaleGm_, padParams, baseNOfffset, curAicN);\n                SetFlag<HardEvent::MTE2_V>(EVENT_ID1);\n                WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);\n                AscendDequant(dstLocalFp32, srcLocal, scaleLocal, tmpLocal, dequantParams);\n                vecQueScale_.FreeTensor(scaleLocal);\n            }\n\n            DataCopyParams scale2UbParams{1, 0, 0, 0};\n            scale2UbParams.blockLen = curAivM * sizeof(float);\n            uint64_t scaleOffset = offsetPertokenScale_ + mUbLoopIdx * ubCalcM_ + baseMOfffset / n_;\n\n            uint32_t computedAivN = DequantBmm::Align(curAivN, 8U); // 8: 32B aligned for float\n            uint32_t ubResAlignedN = DequantBmm::Align(curAivN);    // 16: sizeof(yType) is 2, 32B / 2\n            const uint32_t broadCastDst[M_N_TWO_DIMS] = {curAivM, computedAivN};\n            const uint32_t broadCastSrc[M_N_TWO_DIMS] = {curAivM, 1};\n\n            LocalTensor<float> broadcastFp32 = broadcastFp32Tmp_.Get<float>();\n            LocalTensor<float> pertokenScaleLocal = vecQuePertokenScale_.AllocTensor<float>();\n\n            DataCopyPad(pertokenScaleLocal, pertokenScaleGm_[scaleOffset], scale2UbParams, padParams);\n            vecQuePertokenScale_.EnQue<float>(pertokenScaleLocal);\n            pertokenScaleLocal = vecQuePertokenScale_.DeQue<float>();\n\n            BroadCast<float, M_N_TWO_DIMS, 1>(broadcastFp32, pertokenScaleLocal, broadCastDst, broadCastSrc);\n\n            AscendC::PipeBarrier<PIPE_V>();\n            LocalTensor<float> tmpdstLocal = vecQueTmp_.Get<float>();\n            if (computedAivN == ubResAlignedN) {\n                Mul(tmpdstLocal, broadcastFp32, dstLocalFp32, computedAivN * curAivM);\n            } else {\n                for (auto i = 0; i < curAivM; i++) {\n                    Mul(tmpdstLocal[ubResAlignedN * i], broadcastFp32[computedAivN * i], dstLocalFp32[computedAivN * i],\n                        computedAivN);\n                }\n            }\n            vecQuePertokenScale_.FreeTensor(pertokenScaleLocal);\n\n            if (biasDtype_ != DT_INT32) {\n                CalBiasAdd(tmpdstLocal, biasFp32, oriBiasBf16, oriBiasFp16, oriBiasFp32, curAivN, curAivM);\n            }\n            AscendC::PipeBarrier<PIPE_V>();\n            Cast(dstLocal, tmpdstLocal, RoundMode::CAST_RINT, curAivM * ubResAlignedN);\n            SetFlag<HardEvent::V_MTE3>(EVENT_ID2);\n            vecQueSrc_.FreeTensor(srcLocal);\n            // dst from ub -> gm\n            ub2GmParams.blockLen = curAivN * sizeof(yType);\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_pertoken_basic.h",
+      "full_raw_sha256": "13ccec9d6bef52dda9706db9f2c52580ea1c3fdf7bc2183cad5021c1d39acf23",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_pertoken_basic.h",
+      "full_raw_bytes": 15239,
+      "reviewed_ranges": [
+        [
+          244,
+          278
+        ],
+        [
+          347,
+          363
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 244,
+          "last": 278,
+          "text": "    __aicore__ inline void BasicMMCVFusionCompute(uint32_t CurAicM, uint32_t CurAicN, uint16_t v2cSyncFlag,\n                                                  uint16_t c2vSyncFlag)\n    {\n        if ASCEND_IS_AIC {\n            if (++loop_ > 2) { // 2表示跳过第一次ping和第一次pong\n                WaitEvent(v2cSyncFlag);\n            }\n            BasicMMCompute(CurAicM, CurAicN);\n            NotifyEvent<PIPE_FIX>(c2vSyncFlag);\n        }\n\n        if ASCEND_IS_AIV {\n            WaitEvent(c2vSyncFlag);\n            auto epilogueParams = InitEpilogueParams(CurAicM, CurAicN);\n            epilogue_.Process(epilogueParams);\n            NotifyEvent<PIPE_MTE2>(v2cSyncFlag);\n        }\n    }\n\n    __aicore__ inline void BasicMMCompute(uint32_t baseM, uint32_t baseN)\n    {\n        if constexpr (DequantBmm::GetFormat(x2Format) == CubeFormat::NZ && !bTrans) {\n            mm_.SetOrgShape(m_, baseN, ka_, DequantBmm::Align(ka_, BMM_BLOCK_NUM), n_);\n        }\n        mm_.SetSingleShape(baseM, baseN, ka_);\n        mm_.SetTail(baseM, baseN, ka_);\n        mm_.SetTensorA(xGm_[offset_.offsetA], aTrans);\n        mm_.SetTensorB(weightGm_[offset_.offsetB], bTrans);\n\n        if (hasBias_ != 0 && biasDtype_ == DT_INT32) {\n            mm_.SetBias(biasGmInt32_[offset_.offsetBias]);\n        }\n        mm_.Iterate();\n        mm_.GetTensorC(mmOutGm_[offsetWorkspaceC_], 0, true);\n    }\n"
+        },
+        {
+          "first": 347,
+          "last": 363,
+          "text": "    QuantBatchMatmulV3BaseBlock block_;\n    UPDATE_TYPE update_; // 量化mm或mc2的更新计算大小和地址的接口\n    QBmmBlockOffset offset_;\n    EpilogueType epilogue_;\n\n    using AMatmulType = matmul::MatmulType<TPosition::GM, CubeFormat::ND, x1Type, aTrans>;\n    using BMatmulType = matmul::MatmulType<TPosition::GM, DequantBmm::GetFormat(x2Format), x2Type, bTrans>;\n    using BiasMatmulType = matmul::MatmulType<TPosition::GM, CubeFormat::ND, int32_t>;\n    // notice: the TPos of ctype must be ub given by mm api when iterate<false>,\n    // but actually we can move data to gm then to ub.\n    using CMatmulType = matmul::MatmulType<TPosition::VECIN, CubeFormat::ND, int32_t>;\n    matmul::MatmulImpl<AMatmulType, BMatmulType, CMatmulType, BiasMatmulType, MM_DEFAULT_MDL_CFG> mm_;\n};\n\n} // namespace AscendC\n\n#endif // QUANT_BATCH_MATMUL_V3_PERTOKEN_BASIC_H\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_pertoken_opt.h",
+      "full_raw_sha256": "1885876467fc58fabd5aba043363cefa2aaa96cc25eb7e36fa57b00ca675cc5f",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_pertoken_opt.h",
+      "full_raw_bytes": 29354,
+      "reviewed_ranges": [
+        [
+          507,
+          595
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 507,
+          "last": 595,
+          "text": "    __aicore__ inline void PreUbProcess(LocalTensor<float>& broadcastFp32, uint32_t singleM, uint32_t curAicN)\n    {\n        // 提前做好m,n方向的scale相乘矩阵，这部分cv并行,按行组成m * baseN的fp32矩阵, 最大L0C Size\n        // 全部弄到shape 16对齐\n        uint32_t computedAivN = DequantBmm::Align(curAicN);\n        const uint32_t broadCastDims[M_N_TWO_DIMS] = {singleM, computedAivN};\n        // 清空broadcastFp32，只pertoken\n        BroadCastMN(broadcastFp32, singleM, computedAivN);\n\n        if (isPerTensor_) {\n            Muls(broadcastFp32, broadcastFp32, scaleScalar_, singleM * computedAivN);\n            AscendC::PipeBarrier<PIPE_V>();\n        } else {\n            // 搬运该base块所需n scale\n            ScaleGm2Ub(curAicN);\n            LocalTensor<scaleType> scaleLocal = vecQueScale_.DeQue<scaleType>();\n\n            if constexpr (IsSameType<scaleType, bfloat16_t>::value) {\n                LocalTensor<float> scaleLocalFp32 = vecFp32Scale_.Get<float>();\n                Cast(scaleLocalFp32, scaleLocal, RoundMode::CAST_NONE, computedAivN);\n                AscendC::PipeBarrier<PIPE_V>();\n                MulPertokenAndScale(broadcastFp32, scaleLocalFp32, broadCastDims, DequantBmm::Align(curAicN));\n            } else {\n                MulPertokenAndScale(broadcastFp32, scaleLocal, broadCastDims,\n                                    DequantBmm::Align(curAicN, 8U)); // 8: 32 / sizeof(float)\n            }\n            vecQueScale_.FreeTensor(scaleLocal);\n        }\n        if (biasDtype_ != DT_INT32) {\n            BiasGm2Ub(curAicN);\n        }\n    }\n\n    __aicore__ inline void PostUbProcess(LocalTensor<float>& resFp32, uint32_t curAicM, uint32_t curAicN)\n    {\n        LocalTensor<float> biasFp32;\n        uint32_t curAivM = DequantBmm::Min(ubCalcM_, curAicM);\n        // calcN in ub is equal to aicN\n        uint32_t curAivN = curAicN;\n        uint32_t mUbLoops = DequantBmm::CeilDiv(curAicM, ubCalcM_);\n        // blockCount, blockLen, srcStride, dstStride\n        DataCopyParams gm2UbParams{static_cast<uint16_t>(curAivM), static_cast<uint16_t>(curAivN * sizeof(int32_t)), 0,\n                                   0};\n        DataCopyExtParams ub2GmParams{static_cast<uint16_t>(curAivM), static_cast<uint32_t>(curAivN * sizeof(yType)), 0,\n                                      static_cast<uint32_t>((n_ - curAivN) * sizeof(yType)), 0};\n        DataCopyPadParams padParams;\n        uint32_t computedAivN = DequantBmm::Align(curAivN); // 16: sizeof(yType) is 2, 32B / 2\n        if (computedAivN != DequantBmm::Align(curAivN, 8U)) {\n            gm2UbParams.dstStride = 1; // dst ub, 1 dataBlock(32B), shape 16 aligned\n        }\n        // 后续可以把biasFp32搞成类成员变量，则可以把cast提到前处理中\n        CastBias2Fp32(biasFp32, computedAivN);\n\n        for (uint32_t mUbLoopIdx = 0; mUbLoopIdx < mUbLoops; ++mUbLoopIdx) {\n            if (mUbLoopIdx != 0 && mUbLoopIdx == mUbLoops - 1) {\n                curAivM = curAicM - ubCalcM_ * (mUbLoops - 1);\n                gm2UbParams.blockCount = curAivM;\n                ub2GmParams.blockCount = curAivM;\n            }\n            LocalTensor<int32_t> srcLocal = vecQueSrc_.AllocTensor<int32_t>();\n            LocalTensor<float> srcFp32 = vecFp32Src_.AllocTensor<float>();\n            LocalTensor<yType> dstLocal = vecQueOut_.AllocTensor<yType>();\n\n            uint64_t curAicAivOffset = offsetC_ + mUbLoopIdx * ubCalcM_ * curAivN;\n            DataCopyPad(srcLocal, mmOutGm_[curAicAivOffset], gm2UbParams, padParams);\n            vecQueSrc_.EnQue<int32_t>(srcLocal);\n            srcLocal = vecQueSrc_.DeQue<int32_t>();\n            // int32 srcLocal -> fp32 srcFp32\n            Cast(srcFp32, srcLocal, RoundMode::CAST_RINT, curAivM * computedAivN);\n            AscendC::PipeBarrier<PIPE_V>();\n            // 只能取部分相乘好的scale\n            uint32_t curScaleOffset = mUbLoopIdx * ubCalcM_ * computedAivN;\n            LocalTensor curResFp32 = resFp32[curScaleOffset];\n            Mul(curResFp32, curResFp32, srcFp32, curAivM * computedAivN);\n            AscendC::PipeBarrier<PIPE_V>();\n            if (biasDtype_ != DT_INT32) {\n                CalBiasAdd(curResFp32, biasFp32, curAivM, computedAivN);\n            }\n\n            Cast(dstLocal, curResFp32, RoundMode::CAST_RINT, curAivM * computedAivN);\n            vecQueOut_.EnQue<yType>(dstLocal);\n            vecQueSrc_.FreeTensor(srcLocal);\n            // dst from ub -> gm\n            uint64_t yOffset = offsetY_ + mUbLoopIdx * ubCalcM_ * n_;\n            dstLocal = vecQueOut_.DeQue<yType>();\n            DataCopyPad(yGm_[yOffset], dstLocal, ub2GmParams);\n            vecQueOut_.FreeTensor(dstLocal);\n        }\n    }\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_tiling_key.h",
+      "full_raw_sha256": "b95206ba2750842f5245c263985cc225ee08a46eaa8d567bd10016326816cc61",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_tiling_key.h",
+      "full_raw_bytes": 20138,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/linear_op.py",
+      "full_raw_sha256": "2a28240882788db363c14a0999b1cad68b4f9f63896d0ad9475f2d39051e818b",
+      "full_raw_local_path": "audit/execution-search/qkv-native-source/vllm-workspace/vllm-ascend/vllm_ascend/ops/linear_op.py",
+      "full_raw_bytes": 19614,
+      "reviewed_ranges": [
+        [
+          145,
+          158
+        ],
+        [
+          471,
+          494
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 145,
+          "last": 158,
+          "text": "class CustomReplicatedOp(CustomLinearOp):\n    def apply_impl(self, input_):\n        bias = self.bias if not self.skip_bias_add else None\n        assert self.quant_method is not None\n\n        output = self.quant_method.apply(self.layer, input_, bias)\n        output_bias = self.bias if self.skip_bias_add else None\n\n        return output, output_bias\n\n\nclass KimiOProjMMReduceScatterOp(CustomRowParallelOp):\n    \"\"\"Return the token shard of Kimi's BF16 TP output projection.\"\"\"\n\n"
+        },
+        {
+          "first": 471,
+          "last": 494,
+          "text": "def get_replicated_op(disable_tp, prefix, layer) -> tuple[CustomReplicatedOp | None, int | None, int | None]:\n    if disable_tp:\n        return None, None, None\n\n    custom_op = CustomReplicatedOp(layer)\n    return custom_op, custom_op.tp_rank, custom_op.tp_size\n\n\ndef is_moe_layer(prefix: str) -> bool:\n    @lru_cache(maxsize=1)\n    def get_moe_params():\n        from vllm.config import get_current_vllm_config\n\n        vllm_config = get_current_vllm_config()\n        config = vllm_config.model_config.hf_text_config\n        n_routed_experts = getattr(config, \"n_routed_experts\", 0)\n        first_k_dense_replace = getattr(config, \"first_k_dense_replace\", float(\"inf\"))\n        moe_layer_freq = getattr(config, \"moe_layer_freq\", 1)\n        return n_routed_experts, first_k_dense_replace, moe_layer_freq\n\n    match = re.search(r\"layers\\.(\\d+)\\.\", prefix)\n    if match is None:\n        return False\n    layer_idx = int(match.group(1))\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/utils.py",
+      "full_raw_sha256": "85d228924678f05064a4346a0c62ae8bdb4d075bc246865d79da9384c2bfd662",
+      "full_raw_local_path": "audit/execution-search/qkv-extra-source/vllm-workspace/vllm-ascend/vllm_ascend/quantization/utils.py",
+      "full_raw_bytes": 11821,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/compressed_tensors_config.py",
+      "full_raw_sha256": "c2924a3e032c3191589c50c4ccabc6731bf2666bd9104b414fd85696a93a9c50",
+      "full_raw_local_path": "audit/execution-search/qkv-extra-source/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/compressed_tensors_config.py",
+      "full_raw_bytes": 19213,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/fp8_config.py",
+      "full_raw_sha256": "59647e01fe838a64d1bfd6e97dceb9defd104681c419b493cbd0f81417eba5f3",
+      "full_raw_local_path": "audit/execution-search/qkv-extra-source/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/fp8_config.py",
+      "full_raw_bytes": 5937,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/modelopt_mxfp8_config.py",
+      "full_raw_sha256": "e5f01f452410bb540699b2dd88debcf2935b29809c03c2a1e97f1dbeb0a6e45e",
+      "full_raw_local_path": "audit/execution-search/qkv-extra-source/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/modelopt_mxfp8_config.py",
+      "full_raw_bytes": 3538,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/modelslim_config.py",
+      "full_raw_sha256": "92c924abc0af1ae37d7614ee01cbae0b3be1da86ef6abc885b2208560f3dcbb1",
+      "full_raw_local_path": "audit/execution-search/qkv-extra-source/vllm-workspace/vllm-ascend/vllm_ascend/quantization/configs/modelslim_config.py",
+      "full_raw_bytes": 49091,
+      "reviewed_ranges": [
+        [
+          265,
+          349
+        ],
+        [
+          655,
+          720
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 265,
+          "last": 349,
+          "text": "def get_quant_type_for_layer(\n    quant_description: dict[str, Any],\n    prefix: str,\n    packed_modules_mapping: dict[str, Any] | None = None,\n    prefix_mapper: Callable[[str], str] | None = None,\n) -> str | None:\n    \"\"\"Determine the quantization type for a layer.\n\n    Args:\n        quant_description: The quantization description dictionary.\n        prefix: The layer prefix.\n        packed_modules_mapping: Mapping for packed/fused modules.\n        prefix_mapper: Map expanded module names to quantization description keys.\n\n    Returns:\n        The quantization type string (e.g., \"W8A8_DYNAMIC\").\n        Note: If the quantization type is \"FLOAT\", it will return None to indicate no quantization.\n    \"\"\"\n    if packed_modules_mapping is None:\n        packed_modules_mapping = dict()\n\n    proj_name = prefix.split(\".\")[-1]\n    if proj_name in packed_modules_mapping:\n        quant_type = None\n        # Replace only the trailing component; str.replace would also rewrite\n        # any earlier occurrence of proj_name inside the prefix.\n        shard_prefixes = [\n            prefix.removesuffix(proj_name) + shard_proj_name for shard_proj_name in packed_modules_mapping[proj_name]\n        ]\n        for shard_prefix in shard_prefixes:\n            if prefix_mapper is not None:\n                shard_prefix = prefix_mapper(shard_prefix)\n            shard_key = shard_prefix + \".weight\"\n            # Only Gemma4 k_eq_v is allowed to omit v_proj; other missing\n            # shards fall through to the original dictionary lookup below.\n            if shard_key not in quant_description and _is_missing_v_shard(shard_key, quant_description):\n                continue\n            shard_quant_type = quant_description[shard_key]\n\n            if quant_type is None:\n                quant_type = shard_quant_type\n            elif shard_quant_type != quant_type:\n                err_msg = (\n                    f\"Not all shards of {prefix} are quantized with same quant type. \"\n                    f\"Shard {proj_name} uses {shard_quant_type}, but another shard \"\n                    f\"uses {quant_type}. Please check quantization config.\"\n                )\n                logger.error(err_msg)\n                raise ValueError(err_msg)\n    else:\n        if prefix_mapper is not None:\n            prefix = prefix_mapper(prefix)\n        quant_type = quant_description.get(prefix + \".weight\")\n    return quant_type if quant_type != \"FLOAT\" else None\n\n\ndef create_scheme_for_layer(\n    quant_type: str,\n    prefix: str,\n    layer_type: str,\n):\n    \"\"\"Create a quantization scheme instance for a layer.\n\n    Args:\n        quant_type: The quantization type string (e.g., \"W8A8_DYNAMIC\").\n        prefix: The layer prefix.\n        layer_type: The type of layer (\"linear\", \"moe\", \"attention\").\n\n    Returns:\n        An instance of the appropriate quantization scheme class.\n    \"\"\"\n    logger.info_once(\"Using the vLLM Ascend modelslim Quantization now!\")\n    if quant_type is None:\n        err_msg = f\"Could not determine quantization type for layer {prefix} (layer_type={layer_type}).\"\n        logger.error(err_msg)\n        raise ValueError(err_msg)\n\n    # Use registry to get scheme class\n    scheme_cls = get_scheme_class(quant_type, layer_type)\n    if scheme_cls is not None:\n        return scheme_cls()\n\n    err_msg = (\n        \"Currently, vLLM Ascend doesn't support quant_type=%s for layer_type=%s. \"\n        \"Please use a supported quantization format \"\n"
+        },
+        {
+          "first": 655,
+          "last": 720,
+          "text": "    def get_quant_method(self, layer: torch.nn.Module, prefix: str, tid2eid=None) -> Optional[\"QuantizeMethodBase\"]:\n        from ..method_adapters import (\n            AscendEmbeddingMethod,\n            AscendFusedMoEMethod,\n            AscendKVCacheMethod,\n            AscendLinearMethod,\n        )\n\n        vllm_config = get_current_vllm_config()\n        model_type = vllm_config.model_config.hf_config.model_type\n\n        if model_type in [\"minimax\", \"minimax_m2\"]:\n            # Adapt to Minimax architecture: update layer names to MoE convention\n            prefix = prefix.replace(\"mlp\", \"block_sparse_moe\")\n            # Normalize the prefix by stripping specific expert indices (e.g., 'experts.0' -> 'experts')\n            parts = prefix.split(\".\")\n            if \"experts\" in parts and len(parts) > 2:\n                exp_idx = parts.index(\"experts\")\n                if exp_idx + 1 < len(parts) and parts[exp_idx + 1].isdigit():\n                    parts = parts[: exp_idx + 1]\n                    prefix = \".\".join(parts)\n\n        if model_type in [\"bailing_hybrid\"]:\n            # Adapt to bailing_hybrid architecture: update layer names to MoE convention\n            prefix = prefix.replace(\"linear_attn\", \"attention\")\n            prefix = prefix.replace(\"self_attn\", \"attention\")\n        self._update_packed_modules_mapping(model_type)\n        runtime_prefix = prefix\n        prefix = self.quant_prefix_mapper(model_type, prefix)\n\n        # Kimi K3's mixed-precision packed KDA projection is split by the model\n        # adapter, so it must be resolved BEFORE get_quant_type_for_layer.\n        if model_type in (\"kimi_k3\", \"kimi_linear\") and self.uses_kimi_k3_mixed_kda_projection(prefix):\n            quant_type = None\n        else:\n            quant_type = get_quant_type_for_layer(\n                self.quant_description,\n                runtime_prefix,\n                self.packed_modules_mapping,\n                prefix_mapper=lambda name: self.quant_prefix_mapper(model_type, name),\n            )\n\n        if isinstance(layer, LinearBase):\n            if quant_type is None:\n                # Delayed import to avoid circular import\n                from vllm_ascend.ops.linear import AscendUnquantizedLinearMethod\n\n                logger.debug(\"Select AscendUnquantizedLinearMethod for %s (layer=%s)\", prefix, \"LinearBase\")\n                return AscendUnquantizedLinearMethod()\n            scheme = create_scheme_for_layer(quant_type, prefix, \"linear\")\n            logger.debug(\"Select AscendLinearMethod for %s (layer=%s)\", prefix, \"LinearBase\")\n            return AscendLinearMethod(scheme)\n\n        elif isinstance(layer, AttentionLayerBase):\n            if self.is_fa_quant_layer(prefix):\n                fa_quant_type = self.quant_description[\"fa_quant_type\"]\n                scheme = create_scheme_for_layer(fa_quant_type, prefix, \"attention\")\n                logger.debug(\"Select AscendKVCacheMethod for %s (layer=%s)\", prefix, \"AttentionLayerBase[fa]\")\n            elif self.is_indexer_quant_layer(prefix):\n                # This is a support for revert quantization layers from int8 to float.\n                quant_type = self.quant_description.get(f\"{prefix}.indexer.quant_type\")\n                if quant_type is None:\n                    quant_type = self.quant_description[\"indexer_quant_type\"]\n                scheme = create_scheme_for_layer(quant_type, prefix, \"attention\")\n                logger.debug(\"Select AscendKVCacheMethod for %s (layer=%s)\", prefix, \"AttentionLayerBase[indexer]\")\n            elif self.is_c8_quant_layer(prefix):\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_nn/quant_batch_matmul_v3/QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance.json",
+      "full_raw_sha256": "4d8bbba84691f42e12e76da239a6bc30a65a9cc0c010640a0760d436038fd3d2",
+      "full_raw_local_path": "audit/execution-search/qkv-extra-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_nn/quant_batch_matmul_v3/QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance.json",
+      "full_raw_bytes": 10555,
+      "reviewed_ranges": [],
+      "excerpts": [],
+      "selected_json_fields": {
+        "binFileName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance",
+        "blockDim": -1,
+        "coreType": "MIX",
+        "sha256": "f8d6789e9a0caa1b5bf7f09ffed20937bcd0f75760c5319ab3e5b7cb14e02e8a",
+        "kernelList": [
+          {
+            "tilingKey": 84,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:2",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_84"
+          },
+          {
+            "tilingKey": 0,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_0"
+          },
+          {
+            "tilingKey": 2,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_2"
+          },
+          {
+            "tilingKey": 1,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_1"
+          },
+          {
+            "tilingKey": 3,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_3"
+          },
+          {
+            "tilingKey": 8,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_8"
+          },
+          {
+            "tilingKey": 10,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_10"
+          },
+          {
+            "tilingKey": 9,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_9"
+          },
+          {
+            "tilingKey": 11,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_11"
+          },
+          {
+            "tilingKey": 4,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_4"
+          },
+          {
+            "tilingKey": 6,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_6"
+          },
+          {
+            "tilingKey": 5,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_5"
+          },
+          {
+            "tilingKey": 7,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_7"
+          },
+          {
+            "tilingKey": 16,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_16"
+          },
+          {
+            "tilingKey": 18,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_18"
+          },
+          {
+            "tilingKey": 17,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_17"
+          },
+          {
+            "tilingKey": 19,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_19"
+          },
+          {
+            "tilingKey": 24,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_24"
+          },
+          {
+            "tilingKey": 26,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_26"
+          },
+          {
+            "tilingKey": 25,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_25"
+          },
+          {
+            "tilingKey": 27,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_27"
+          },
+          {
+            "tilingKey": 22,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_22"
+          },
+          {
+            "tilingKey": 23,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_23"
+          },
+          {
+            "tilingKey": 20,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_20"
+          },
+          {
+            "tilingKey": 21,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_bf16_high_performance_21"
+          }
+        ],
+        "supportInfo": {
+          "implMode": "high_performance",
+          "int64Mode": false,
+          "simplifiedKeyMode": 0,
+          "simplifiedKey": [
+            "QuantBatchMatmulV3/d=0,p=1/2,2/2,29/6,2/27,2",
+            "QuantBatchMatmulV3/d=0,p=0/2,2/2,29/6,2/27,2",
+            "QuantBatchMatmulV3/d=1,p=1/2,2/2,29/6,2/27,2",
+            "QuantBatchMatmulV3/d=1,p=0/2,2/2,29/6,2/27,2"
+          ],
+          "optionalInputMode": "gen_placeholder",
+          "optionalOutputMode": "gen_placeholder",
+          "staticKey": "cdab1008f1291744bbf73843ea50e3ab3954ed8eb6d4133a80d3091bba1e7958,b233e6fc1e57b87dd09ee904e5c1d789c94bccaf741b2408b6c02b7d4e33d4ce",
+          "inputs": [
+            {
+              "name": "x1",
+              "index": 0,
+              "dtype": "int8",
+              "format": "ND",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "x2",
+              "index": 1,
+              "dtype": "int8",
+              "format": "FRACTAL_NZ",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "scale",
+              "index": 2,
+              "dtype": "bfloat16",
+              "format": "ND",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault",
+              "dtype_match_mode": "DtypeByte"
+            },
+            {
+              "name": "offset",
+              "index": 3,
+              "dtype": "float32",
+              "format": "ND",
+              "paramType": "optional",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "bias",
+              "index": 4,
+              "dtype": "bfloat16",
+              "format": "ND",
+              "paramType": "optional",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "pertoken_scale",
+              "index": 5,
+              "dtype": "float32",
+              "format": "ND",
+              "paramType": "optional",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "y",
+              "index": 0,
+              "dtype": "bfloat16",
+              "format": "ND",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            }
+          ],
+          "attrs": [
+            {
+              "name": "dtype",
+              "dtype": "int",
+              "value": 27
+            },
+            {
+              "name": "transpose_x1",
+              "dtype": "bool",
+              "value": null
+            },
+            {
+              "name": "transpose_x2",
+              "dtype": "bool",
+              "value": null
+            },
+            {
+              "name": "group_size",
+              "dtype": "int",
+              "value": null
+            }
+          ],
+          "opMode": "dynamic",
+          "deterministic": "ignore"
+        }
+      },
+      "json_scope": "Exact selected parsed fields, not full raw body or active invocation key."
+    },
+    {
+      "runtime_path": "/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_nn/quant_batch_matmul_v3/QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance.json",
+      "full_raw_sha256": "8f7640d1408261256543788488c582fd2ce54177d757ff039d7619d78351f123",
+      "full_raw_local_path": "audit/execution-search/qkv-extra-source/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_nn/quant_batch_matmul_v3/QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance.json",
+      "full_raw_bytes": 10689,
+      "reviewed_ranges": [],
+      "excerpts": [],
+      "selected_json_fields": {
+        "binFileName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance",
+        "blockDim": -1,
+        "coreType": "MIX",
+        "sha256": "3fac05a2fbb4189587ad82ab613140cdc166b5a1b15e8d4e500861597646906a",
+        "kernelList": [
+          {
+            "tilingKey": 84,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:2",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_84"
+          },
+          {
+            "tilingKey": 0,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_0"
+          },
+          {
+            "tilingKey": 2,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_2"
+          },
+          {
+            "tilingKey": 1,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_1"
+          },
+          {
+            "tilingKey": 3,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_3"
+          },
+          {
+            "tilingKey": 8,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_8"
+          },
+          {
+            "tilingKey": 10,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_10"
+          },
+          {
+            "tilingKey": 9,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_9"
+          },
+          {
+            "tilingKey": 11,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_11"
+          },
+          {
+            "tilingKey": 4,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_4"
+          },
+          {
+            "tilingKey": 6,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_6"
+          },
+          {
+            "tilingKey": 5,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_5"
+          },
+          {
+            "tilingKey": 7,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_7"
+          },
+          {
+            "tilingKey": 16,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_16"
+          },
+          {
+            "tilingKey": 18,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_18"
+          },
+          {
+            "tilingKey": 17,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_17"
+          },
+          {
+            "tilingKey": 19,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_19"
+          },
+          {
+            "tilingKey": 24,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_24"
+          },
+          {
+            "tilingKey": 26,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_26"
+          },
+          {
+            "tilingKey": 25,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_25"
+          },
+          {
+            "tilingKey": 27,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_27"
+          },
+          {
+            "tilingKey": 22,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_22"
+          },
+          {
+            "tilingKey": 23,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_23"
+          },
+          {
+            "tilingKey": 20,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_20"
+          },
+          {
+            "tilingKey": 21,
+            "kernelType": "MIX_AIC",
+            "crossCoreSync": 1,
+            "taskRation": "1:1",
+            "kernelName": "QuantBatchMatmulV3_ND_NZ_int8_int8_fp32_bf16_high_performance_21"
+          }
+        ],
+        "supportInfo": {
+          "implMode": "high_performance",
+          "int64Mode": false,
+          "simplifiedKeyMode": 0,
+          "simplifiedKey": [
+            "QuantBatchMatmulV3/d=0,p=1/2,2/2,29/3,2/27,2",
+            "QuantBatchMatmulV3/d=0,p=0/2,2/2,29/3,2/27,2",
+            "QuantBatchMatmulV3/d=1,p=1/2,2/2,29/3,2/27,2",
+            "QuantBatchMatmulV3/d=1,p=0/2,2/2,29/3,2/27,2"
+          ],
+          "optionalInputMode": "gen_placeholder",
+          "optionalOutputMode": "gen_placeholder",
+          "staticKey": "97025a4fbc99230cb2cfca2a4a9dcc1ba27755643ca88001f60442bf89958101,7e99daab93783ec31aa7ecd52d77e57f6ba0840a2d4b3ee5197a952e26bfc913",
+          "inputs": [
+            {
+              "name": "x1",
+              "index": 0,
+              "dtype": "int8",
+              "format": "ND",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "x2",
+              "index": 1,
+              "dtype": "int8",
+              "format": "FRACTAL_NZ",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "scale",
+              "index": 2,
+              "dtype": "float32",
+              "format": "ND",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault",
+              "dtype_match_mode": "DtypeByte"
+            },
+            {
+              "name": "offset",
+              "index": 3,
+              "dtype": "float32",
+              "format": "ND",
+              "paramType": "optional",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "bias",
+              "index": 4,
+              "dtype": "bfloat16",
+              "format": "ND",
+              "paramType": "optional",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            },
+            {
+              "name": "pertoken_scale",
+              "index": 5,
+              "dtype": "float32",
+              "format": "ND",
+              "paramType": "optional",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "y",
+              "index": 0,
+              "dtype": "bfloat16",
+              "format": "ND",
+              "paramType": "required",
+              "shape": [
+                -2
+              ],
+              "format_match_mode": "FormatDefault"
+            }
+          ],
+          "attrs": [
+            {
+              "name": "dtype",
+              "dtype": "int",
+              "value": 27
+            },
+            {
+              "name": "transpose_x1",
+              "dtype": "bool",
+              "value": null
+            },
+            {
+              "name": "transpose_x2",
+              "dtype": "bool",
+              "value": null
+            },
+            {
+              "name": "group_size",
+              "dtype": "int",
+              "value": null
+            }
+          ],
+          "opMode": "dynamic",
+          "deterministic": "ignore"
+        }
+      },
+      "json_scope": "Exact selected parsed fields, not full raw body or active invocation key."
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/cv_linear.py",
+      "full_raw_sha256": "d2bf17c189f8748a9b7e5cbd42325c798eeb238da894755065792da982450b6d",
+      "full_raw_local_path": "audit/execution-search/swa-query-producer-source/vllm-workspace/vllm-ascend/vllm_ascend/ops/cv_linear.py",
+      "full_raw_bytes": 7140,
+      "reviewed_ranges": [
+        [
+          13,
+          189
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 13,
+          "last": 189,
+          "text": "class CVLinearWrapper:\n    \"\"\"\n    Splits a Linear layer into quantize(Vector) + matmul(Cube).\n\n    Automatically detects TP communication operations:\n    - No communication (ReplicatedLinear): W8A8 is split into independent quantize + matmul\n    - Has communication (ColumnParallelLinear with custom_op): automatically falls back to full forward\n\n    Usage example:\n        wrapper = CVLinearWrapper(linear)\n\n        # Step 1: Quantize (Vector)\n        q_quant, q_scale = wrapper.quantize(x)\n\n        # Step 2: Matrix multiply (Cube)\n        result = wrapper.matmul(q_quant, q_scale)\n    \"\"\"\n\n    def __init__(self, linear):\n        self.linear = linear\n\n        # Detect whether TP communication operations exist\n        self._has_communication = self._detect_communication(linear)\n\n        # Detect quantization scheme\n        # Handles two cases:\n        # 1. linear.quant_method is directly AscendW8A8DynamicLinearMethod or AscendW8A8MXFP8DynamicLinearMethod\n        # 2. linear.quant_method is a wrapper class, requiring .quant_method to get the actual quantization method\n        self._quant_method = linear.quant_method\n        self._is_w8a8_dynamic = self._detect_w8a8_dynamic(linear.quant_method)\n        self._mxfp8_quant_method = self._detect_mxfp8_dynamic(linear.quant_method)\n        self._is_mxfp8_dynamic = self._mxfp8_quant_method is not None\n\n    @staticmethod\n    def _detect_w8a8_dynamic(quant_method):\n        \"\"\"Detect whether the quantization method is W8A8 Dynamic\"\"\"\n        # Case 1: quant_method is directly AscendW8A8DynamicLinearMethod\n        if isinstance(quant_method, AscendW8A8DynamicLinearMethod):\n            return True\n        # Case 2: quant_method is a wrapper class, requiring .quant_method to get the actual method\n        return hasattr(quant_method, \"quant_method\") and isinstance(\n            quant_method.quant_method, AscendW8A8DynamicLinearMethod\n        )\n\n    @staticmethod\n    def _detect_mxfp8_dynamic(quant_method):\n        \"\"\"Detect whether the quantization method is W8A8 MXFP8 Dynamic.\n\n        Returns the inner scheme instance (needed for scale_alg/group_size)\n        or None. isinstance also covers the DS block-quant subclass.\n        \"\"\"\n        if isinstance(quant_method, AscendW8A8MXFP8DynamicLinearMethod):\n            return quant_method\n        if hasattr(quant_method, \"quant_method\") and isinstance(\n            quant_method.quant_method, AscendW8A8MXFP8DynamicLinearMethod\n        ):\n            return quant_method.quant_method\n        return None\n\n    @staticmethod\n    def _detect_communication(linear):\n        \"\"\"\n        Detect whether the Linear layer has TP communication during forward.\n\n        Criteria:\n        - custom_op is None or CustomReplicatedOp: no TP communication\n        - Other custom_op (e.g., MLPColumnParallelOp with all_gather): has TP communication\n        - ColumnParallelLinear with gather_output=True: has all-gather communication\n        Note: ColumnParallelLinear even with custom_op=None only communicates when gather_output=True.\n              wq_b uses default gather_output=False, so no communication and can be split.\n        \"\"\"\n        custom_op = getattr(linear, \"custom_op\", None)\n        if custom_op is not None:\n            from vllm_ascend.ops.linear_op import CustomReplicatedOp\n\n            if not isinstance(custom_op, CustomReplicatedOp):\n                return True\n\n        return hasattr(linear, \"gather_output\") and linear.gather_output\n\n    def quantize(self, x: torch.Tensor):\n        \"\"\"\n        Execute only the quantization step (Vector operator).\n\n        Args:\n            x: Input tensor\n\n        Returns:\n            (quantized_x, pertoken_scale): Quantized tensor and scaling factor.\n            For linear layers with communication or without quantization, returns (x, None).\n        \"\"\"\n        if self._has_communication:\n            return x, None\n\n        if self._is_w8a8_dynamic:\n            quantized_x, pertoken_scale = torch_npu.npu_dynamic_quant(x)\n            return quantized_x, pertoken_scale\n\n        if self._is_mxfp8_dynamic:\n            quantized_x, pertoken_scale = torch_npu.npu_dynamic_mx_quant(\n                x,\n                dst_type=torch.float8_e4m3fn,\n                scale_alg=self._mxfp8_quant_method.dynamic_mx_quant_scale_alg,\n            )\n            return quantized_x, pertoken_scale\n\n        return x, None\n\n    def matmul(self, quantized_x: torch.Tensor, pertoken_scale=None, bias=None):\n        \"\"\"\n        Execute only the matrix multiplication step (Cube operator).\n\n        Args:\n            quantized_x: Quantized input (original input when communication is present)\n            pertoken_scale: Per-token scaling factor for W8A8_DYNAMIC\n            bias: Bias\n\n        Returns:\n            Matrix multiplication result\n        \"\"\"\n        if self._has_communication:\n            return self.linear.forward(quantized_x)\n\n        if self._is_w8a8_dynamic:\n            need_unsqz = False\n            if pertoken_scale is not None and pertoken_scale.dim() == 2:\n                need_unsqz = True\n                quantized_x = quantized_x.squeeze(dim=1)\n                pertoken_scale = pertoken_scale.squeeze(dim=1)\n\n            output = torch_npu.npu_quant_matmul(\n                quantized_x,\n                self.linear.weight,\n                self.linear.weight_scale,\n                pertoken_scale=pertoken_scale,\n                bias=bias,\n                output_dtype=self.linear.weight_scale.dtype,\n            )\n\n            if need_unsqz:\n                output = output.unsqueeze(dim=1)\n            return output\n\n        if self._is_mxfp8_dynamic:\n            # Mirrors the pre-quantized path of the MXFP8 scheme's apply()\n            if bias is not None and bias.dtype != torch.float32:\n                bias = bias.to(torch.float32)\n            return torch_npu.npu_quant_matmul(\n                quantized_x,\n                self.linear.weight,\n                self.linear.weight_scale,\n                scale_dtype=torch_npu.float8_e8m0fnu,\n                pertoken_scale=pertoken_scale,\n                pertoken_scale_dtype=torch_npu.float8_e8m0fnu,\n                bias=bias,\n                output_dtype=torch.bfloat16,\n                group_sizes=[1, 1, self._mxfp8_quant_method.group_size],\n            )\n\n        return self.linear.quant_method.apply(self.linear, quantized_x, bias)\n\n    def forward(self, x: torch.Tensor, bias=None):\n        \"\"\"Full forward (equivalent to the original Linear.forward)\"\"\"\n        q_quant, q_scale = self.quantize(x)\n        return self.matmul(q_quant, q_scale, bias)\n\n    @property\n    def weight(self):\n        return self.linear.weight\n\n    @weight.setter\n    def weight(self, value):\n        self.linear.weight = value\n\n    def __getattr__(self, name):\n        \"\"\"Delegate undefined attributes to the inner linear object\"\"\"\n        return getattr(self.linear, name)\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/linear.py",
+      "full_raw_sha256": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6",
+      "full_raw_local_path": "audit/execution-search/swa-query-producer-source/vllm-workspace/vllm-ascend/vllm_ascend/ops/linear.py",
+      "full_raw_bytes": 22921,
+      "reviewed_ranges": [
+        [
+          130,
+          180
+        ],
+        [
+          521,
+          603
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 130,
+          "last": 180,
+          "text": "                layer.weight.data.view(layer.n_local_groups, layer.o_lora_rank, -1).transpose(2, 1).contiguous()\n            )\n\n    def apply(\n        self,\n        layer: torch.nn.Module,\n        x: torch.Tensor,\n        bias: torch.Tensor | None = None,\n    ) -> torch.Tensor:\n        return torch.ops.vllm.unquantized_gemm(x, layer.weight, bias)\n\n\n# TODO(realliujiaxu): Remove this class after linear of vllm supports custom comm group\nclass AscendLinearBase(LinearBase):\n    def __init__(\n        self,\n        input_size: int,\n        output_size: int,\n        skip_bias_add: bool = False,\n        params_dtype: torch.dtype | None = None,\n        quant_config: QuantizationConfig | None = None,\n        prefix: str = \"\",\n        *,\n        return_bias: bool = True,\n        disable_tp: bool = False,\n    ):\n        nn.Module.__init__(self)\n\n        # Keep input parameters\n        self.input_size = input_size\n        self.output_size = output_size\n        self.skip_bias_add = skip_bias_add\n        if params_dtype is None:\n            params_dtype = torch.get_default_dtype()\n        self.params_dtype = params_dtype\n        self.quant_config = quant_config\n        self.prefix = prefix\n        if quant_config is None:\n            self.quant_method: QuantizeMethodBase | None = AscendUnquantizedLinearMethod()\n        else:\n            self.quant_method = quant_config.get_quant_method(self, prefix=prefix)\n        self.return_bias = return_bias\n        self.disable_tp = disable_tp\n\n\nclass AscendQKVParallelLinear(QKVParallelLinear):\n    \"\"\"Linear layers for the attention's QKV transformation.\n\n    Linear layers for the linear transformation of the query, key, and value\n    vectors in the attention layer. The weight matrix is concatenated along\n    the output dimension. The layer is parallelized along the head dimension.\n"
+        },
+        {
+          "first": 521,
+          "last": 603,
+          "text": "class AscendReplicatedLinear(ReplicatedLinear):\n    \"\"\"Ascend Replicated linear layer.\n\n    Args:\n        input_size: input dimension of the linear layer.\n        output_size: output dimension of the linear layer.\n        bias: If true, add bias.\n        skip_bias_add: If true, skip adding bias but instead return it.\n        params_dtype: Data type for the parameters.\n        quant_config: Quantization configure.\n        prefix: The name of the layer in the state dict, including all parents\n                        (e.g. model.layers.0.qkv_proj)\n        return_bias: If true, return bias together with outputs in forward pass.\n        disable_tp: Take no effect for replicated linear layers.\n    \"\"\"\n\n    def __init__(\n        self,\n        input_size: int,\n        output_size: int,\n        bias: bool = True,\n        skip_bias_add: bool = False,\n        params_dtype: torch.dtype | None = None,\n        quant_config: QuantizationConfig | None = None,\n        prefix: str = \"\",\n        *,\n        return_bias: bool = True,\n        disable_tp: bool = False,\n    ):\n        self.custom_op, self.tp_rank, self.tp_size = get_replicated_op(disable_tp, prefix, self)\n        # If MergedReplicatedLinear, use output size of each partition.\n        if hasattr(self, \"output_sizes\"):\n            self.output_partition_sizes = self.output_sizes\n        else:\n            self.output_partition_sizes = [output_size]\n\n        AscendLinearBase.__init__(\n            self,\n            input_size,\n            output_size,\n            skip_bias_add,\n            params_dtype,\n            quant_config,\n            prefix=prefix,\n            return_bias=return_bias,\n            disable_tp=disable_tp,\n        )\n\n        # All the linear layer supports quant method.\n        assert self.quant_method is not None\n        self.quant_method.create_weights(\n            self,\n            self.input_size,\n            [self.output_size],\n            self.input_size,\n            self.output_size,\n            self.params_dtype,\n            weight_loader=self.weight_loader,\n        )\n\n        if bias:\n            self.bias = Parameter(torch.empty(self.output_size, dtype=self.params_dtype))\n            set_weight_attrs(\n                self.bias,\n                {\n                    \"output_dim\": 0,\n                    \"weight_loader\": self.weight_loader,\n                },\n            )\n        else:\n            self.register_parameter(\"bias\", None)\n\n        if self.custom_op is not None:\n            self.custom_op.update_attrs()\n\n    def forward(\n        self,\n        input_,\n    ) -> torch.Tensor | tuple[torch.Tensor, Parameter | None]:\n        if self.custom_op is not None:\n            return self.custom_op.apply(input_)\n\n        return super().forward(input_)\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "full_raw_sha256": "a67601ee596d9aa4ae72ea3638f67ff7236cd8df884564bcd19f33653a1e0910",
+      "full_raw_local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "full_raw_bytes": 25282,
+      "reviewed_ranges": [
+        [
+          20,
+          143
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 20,
+          "last": 143,
+          "text": "import torch\nimport torch_npu\nfrom vllm.config import get_current_vllm_config\nfrom vllm.logger import logger\nfrom vllm.model_executor.layers.fused_moe.activation import MoEActivation\nfrom vllm.triton_utils import HAS_TRITON\n\nfrom vllm_ascend.ascend_config import get_ascend_config\nfrom vllm_ascend.ascend_forward_context import _EXTRA_CTX, MoECommType, use_cann_megamoe\nfrom vllm_ascend.distributed.parallel_state import get_mc2_group\nfrom vllm_ascend.ops.fused_moe.dataclass.fused_experts import MoEWeights, build_fused_experts_input\nfrom vllm_ascend.ops.fused_moe.dataclass.moe_mlp import MoEMlpComputeInput\nfrom vllm_ascend.ops.fused_moe.moe_utils import (\n    _custom_gmm_swiglu_enabled,\n    _prepare_dequant_swiglu_weight_scale,\n    cumsum_group_list,\n)\nfrom vllm_ascend.ops.fused_moe.routed_experts import AscendRoutedExperts  # noqa: F401\nfrom vllm_ascend.utils import ACL_FORMAT_FRACTAL_NZ, dispose_tensor, maybe_trans_nz\n\nfrom ..base import (\n    AscendLinearScheme,\n    AscendMoEScheme,\n    PreparedLinearInput,\n    QuantType,\n    WeightSwitchGatherSpec,\n)\nfrom ..registry import register_scheme\n\n\ndef scale_from_float_to_int64(scale):\n    \"\"\"Convert float32 scale to int64 representation.\"\"\"\n    import numpy as np\n\n    scale = torch.from_numpy(\n        np.frombuffer(scale.cpu().to(torch.float32).numpy().tobytes(), dtype=np.int32).astype(np.int64)\n    ).to(scale.device)\n    return scale\n\n\n@register_scheme(\"W8A8_DYNAMIC\", \"linear\")\nclass AscendW8A8DynamicLinearMethod(AscendLinearScheme):\n    \"\"\"Linear method for Ascend W8A8_DYNAMIC.\n\n    This scheme uses dynamic per-token quantization for activations\n    and per-channel quantization for weights.\n    \"\"\"\n\n    act_quant_type: torch.dtype = torch.int8\n    weight_switch_gather_specs = (WeightSwitchGatherSpec(\"weight\"),)\n    weight_switch_output_gather_specs = (\n        WeightSwitchGatherSpec(\"weight\", gather_dim=1),\n        WeightSwitchGatherSpec(\"weight_scale\"),\n        WeightSwitchGatherSpec(\"weight_offset\"),\n    )\n    supports_weight_switch = True\n\n    def __init__(self):\n        pass\n\n    def get_weight(self, input_size: int, output_size: int, params_dtype: torch.dtype) -> dict[str, Any]:\n        params_dict = {\"weight\": torch.empty(output_size, input_size, dtype=torch.int8)}\n        return params_dict\n\n    def get_perchannel_param(\n        self,\n        output_size: int,\n        params_dtype: torch.dtype,\n    ) -> dict[str, Any]:\n        params_dict = {}\n        params_dict[\"weight_scale\"] = torch.empty(output_size, 1, dtype=params_dtype)\n        params_dict[\"weight_offset\"] = torch.empty(output_size, 1, dtype=params_dtype)\n        return params_dict\n\n    def prepare_input_for_overlap(\n        self,\n        layer: torch.nn.Module,\n        x: torch.Tensor,\n    ) -> PreparedLinearInput | None:\n        if x.dim() != 2:\n            return None\n        quantized_x, pertoken_scale = torch_npu.npu_dynamic_quant(x, dst_type=self.act_quant_type)\n        return PreparedLinearInput(quantized_x, pertoken_scale, x.dtype)\n\n    def apply(\n        self,\n        layer: torch.nn.Module,\n        x: torch.Tensor | PreparedLinearInput,\n        bias: torch.Tensor | None = None,\n        tp_rank: int | None = 0,\n    ) -> torch.Tensor:\n        if isinstance(x, PreparedLinearInput):\n            quantized_x = x.quantized\n            assert x.scale is not None\n            pertoken_scale = x.scale\n            output_dtype = x.output_dtype\n        else:\n            quantized_x, pertoken_scale = torch_npu.npu_dynamic_quant(x, dst_type=self.act_quant_type)\n            output_dtype = x.dtype\n        need_unsqz = False\n        if pertoken_scale.dim() == 2:\n            need_unsqz = True\n            quantized_x = quantized_x.squeeze(dim=1)\n            pertoken_scale = pertoken_scale.squeeze(dim=1)\n        output = torch_npu.npu_quant_matmul(\n            quantized_x,\n            layer.weight,\n            layer.weight_scale,\n            pertoken_scale=pertoken_scale,\n            bias=bias if self.act_quant_type == torch.int8 else None,\n            output_dtype=output_dtype,\n        )\n        if need_unsqz:\n            output = output.unsqueeze(dim=1)\n        return output\n\n    def process_weights_after_loading(self, layer):\n        layer.weight.data = layer.weight.data.transpose(0, 1).contiguous()\n        # cast quantized weight tensors in NZ format for higher inference speed\n        if self.act_quant_type == torch.int8:\n            layer.weight.data = maybe_trans_nz(layer.weight.data)\n        layer.weight_scale.data = layer.weight_scale.data.flatten()\n        layer.weight_scale_fp32 = layer.weight_scale.data.to(torch.float32)\n        layer.weight_offset.data = layer.weight_offset.data.flatten()\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v1.py",
+      "full_raw_sha256": "698765a3662332ad108fd9ef128eb87fd313544cd887f5154f924a5915ee123a",
+      "full_raw_local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v1.py",
+      "full_raw_bytes": 102541,
+      "reviewed_ranges": [
+        [
+          1620,
+          1650
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 1620,
+          "last": 1650,
+          "text": "        self.window_size = window_size\n        self.q_lora_rank = q_lora_rank\n        self.compress_ratio = compress_ratio\n        self.turboquant = (\n            TurboQuantLatent(legacy_hadamard=True) if is_turboquant(self.vllm_config) and compress_ratio == 4 else None\n        )\n        self.softmax_scale = self.head_dim**-0.5\n        self.support_fp8_attention = get_current_hardware_profile().supports(HardwareCapability.FP8_ATTENTION)\n\n        # MLA Args\n        self.wq_a = kwargs[\"wq_a\"]\n        self.wq_b = kwargs[\"wq_b\"]\n        self.wkv = kwargs[\"wkv\"]\n        self.q_norm = kwargs[\"q_norm\"]\n        self.q_norm_without_weight = kwargs[\"q_norm_without_weight\"]\n        self.kv_norm = kwargs[\"kv_norm\"]\n\n        # CV wrapper: split wq_a/wkv/wq_b into quantize(Vector) + matmul(Cube)\n        self.cv_wq_a = CVLinearWrapper(self.wq_a)\n        self.cv_wkv = CVLinearWrapper(self.wkv)\n        self.cv_wq_b = CVLinearWrapper(self.wq_b)\n\n        self.indexer = kwargs.get(\"indexer\")\n        self.compressor = kwargs.get(\"compressor\")\n        self.swa_cache_layer = kwargs.get(\"swa_cache_layer\")\n        assert self.swa_cache_layer is not None\n\n        self.wo_a = kwargs[\"wo_a\"]\n        self.wo_b = kwargs[\"wo_b\"]\n\n        self.eps = kwargs[\"eps\"]\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "full_raw_sha256": "7e8dd93eeda988866138342523ecfa7cc9c42ce67669d4b1507ee8c5f3452305",
+      "full_raw_local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_cp.py",
+      "full_raw_bytes": 126406,
+      "reviewed_ranges": [
+        [
+          77,
+          91
+        ],
+        [
+          1445,
+          1475
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 77,
+          "last": 91,
+          "text": "def restore_tp_heads(output, tp_group):\n    \"\"\"Exchange [local tokens, all heads] for [all tokens, local heads].\"\"\"\n    if tp_group.world_size == 1:\n        return output\n    tokens, heads, width = output.shape\n    local_heads = heads // tp_group.world_size\n    send = (\n        output.view(tokens, tp_group.world_size, local_heads, width)\n        .permute(1, 0, 2, 3)\n        .contiguous()\n        .view(-1, local_heads, width)\n    )\n    recv = torch.empty_like(send)\n    dist.all_to_all_single(recv, send, group=tp_group.device_group)\n    return recv\n"
+        },
+        {
+          "first": 1445,
+          "last": 1475,
+          "text": "        self.indexer = kwargs.get(\"indexer\")\n        self.compressor = kwargs.get(\"compressor\")\n        self.swa_cache_layer = kwargs.get(\"swa_cache_layer\")\n        assert self.swa_cache_layer is not None\n\n        self.wo_a = kwargs[\"wo_a\"]\n        self.wo_b = kwargs[\"wo_b\"]\n\n        # A5 uses full o_proj weight gathering. A3 keeps the activation\n        # all-to-all path to avoid gathering the full o_proj weights.\n        self.enable_dsa_cp_full_o_proj = enable_dsa_cp_full_o_proj() and is_950()\n        self.o_proj_weight_switch_config = WeightSwitchConfig.from_group(self.tp_group)\n        self._o_proj_weight_switch_enabled = False\n\n        self.eps = kwargs[\"eps\"]\n\n        self.attn_sink = kwargs[\"attn_sink\"]\n\n        self.vllm_config = kwargs.get(\"vllm_config\", get_current_vllm_config())\n\n        # V4.1 CP preprocessing uses the same split projections as ordinary DSA.\n        self.cv_wq_a = CVLinearWrapper(self.wq_a)\n        self.cv_wkv = CVLinearWrapper(self.wkv)\n        self.cv_wq_b = CVLinearWrapper(self.wq_b)\n        self.multistream_dsv4_dsa_overlap = get_ascend_config().multistream_dsv4_dsa_overlap\n        if self.multistream_dsv4_dsa_overlap and is_a5_bf16_kv_enabled(self.vllm_config):\n            self.multistream_dsv4_dsa_overlap = False\n\n        # indexer param\n        if self.indexer is not None:\n            self.indexer_heads: int = self.indexer.n_heads\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "full_raw_sha256": "039ec9d18e0a8a4aa39f9d5b4bea15204cea3f397a3fce97a5097b266bc9822e",
+      "full_raw_local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/context_parallel/dsa_v41_cp.py",
+      "full_raw_bytes": 24805,
+      "reviewed_ranges": [
+        [
+          29,
+          75
+        ],
+        [
+          78,
+          220
+        ],
+        [
+          450,
+          490
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 29,
+          "last": 75,
+          "text": "\nif TYPE_CHECKING:\n    from vllm_ascend.worker.v2.pcp_manager import AscendPCPAttentionContext\n\n\ndef get_v41_cp_classes():\n    use_dsa_cp = enable_dsa_cp()\n    # Read the current model config: DSpark's target uses PCP, while its\n    # replicated draft is constructed under a separate PCP=1 config.\n    use_pcp = enable_pcp()\n    if use_dsa_cp and use_pcp:\n        raise ValueError(\"Legacy DSACP and PCP cannot be enabled at the same time.\")\n    if use_dsa_cp:\n        return AscendDSAV41CPMetadataBuilder, AscendDSAV41CPImpl\n    if use_pcp:\n        return AscendDSAV41PCPMetadataBuilder, AscendDSAV41PCPImpl\n    return AscendDSAV41MetadataBuilder, AscendDSAV41Impl\n\n\nclass _ReplicatedCacheMetadataBuilder(AscendDSAV41MetadataBuilder):\n    \"\"\"Keep global cache metadata independent from local query buffers.\"\"\"\n\n    def __init__(self, kv_cache_spec, layer_names, vllm_config, device, *, build_local_compressor_metadata=False):\n        super().__init__(\n            kv_cache_spec,\n            layer_names,\n            vllm_config,\n            device,\n            build_compressor_metadata=build_local_compressor_metadata,\n        )\n        self._global_builder = AscendDSAV41MetadataBuilder(\n            kv_cache_spec, layer_names, vllm_config, device, build_query_metadata=False\n        )\n\n    def prepare_source_rope(self):\n        # Both metadata owners need source tables before MRV2 warmup/capture.\n        super().prepare_source_rope()\n        self._global_builder.prepare_source_rope()\n\n    def enable_device_metadata(self):\n        super().enable_device_metadata()\n        self._global_builder.enable_device_metadata()\n\n    def take_device_metadata_tasks(self):\n        return (\n            *self._global_builder.take_device_metadata_tasks(),\n            *super().take_device_metadata_tasks(),\n"
+        },
+        {
+          "first": 78,
+          "last": 220,
+          "text": "    @contextmanager\n    def defer_device_metadata(self, *, in_graph: bool = False):\n        # Enter the global guard first: the outer enable method enables both.\n        with (\n            self._global_builder.defer_device_metadata(in_graph=in_graph),\n            super().defer_device_metadata(in_graph=in_graph),\n        ):\n            yield\n\n    def _build_global_metadata(self, common_prefix_len, common, fast_build, kwargs):\n        global_kwargs = dict(kwargs)\n        shared = kwargs.get(\"common_v41_metadata\")\n        if shared is not None:\n            global_kwargs[\"common_v41_metadata\"] = shared.setdefault(\"cp_global\", {})\n        batch_shared = kwargs.get(\"common_v41_batch_metadata\")\n        if batch_shared is not None:\n            global_kwargs[\"common_v41_batch_metadata\"] = batch_shared.setdefault(\"cp_global\", {})\n        return self._global_builder.build(common_prefix_len, common, fast_build, **global_kwargs)\n\n\n# =============================================================================\n# Legacy DSV4.1 DSACP implementation\n# =============================================================================\n\n\nclass AscendDSAV41CPMetadataBuilder(_ReplicatedCacheMetadataBuilder):\n    def __init__(self, kv_cache_spec, layer_names, vllm_config, device):\n        super().__init__(kv_cache_spec, layer_names, vllm_config, device)\n        # SMLA consumes INT32 offsets at a fixed address during graph replay.\n        self._cp_query_start_loc = self._seq_lens.new_zeros(self._seq_lens.numel() + 1)\n\n    # Reuse Legacy DSACP's request intersection and causal-prefix calculation.\n    _local_token_range = staticmethod(AscendDSACPMetadataBuilder._local_token_range)\n\n    def build(self, common_prefix_len, common_attn_metadata, fast_build=False, **kwargs):\n        common = common_attn_metadata\n        global_metadata = self._build_global_metadata(common_prefix_len, common, fast_build, kwargs)\n        seq_lens_cpu = (\n            common._seq_lens_cpu if getattr(common, \"_seq_lens_cpu\", None) is not None else common.seq_lens_cpu\n        )\n        start, end, per_rank, padded, qsl, seq_lens = AscendDSACPMetadataBuilder._build_local_token_metadata(\n            self,\n            common.num_reqs,\n            common.num_input_tokens,\n            common.query_start_loc_cpu,\n            seq_lens_cpu,\n            is_noncausal=not bool(getattr(common, \"causal\", True)),\n        )\n        actual_end = min(end, common.num_actual_tokens)\n        actual_start = min(start, actual_end)\n        # Padding participates in the output exchange, not in cache reads.\n        qsl = qsl.clamp_max(actual_end - actual_start).to(self._cp_query_start_loc.dtype)\n        query_start_loc = self._cp_query_start_loc[: qsl.numel()]\n        query_start_loc.copy_(qsl.pin_memory(), non_blocking=True)\n        # Device lengths are authoritative after speculative rejection; the\n        # CPU mirror may still be an upper bound. Remove only the query suffix\n        # beyond this rank's token interval from each request's device length.\n        query_ends = common.query_start_loc_cpu[1 : common.num_reqs + 1]\n        suffix = query_ends - query_ends.clamp(min=actual_start, max=actual_end)\n        if not bool(getattr(common, \"causal\", True)):\n            suffix = torch.zeros_like(suffix)\n        local_seq_lens = (\n            common.seq_lens[: common.num_reqs] - suffix.pin_memory().to(common.seq_lens.device, non_blocking=True)\n        ).clamp_min(0)\n        local_seq_lens = torch.where(query_start_loc[1:] > query_start_loc[:-1], local_seq_lens, 0)\n        local_common = common.replace(\n            query_start_loc=query_start_loc,\n            query_start_loc_cpu=qsl,\n            seq_lens=local_seq_lens,\n            seq_lens_cpu=seq_lens,\n            num_actual_tokens=actual_end - actual_start,\n            num_input_tokens=actual_end - actual_start,\n            positions=common.positions[actual_start:actual_end],\n            slot_mapping=common.slot_mapping[actual_start:actual_end],\n            max_query_len=int((qsl[1:] - qsl[:-1]).max()) if common.num_reqs else 0,\n            max_seq_len=int(seq_lens.max()) if common.num_reqs else 0,\n        )\n        kwargs[\"num_query_heads\"] = _config_value(self.vllm_config.model_config.hf_text_config, \"num_attention_heads\")\n        if global_metadata.cos is not None and global_metadata.sin is not None:\n            # Q owns a contiguous token slice of the global KV batch. Reuse\n            # that slice: a second cached RoPE gather would overwrite the\n            # process-wide buffer still referenced by global KV metadata.\n            kwargs[\"rope_views\"] = (\n                global_metadata.cos[actual_start:actual_end],\n                global_metadata.sin[actual_start:actual_end],\n            )\n        if global_metadata.ori_sparse_indices is not None:\n            kwargs[\"ori_sparse_indices\"] = global_metadata.ori_sparse_indices[actual_start:actual_end]\n        local = super().build(common_prefix_len, local_common, fast_build, **kwargs)\n        return replace(local, global_metadata=global_metadata, cp_token_range=(start, end, per_rank, padded))\n\n\nclass _ReplicatedCacheImpl(AscendDSAV41Impl):\n    def _global_layer_metadata(self, metadata_by_prefix):\n        global_by_prefix = {}\n        # The runner also includes DSpark's native DSA metadata in this map.\n        # Resolve only the cache planes consumed by this target layer.\n        for prefix in (\n            self.swa_prefix,\n            self.long_kv_source_prefix,\n            self.index_k_source_prefix,\n            self.compressor_state_prefix,\n        ):\n            if prefix is None:\n                continue\n            metadata = metadata_by_prefix[prefix]\n            global_by_prefix[prefix] = metadata.global_metadata\n        return self._get_layer_metadata(global_by_prefix)\n\n\nclass AscendDSAV41CPImpl(_ReplicatedCacheImpl):\n    def _prepare_inputs_and_caches(self, attn, hidden_states, metadata, metadata_by_prefix):\n        global_metadata = self._global_layer_metadata(metadata_by_prefix)\n        start, _, _, _ = metadata.swa.cp_token_range\n        return self._preprocess(attn, hidden_states[start:], hidden_states, metadata, global_metadata)\n\n    def _indexer_hidden_states(self, hidden_states, metadata):\n        start, _, _, _ = metadata.swa.cp_token_range\n        return hidden_states[start : start + metadata.swa.num_actual_tokens]\n\n    def _select_sparse_indices(self, attn, hidden_states, qr, positions, cos, sin, metadata, prepared_indexer=None):\n        if not self.role.has_long_context:\n            return None\n        if not self.role.is_index_source:\n            shared = attn.shared_state\n            # ``hidden_states`` still owns the full pre-CP token batch here,\n            # while ``qr`` was projected from this rank's local query slice.\n            # SparseFlashMla requires cmp_sparse_indices.T to match q.T.\n            return shared.topk_indices[: qr.shape[0]]\n        return super()._select_sparse_indices(attn, hidden_states, qr, positions, cos, sin, metadata, prepared_indexer)\n\n    def _project_output(self, attn, output, hidden_states, metadata, *, projected):\n        _, _, per_rank, _ = metadata.swa.cp_token_range\n        padded = output\n        if output.shape[0] != per_rank:\n            padded = output.new_zeros((per_rank, output.shape[1], output.shape[2]))\n            padded[: output.shape[0]] = output\n        exchanged = restore_tp_heads(padded, get_tp_group())\n        # DSpark's DP/FlashComm padding can extend hidden states beyond the\n        # metadata token interval. Restore that suffix before O projection so\n        # its TP reduction keeps the caller's padded output layout.\n        if exchanged.shape[0] < hidden_states.shape[0]:\n            padded_exchange = exchanged.new_zeros((hidden_states.shape[0], *exchanged.shape[1:]))\n"
+        },
+        {
+          "first": 450,
+          "last": 490,
+          "text": "    @contextmanager\n    def _o_proj_batch(self, projector, *, needs_global_metadata: bool):\n        projector._pcp_o_proj_use_full_weight = projector.enable_pcp_o_proj_weight_sharding and needs_global_metadata\n        try:\n            # V4.1 bypasses DSA forward; prepare persistent aliases during warmup.\n            if projector.enable_pcp_o_proj_weight_sharding:\n                projector._get_pcp_o_proj_weight_switches()\n            yield\n        finally:\n            for layer, method, state in projector._pcp_o_proj_weight_switches or ():\n                if state.handles:\n                    method.wait_weight_all_gather(state)\n                if projector._pcp_o_proj_use_full_weight:\n                    method.switch_weight(layer, state, use_full_weight=False)\n            projector._pcp_o_proj_use_full_weight = False\n\n    @staticmethod\n    def _gather_and_restore_hidden_states(\n        hidden_states: torch.Tensor,\n        metadata: AscendDSAV41PCPMetadata,\n    ) -> torch.Tensor:\n        assert hidden_states.shape[0] == metadata.local_num_tokens_after_padding\n        gathered = get_pcp_group().all_gather(hidden_states.contiguous(), dim=0)\n        return torch.index_select(gathered, 0, metadata.hidden_restore_idx)\n\n    def _prepare_inputs_and_caches(self, attn, hidden_states, metadata, metadata_by_prefix):\n        if not isinstance(metadata.swa, AscendDSAV41PCPMetadata):\n            return super()._prepare_inputs_and_caches(attn, hidden_states, metadata, metadata_by_prefix)\n        # Empty query ranks also join hidden and weight collectives.\n        global_hidden_states = self._gather_and_restore_hidden_states(hidden_states, metadata.swa)\n        projector = attn.dsa_attn.dsa_attn.impl\n        projector._maybe_all_gather_pcp_o_proj_weights()\n        global_metadata = self._global_layer_metadata(metadata_by_prefix)\n        return self._preprocess(attn, hidden_states, global_hidden_states, metadata, global_metadata)\n\n    def forward(self, attn, positions, hidden_states, output=None):\n        metadata = get_forward_context().attn_metadata\n        needs_global_metadata = metadata is not None and isinstance(metadata[self.swa_prefix], AscendDSAV41PCPMetadata)\n        projector = attn.dsa_attn.dsa_attn.impl\n        with self._o_proj_batch(projector, needs_global_metadata=needs_global_metadata):\n            return super().forward(attn, positions, hidden_states, output)\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "full_raw_sha256": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+      "full_raw_local_path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/model.py",
+      "full_raw_bytes": 89106,
+      "reviewed_ranges": [
+        [
+          377,
+          448
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 377,
+          "last": 448,
+          "text": "def init_attention_projections(self, config, quant_config, prefix, reduce_results):\n    tp_size = get_tensor_model_parallel_world_size()\n    self.dim = config.hidden_size\n    self.n_heads = config.num_attention_heads\n    self.n_local_heads = config.num_attention_heads // tp_size\n    self.q_lora_rank = config.q_lora_rank\n    self.o_lora_rank = config.o_lora_rank\n    self.head_dim = config.head_dim\n    self.rope_head_dim = config.qk_rope_head_dim\n    self.nope_head_dim = config.head_dim - config.qk_rope_head_dim\n    self.n_groups = config.o_groups\n    self.n_local_groups = self.n_groups // tp_size\n    self.window_size = config.sliding_window\n    self.eps = config.rms_norm_eps\n    self.norm_eps = config.rms_norm_eps\n    self.scale = self.head_dim**-0.5\n    self.enable_dsa_cp = enable_dsa_cp()\n\n    attn_sink_heads = self.n_heads if self.enable_dsa_cp else self.n_local_heads\n    self.attn_sink = nn.Parameter(torch.empty(attn_sink_heads, dtype=torch.float32))\n    self.wq_a = ReplicatedLinear(\n        self.dim,\n        self.q_lora_rank,\n        bias=False,\n        quant_config=quant_config,\n        prefix=f\"{prefix}.wq_a\",\n        return_bias=False,\n    )\n    self.q_norm = RMSNorm(self.q_lora_rank, eps=config.rms_norm_eps)\n    self.q_norm_without_weight = RMSNorm(self.head_dim, eps=config.rms_norm_eps, has_weight=False)\n    wq_b_cls = ReplicatedLinear if self.enable_dsa_cp else ColumnParallelLinear\n    self.wq_b = wq_b_cls(\n        self.q_lora_rank,\n        self.n_heads * self.head_dim,\n        bias=False,\n        quant_config=quant_config,\n        prefix=f\"{prefix}.wq_b\",\n        return_bias=False,\n    )\n\n    self.wkv = ReplicatedLinear(\n        self.dim,\n        self.head_dim,\n        bias=False,\n        quant_config=quant_config,\n        prefix=f\"{prefix}.wkv\",\n        return_bias=False,\n    )\n    self.kv_norm = RMSNorm(self.head_dim, self.norm_eps)\n    self.wo_a = ColumnParallelLinear(\n        self.n_heads * self.head_dim // self.n_groups,\n        self.n_groups * config.o_lora_rank,\n        bias=False,\n        quant_config=quant_config,\n        prefix=f\"{prefix}.wo_a\",\n        return_bias=False,\n    )\n    # Every DSA o_proj path consumes wo_a.weight directly via\n    # npu_transpose_batchmatmul / npu_transpose_quant_batchmatmul,\n    # so the weight must remain ND.\n    self.wo_a.skip_weight_nz_conversion = True\n    self.wo_b = RowParallelLinear(\n        self.n_groups * config.o_lora_rank,\n        self.dim,\n        bias=False,\n        reduce_results=reduce_results,\n        quant_config=quant_config,\n        prefix=f\"{prefix}.wo_b\",\n        return_bias=False,\n    )\n\n\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/quantization/method_adapters.py",
+      "full_raw_sha256": "341d93cae5774414a810444a50eb752cd425330156f404d1b9a10381e6bc0138",
+      "full_raw_local_path": "audit/execution-search/qkv-route-source/vllm-workspace/vllm-ascend/vllm_ascend/quantization/method_adapters.py",
+      "full_raw_bytes": 15773,
+      "reviewed_ranges": [
+        [
+          74,
+          142
+        ],
+        [
+          193,
+          224
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 74,
+          "last": 142,
+          "text": "class AscendLinearMethod(LinearMethodBase):\n    \"\"\"Linear method for Ascend quantization.\n\n    This wrapper class delegates to the actual quantization scheme implementation.\n    The scheme is determined by the Config class and passed directly to this wrapper.\n\n    Args:\n        scheme: The quantization scheme instance (e.g., AscendW8A8DynamicLinearMethod).\n    \"\"\"\n\n    def __init__(self, scheme: AscendLinearScheme) -> None:\n        self.quant_method = scheme\n\n    def create_weights(\n        self,\n        layer: torch.nn.Module,\n        input_size_per_partition: int,\n        output_partition_sizes: list[int],\n        input_size: int,\n        output_size: int,\n        params_dtype: torch.dtype,\n        **extra_weight_attrs,\n    ) -> None:\n        output_size_per_partition = sum(output_partition_sizes)\n        weight_loader = extra_weight_attrs.get(\"weight_loader\")\n\n        weight_dict = self.quant_method.get_weight(input_size_per_partition, output_size_per_partition, params_dtype)\n\n        # Extract packing information (if present)\n        packed_dim = weight_dict.pop(\"_packed_dim\", None)\n        packed_factor = weight_dict.pop(\"_packed_factor\", None)\n\n        for weight_name, weight_param in weight_dict.items():\n            param = torch.nn.Parameter(weight_param, requires_grad=False)\n            set_weight_attrs(param, {\"input_dim\": 1, \"output_dim\": 0})\n\n            # Set packing attributes if the weight is packed\n            if packed_dim is not None and packed_factor is not None:\n                set_weight_attrs(param, {\"packed_dim\": packed_dim, \"packed_factor\": packed_factor})\n\n            layer.register_parameter(weight_name, param)\n            set_weight_attrs(param, extra_weight_attrs)\n\n        # NOTE: In flatquant quantization implementation,\n        # the shape of pertensor_param requires introducing layer_type\n        layer_type = \"row\" if isinstance(layer, RowParallelLinear) else \"others\"\n\n        pertensor_dict = self.quant_method.get_pertensor_param(params_dtype, layer_type=layer_type)\n        for pertensor_name, pertensor_param in pertensor_dict.items():\n            param = PerTensorScaleParameter(data=pertensor_param, weight_loader=weight_loader)\n            # disable warning\n            param.ignore_warning = True\n            layer.register_parameter(pertensor_name, param)\n            param.weight_loader = extra_weight_attrs.get(\"weight_loader\")\n\n        perchannel_dict = self.quant_method.get_perchannel_param(output_size_per_partition, params_dtype)\n        for perchannel_name, perchannel_param in perchannel_dict.items():\n            param = torch.nn.Parameter(perchannel_param, requires_grad=False)\n            set_weight_attrs(param, {\"output_dim\": 0})\n            layer.register_parameter(perchannel_name, param)\n            set_weight_attrs(param, extra_weight_attrs)\n\n        # NOTE: In w4a8 quantization implementation,\n        # for down_proj and o_proj scale_bias shape is [output_size, 16],\n        # others are [output_size, 1]\n        layer_type = \"row\" if isinstance(layer, RowParallelLinear) else \"others\"\n\n        pergroup_dict = self.quant_method.get_pergroup_param(\n            input_size_per_partition, output_size_per_partition, params_dtype, layer_type=layer_type\n"
+        },
+        {
+          "first": 193,
+          "last": 224,
+          "text": "    def process_weights_after_loading(self, layer: torch.nn.Module) -> None:\n        if hasattr(self.quant_method, \"process_weights_after_loading\"):\n            self.quant_method.process_weights_after_loading(layer)\n\n    def get_computed_params(self) -> set[str]:\n        \"\"\"Return parameter name patterns that are computed, not loaded.\n\n        These parameters are computed during process_weights_after_loading\n        rather than loaded from checkpoint:\n        - weight_offset: Zero for symmetric quantization\n        - quant_bias: Computed from weight statistics\n        - deq_scale: Computed as input_scale * weight_scale\n        - weight_scale: May be computed or have default values for some models\n        \"\"\"\n        return {\"weight_offset\", \"quant_bias\", \"deq_scale\", \"weight_scale\"}\n\n    def apply(\n        self,\n        layer: torch.nn.Module,\n        x: torch.Tensor | PreparedLinearInput | tuple[torch.Tensor, torch.Tensor],\n        bias: torch.Tensor | None = None,\n    ) -> torch.Tensor:\n        if isinstance(layer, RowParallelLinear):\n            if layer.prefix.find(\"o_proj\") != -1 and oproj_tp_enable():\n                tp_rank = get_otp_group().rank_in_group\n            elif layer.prefix.find(\"down_proj\") != -1 and mlp_tp_enable():\n                tp_rank = get_mlp_tp_group().rank_in_group\n            else:\n                tp_rank = get_tensor_model_parallel_rank()\n        else:\n            tp_rank = 0\n        return self.quant_method.apply(layer, x, bias, tp_rank)\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla/op_host/sparse_flash_mla_tiling.cpp",
+      "full_raw_sha256": "8f4fe80a67dc1d71dfa2c6caba86f99bec001f2c17a58692e0d44dce8729a241",
+      "full_raw_local_path": "audit/execution-search/smla-runtime-source/repo/op_host/sparse_flash_mla_tiling.cpp",
+      "full_raw_bytes": 123309,
+      "reviewed_ranges": [
+        [
+          767,
+          776
+        ],
+        [
+          1456,
+          1473
+        ],
+        [
+          1928,
+          1964
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 767,
+          "last": 776,
+          "text": "ge::graphStatus SMLAInfoParser::GetGSize()\n{\n    if (n2Size_ != 0) {\n        gSize_ = n1Size_ / n2Size_;\n    }\n    return ge::GRAPH_SUCCESS;\n}\n\nge::graphStatus SMLAInfoParser::GetActualSeqLenSize(uint32_t &size, const gert::Tensor *tensor, SMLALayout &layout,\n                                                    const std::string &name) const\n"
+        },
+        {
+          "first": 1456,
+          "last": 1473,
+          "text": "ge::graphStatus SMLATilingCheck::CheckSingleParaNumHeads() const\n{\n    return ge::GRAPH_SUCCESS;\n}\n\nge::graphStatus SMLATilingCheck::CheckSingleParaKvHeadNums() const\n{\n    return ge::GRAPH_SUCCESS;\n}\n\nge::graphStatus SMLATilingCheck::CheckSingleParaOriSparseIndices() const\n{\n    if (opParamInfo_.oriSparseIndices.tensor == nullptr) {\n        return ge::GRAPH_SUCCESS;\n    }\n    if (!IsA5Arch(npuArch_)) {\n        OP_CHECK_IF(smlaInfo_.perfMode != SMLATemplateMode::SWA_TEMPLATE_MODE,\n                    OP_LOGE(opName_, \"ori_sparse_indices is only supported in SWA mode.\"), return ge::GRAPH_FAILED);\n"
+        },
+        {
+          "first": 1928,
+          "last": 1964,
+          "text": "                    return ge::GRAPH_FAILED);\n    } else { // BSND\n        OP_CHECK_IF(bSize_ <= 0,\n                    OP_LOGE_FOR_INVALID_SHAPE_WITH_REASON(\n                        opName_, \"q\", ToStringRaw(opParamInfo_.q.shape->GetStorageShape()).c_str(),\n                        \"Batch_size should be greater than 0, but got \" + std::to_string(bSize_)),\n                    return ge::GRAPH_FAILED);\n    }\n\n    OP_CHECK_IF(qTSize_ <= 0 && (qLayout_ == SMLALayout::TND),\n                OP_LOGE_FOR_INVALID_SHAPE_WITH_REASON(\n                    opName_, \"q\", ToStringRaw(opParamInfo_.q.shape->GetStorageShape()).c_str(),\n                    \"T_size of q should be greater than 0, but got \" + std::to_string(qTSize_)),\n                return ge::GRAPH_FAILED);\n\n    if (IsA5Arch(npuArch_)) {\n        OP_CHECK_IF(n1Size_ < 1 || n1Size_ > 128,\n                    OP_LOGE_FOR_INVALID_SHAPE_WITH_REASON(opName_, \"q\",\n                                                          ToStringRaw(opParamInfo_.q.shape->GetStorageShape()).c_str(),\n                                                          \"The head num of q should be in [1, 128] on\" +\n                                                              A5_PLATFORM_LOG + \", but got \" + std::to_string(n1Size_)),\n                    return ge::GRAPH_FAILED);\n    } else {\n        OP_CHECK_IF(!IsPowerOfTwoInRange(n1Size_, 1, 128),\n                    OP_LOGE(opName_, \"q_head_num should be power of two in [1, 128] on %s, but got %u\",\n                            A2_A3_PLATFORM_LOG.c_str(), n1Size_),\n                    return ge::GRAPH_FAILED);\n    }\n\n    if (opParamInfo_.oriKv.tensor != nullptr) {\n        OP_CHECK_IF(n2Size_ != 1,\n                    OP_LOGE_FOR_INVALID_SHAPE_WITH_REASON(\n                        opName_, \"ori_kv\", ToStringRaw(opParamInfo_.oriKv.tensor->GetStorageShape()).c_str(),\n                        \"The head num of ori_kv should be 1, but got \" + std::to_string(n2Size_)),\n                    return ge::GRAPH_FAILED);\n\n        OP_CHECK_IF(n1Size_ % n2Size_ != 0,\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla_metadata/op_host/sparse_flash_mla_metadata_check.h",
+      "full_raw_sha256": "3ccd6bb3f7d71a52e8ffa31dd3345683f5f22f5a98ba4d0c5ed22f0c62127d6f",
+      "full_raw_local_path": "audit/execution-search/smla-runtime-source/metadata-repo/sparse_flash_mla_metadata_check.h",
+      "full_raw_bytes": 59836,
+      "reviewed_ranges": [
+        [
+          148,
+          191
+        ]
+      ],
+      "excerpts": [
+        {
+          "first": 148,
+          "last": 191,
+          "text": "                                              \"The value of max_seqlen_cmp_kv must be greater than or equal to 0\");\n        return ACLNN_ERR_PARAM_INVALID;\n    }\n    // num_heads_q [1, 128]\n    if (numHeadsQ < SMLA_NUM_HEADS_Q_LOWER_BOUND || numHeadsQ > SMLA_NUM_HEADS_Q_UPPER_BOUND) {\n        OP_LOGE_FOR_INVALID_VALUE_WITH_REASON(SMLA_ACLNN_OP_NAME, \"num_heads_q\", std::to_string(numHeadsQ),\n                                              \"The current value is not within the valid range. \"\n                                              \"The valid range is [\" +\n                                                  std::to_string(SMLA_NUM_HEADS_Q_LOWER_BOUND) + \", \" +\n                                                  std::to_string(SMLA_NUM_HEADS_Q_UPPER_BOUND) + \"]\");\n        return ACLNN_ERR_PARAM_INVALID;\n    }\n    // num_heads_kv: 1\n    if (numHeadsKv != 1) {\n        OP_LOGE_FOR_INVALID_VALUE(SMLA_ACLNN_OP_NAME, \"num_heads_kv\", std::to_string(numHeadsKv), \"1\");\n        return ACLNN_ERR_PARAM_INVALID;\n    }\n    if (numHeadsQ % numHeadsKv != 0) {\n        OP_LOGE_FOR_INVALID_VALUES_WITH_REASON(SMLA_ACLNN_OP_NAME, \"num_heads_q, num_heads_kv\",\n                                               std::to_string(numHeadsQ) + \", \" + std::to_string(numHeadsKv),\n                                               \"The value of num_heads_q must be divisible by \"\n                                               \"that of num_heads_kv\");\n        return ACLNN_ERR_PARAM_INVALID;\n    }\n    int64_t headRatio = numHeadsQ / numHeadsKv;\n    if (socVersion != nullptr && strstr(socVersion, \"Ascend950\") != nullptr) {\n        if (headRatio < SMLA_NUM_HEADS_Q_LOWER_BOUND || headRatio > SMLA_NUM_HEADS_Q_UPPER_BOUND) {\n            OP_LOGE_FOR_INVALID_VALUE_WITH_REASON(SMLA_ACLNN_OP_NAME, \"num_heads_q / num_heads_kv\",\n                                                  std::to_string(headRatio),\n                                                  \"The current value is not within the valid range. \"\n                                                  \"The valid range is [\" +\n                                                      std::to_string(SMLA_NUM_HEADS_Q_LOWER_BOUND) + \", \" +\n                                                      std::to_string(SMLA_NUM_HEADS_Q_UPPER_BOUND) + \"]\");\n            return ACLNN_ERR_PARAM_INVALID;\n        }\n    } else if (!IsPowerOfTwoInRangeSmla(headRatio, SMLA_NUM_HEADS_Q_LOWER_BOUND, SMLA_NUM_HEADS_Q_UPPER_BOUND)) {\n        OP_LOGE_FOR_INVALID_VALUE_WITH_REASON(SMLA_ACLNN_OP_NAME, \"num_heads_q / num_heads_kv\",\n                                              std::to_string(headRatio),\n                                              \"The current value is not within the valid range. \"\n                                              \"The valid range is power of two in [\" +\n                                                  std::to_string(SMLA_NUM_HEADS_Q_LOWER_BOUND) + \", \" +\n                                                  std::to_string(SMLA_NUM_HEADS_Q_UPPER_BOUND) + \"]\");\n        return ACLNN_ERR_PARAM_INVALID;\n    }\n"
+        }
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla/op_kernel/arch22/sparse_flash_mla_common_arch22.h",
+      "full_raw_sha256": "4315e1d13cd04428dd4948c6c9c8ee975e7c4cae3d766c05f93f61b6c89a26ad",
+      "full_raw_local_path": "audit/execution-search/smla-runtime-source/repo/op_kernel/arch22/sparse_flash_mla_common_arch22.h",
+      "full_raw_bytes": 14278,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla/op_kernel/arch22/sparse_flash_mla_csa_kernel.h",
+      "full_raw_sha256": "e6457adc513a10d5c11a8c3c4022b35718fd9a0f8cc51aeb87329fbc1f3010d3",
+      "full_raw_local_path": "audit/execution-search/smla-runtime-source/repo/op_kernel/arch22/sparse_flash_mla_csa_kernel.h",
+      "full_raw_bytes": 44573,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla/op_kernel/arch22/sparse_flash_mla_csa_block_vector.h",
+      "full_raw_sha256": "685190e19519b9a44da7fa95832c06e4b41849577488f4efd0d2df80e1158757",
+      "full_raw_local_path": "audit/execution-search/smla-runtime-source/repo/op_kernel/arch22/sparse_flash_mla_csa_block_vector.h",
+      "full_raw_bytes": 58838,
+      "reviewed_ranges": [],
+      "excerpts": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla/op_kernel/arch22/sparse_flash_mla_csa_block_cube.h",
+      "full_raw_sha256": "55210741e16d8cc455215849c73e2c06db10f23efeb73ca87b4a16847339ccc3",
+      "full_raw_local_path": "audit/execution-search/smla-runtime-source/repo/op_kernel/arch22/sparse_flash_mla_csa_block_cube.h",
+      "full_raw_bytes": 44549,
+      "reviewed_ranges": [],
+      "excerpts": []
+    }
+  ],
+  "whole_chain_complete": false,
+  "every_replacement_bitwise": true
+}
