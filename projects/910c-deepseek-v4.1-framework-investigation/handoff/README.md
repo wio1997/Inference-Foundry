@@ -1,5 +1,18 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 当前断点 · 2026-11-10 真实资源组与坐标退役：90源码约束，66位待追
+
+介绍：沿实际Ascend cache patch/原spec与planner→V1实际QSL/物理地址→Engram hash与DSpark context/query读者，再核旧原生任务。到了哪里：30当前源码身份；756文件仅关键词盘点；原源码计划54资源/13KV组/26runner builder/1draft builder，19退役/CPUguard控制、2坐标域反例，3624活跃rank窗各1次扩展；新增13处，原156位90绑定/66待追。结果：停止不存在的多组重复、当前A3基线mask-ready等待后移和固定native小岛独立配方；更大CPU/scalar/coordinate frame继续。原语/框架新准入0，全链路未闭合，每替换原语逐位一致。
+
+待确认：大frame的actual/FIA/draft正确视图、原physical/packet owner、CPU H2D读租约与producer_done+consumer_done、最早storage覆写、完整4096B packet/尾部和净成本/六普通曝光。V1 finally只release metadata，V2 finish/captured helper join不能当V1保证；当前A3 overlap默认False、savedserve未覆盖，无辅助流竞态观测。新增overlap/提前producer必须另闭合prep/model/错误退役。
+
+已停止：重复draft公共生成（source1组且原C8每活跃窗1kernel）；当前不存在的mask wait后移；盲共享FIA padded req-map给Engram（尾行clamp不同）；原C8固定hash3kernel+唯一expansion及内部gap全免仅0.365136%TTFT/0.524144%整批，50%实删暴露/新增0.02ms每波条件净0.175865%/0.237651%，非实测，不作全host/Engram上界、不迁移普通负载或与大parent相加。已确认可实现：本轮0，旧封闭CPU租约原型1保留。
+
+[本段判断](evidence/实际资源组与Engram_DSpark坐标及退役判断.md) · [90/66逐位账/消费者](evidence/input-resource-source-review.json) · [13KV/26builder/1draft源计划](evidence/input-resource-source-plan.json) · [原C8逐Task资格/价](evidence/input-kernel-windows-receipt.json) · [条件价格](evidence/input-kernel-island-price.json) · [19原方法控制](evidence/input-retirement-controls.json)。
+
+下一条待扫：loop047 Run155707Z（PLANNED）：先核target阶段gid12 draft builder整段输出的数值/私有cache/first-owner task/FULL及后续draft读者，保留CM与原物理view，用旧逐call整段价判去留；再继续66位及递归callee，走selected execute_model状态协议、DP空批/异步修正、KV/EC/offload/Mamba/EPLB/DBO gate与metadata provider submit/release到真实消费者；区分合法动态源码分支审阅与运行人口。已绑定13KV/26runner/1draft、A3 Engram同步默认；保留actual/FIA/draft坐标域、CPU copy lease、producer/consumer双退役及完整packet位。先用旧C8/六普通，不重开已停小岛；无新Torch/NPU/模型/profile/请求/服务或远端变更。
+
+
 ## 当前断点 · 2026-11-10 实际embedding入口与首层静态段：77源码约束，79位待追
 
 介绍：独立沿V1预处理→OOT注册→STANDARD TP8/FLOAT查表→持久input→首HC/QKV及DSpark公共/物理地址交付，再与旧范围相交。到了哪里：23当前Python源+1prior HF精确SHA，29原方法受限控制；新增7处，原156位77绑定/79待追；原C8 3624活跃rank窗的Qb/KVnorm末端全资格。结果：eager用外部embeds，FULL捕获rawIDs/None并执行内部lookup；SP mask入口等待与Engram producer仍属大交付。新原语/框架准入0，全链路未闭合，每替换原语逐位一致。
@@ -552,7 +565,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-当前源码覆盖：本段23当前Python源+1prior HF精确SHA、29原方法stub控制；原156位77受限源码绑定/79待追。eager/FULL lookup路径已分开，较大input/Engram交付仍值得深入，新原语/框架准入0。位数不是算子数、运行人口或全链路完成率。
+当前源码覆盖：本段30当前源码身份，原156位90受限绑定/66待追；13KV组/26runner builder/1draft源计划与3624旧活跃窗一次扩展相符。A3默认Engram同步；19原Python退役/CPUguard控制不当native准入。756文件只是特定词盘点，不是审阅覆盖。全链路仍未闭合。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
@@ -643,7 +656,7 @@ M09 --> M11 -->|下一轮| M00
 
 ### 待确认
 
-**2026-11-10 当前资格**：每替换原语逐位一致，BF16末位差异失败。本轮原语/框架准入0，旧封闭CPU租约原型1保留。77源码约束/79待追；Run133903Z有界PASS/NA，Run150110Z PLANNED。大input/Engram交付25%实删暴露、额外0.1ms/波的原C8条件整批净价1.142482%，非实测；453活跃DP组不等于454物理组，不代填六普通负载。所有native位、最后读者/退役和packet完整bytes等具体缺口保留，尚未扫全。
+**2026-11-10 当前资格**：每替换原语逐位一致。Run150110Z有界PASS/NA，Run155707Z PLANNED；90源码约束/66待追，原语/框架准入0，旧CPU租约原型1保留。固定native两岛全免仅原C8 .365136%TTFT/.524144%整批，停止该小边界独立开发；不是大input/hostframe上界，不迁移六普通。更大frame保留actual/FIA/draft视图、全部owner/lease/native4096B与真实净价缺口。
 
 实现条件或调优价值还有关键问题。下表保留候选索引；下一动作与当前资格以前面的最新断点和对应原件为准。
 
