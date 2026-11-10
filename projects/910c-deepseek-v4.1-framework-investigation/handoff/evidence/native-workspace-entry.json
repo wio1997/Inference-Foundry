@@ -1,0 +1,75 @@
+{
+  "status": "ENTRY_ONLY_NATIVE_WORKSPACE_MACRO_AND_DFC_ADAPTER",
+  "whole_chain_complete": false,
+  "every_replacement_bitwise": true,
+  "sources": [
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/aclnn_torch_adapter/op_api_common.h",
+      "path": "audit/execution-search/native-workspace-runtime-source/vllm-workspace/vllm-ascend/csrc/aclnn_torch_adapter/op_api_common.h",
+      "sha256": "cbd891c9fd8cfb3ad7212f425637772d2da60c21f0db8e106ccd5e5e5f4daac4",
+      "reviewed_ranges": [
+        [
+          700,
+          772
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/mc2/dispatch_ffn_combine/dispatch_ffn_combine_torch_adpt.h",
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/csrc/mc2/dispatch_ffn_combine/dispatch_ffn_combine_torch_adpt.h",
+      "sha256": "d9e65033bf74cc633ec9d2472d9957d46b7971265ac48a7cd63ede7221332a40",
+      "reviewed_ranges": [
+        [
+          15,
+          93
+        ]
+      ]
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/quant_lightning_indexer_v2/quant_lightning_indexer_v2_torch_adpt.h",
+      "path": "audit/execution-search/indexer-native-runtime-source/vllm-ascend/csrc/attention/quant_lightning_indexer_v2/quant_lightning_indexer_v2_torch_adpt.h",
+      "sha256": "2c7a7568fc59fe490a009eaeec0c49b99f40fad231cfaf9284e772f6f691f56f",
+      "reviewed_ranges": []
+    },
+    {
+      "runtime_path": "/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla/sparse_flash_mla_torch_adpt.h",
+      "path": "audit/execution-search/native-workspace-runtime-source/vllm-workspace/vllm-ascend/csrc/attention/sparse_flash_mla/sparse_flash_mla_torch_adpt.h",
+      "sha256": "a943eec32dc779e1a99ed72027a6ea3da4775836c95209481b9689f0b367bf3d",
+      "reviewed_ranges": []
+    },
+    {
+      "runtime_path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include/torch_npu/csrc/framework/OpCommand.h",
+      "path": "audit/execution-search/native-workspace-runtime-source/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include/torch_npu/csrc/framework/OpCommand.h",
+      "sha256": "9b81f6549a627bfafcf577a1a56d78b0a256249111c76aa4c2306b4f50089427",
+      "reviewed_ranges": []
+    },
+    {
+      "runtime_path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include/torch_npu/csrc/framework/utils/OpPreparation.h",
+      "path": "audit/execution-search/native-workspace-runtime-source/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include/torch_npu/csrc/framework/utils/OpPreparation.h",
+      "sha256": "82d00fc4697951594f1ac2ed539e48638e325b028531a2b716ca8e3287470aa2",
+      "reviewed_ranges": []
+    }
+  ],
+  "missing_guessed_cpp": [
+    "/vllm-workspace/vllm-ascend/csrc/aclnn_torch_adapter/op_api_common.cpp"
+  ],
+  "introduced": "Actual native caller GetWorkspaceSize -> at::empty Byte -> raw workspace pointer captured by custom handler -> OpCommand::Run; follow allocation/cache/capture and final device consumers, not source requested bytes alone.",
+  "reached": [
+    "DFC int8 branch dispatches aclnnDispatchFFNCombine; W4/BF16 branches separately visible but not frozen INT8 cost.",
+    "Macro uses current stream(false), ConvertTypes, original GetWorkspaceSize/executor, byte tensor allocation, captures rawpointer/size/executor/converted params and launches via SetCustomHandler/Run.",
+    "workspace_tensor declared in the if block; whether raw pointer remains safe/reusable depends on actual allocator/queued execution/stream capture semantics. Source syntax alone is not a proved use-after-free or release."
+  ],
+  "unreviewed": [
+    "OpCommand Run/custom handler inline vs taskqueue and thread lifetime; installed header identities only.",
+    "Actual CachingAllocator stream ownership/free-list/record-event/capture pools and LibApi executor scratch.",
+    "Existing matching profiler memory allocation/capture records and pointer/size high-water union acrossDFC/QLI/SMLA, not perlayer addition.",
+    "Safe sameM/precision capacity bound use, original prefill peak, queued other streams and final device-reader epoch before reusing storage."
+  ],
+  "result": "待确认：actual producer/callback entry only, no physical release/net value or primitive admission.",
+  "new_NPU_work": 0,
+  "model_loads": 0,
+  "service_requests": 0,
+  "new_profile_collection": 0,
+  "remote_writes": [],
+  "service_changes": []
+}
