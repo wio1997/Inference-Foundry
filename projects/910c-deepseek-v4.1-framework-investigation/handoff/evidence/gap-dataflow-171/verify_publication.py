@@ -5,7 +5,11 @@ P=Path(__file__).resolve().parent
 plan=json.loads((P/'publication-plan.json').read_text())
 commit=json.loads((P/'published-commit.json').read_text())['sha']
 expected=json.loads((P/'publication-expected.json').read_text())
-tree=s.api('git/trees/'+commit+'?recursive=1');lookup={r['path']:r['sha'] for r in tree['tree'] if r['type']=='blob'}
+folders=sorted({str(Path(r['path']).parent) for r in plan['entries']})
+lookup={}
+for folder in folders:
+    for row in s.api('contents/'+folder+'?ref='+commit):
+        if row['type']=='file':lookup[row['path']]=row['sha']
 assert all(lookup.get(r['path'])==r['sha'] for r in plan['entries'])
 def verify(row):
     b=base64.b64decode(s.api('git/blobs/'+row['sha'])['content']);e=expected[row['path']]
