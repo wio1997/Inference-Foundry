@@ -1,5 +1,12 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## DSpark 首步 metadata 与注意力消费者
+
+沿 gid12 追到三个 context cache 写入和 eager SMLA。通用 slot copy、后置 gather/clone 在冻结路径没有设备读者。16 卡 176 轮归档给独立 staging 与仅重叠当前 first pass 的 DP 同步分别约 0.43% 和 0.51% 的直接时间筛选。两项小范围停止，完整交付保留 global/local 可见长度、slot 坐标、QSL 与事件代次共享待确认。
+
+沿 runner._prepare_inputs 的原分支和输入行代次追实际 target 读者，核对 num_computed / accepted、位置与 QSL、输入 ID、Engram history 和 GPU staging 的首写末读。用原有 frame 与请求证据给完整交付定价。 [源码、分支和定价](evidence/DSpark首步metadata与注意力消费者.md)。
+
+
 ## 请求归还到下一轮缓存映射
 
 沿请求结束和抢占、KV 页归还与复用追到下一轮 attention、C2 和 DSpark 读者。前缀页引用为零后仍可命中。差分 H2D 需要跟踪图 padding 在设备侧的覆写。独立 slot 小方案的整核预算约占诊断窗口 0.023%，提交小合并的宽松墙钟预算约占另一个窗口 0.59%。整帧输入共享和终止行联合交付待确认，涉及全部读者退役、受影响行和付成本曝光。
@@ -784,7 +791,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-本轮源码覆盖已延伸至 KV 归还、复用和下一轮 slot 消费者。全链路继续扫描。
+本轮覆盖 DSpark eager 首步交付、SMLA 读者和通用 staging。全链路继续扫描。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
