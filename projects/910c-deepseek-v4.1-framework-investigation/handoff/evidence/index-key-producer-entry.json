@@ -1,0 +1,100 @@
+{
+  "status": "ENTRY_ONLY_ACTUAL_LATENT_MULTI_OUTPUT_PUBLICATION",
+  "whole_chain_complete": false,
+  "every_replacement_bitwise": true,
+  "sources": [
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/attention/dsa_v41.py",
+      "sha256": "3505769857f83fa7e67f652984f50bd0478158f1d24f185cab091203e70392fd",
+      "reviewed_ranges": [
+        [
+          227,
+          242
+        ],
+        [
+          270,
+          390
+        ],
+        [
+          497,
+          565
+        ]
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/indexer.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/indexer.py",
+      "sha256": "d5d6a438bbced4e63d729dac94c08869df30dab4a71ceacecdea211386b3db33",
+      "reviewed_ranges": [
+        [
+          31,
+          125
+        ]
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/models/deepseek_v41/compressor.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/compressor.py",
+      "sha256": "31516e5ba234e34fa01e73e864fbc88bd6473d4a5274a1d43da8a79bab3cf494",
+      "reviewed_ranges": [
+        [
+          15,
+          71
+        ]
+      ]
+    },
+    {
+      "path": "/Users/wio/work/branch-fusion-audit-20261104/evidence/retrieved-source/vllm-ascend/vllm_ascend/models/deepseek_v41/cache_config.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/models/deepseek_v41/cache_config.py",
+      "sha256": "467dddca82e2528ebbec14c78682486a39bffb4f096675d8b1d2d140f1a7014b",
+      "reviewed_ranges": [
+        [
+          37,
+          39
+        ]
+      ]
+    },
+    {
+      "path": "/Users/wio/work/169-vllm-ascend-reproduce-172/analysis/operator-ceiling-v2-20261028/operator-ceiling-agent-kit/runs/169-vllm-v41/whole-scope-20261030/frozen-source-snapshot/vllm-ascend/vllm_ascend/device/device_op.py",
+      "runtime_path": "/vllm-workspace/vllm-ascend/vllm_ascend/device/device_op.py",
+      "sha256": "01ce13ea60e46f901ad69ad4c71e4be0e31cd69fbc56ebb7d898f957d5e54f67",
+      "reviewed_ranges": [
+        [
+          52,
+          54
+        ],
+        [
+          1033,
+          1036
+        ],
+        [
+          2032,
+          2041
+        ]
+      ]
+    }
+  ],
+  "introduced": "Source-owned latent before long-KV RoPE fans out to index K and long-KV typed caches; whole producer first, not a detached scatter name.",
+  "reached": [
+    "Real query0 still _update_caches when cache_hidden exists; no local query does not prove no cache producer.",
+    "role.is_kv_source source layers2/8/14/20; ratio2 uses FP32 projections->ring->BF16norm, ratio1 direct BF16 projection->norm.",
+    "indexer.update_keys reads pre-RoPE latent -> BF16wk -> BF16RMS -> index partialRoPE -> dynamic_quant codes/FP32scale -> halfscale -> two stride-preserving cache scatters.",
+    "After index path submitted in original stream, same latent view is rotated IN PLACE for longKV then third cache scatter. New cross-stream producer must protect indexwk read before this mutation.",
+    "scatter_cache_sk squeezes head view, uses prepared XY slots, casts cache dtype and contiguous updates; native npu_scatter_nd_update_sk preserves page0 stride and skips [-1,-1]. Native body not yet read in this loop.",
+    "Packed/folded cache guarded by HardwareCapability/profile and adaptor; frozen910C standard/INT8 target family used, no A5 fold credit. Selector source is not live Python object attestation."
+  ],
+  "result": "待确认。Source entry and fanout order read; whole matched producer price and native norm/dynamic_quant/scatter leaf review still pending. No implementation/numeric/performance admission.",
+  "new_candidates": [
+    "Multi-output index/longcache epilog preserves separate RoPE domains and pre-RoPE latent read lease.",
+    "Original key quantizer differs from half-scale-first query quantizer: cannot reuse query primitive without code/scale bit proof.",
+    "C2 invalid/unfinished rows may affect publication scope; retain originalGEMM geometry and valid cache/future state, not unconditional pack smallerM."
+  ],
+  "next_action": "Derive actual per-rank/global latent rows, C2 complete/skip masks and repeated phase costs in existing profiles; follow RMSNorm/custom scatter/dynamic_quant actual dispatch through native consumers and cache final readers.",
+  "new_NPU_work": 0,
+  "new_profile_collection": 0,
+  "model_loads": 0,
+  "service_requests": 0,
+  "remote_writes": [],
+  "service_changes": []
+}
