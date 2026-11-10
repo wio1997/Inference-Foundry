@@ -1,0 +1,16 @@
+(()=>{'use strict';const D=JSON.parse(document.getElementById('global-data').textContent).tokens;if(!D)return;
+const el=id=>document.getElementById(id),e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),f=(v,d=0)=>Number(v).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const R=D.requests,H=D.historical_draft,S=H.summary;
+el('tk-metrics').innerHTML=[[f(R.delivered_output_tokens),'新批次：实际输出token，8请求×1024。'],[f(R.draft_accept_pct,2)+'%','新批次：草稿接受率。没有接受的草稿仍做过校验。'],[f(S.live_query_rows_pct,2)+'%','原C8：草稿body SP行域利用率，额外行17.29%。'],['尚未测齐','当前全模型逐阶段padding比例；不会拿历史草稿比例代填。']].map(([v,t])=>'<div><strong>'+e(v)+'</strong><small>'+e(t)+'</small></div>').join('');
+el('tk-request-cohort').textContent=R.cohort+'。DP0/DP1各4请求；按全局请求计数，TP8不重复加总。';
+el('tk-requests').innerHTML=[['请求输入',R.prompt_tokens,'含prefix命中的逻辑输入量'],['实际交付输出',R.delivered_output_tokens,'与全局generation计数严格核对'],['prefix命中',R.prefix_hits,'查询'+f(R.prefix_queries)+'；查询减命中'+f(R.prefix_query_minus_hit)+'不直接等于GPU计算token'],['提出草稿',R.draft_tokens,'全局DP0+DP1'],['接受草稿',R.accepted_draft_tokens,'接受率'+f(R.draft_accept_pct,2)+'%'],['未接受草稿',R.not_accepted_draft_tokens,'投机成本，与shape padding分别记账']].map(([n,v,t])=>'<tr><td>'+e(n)+'</td><td class="num">'+f(v)+'</td><td>'+e(t)+'</td></tr>').join('');
+el('tk-draft-cohort').textContent=H.cohort+'。227活跃波、454个DP组、3632个rank窗；按每层行域核对。';
+const parts=[['真实query行','live_query_rows','#388d7e','5×本DP真实B'],['TP8对齐','alignment_pad_rows','#ce9851','统一后补为8的倍数'],['DP统一额外行','dp_extra_rows','#bd7165','请求较少一侧跟随较大批次'],['Synthetic行','synthetic_rows','#8394ac','无本地请求侧的伴跑位置；仍可能服务远端专家']];
+el('tk-row-bar').innerHTML=parts.map(([n,k,color])=>'<span style="width:'+S[k+'_pct']+'%;background:'+color+'" title="'+e(n)+' '+f(S[k+'_pct'],3)+'%"></span>').join('');
+el('tk-row-account').innerHTML=parts.map(([n,k,color,t])=>'<tr><td><i class="tk-dot" style="background:'+color+'"></i>'+e(n)+'</td><td class="num">'+f(S[k])+'</td><td class="num">'+f(S[k+'_pct'],4)+'%</td><td>'+e(t)+'</td></tr>').join('')+'<tr><td><strong>合计物理行域</strong></td><td class="num">'+f(S.physical_rows)+'</td><td class="num">100%</td><td>有效'+f(S.live_query_rows)+' + 额外'+f(S.overhead_rows)+'</td></tr>';
+el('tk-families').innerHTML=H.families.map(x=>'<tr><td>'+x.own_B+'</td><td>'+x.max_B+'</td><td>'+x.live_rows+'</td><td>'+x.physical_rows+'</td><td>'+f(x.overhead_pct,2)+'%</td><td>'+x.dp_wave_groups+'</td></tr>').join('');
+el('tk-graph').innerHTML=D.conditional_graph24.map(x=>'<tr><td>'+x.B+'</td><td>'+x.scheduled+'</td><td>'+x.bucket+'</td><td>'+f(x.pad_pct,0)+'%</td></tr>').join('');
+el('tk-layers').innerHTML=D.layers.map(x=>'<tr><td><strong>'+e(x.name)+'</strong></td><td>'+e(x.useful)+'<br><small>'+e(x.extent)+'</small></td><td><strong>'+e(x.status)+'</strong><br>'+e(x.finding)+'</td></tr>').join('');
+el('tk-capture').textContent=D.capture_contract.collection;
+el('tk-sources').innerHTML=D.source_evidence.entries.map(x=>'<details><summary>'+e(x.file)+':'+x.line+'–'+x.end_line+'</summary><p>SHA256 '+x.sha256+' · '+e(x.qualification)+'</p><pre>'+e(x.snippet)+'</pre></details>').join('');
+})();
