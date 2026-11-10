@@ -55,7 +55,8 @@ def serve_sdk_batch_engine(llm, worker, args, out):
         def do_GET(self):
             if self.path == '/health':
                 self.reply(200, {'status': 'ready', 'engine': 'deepinfer',
-                                'max_active_requests': args.max_sequences})
+                                'max_active_requests': args.max_sequences,
+                                'conv_leaf_graph': (runtime.conv_leaf.snapshot() if getattr(runtime, 'conv_leaf', None) else None)})
             elif self.path == '/v1/models':
                 self.reply(200, {'object': 'list', 'data': [
                     {'id': model_name, 'object': 'model', 'owned_by': 'deepinfer'}]})
@@ -255,7 +256,8 @@ def serve_sdk_batch_engine(llm, worker, args, out):
                 'completed_requests': completed,
                 'max_actual_batch': max(runtime.adapter.batch_sizes, default=0),
                 'batch_sizes': runtime.adapter.batch_sizes,
-                'driver_owner_released': not runtime.adapter.controller.requests})+'\n')
+                'driver_owner_released': not runtime.adapter.controller.requests,
+                'conv_leaf_graph': (runtime.conv_leaf.snapshot() if getattr(runtime, 'conv_leaf', None) else None)})+'\n')
     except Exception as error:
         for state in active.values():
             state['request'].events.put({'error': {'message': str(error), 'type': type(error).__name__}})

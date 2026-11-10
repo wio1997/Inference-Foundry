@@ -48,7 +48,10 @@ def main():
     p.add_argument('--batch-smoke-cases', type=Path)
     p.add_argument('--graph-decode', action='store_true')
     p.add_argument('--breakable-graph', action='store_true')
+    p.add_argument('--conv-leaf-graph', action='store_true')
     a = p.parse_args()
+    if a.conv_leaf_graph and not a.breakable_graph:
+        p.error('convolution leaf graph requires explicit breakable graph')
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
     if a.breakable_graph:
@@ -123,7 +126,8 @@ def main():
             runtime = prepare_sdk_compute(a.model, device=self.device,
                 native_group=PG.context_parallel_group(), local_rank=a.local_device,
                 init_method=a.init_method, max_context=a.max_context,
-                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph)
+                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, conv_leaf_graph=a.conv_leaf_graph)
+            runtime.conv_leaf_stats_path = out / "conv-leaf-graph.json"
             runtime.install(self)
             model = runtime.compute_worker.get_model()
             (out / 'loaded.json').write_text(json.dumps({'rank': a.rank,
@@ -133,6 +137,7 @@ def main():
                 'cudagraph_mode': str(runtime.config.compilation_config.cudagraph_mode),
                 'capture_sizes': runtime.config.compilation_config.cudagraph_capture_sizes,
                 'breakable_graph_enabled': a.breakable_graph,
+                'conv_leaf_graph_requested': a.conv_leaf_graph,
                 'parameter_numel_by_device': {d: sum(p.numel() for p in model.parameters() if p.device.type == d)
                     for d in {p.device.type for p in model.parameters()}},
                 'state': 'loaded;native batch execution unverified'})+'\n')
