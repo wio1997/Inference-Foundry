@@ -56,7 +56,7 @@ def main():
     p.add_argument('--enable-expert-parallel', action='store_true')
     p.add_argument('--shared-expert-overlap', action='store_true')
     p.add_argument('--mtp-tokens', type=int, choices=(0, 1), default=0,
-                   help='functional one-draft native MTP bridge; host outputs resolve inline')
+                   help='candidate one-draft native MTP bridge with two-batch host overlap')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')

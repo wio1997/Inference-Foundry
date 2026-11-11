@@ -20,6 +20,9 @@ class _Step:
 
 
 class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
+    expected_nextn = 0
+    allow_speculative_metadata = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.deferred = None
@@ -92,7 +95,7 @@ class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
         from deepinfer import envs
         from deepinfer.model_executor.parallel_utils.communication_op import broadcast_tensor_dict
         driver = dist.get_rank(self.group) == 0
-        if (self.poisoned or worker.nextn != 0 or worker.prev_step_state is not None
+        if (self.poisoned or worker.nextn != self.expected_nextn or worker.prev_step_state is not None
                 or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING or is_placeholder
                 or bool(worker.is_driver_worker) != driver):
             raise ValueError('unsupported native async worker lifecycle')
@@ -103,7 +106,8 @@ class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
                 if (not seq_metadata_list or scheduler_outputs is None
                         or len(seq_metadata_list) != len(scheduler_outputs.scheduled_seqs)
                         or any(bool(m.is_prompt) != bool(is_prompt) for m in seq_metadata_list)
-                        or any(m.last_next_n_token or m.last_accepted_token for m in seq_metadata_list)):
+                        or (not self.allow_speculative_metadata and any(
+                            m.last_next_n_token or m.last_accepted_token for m in seq_metadata_list))):
                     raise ValueError('native async scheduled metadata is incomplete or speculative')
                 descriptor = self.controller.prepare(seq_metadata_list)
                 self.batch_sizes.append(len(seq_metadata_list))

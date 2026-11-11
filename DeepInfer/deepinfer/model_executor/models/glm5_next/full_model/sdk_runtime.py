@@ -42,11 +42,11 @@ class SDKComputeRuntime:
         from .sdk_dispatch import SDKBatchWorkerAdapter
         controller_kwargs = {}
         if self.num_speculative_tokens:
-            from .sdk_mtp_schedule import SDKMTPBatchSchedule
-            from .sdk_mtp_dispatch import SDKMTPBatchWorkerAdapter
+            from .sdk_async_mtp_schedule import SDKAsyncMTPBatchSchedule
+            from .sdk_async_mtp_dispatch import SDKAsyncMTPBatchWorkerAdapter
             if worker.nextn != 1 or self.num_speculative_tokens != 1:
                 raise ValueError('native and SDK MTP widths must both equal one')
-            SDKBatchSchedule, SDKBatchWorkerAdapter = SDKMTPBatchSchedule, SDKMTPBatchWorkerAdapter
+            SDKBatchSchedule, SDKBatchWorkerAdapter = SDKAsyncMTPBatchSchedule, SDKAsyncMTPBatchWorkerAdapter
             controller_kwargs['num_lookahead_tokens'] = self.config.num_lookahead_tokens
         elif self.config.scheduler_config.async_scheduling:
             from .sdk_async_schedule import SDKAsyncBatchSchedule
@@ -235,7 +235,9 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             if not snapshot['draft_enforce_eager'] or snapshot['draft_use_cuda_graph']:
                 raise RuntimeError('shared MTP draft eager configuration did not take effect')
             shared_profile['mtp'] = snapshot
-            shared_profile['native_mtp_host_output_overlap'] = False
+            # Configured policy; request-stage counters must separately prove
+            # actual overlap. A True flag alone is not a mechanism result.
+            shared_profile['native_mtp_host_output_overlap'] = bool(async_scheduling)
         if graph_decode:
             from vllm.config.compilation import CUDAGraphMode
             if (config.model_config.enforce_eager or

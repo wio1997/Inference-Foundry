@@ -1,8 +1,8 @@
 """Carry real SDK draft IDs to the native scheduler without fake placeholders.
 
-This bounded initial bridge resolves MTP batches inline. SDK asynchronous
-sampling remains enabled, but native cross-batch host overlap is not implemented
-here and must not be reported as equivalent to the ordinary async bridge.
+Each result owns its draft snapshot and completion event, so later device
+execution cannot overwrite it. Whether a caller overlaps batches is determined
+by the dispatch path and must be verified by its actual execution counters.
 """
 from dataclasses import dataclass
 
