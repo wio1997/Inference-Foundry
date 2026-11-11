@@ -1,4 +1,9 @@
-"""Observe the unmodified SDK FULL path; no math or metadata replacement."""
+"""Guard FULL replay shapes and observe unchanged SDK math and metadata.
+
+The g61 failure occurred in a padded convolution replay. This bounded
+candidate uses FULL only for exact, uniform decode batches; other batches
+use the SDK's force_eager path. Both benchmark arms must use this contract.
+"""
 from collections import Counter
 
 
@@ -16,6 +21,38 @@ def install_full_graph_observer(config, runner, *, max_requests):
     counts = Counter()
     kda_layers, sfa_layers = set(), set()
     original_kda, original_sfa = Glm5NextLinearAttention._forward, AscendSFAImpl.forward
+    import inspect
+    original_determine = runner._determine_batch_execution_and_padding
+    original_warmup = runner._warmup_and_capture
+    signature = inspect.signature(original_determine)
+    exact_shapes = frozenset(config.compilation_config.cudagraph_capture_sizes)
+    capture_phase = False
+
+    def warmup(*args, **kwargs):
+        nonlocal capture_phase
+        capture_phase = True
+        try:
+            return original_warmup(*args, **kwargs)
+        finally:
+            capture_phase = False
+
+    def determine(*args, **kwargs):
+        if capture_phase:
+            return original_determine(*args, **kwargs)
+        values = signature.bind(*args, **kwargs)
+        tokens = values.arguments['num_tokens']
+        if tokens <= max_requests:
+            requests = values.arguments['num_reqs']
+            max_query = values.arguments['max_num_scheduled_tokens']
+            done_prefill = (runner.input_batch.num_computed_tokens_cpu[:requests]
+                >= runner.input_batch.num_prompt_tokens[:requests]).all()
+            if tokens not in exact_shapes or tokens != requests or max_query != 1 or not done_prefill:
+                values.arguments['force_eager'] = True
+                counts['nonexact_or_prefill_eager_batches'] += 1
+        return original_determine(*values.args, **values.kwargs)
+
+    runner._determine_batch_execution_and_padding = determine
+    runner._warmup_and_capture = warmup
 
     def kda(layer, *args, **kwargs):
         context = get_forward_context()
@@ -57,14 +94,19 @@ def install_full_graph_observer(config, runner, *, max_requests):
                     'captured_layers': len(kda_layers), 'captured_sfa_layers': len(sfa_layers),
                     'model_wrapper': type(model).__module__ + '.' + type(model).__qualname__,
                     'original_kda_has_eager_wrapper': hasattr(original_kda, '__wrapped__'),
-                    'scope': 'SDK original FULL execution;observer only;no metadata or compute patch'}
+                    'exact_decode_only': True,
+                    'scope': 'SDK FULL with exact decode selection;no metadata or compute patch'}
 
         def close(self):
             if self.closed:
                 return
             if Glm5NextLinearAttention._forward is not kda or AscendSFAImpl.forward is not sfa:
                 raise RuntimeError('FULL observer ownership changed')
+            if runner._determine_batch_execution_and_padding is not determine or runner._warmup_and_capture is not warmup:
+                raise RuntimeError('FULL replay selection ownership changed')
             Glm5NextLinearAttention._forward, AscendSFAImpl.forward = original_kda, original_sfa
+            runner._determine_batch_execution_and_padding = original_determine
+            runner._warmup_and_capture = original_warmup
             counts['close_calls'] += 1
             self.closed = True
 
