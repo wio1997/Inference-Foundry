@@ -104,11 +104,12 @@ class PlatformNPU(Platform):
         # Enable expandable segments to reduce NPU memory fragmentation
         os.environ["PYTORCH_NPU_ALLOC_CONF"] = "expandable_segments:True"
 
-        # Disable task queue
-        os.environ["TASK_QUEUE_ENABLE"] = "0"
+        # Preserve an explicitly selected queue policy, including the image's
+        # shared inference setting. Keep the legacy default when unspecified.
+        os.environ.setdefault("TASK_QUEUE_ENABLE", "0")
 
         # HCCL envs
-        os.environ["HCCL_BUFFSIZE"] = "16"
+        os.environ.setdefault("HCCL_BUFFSIZE", "16")
         os.environ.setdefault("HCCL_CONNECT_TIMEOUT", "240")
         os.environ.setdefault("HCCL_EXEC_TIMEOUT", "200")
         os.environ.setdefault("HCCL_HOST_SOCKET_PORT_RANGE", "auto")

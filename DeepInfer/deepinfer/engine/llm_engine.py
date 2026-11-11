@@ -216,7 +216,11 @@ class LLMEngine:
                     or parallel_config.context_parallel_size != PG.context_parallel_group().size()
                     or parallel_config.data_parallel_size != 1 or parallel_config.expert_parallel_size != 1
                     or parallel_config.engram_parallel_size != 1 or cache_config.lookahead_tokens != 0
-                    or model_config.runtime_max_model_len > runtime_context
+                    # SDK adapters validate every executable span against their
+                    # physical context. Native runtime_max_model_len additionally
+                    # reserves logical speculative/draft positions.
+                    or model_config.max_model_len > runtime_context
+                    or envs.DEEPINFER_USE_NEXTN_DECODE != getattr(runtime, 'num_speculative_tokens', 0)
                     or scheduler_config.max_num_batched_tokens < cache_config.block_size
                     or type(bounded_glm_logical_blocks) is not int
                     or bounded_glm_logical_blocks < scheduler_config.max_num_seqs * (3 + (model_config.runtime_max_model_len - 1) // cache_config.block_size)):

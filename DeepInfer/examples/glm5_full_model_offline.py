@@ -53,6 +53,16 @@ def main():
     p.add_argument('--kda-decode-capture', action='store_true', help='experimental: capture existing pure-decode KDA in the root graph')
     p.add_argument('--async-scheduling', action='store_true',
                    help='overlap next decode with previous native output handling (SDK batch backend)')
+    p.add_argument('--enable-expert-parallel', action='store_true')
+    p.add_argument('--shared-expert-overlap', action='store_true')
+    p.add_argument('--dsa-context-parallel', action='store_true',
+                   help='enable the same experimental SFA/DSA CP path as the reference SDK')
+    p.add_argument('--static-kernel', action='store_true')
+    p.add_argument('--super-kernel', action='store_true')
+    p.add_argument('--mtp-tokens', type=int, choices=(0, 1, 5), default=0,
+                   help='explicit MTP width: one-draft candidate or pinned five-draft recipe')
+    p.add_argument('--mtp-indexed-loading', action='store_true',
+                   help='load only draft-required shards through the shared strict SDK loader')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -64,6 +74,19 @@ def main():
         p.error('prefix caching requires SDK compute backend')
     if a.async_scheduling and a.compute_backend != 'sdk-batch':
         p.error('async scheduling requires SDK compute backend')
+    if (a.enable_expert_parallel or a.shared_expert_overlap) and a.compute_backend != 'sdk-batch':
+        p.error('expert parallelism and overlap require SDK compute backend')
+    if a.mtp_tokens and (a.compute_backend != 'sdk-batch' or not a.async_scheduling
+                         or a.breakable_graph or a.kda_decode_capture):
+        p.error('MTP requires SDK async sampling and excludes the ordinary KDA/breakable capture shim')
+    if a.mtp_indexed_loading and not a.mtp_tokens:
+        p.error('indexed draft loading requires MTP')
+    if a.super_kernel and not a.static_kernel:
+        p.error('super kernel requires static kernel')
+    if (a.static_kernel or a.super_kernel) and (not a.graph_decode or a.breakable_graph):
+        p.error('static/super kernels require FULL graph mode')
+    if (a.dsa_context_parallel or a.static_kernel or a.super_kernel) and a.compute_backend != 'sdk-batch':
+        p.error('shared SDK optimization flags require SDK batch compute')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
     if (a.compute_backend == 'sdk-batch' and (
@@ -88,11 +111,16 @@ def main():
         # rather than inheriting the legacy 70/100 decode-step polling cadence.
         os.environ['DEEPINFER_PREFILL_ATTEMPT_INTERVAL'] = '1'
         os.environ['DEEPINFER_PREFILL_ANY_ATTEMPT_INTERVAL'] = '1'
-    os.environ['DEEPINFER_USE_NEXTN_DECODE'] = '0'
+    os.environ['DEEPINFER_USE_NEXTN_DECODE'] = str(a.mtp_tokens)
     os.environ['DEEPINFER_ZERO_OVERHEAD_SCHEDULING'] = '0'
     os.environ['HF_HUB_OFFLINE'] = '1'
     os.environ['TRANSFORMERS_OFFLINE'] = '1'
     os.environ['VLLM_ENABLE_V1_MULTIPROCESSING'] = '0'
+    if a.mtp_tokens:
+        os.environ['VLLM_USE_V2_MODEL_RUNNER'] = '0'
+        os.environ['HCCL_OP_EXPANSION_MODE'] = 'AIV'
+        os.environ['HCCL_BUFFSIZE'] = '400'
+        os.environ['TASK_QUEUE_ENABLE'] = '1'
     out = a.output_dir / ('rank' + str(a.rank))
     out.mkdir(parents=True, exist_ok=True)
     for key in ('HF_HOME', 'XDG_CACHE_HOME', 'TORCHINDUCTOR_CACHE_DIR', 'TRITON_CACHE_DIR'):
@@ -133,7 +161,11 @@ def main():
                 native_group=PG.context_parallel_group(), local_rank=a.local_device,
                 init_method=a.init_method, max_context=a.max_context,
                 max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, kda_decode_capture=a.kda_decode_capture,
-                prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling)
+                prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling,
+                expert_parallel=a.enable_expert_parallel, shared_expert_overlap=a.shared_expert_overlap,
+                mtp_tokens=a.mtp_tokens, mtp_indexed_loading=a.mtp_indexed_loading,
+                dsa_context_parallel=a.dsa_context_parallel,
+                static_kernel=a.static_kernel, super_kernel=a.super_kernel)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             runtime.install(self)
             model = runtime.compute_worker.get_model()
@@ -146,6 +178,7 @@ def main():
                 'breakable_graph_enabled': a.breakable_graph,
                 'kda_decode_capture_requested': a.kda_decode_capture,
                 'shared_features': {
+                    **runtime.shared_profile,
                     'async_scheduling': runtime.config.scheduler_config.async_scheduling,
                     'runner_use_async_scheduling': runtime.compute_worker.model_runner.use_async_scheduling,
                     'prefix_caching': runtime.config.cache_config.enable_prefix_caching,
@@ -202,13 +235,26 @@ def main():
         return
     llm = None
     try:
-        worker.run_workers('initialize_reference_glm')
         config = EngineArgs(model=a.model, max_model_len=a.max_context,
             max_num_batched_tokens=max(128, a.max_step), max_num_seqs=a.max_sequences,
             context_parallel_size=a.world_size, expert_parallel_size=1, engram_parallel_size=1,
             tokens_per_block=128, chunked_prefill=True,
             disable_log_stats=True, offline_inference=True)
-        logical_blocks = a.max_sequences * (3 + (a.max_context - 1) // 128)
+        if a.mtp_tokens:
+            # Exercise the exact lightweight import that empty native schedule
+            # results need, before the expensive target/draft weight loading.
+            from deepinfer.model_executor.layers.mtp_info_pool import get_nextn_pad_token_ids
+            native_model = config.create_engine_configs()[0]
+            vocab_size = native_model.get_vocab_size()
+            pads = get_nextn_pad_token_ids(vocab_size)
+            if len(pads) != a.mtp_tokens or any(not 0 <= t < vocab_size for t in pads):
+                raise ValueError('native MTP padding metadata contract differs')
+            (out / 'mtp-metadata-preflight.json').write_text(json.dumps({
+                'status': 'padding helper imported without TileLang kernel dependency',
+                'draft_width': len(pads), 'vocab_size': vocab_size,
+                'scope': 'metadata preflight only;model execution unverified'})+'\n')
+        worker.run_workers('initialize_reference_glm')
+        logical_blocks = a.max_sequences * (3 + (a.max_context + 2*a.mtp_tokens - 1) // 128)
         llm = LLMEngine.from_bounded_glm_worker(config, worker=worker, logical_blocks=logical_blocks)
         if a.batch_smoke_cases is not None:
             from deepinfer.model_executor.models.glm5_next.full_model.sdk_smoke import run_batch_smoke

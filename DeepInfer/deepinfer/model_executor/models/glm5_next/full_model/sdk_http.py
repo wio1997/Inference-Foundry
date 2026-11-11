@@ -57,6 +57,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
                 self.reply(200, {'status': 'ready', 'engine': 'deepinfer',
                                 'max_active_requests': args.max_sequences,
                                 'prefix_cache': dict(worker._glm_worker_runtime.adapter.controller.prefix_stats),
+                                'mtp': dict(getattr(worker._glm_worker_runtime.adapter.controller, 'mtp_stats', {})),
                                 'kda_decode_capture': (worker._glm_worker_runtime.kda_capture.snapshot()
                                     if getattr(worker._glm_worker_runtime, 'kda_capture', None) else None)})
             elif self.path == '/v1/models':
@@ -260,6 +261,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
                 'batch_sizes': runtime.adapter.batch_sizes,
                 'driver_owner_released': not runtime.adapter.controller.requests,
                 'prefix_cache': dict(runtime.adapter.controller.prefix_stats),
+                'mtp': dict(getattr(runtime.adapter.controller, 'mtp_stats', {})),
                 'async_execution': dict(getattr(runtime.adapter, 'async_stats', {})),
                 'async_schedule': dict(getattr(runtime.adapter.controller, 'async_stats', {}))})+'\n')
     except Exception as error:

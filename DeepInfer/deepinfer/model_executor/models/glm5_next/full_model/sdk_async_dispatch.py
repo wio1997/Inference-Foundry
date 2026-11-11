@@ -6,6 +6,7 @@ termination and ensuring no cache is released while device work uses it.
 """
 from dataclasses import dataclass
 import math
+from time import perf_counter_ns
 
 from .sdk_dispatch import SDKBatchWorkerAdapter
 
@@ -20,12 +21,17 @@ class _Step:
 
 
 class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
+    expected_nextn = 0
+    allow_speculative_metadata = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.deferred = None
         self.async_stats = {'next_execute_before_previous_output': 0,
             'current_npu_pending_during_previous_cpu_output': 0,
-            'deferred_decode_batches': 0, 'inline_batches': 0}
+            'deferred_decode_batches': 0, 'inline_batches': 0,
+            'npu_pending_at_execute_return': 0,
+            'execute_host_elapsed_ns': 0, 'pre_output_host_elapsed_ns': 0}
 
     def _resolve_step(self, worker, step, *, driver):
         import numpy as np
@@ -92,7 +98,7 @@ class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
         from deepinfer import envs
         from deepinfer.model_executor.parallel_utils.communication_op import broadcast_tensor_dict
         driver = dist.get_rank(self.group) == 0
-        if (self.poisoned or worker.nextn != 0 or worker.prev_step_state is not None
+        if (self.poisoned or worker.nextn != self.expected_nextn or worker.prev_step_state is not None
                 or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING or is_placeholder
                 or bool(worker.is_driver_worker) != driver):
             raise ValueError('unsupported native async worker lifecycle')
@@ -103,7 +109,8 @@ class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
                 if (not seq_metadata_list or scheduler_outputs is None
                         or len(seq_metadata_list) != len(scheduler_outputs.scheduled_seqs)
                         or any(bool(m.is_prompt) != bool(is_prompt) for m in seq_metadata_list)
-                        or any(m.last_next_n_token or m.last_accepted_token for m in seq_metadata_list)):
+                        or (not self.allow_speculative_metadata and any(
+                            m.last_next_n_token or m.last_accepted_token for m in seq_metadata_list))):
                     raise ValueError('native async scheduled metadata is incomplete or speculative')
                 descriptor = self.controller.prepare(seq_metadata_list)
                 self.batch_sizes.append(len(seq_metadata_list))
@@ -116,9 +123,14 @@ class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
             self.poisoned = True
             raise RuntimeError('native async preparation failed: ' + message['error']) from failure
         try:
+            execute_started = perf_counter_ns()
             output = self.runtime.execute(message['descriptor'])
             end = torch.npu.Event()
             end.record()
+            execute_returned = perf_counter_ns()
+            if driver:
+                self.async_stats['execute_host_elapsed_ns'] += execute_returned - execute_started
+                self.async_stats['npu_pending_at_execute_return'] += int(not end.query())
         except Exception:
             self.poisoned = True
             raise
@@ -132,6 +144,7 @@ class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
                 self.controller.submitted()
                 worker.engine_callbacks.pre_sampler_sync_fn(scheduler_outputs)
                 worker.maybe_gc_collect()
+                self.async_stats['pre_output_host_elapsed_ns'] += perf_counter_ns() - execute_returned
                 if previous is not None:
                     self.async_stats['next_execute_before_previous_output'] += 1
                     if not end.query():
