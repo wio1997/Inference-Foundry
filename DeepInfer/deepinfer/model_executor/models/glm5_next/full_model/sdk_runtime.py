@@ -101,7 +101,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, kda_decode_capture=False,
                         prefix_caching=False, async_scheduling=False,
                         expert_parallel=False, shared_expert_overlap=False,
-                        mtp_tokens=0):
+                        mtp_tokens=0, mtp_indexed_loading=False):
     import torch
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
@@ -123,6 +123,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         raise ValueError('initialized native NPU worker and explicit positive bounds required')
     if mtp_tokens not in (0, 1) or (mtp_tokens and (breakable_graph or kda_decode_capture or not async_scheduling)):
         raise ValueError('initial MTP bridge requires one draft, SDK async sampling and no breakable capture')
+    if mtp_indexed_loading and not mtp_tokens:
+        raise ValueError('indexed draft loading requires an MTP model')
     ranks = dist.get_process_group_ranks(native_group)
     if ranks != list(range(dist.get_world_size())):
         raise ValueError('candidate requires native Worker to own the whole TP world')
@@ -145,6 +147,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             compilation = {'cudagraph_mode': 'FULL_DECODE_ONLY', 'cudagraph_capture_sizes': [2, 4, 8, 16]}
         from .sdk_mtp_norm_contract import install_mtp_norm_contract
         install_mtp_norm_contract('d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc')
+        if mtp_indexed_loading:
+            from .sdk_mtp_indexed_loading import install_mtp_indexed_loading
+            install_mtp_indexed_loading(
+                expected_loader_sha256='9c9d54b1b650bf5affc924ebb8b8c73711e187ae7486cadd9f737bb1279cc7b8',
+                expected_mtp_sha256='f20b9eb0bfdf187f45c0905f4b3296074680ecc10871107f913a51c4bc6aa10f',
+                expected_model_sha256='2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe')
     args = EngineArgs(model=str(root), tensor_parallel_size=len(ranks),
         pipeline_parallel_size=1, data_parallel_size=1,
         enable_expert_parallel=expert_parallel, distributed_executor_backend='external_launcher',
@@ -235,6 +243,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             if not snapshot['draft_enforce_eager'] or snapshot['draft_use_cuda_graph']:
                 raise RuntimeError('shared MTP draft eager configuration did not take effect')
             shared_profile['mtp'] = snapshot
+            draft_model = worker.model_runner.drafter.model
+            if callable(getattr(draft_model, 'unwrap', None)):
+                draft_model = draft_model.unwrap()
+            shared_profile['mtp_indexed_loading'] = getattr(draft_model, '_glm53_indexed_loading', None)
+            if mtp_indexed_loading and shared_profile['mtp_indexed_loading'] is None:
+                raise RuntimeError('requested indexed MTP loading was not installed')
             # Configured policy; request-stage counters must separately prove
             # actual overlap. A True flag alone is not a mechanism result.
             shared_profile['native_mtp_host_output_overlap'] = bool(async_scheduling)

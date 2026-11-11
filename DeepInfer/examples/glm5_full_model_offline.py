@@ -57,6 +57,8 @@ def main():
     p.add_argument('--shared-expert-overlap', action='store_true')
     p.add_argument('--mtp-tokens', type=int, choices=(0, 1), default=0,
                    help='candidate one-draft native MTP bridge with two-batch host overlap')
+    p.add_argument('--mtp-indexed-loading', action='store_true',
+                   help='load only draft-required shards through the shared strict SDK loader')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -73,6 +75,8 @@ def main():
     if a.mtp_tokens and (a.compute_backend != 'sdk-batch' or not a.async_scheduling
                          or a.breakable_graph or a.kda_decode_capture):
         p.error('MTP requires SDK async sampling and excludes the ordinary KDA/breakable capture shim')
+    if a.mtp_indexed_loading and not a.mtp_tokens:
+        p.error('indexed draft loading requires MTP')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
     if (a.compute_backend == 'sdk-batch' and (
@@ -148,7 +152,7 @@ def main():
                 max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, kda_decode_capture=a.kda_decode_capture,
                 prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling,
                 expert_parallel=a.enable_expert_parallel, shared_expert_overlap=a.shared_expert_overlap,
-                mtp_tokens=a.mtp_tokens)
+                mtp_tokens=a.mtp_tokens, mtp_indexed_loading=a.mtp_indexed_loading)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             runtime.install(self)
             model = runtime.compute_worker.get_model()
