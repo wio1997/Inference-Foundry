@@ -1,5 +1,12 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## 末层 FFN 合并逐位边界与修复判断
+
+介绍 · 第 39 层 EP16 路由、shared、BF16 合并到 head 交付。到了哪里 · 64 份实际 C8 记录、11 份冻结源码、两份同 seed 单卡 Down 对照。结果 · 全宽只改 M 已有 12 个位差，原紧凑配方停止。保留原 shared、BF16 add、HCPost 后 readout 全免 13.563 ms。待确认原形状和舍入下联合提前 EP16 退役，新增逐位准入 0。
+
+继续未闭合的输入交付。沿 V1 _preprocess 的文本直通与 encoder/多模态分支，从输入、缓存与 connector 交付追到 decoder embedding/attention，核对 copy event、释放与下一轮代次。复用已扫的清退边，区分冻结无流量和合法替代路径，匹配旧 C8/六普通后继续扫描。 [源码、分支和定价](evidence/末层FFN合并逐位边界与修复判断.md)。
+
+
 ## 末层 Attention 选行与 FFN 逐位门槛
 
 核对 56 个原 C8 rank 窗，保留全量 SWA 写入和输入归集。独立末层 attention 全免 P90 8.64 ms，占 0.579%，停止同预算子方案。attention 到 FFN 和 head 输入的联合全免 31.10 ms。保留 dense shared 后的 FFN 逐位鉴别仍有预算。
@@ -826,7 +833,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-本轮覆盖第 39 层选行、原 C1 SMLA 标量调度与 EP16 FFN 的逐位门槛。全链路继续扫描。
+本轮覆盖第 39 层 DFC、shared Down、BF16 add、HCPost 与付成本边界。全链路继续扫描。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
@@ -932,7 +939,7 @@ M09 --> M11 -->|下一轮| M00
 | [M02 Attention 前 mHC](../modules/M02.md) · [📄 C07](opportunities.md#c07) mHC 系数与残差复用 · 计算消除与复用 | 待确认可省归约与舍入边界 | 预算：HcPre 占同周期约 5.10%；周期降 1% 需净删 HcPre 耗时的 19.6%。 |
 | [M03 Attention 主体](../modules/M03.md) · [📄 C11](opportunities.md#c11) QLI 按 key 压实评分 · 计算消除与复用 | 待确认；本次已核对具名合同/门槛 | 223完全关键波情景需每四次净省0.833667ms。等速零开销需评分主体占旧段≥84.024%；极有利全段评分时新增成本≤0.158514ms。缺c/ρ/h。 |
 | [M04 Attention 输出](../modules/M04.md) · [📄 C10](opportunities.md#c10) OA前移/窄交换 | 待确认；大行完整权重逐位门槛与直接send成本 | 65536→16384B/query；总bank2560MiB、额外2240MiB/rank。h50/h100µs的最高条件信用1.938%/1.391%，非实测/预计收益。旧M3 stock+pack保持停止。 |
-| [M06 MoE](../modules/M06.md) · [📄 C05](opportunities.md#c05) 裁掉无最终贡献的行 · 计算消除与复用 | 待核对假路由命中次数及末层读者 | 上界：末层 FFN 与读出合计 22.992 ms（长 prefill）；idle 波若有 100 次，旧整批达 1% 需净省 1.859 ms/次。 |
+| [M06 MoE](../modules/M06.md) · [C05](opportunities.md#c05) 第 39 层有消费者的行 · 计算和交付 | 待确认保留原 shared/合并/HCPost 的 EP16→readout 联合段；原紧凑配方逐位失败 | 原 C8 固定共同退役 readout 全免 13.563 ms，join 与 readout 联合全免 20.463 ms。每波新增 0.5 ms 且 readout 全免时需真实提前 join 3.356 ms。[源码与缺口](evidence/末层FFN合并逐位边界与修复判断.md)。 |
 | [M06 MoE](../modules/M06.md) · [📄 C12](opportunities.md#c12) Norm、Router、TopK 联合生产 · 读写融合 | 待确认；本次已核对具名合同/门槛 | 固定GEMM的子项C12a停止：非GEMM全免目标最高0.8963%周期，连草稿最高0.9637%。大方案若改变GEMM主体，须另证净差。 |
 | [M06 MoE](../modules/M06.md) · [📄 C13](opportunities.md#c13) 共享专家与路由专家联合排程 · 调度与同步 | 待核对计算与通信可重叠的窗口 | 情景：F21 独占资源且保留路由时可省 0.594 ms/周期，达到 1% 后新增成本余量中位仅 0.0427 ms。 |
 | [M10 DSpark](../modules/M10.md) · [📄 C14](opportunities.md#c14) 三层 context KV 共同发布 · 读写融合 | 待核算额外权重、重排与同步 | 预算：原 context 前缀 1.050 ms（同周期 1.897%）；周期降 1% 需净省该段约 52.7%。 |
@@ -963,6 +970,7 @@ M09 --> M11 -->|下一轮| M00
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
+| M06 · 末层原紧凑 FFN、shared Down 变 M 通用配方、原 M3 保 M 列切片 | 两份单卡全宽对照各有 12 个位差；M3 保 M 列切片局部 35.30 vs 23.88–23.95 µs | 停止原配方及同固定 EP join 下的小变体。[原语与净价](evidence/末层FFN合并逐位边界与修复判断.md)。 |
 | M01 · standalone compact E8M0 / group broadcast / lookup-only融合 | 成对加载/UVA owner已追，7248原生lookup/906TP8组已绑定 | 整段lookup全免的固定C8端点条件上界：TTFT最多0.118045%、整批0.046259%；停止同旧1%延迟预算小开发。主机容量/更大联合另列，见[判断](evidence/Engram成对UVA寿命与整段lookup价值判断.md)。 |
 
 当前版本和负载下结束排查。每项保留停止原因，条件改变可重开。
