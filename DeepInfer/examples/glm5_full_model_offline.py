@@ -218,12 +218,25 @@ def main():
         return
     llm = None
     try:
-        worker.run_workers('initialize_reference_glm')
         config = EngineArgs(model=a.model, max_model_len=a.max_context,
             max_num_batched_tokens=max(128, a.max_step), max_num_seqs=a.max_sequences,
             context_parallel_size=a.world_size, expert_parallel_size=1, engram_parallel_size=1,
             tokens_per_block=128, chunked_prefill=True,
             disable_log_stats=True, offline_inference=True)
+        if a.mtp_tokens:
+            # Exercise the exact lightweight import that empty native schedule
+            # results need, before the expensive target/draft weight loading.
+            from deepinfer.model_executor.layers.mtp_info_pool import get_nextn_pad_token_ids
+            native_model = config.create_engine_configs()[0]
+            vocab_size = native_model.get_vocab_size()
+            pads = get_nextn_pad_token_ids(vocab_size)
+            if len(pads) != a.mtp_tokens or any(not 0 <= t < vocab_size for t in pads):
+                raise ValueError('native MTP padding metadata contract differs')
+            (out / 'mtp-metadata-preflight.json').write_text(json.dumps({
+                'status': 'padding helper imported without TileLang kernel dependency',
+                'draft_width': len(pads), 'vocab_size': vocab_size,
+                'scope': 'metadata preflight only;model execution unverified'})+'\n')
+        worker.run_workers('initialize_reference_glm')
         logical_blocks = a.max_sequences * (3 + (a.max_context + 2*a.mtp_tokens - 1) // 128)
         llm = LLMEngine.from_bounded_glm_worker(config, worker=worker, logical_blocks=logical_blocks)
         if a.batch_smoke_cases is not None:

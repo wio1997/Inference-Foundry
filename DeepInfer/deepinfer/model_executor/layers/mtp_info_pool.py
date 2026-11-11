@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 from deepinfer import envs
-from deepinfer.model_executor.layers.tilelang_ops.store_mtp_info import store_mtp_info
 from deepinfer.sequence import MTPPredictInfo
 
 
@@ -65,6 +64,10 @@ class MTPInfoPool(nn.Module):
         is 0 are skipped, preserving the padding contents of reserved slot 0.
         See :func:`store_mtp_info` for the complete tensor contract.
         """
+        # Padding IDs are also consumed by compute backends that do not use
+        # this GPU info pool. Import its kernel only when the pool stores data.
+        from deepinfer.model_executor.layers.tilelang_ops.store_mtp_info import store_mtp_info
+
         store_mtp_info(
             write_slots,
             prediction.token_ids,
