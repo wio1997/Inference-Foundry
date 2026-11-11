@@ -16,6 +16,7 @@ class SDKBatchWorkerAdapter:
         if self.controller is None:
             raise RuntimeError('request admission belongs to the native driver')
         self.controller.register(request_id, prompt_ids, sampling_params)
+        return self.controller.prefill_checkpoints(request_id)
 
     def execute_model_step(self, worker, is_prompt, is_placeholder,
                            seq_metadata_list, scheduler_outputs):
@@ -129,7 +130,7 @@ class SDKBatchWorkerAdapter:
         if not message['ok']:
             self.poisoned = True
             raise RuntimeError('batch cleanup preparation failed: '+message['error']) from failure
-        output = self.runtime.execute(message['descriptor'])
+        output = self.runtime.resolve_output(self.runtime.execute(message['descriptor']))
         if self.controller is not None:
             self.controller.commit(output)
         self.runtime.drain()

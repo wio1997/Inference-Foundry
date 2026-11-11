@@ -19,6 +19,7 @@ class SDKComputeRuntime:
     max_requests: int
     memory_bytes_per_rank: list
     native_group: object
+    request_block_hasher: object = None
 
     @property
     def max_context_tokens(self):
@@ -35,12 +36,18 @@ class SDKComputeRuntime:
     def install(self, worker):
         from .sdk_schedule import SDKBatchSchedule
         from .sdk_dispatch import SDKBatchWorkerAdapter
+        if self.config.scheduler_config.async_scheduling:
+            from .sdk_async_schedule import SDKAsyncBatchSchedule
+            from .sdk_async_dispatch import SDKAsyncBatchWorkerAdapter
+            SDKBatchSchedule, SDKBatchWorkerAdapter = SDKAsyncBatchSchedule, SDKAsyncBatchWorkerAdapter
         controller = None
         if worker.is_driver_worker:
             controller = SDKBatchSchedule(self.cache_manager,
                 max_context=self.max_context_tokens, max_batch_tokens=self.max_step_tokens,
                 max_requests=self.max_requests, vocab_size=self.vocab_size,
-                num_cache_groups=len(self.scheduler_cache_config.kv_cache_groups))
+                num_cache_groups=len(self.scheduler_cache_config.kv_cache_groups),
+                request_block_hasher=self.request_block_hasher,
+                prefill_cache_block_size=self.config.cache_config.block_size)
         self.adapter = SDKBatchWorkerAdapter(self, controller, self.native_group)
         worker.install_glm_single_request_adapter(self.adapter)
         worker._glm_worker_runtime = self
@@ -65,10 +72,16 @@ class SDKComputeRuntime:
             self.kda_capture.close()
             self.kda_capture_stats_path.write_text(json.dumps(self.kda_capture.snapshot())+"\n")
 
+    @staticmethod
+    def resolve_output(output):
+        from vllm.v1.outputs import AsyncModelRunnerOutput
+        return output.get_output() if isinstance(output, AsyncModelRunnerOutput) else output
+
 
 def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         init_method, max_context=2048, max_step=1792,
-                        max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, kda_decode_capture=False):
+                        max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, kda_decode_capture=False,
+                        prefix_caching=False, async_scheduling=False):
     import torch
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
@@ -103,9 +116,9 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             'cudagraph_capture_sizes': [1, 2, 4, 8]} if graph_decode else {}),
         max_model_len=max_context, max_num_seqs=max_requests,
         max_num_batched_tokens=max_step, enable_chunked_prefill=True,
-        enable_prefix_caching=False, block_size=128, mamba_block_size=128,
-        mamba_cache_mode='none', additional_config={'enable_dsa_cp': False},
-        async_scheduling=False, skip_mm_profiling=True,
+        enable_prefix_caching=prefix_caching, block_size=128, mamba_block_size=128,
+        mamba_cache_mode='align' if prefix_caching else 'none', additional_config={'enable_dsa_cp': False},
+        async_scheduling=async_scheduling, skip_mm_profiling=True,
         kv_cache_memory_bytes=cache_bytes, cpu_offload_gb=0,
         offload_backend='auto', offload_group_size=0,
         trust_remote_code=False, disable_log_stats=True)
@@ -155,15 +168,23 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                 raise RuntimeError("requested decode graph fell back; do not score as graph")
         scheduler_block, hash_block = resolve_kv_cache_block_sizes(scheduler_cache, config)
         manager = None
+        request_block_hasher = None
         if rank == 0:
+            if prefix_caching:
+                from vllm.utils.hashing import get_hash_fn_by_name
+                from vllm.v1.core.kv_cache_utils import init_none_hash, get_request_block_hasher
+                hash_fn = get_hash_fn_by_name(config.cache_config.prefix_caching_hash_algo)
+                init_none_hash(hash_fn)
+                request_block_hasher = get_request_block_hasher(hash_block, hash_fn)
             manager = KVCacheManager(kv_cache_config=scheduler_cache,
                 max_model_len=max_context, scheduler_block_size=scheduler_block,
                 hash_block_size=hash_block, max_in_flight_tokens=config.max_in_flight_tokens,
-                enable_caching=False, use_eagle=False, num_prefill_lookahead=0,
+                enable_caching=prefix_caching, use_eagle=False, num_prefill_lookahead=0,
                 log_stats=False, dcp_world_size=1, pcp_world_size=1,
                 watermark=config.scheduler_config.watermark,
                 enable_mamba_fine_grained_prefix_cache=False)
     result = SDKComputeRuntime(config, worker, physical, scheduler_cache,
                              manager, max_requests, all_memory, native_group)
     result.kda_capture = kda_capture
+    result.request_block_hasher = request_block_hasher
     return result

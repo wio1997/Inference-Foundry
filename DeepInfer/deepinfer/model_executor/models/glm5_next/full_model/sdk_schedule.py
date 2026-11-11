@@ -15,7 +15,8 @@ class Registered:
 
 
 class SDKBatchSchedule:
-    def __init__(self, cache_manager, *, max_context, max_batch_tokens, max_requests, vocab_size, num_cache_groups):
+    def __init__(self, cache_manager, *, max_context, max_batch_tokens, max_requests, vocab_size, num_cache_groups,
+                 request_block_hasher=None, prefill_cache_block_size=None):
         if min(max_context, max_batch_tokens, max_requests, vocab_size, num_cache_groups) < 1:
             raise ValueError('positive explicit runtime limits required')
         self.cache = cache_manager
@@ -29,6 +30,13 @@ class SDKBatchSchedule:
         self.pending = None
         self.poisoned = False
         self.retained_copy_blocks = []
+        self.request_block_hasher = request_block_hasher
+        self.prefill_cache_block_size = prefill_cache_block_size
+        if request_block_hasher is not None and (
+                type(prefill_cache_block_size) is not int or prefill_cache_block_size < 1):
+            raise ValueError('prefix reuse requires the resolved physical cache boundary')
+        self.prefix_stats = {'lookups': 0, 'hit_requests': 0, 'hit_tokens': 0,
+                             'hits_beyond_native_chunk': 0}
 
     def register(self, request_id, prompt_ids, native_params):
         from vllm import SamplingParams
@@ -48,12 +56,28 @@ class SDKBatchSchedule:
             seed=native_params.seq_seed, max_tokens=native_params.max_tokens,
             ignore_eos=native_params.ignore_eos, logprobs=0)
         request = Request(request_id=request_id, prompt_token_ids=ids,
-            sampling_params=params, pooling_params=None)
+            sampling_params=params, pooling_params=None, block_hasher=self.request_block_hasher)
         self.requests[request_id] = Registered(request)
+
+    def prefill_checkpoints(self, request_id):
+        """Use native scheduler checkpoints to preserve reusable SSM states.
+
+        Merely hashing a 1024-token prefill does not save its 640-token state.
+        The native scheduler must stop at that physical boundary, as the SDK
+        scheduler does in Mamba align mode. A fresh request with an existing
+        prefix skips those stops so prepare can actually consume the hit.
+        Admission lookup is only a hint; prepare revalidates and allocates it.
+        """
+        if self.request_block_hasher is None:
+            return []
+        request = self.requests[request_id].request
+        _, hit_tokens, _ = self.cache.get_computed_blocks(request)
+        return [position for position in range(self.prefill_cache_block_size,
+                    len(request.prompt_token_ids), self.prefill_cache_block_size)
+                if position > hit_tokens]
 
     def prepare(self, metadata_list):
         from vllm.v1.core.sched.output import SchedulerOutput, NewRequestData, CachedRequestData
-        from deepinfer.model_executor.models.glm5_next.scheduler_contract import scheduled_text_span
         if self.poisoned or self.pending is not None:
             raise RuntimeError('previous model transaction must complete before another batch')
         if not 1 <= len(metadata_list) <= self.max_requests:
@@ -68,26 +92,47 @@ class SDKBatchSchedule:
                 raise ValueError('frontend must register the complete prompt before scheduling')
             state = self.requests[meta.request_id]
             req = state.request
-            span = scheduled_text_span(meta, request_id=meta.request_id,
-                seq_id=meta.seq_id if state.seq_id is None else state.seq_id,
-                tokens_seen=req.num_computed_tokens, max_context_tokens=self.max_context)
-            actual = meta.get_input_token_ids()
-            expected = list(req.all_token_ids[span.token_start:span.token_stop])
-            if actual != expected:
-                raise ValueError('native input tokens differ from registered SDK request history')
+            span = self._validated_span(meta, state)
             spans.append(span)
         total = sum(s.token_stop-s.token_start for s in spans)
         if total > self.max_batch_tokens:
             raise ValueError('native batch token budget exceeded')
         new, cached_ids, cached_blocks, computed, output_counts = [], [], [], [], []
+        scheduled_counts = {}
         try:
             self.cache.new_step_starts()
             for meta, span in zip(metadata_list, spans, strict=True):
                 state = self.requests[meta.request_id]
                 req = state.request
-                allocation = self.cache.allocate_slots(req, span.token_stop-span.token_start)
+                scheduled = span.token_stop-span.token_start
+                hit_blocks, hit_tokens, boundary = None, 0, 0
+                if self.request_block_hasher is not None and not state.submitted:
+                    self.prefix_stats['lookups'] += 1
+                    hit_blocks, hit_tokens, boundary = self.cache.get_computed_blocks(req)
+                    # The native scheduler may issue only a short first chunk.
+                    # Recompute that chunk if the reusable state lies beyond it;
+                    # never fabricate a zero-token allocation or advance the
+                    # native request past its scheduled span.
+                    if hit_tokens >= scheduled:
+                        self.prefix_stats['hits_beyond_native_chunk'] += int(hit_tokens > 0)
+                        hit_blocks, hit_tokens, boundary = None, 0, 0
+                    if hit_tokens:
+                        if span.token_start != 0 or req.num_computed_tokens != 0:
+                            raise ValueError('prefix reuse requires a fresh native request')
+                        scheduled -= hit_tokens
+                allocation_kwargs = {}
+                if self.request_block_hasher is not None:
+                    allocation_kwargs = dict(num_new_computed_tokens=hit_tokens,
+                        new_computed_blocks=hit_blocks, delay_cache_blocks=True)
+                allocation = self.cache.allocate_slots(req, scheduled, **allocation_kwargs)
                 if allocation is None:
                     raise RuntimeError('SDK physical cache exhausted;do not execute a partially prepared batch')
+                if hit_tokens:
+                    req.num_computed_tokens = hit_tokens
+                    req.shared_prefix_boundary = boundary
+                    self.prefix_stats['hit_requests'] += 1
+                    self.prefix_stats['hit_tokens'] += hit_tokens
+                scheduled_counts[req.request_id] = scheduled
                 if not state.submitted:
                     new.append(NewRequestData(req_id=req.request_id,
                         prompt_token_ids=list(req.prompt_token_ids), mm_features=[],
@@ -98,7 +143,7 @@ class SDKBatchSchedule:
                     cached_ids.append(req.request_id)
                     cached_blocks.append(allocation.get_block_ids())
                     computed.append(req.num_computed_tokens)
-                    output_counts.append(req.num_output_tokens)
+                    output_counts.append(self._output_count(req))
             cached = CachedRequestData(req_ids=cached_ids, resumed_req_ids=set(),
                 new_token_ids=[[] for _ in cached_ids], all_token_ids={},
                 new_block_ids=cached_blocks, num_computed_tokens=computed,
@@ -106,9 +151,8 @@ class SDKBatchSchedule:
             copies, retained = self.cache.take_kv_cache_block_copies()
             self.retained_copy_blocks = retained
             result = SchedulerOutput(scheduled_new_reqs=new, scheduled_cached_reqs=cached,
-                num_scheduled_tokens={m.request_id: s.token_stop-s.token_start
-                    for m, s in zip(metadata_list, spans, strict=True)},
-                total_num_scheduled_tokens=total, scheduled_spec_decode_tokens={},
+                num_scheduled_tokens=scheduled_counts,
+                total_num_scheduled_tokens=sum(scheduled_counts.values()), scheduled_spec_decode_tokens={},
                 scheduled_encoder_inputs={}, num_common_prefix_blocks=[0]*self.num_cache_groups,
                 finished_req_ids=set(self.finished), free_encoder_mm_hashes=[],
                 new_block_ids_to_zero=self.cache.take_new_block_ids(),
@@ -123,6 +167,19 @@ class SDKBatchSchedule:
             not m.is_prompt or m.is_last_prompt_chunk)
             for m, s in zip(metadata_list, spans, strict=True)]
         return result
+
+    def _validated_span(self, meta, state):
+        from deepinfer.model_executor.models.glm5_next.scheduler_contract import scheduled_text_span
+        req = state.request
+        span = scheduled_text_span(meta, request_id=meta.request_id,
+            seq_id=meta.seq_id if state.seq_id is None else state.seq_id,
+            tokens_seen=req.num_computed_tokens, max_context_tokens=self.max_context)
+        if meta.get_input_token_ids() != list(req.all_token_ids[span.token_start:span.token_stop]):
+            raise ValueError('native input tokens differ from registered SDK request history')
+        return span
+
+    def _output_count(self, request):
+        return request.num_output_tokens
 
     def commit(self, runner_output):
         if self.poisoned or self.pending is None:
@@ -145,6 +202,10 @@ class SDKBatchSchedule:
                 state.request.num_computed_tokens = stop
                 if request_id in emitted:
                     state.request.append_output_token_ids(emitted[request_id])
+                if self.request_block_hasher is not None:
+                    # execute/commit has completed before publishing cache
+                    # hashes. Another request cannot reuse uncomputed pages.
+                    self.cache.cache_blocks(state.request, stop)
         except Exception:
             self.poisoned = True
             raise

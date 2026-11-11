@@ -771,7 +771,13 @@ class LLMEngine:
                     adapter = self.driver_worker._glm_single_request_adapter
                     register = getattr(adapter, "register_request", None)
                     if register is not None:
-                        register(request_id, prompt_token_ids.tolist(), sampling_params)
+                        cache_checkpoints = register(request_id, prompt_token_ids.tolist(), sampling_params)
+                        if cache_checkpoints:
+                            # Existing C++ scheduling checkpoints delimit the
+                            # physical recurrent-state snapshots. Admission,
+                            # token budgeting and callbacks stay native.
+                            seq.chunk_checkpoints = sorted(set(
+                                (chunk_checkpoints or []) + cache_checkpoints))
                 _enqueue(seq)
         return seq
 
