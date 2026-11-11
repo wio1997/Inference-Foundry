@@ -28,7 +28,7 @@ class SDKMTPBatchWorkerAdapter(SDKBatchWorkerAdapter):
             rid = meta.request_id
             tokens = emitted.get(rid, [])
             offsets.append(len(verified))
-            next_drafts.append(output.draft_token_ids.get(rid, [-1]))
+            next_drafts.append(output.draft_token_ids.get(rid, [-1] * worker.nextn))
             if not tokens:
                 main.append(-1)
                 main_logp.append(0.0)
@@ -53,7 +53,7 @@ class SDKMTPBatchWorkerAdapter(SDKBatchWorkerAdapter):
         sampled = SamplerOutput(
             sampled_token=SampledInfo(bs=len(main), token_ids=torch.tensor(main, dtype=torch.int32),
                                      token_logprobs=torch.tensor(main_logp, dtype=torch.float32)),
-            verified_tokens=(SampledInfo() if is_prompt else SampledInfo(bs=len(main), nextn=1, is_verified_token=True,
+            verified_tokens=(SampledInfo() if is_prompt else SampledInfo(bs=len(main), nextn=worker.nextn, is_verified_token=True,
                 token_ids=torch.tensor(verified, dtype=torch.int32),
                 token_logprobs=torch.tensor(verified_logp, dtype=torch.float32))),
             first_token_positions=None if is_prompt else torch.tensor(offsets, dtype=torch.int32),
@@ -91,7 +91,7 @@ class SDKMTPBatchWorkerAdapter(SDKBatchWorkerAdapter):
         from deepinfer.model_executor.parallel_utils.communication_op import broadcast_tensor_dict
 
         driver = dist.get_rank(self.group) == 0
-        if (self.poisoned or worker.nextn != 1 or worker.prev_step_state is not None
+        if (self.poisoned or worker.nextn != self.runtime.num_speculative_tokens or worker.prev_step_state is not None
                 or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING or is_placeholder
                 or bool(worker.is_driver_worker) != driver):
             raise ValueError('native MTP adapter requires its explicit one-draft lifecycle')

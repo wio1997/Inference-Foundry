@@ -55,8 +55,8 @@ def main():
                    help='overlap next decode with previous native output handling (SDK batch backend)')
     p.add_argument('--enable-expert-parallel', action='store_true')
     p.add_argument('--shared-expert-overlap', action='store_true')
-    p.add_argument('--mtp-tokens', type=int, choices=(0, 1), default=0,
-                   help='candidate one-draft native MTP bridge with two-batch host overlap')
+    p.add_argument('--mtp-tokens', type=int, choices=(0, 1, 5), default=0,
+                   help='explicit MTP width: one-draft candidate or pinned five-draft recipe')
     p.add_argument('--mtp-indexed-loading', action='store_true',
                    help='load only draft-required shards through the shared strict SDK loader')
     a = p.parse_args()

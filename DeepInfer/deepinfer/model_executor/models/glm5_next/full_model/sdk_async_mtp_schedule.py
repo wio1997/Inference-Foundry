@@ -23,8 +23,8 @@ class SDKAsyncMTPBatchSchedule(SDKAsyncBatchSchedule, SDKMTPBatchSchedule):
         from deepinfer.model_executor.models.glm5_next.scheduler_contract import ScheduledTextSpan
         q, k = meta.seqlen_q, meta.seqlen_k
         if (meta.is_placeholder or meta.multi_modal_data is not None or meta.is_prompt
-                or req.num_output_placeholders not in (1, 2) or meta.seq_id != state.seq_id
-                or type(q) is not int or type(k) is not int or q not in (1, 2)
+                or not 1 <= req.num_output_placeholders <= 1 + self.num_speculative_tokens or meta.seq_id != state.seq_id
+                or type(q) is not int or type(k) is not int or not 1 <= q <= 1 + self.num_speculative_tokens
                 or k != req.num_computed_tokens + q or meta.full_len != req.num_tokens
                 or k > self.max_context):
             raise ValueError('native async MTP span differs from optimistic SDK counts')
@@ -49,7 +49,7 @@ class SDKAsyncMTPBatchSchedule(SDKAsyncBatchSchedule, SDKMTPBatchSchedule):
             req.num_in_flight_tokens += count
             req.num_output_placeholders += width
             if emit:
-                req.spec_token_ids = [-1]
+                req.spec_token_ids = [-1] * self.num_speculative_tokens
             state.seq_id, state.submitted = seq_id, True
             entries.append((rid, count, width))
         self.inflight.append((entries, self.retained_copy_blocks))
@@ -79,8 +79,8 @@ class SDKAsyncMTPBatchSchedule(SDKAsyncBatchSchedule, SDKMTPBatchSchedule):
                         or tokens[:-1] != drafts[:len(tokens) - 1]):
                     raise ValueError('async MTP acceptance differs from the actual preceding draft')
                 next_draft = output.draft_token_ids.get(rid)
-                if (next_draft is None or len(next_draft) != 1 or type(next_draft[0]) is not int
-                        or not 0 <= next_draft[0] < self.vocab_size):
+                if (next_draft is None or len(next_draft) != self.num_speculative_tokens
+                        or any(type(t) is not int or not 0 <= t < self.vocab_size for t in next_draft)):
                     raise ValueError('next actual async MTP draft missing')
                 emitted[rid] = tokens
             for rid, count, width in entries:
@@ -96,7 +96,8 @@ class SDKAsyncMTPBatchSchedule(SDKAsyncBatchSchedule, SDKMTPBatchSchedule):
                 if tokens:
                     req.append_output_token_ids(tokens)
                     state.committed_drafts = list(output.draft_token_ids[rid])
-                    req.spec_token_ids = [-1] if req.num_output_placeholders else list(state.committed_drafts)
+                    req.spec_token_ids = ([-1] * self.num_speculative_tokens
+                        if req.num_output_placeholders else list(state.committed_drafts))
                 if self.request_block_hasher is not None:
                     self.cache.cache_blocks(req, req.num_computed_tokens - req.num_output_placeholders)
                 self.mtp_stats['drafts_verified'] += max(width - 1, 0)

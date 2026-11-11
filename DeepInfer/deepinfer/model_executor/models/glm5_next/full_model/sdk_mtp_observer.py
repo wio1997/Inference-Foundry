@@ -7,8 +7,8 @@ def install_mtp_observer(config, runner, *, max_requests):
     from vllm.forward_context import get_forward_context
     from vllm_ascend.models.glm5next.kda import Glm5NextLinearAttention
     spec = config.speculative_config
-    if spec is None or spec.num_speculative_tokens != 1 or config.kv_transfer_config is not None:
-        raise ValueError('one-token resident MTP compatibility probe required')
+    if spec is None or spec.num_speculative_tokens not in (1, 5) or config.kv_transfer_config is not None:
+        raise ValueError('resident MTP requires a supported explicit draft width')
     original = Glm5NextLinearAttention._forward
     counts = Counter()
 

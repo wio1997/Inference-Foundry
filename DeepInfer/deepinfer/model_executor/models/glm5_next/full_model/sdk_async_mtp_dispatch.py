@@ -4,12 +4,15 @@ from .sdk_mtp_dispatch import SDKMTPBatchWorkerAdapter
 
 
 class SDKAsyncMTPBatchWorkerAdapter(SDKAsyncBatchWorkerAdapter, SDKMTPBatchWorkerAdapter):
-    expected_nextn = 1
     allow_speculative_metadata = True
+
+    def __init__(self, runtime, controller, group):
+        super().__init__(runtime, controller, group)
+        self.expected_nextn = runtime.num_speculative_tokens
 
     def _can_defer(self, metadata, is_prompt):
         return super()._can_defer(metadata, is_prompt) and all(
-            self.controller.requests[m.request_id].request.num_computed_tokens + 2
+            self.controller.requests[m.request_id].request.num_computed_tokens + 1 + self.expected_nextn
             <= self.controller.max_context for m in metadata)
 
     def _resolve_step(self, worker, step, *, driver):

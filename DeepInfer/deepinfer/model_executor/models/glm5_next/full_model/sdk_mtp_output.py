@@ -31,8 +31,8 @@ class PendingMTPOutput:
             return ResolvedMTPOutput(output, {})
         self.copied_event.synchronize()
         rows = self.cpu_drafts.tolist()
-        if len(rows) != len(self.request_ids) or any(len(row) != 1 for row in rows):
-            raise ValueError('one real MTP draft per SDK input row required')
+        if len(rows) != len(self.request_ids) or any(len(row) != self.gpu_drafts.shape[1] for row in rows):
+            raise ValueError('real MTP drafts must retain the captured device width')
         return ResolvedMTPOutput(output, dict(zip(self.request_ids, rows, strict=True)))
 
 
@@ -50,7 +50,7 @@ def capture_mtp_output(runtime, output, descriptor):
         # this absence if that batch actually emits a ready output token.
         return PendingMTPOutput(output, request_ids, None, None, None)
     if (not isinstance(drafts, torch.Tensor) or drafts.device.type != 'npu'
-            or tuple(drafts.shape) != (len(request_ids), 1)):
+            or tuple(drafts.shape) != (len(request_ids), runtime.num_speculative_tokens)):
         raise ValueError('SDK did not produce the expected real device draft tensor')
     # Own the snapshot; the model runner reuses its draft buffers. This copy is
     # an explicit bridge cost, not an assumed performance improvement.

@@ -44,10 +44,11 @@ class SDKComputeRuntime:
         if self.num_speculative_tokens:
             from .sdk_async_mtp_schedule import SDKAsyncMTPBatchSchedule
             from .sdk_async_mtp_dispatch import SDKAsyncMTPBatchWorkerAdapter
-            if worker.nextn != 1 or self.num_speculative_tokens != 1:
-                raise ValueError('native and SDK MTP widths must both equal one')
+            if worker.nextn != self.num_speculative_tokens or self.num_speculative_tokens not in (1, 5):
+                raise ValueError('native and SDK MTP widths must match the explicit recipe')
             SDKBatchSchedule, SDKBatchWorkerAdapter = SDKAsyncMTPBatchSchedule, SDKAsyncMTPBatchWorkerAdapter
             controller_kwargs['num_lookahead_tokens'] = self.config.num_lookahead_tokens
+            controller_kwargs['num_speculative_tokens'] = self.num_speculative_tokens
         elif self.config.scheduler_config.async_scheduling:
             from .sdk_async_schedule import SDKAsyncBatchSchedule
             from .sdk_async_dispatch import SDKAsyncBatchWorkerAdapter
@@ -121,8 +122,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             or min(max_context, max_step, max_requests, cache_bytes) < 1
             or max_step > max_context):
         raise ValueError('initialized native NPU worker and explicit positive bounds required')
-    if mtp_tokens not in (0, 1) or (mtp_tokens and (breakable_graph or kda_decode_capture or not async_scheduling)):
-        raise ValueError('initial MTP bridge requires one draft, SDK async sampling and no breakable capture')
+    if mtp_tokens not in (0, 1, 5) or (mtp_tokens and (breakable_graph or kda_decode_capture or not async_scheduling)):
+        raise ValueError('MTP bridge requires supported draft width, SDK async sampling and no breakable capture')
     if mtp_indexed_loading and not mtp_tokens:
         raise ValueError('indexed draft loading requires an MTP model')
     ranks = dist.get_process_group_ranks(native_group)
@@ -142,9 +143,10 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     if mtp_tokens:
         additional_config['enable_flashcomm1'] = False
         extra_args.update(quantization='ascend', speculative_config={
-            'method': 'deepseek_mtp', 'num_speculative_tokens': 1, 'enforce_eager': True})
+            'method': 'deepseek_mtp', 'num_speculative_tokens': mtp_tokens, 'enforce_eager': True})
         if graph_decode:
-            compilation = {'cudagraph_mode': 'FULL_DECODE_ONLY', 'cudagraph_capture_sizes': [2, 4, 8, 16]}
+            compilation = {'cudagraph_mode': 'FULL_DECODE_ONLY',
+                'cudagraph_capture_sizes': [(1 + mtp_tokens) * n for n in (1, 2, 4, 8)]}
         from .sdk_mtp_norm_contract import install_mtp_norm_contract
         install_mtp_norm_contract('d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc')
         if mtp_indexed_loading:

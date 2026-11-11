@@ -8,8 +8,11 @@ from .sdk_schedule import SDKBatchSchedule
 
 
 class SDKMTPBatchSchedule(SDKBatchSchedule):
-    def __init__(self, *args, num_lookahead_tokens, **kwargs):
+    def __init__(self, *args, num_lookahead_tokens, num_speculative_tokens=1, **kwargs):
         super().__init__(*args, **kwargs)
+        if num_speculative_tokens not in (1, 5):
+            raise ValueError('only the validated-width candidate and pinned recipe width are supported')
+        self.num_speculative_tokens = num_speculative_tokens
         if type(num_lookahead_tokens) is not int or num_lookahead_tokens < 1:
             raise ValueError('resolved SDK speculative lookahead required')
         self.num_lookahead_tokens = num_lookahead_tokens
@@ -30,7 +33,7 @@ class SDKMTPBatchSchedule(SDKBatchSchedule):
         expected_seq = meta.seq_id if state.seq_id is None else state.seq_id
         if (meta.is_placeholder or meta.multi_modal_data is not None
                 or meta.request_id != req.request_id or meta.seq_id != expected_seq
-                or type(q) is not int or type(k) is not int or q not in (1, 2)
+                or type(q) is not int or type(k) is not int or not 1 <= q <= 1 + self.num_speculative_tokens
                 or k - q != req.num_computed_tokens or k > self.max_context
                 or meta.full_len != req.num_tokens
                 or meta.last_output_token != req.all_token_ids[-1]):
@@ -49,7 +52,7 @@ class SDKMTPBatchSchedule(SDKBatchSchedule):
             list(self.requests[m.request_id].request.spec_token_ids[:m.seqlen_q - 1])
             for m in metadata_list if not m.is_prompt and m.seqlen_q > 1}
         result.scheduled_spec_decode_tokens = dict(self.scheduled_drafts)
-        result.num_spec_tokens_to_schedule = 1
+        result.num_spec_tokens_to_schedule = self.num_speculative_tokens
         return result
 
     def commit(self, runner_output):
@@ -69,8 +72,8 @@ class SDKMTPBatchSchedule(SDKBatchSchedule):
                         or tokens[:-1] != drafts[:len(tokens) - 1]):
                     raise ValueError('SDK acceptance output violates the scheduled native draft contract')
                 next_draft = runner_output.draft_token_ids.get(rid)
-                if (next_draft is None or len(next_draft) != 1
-                        or type(next_draft[0]) is not int or not 0 <= next_draft[0] < self.vocab_size):
+                if (next_draft is None or len(next_draft) != self.num_speculative_tokens
+                        or any(type(t) is not int or not 0 <= t < self.vocab_size for t in next_draft)):
                     raise ValueError('actual next-step MTP draft missing or invalid')
                 emitted[rid] = tokens
             for rid, seq_id, stop, _ in self.pending:
