@@ -140,6 +140,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                 raise ValueError("KDA capture requires PIECEWISE graph mode")
             from .kda_graph_capture import install_kda_decode_capture
             kda_capture = install_kda_decode_capture(config, worker.model_runner, max_requests=max_requests)
+        elif graph_decode and not breakable_graph:
+            # Observe the original SDK FULL implementation, just as the
+            # reference arm does. Do not replace its math or metadata.
+            from .full_graph_observer import install_full_graph_observer
+            kda_capture = install_full_graph_observer(config, worker.model_runner,
+                max_requests=max_requests)
         if not isinstance(get_offloader(), NoopOffloader):
             raise ValueError('candidate requires full NPU residency')
         model = worker.get_model()
