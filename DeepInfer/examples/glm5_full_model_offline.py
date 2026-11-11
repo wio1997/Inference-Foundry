@@ -120,6 +120,7 @@ def main():
         os.environ['VLLM_USE_V2_MODEL_RUNNER'] = '0'
         os.environ['HCCL_OP_EXPANSION_MODE'] = 'AIV'
         os.environ['HCCL_BUFFSIZE'] = '400'
+        os.environ['TASK_QUEUE_ENABLE'] = '1'
     out = a.output_dir / ('rank' + str(a.rank))
     out.mkdir(parents=True, exist_ok=True)
     for key in ('HF_HOME', 'XDG_CACHE_HOME', 'TORCHINDUCTOR_CACHE_DIR', 'TRITON_CACHE_DIR'):

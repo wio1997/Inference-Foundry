@@ -105,6 +105,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         mtp_tokens=0, mtp_indexed_loading=False,
                         dsa_context_parallel=False, static_kernel=False, super_kernel=False):
     import torch
+    import os
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
         verify_installed_reference_sources, CHECKPOINT_PINS)
@@ -195,6 +196,14 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             raise ValueError('SDK expert group differs from the owned native TP8 world')
         if shared_expert_overlap and not ascend_config.multistream_overlap_shared_expert:
             raise ValueError('requested shared expert overlap was disabled by SDK config')
+        effective_environment = {key: os.environ.get(key) for key in (
+            'HCCL_BUFFSIZE', 'HCCL_OP_EXPANSION_MODE', 'TASK_QUEUE_ENABLE',
+            'VLLM_USE_V2_MODEL_RUNNER')}
+        if mtp_tokens and (effective_environment['HCCL_BUFFSIZE'] != '400'
+                or effective_environment['HCCL_OP_EXPANSION_MODE'] != 'AIV'
+                or effective_environment['TASK_QUEUE_ENABLE'] != '1'):
+            raise ValueError('shared MTP environment was overridden before weight loading: '
+                             + repr(effective_environment))
         graph_config = ascend_config.ascend_compilation_config
         if (bool(ascend_config.enable_dsa_cp) != dsa_context_parallel
                 or (static_kernel and not graph_config.enable_static_kernel)
@@ -210,6 +219,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             'moe_group_sizes': sorted({module.ep_size for module in moe_modules}),
             'moe_local_expert_counts': sorted({module.n_local_physical_experts for module in moe_modules}),
             'shared_expert_overlap': ascend_config.multistream_overlap_shared_expert,
+            'effective_environment': effective_environment,
             'dsa_context_parallel': ascend_config.enable_dsa_cp,
             'fused_mc2': ascend_config.enable_fused_mc2,
             'compilation_mode': str(config.compilation_config.mode),
