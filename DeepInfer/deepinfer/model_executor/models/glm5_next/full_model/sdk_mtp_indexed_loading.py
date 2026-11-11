@@ -14,7 +14,7 @@ CONFIG_SHA256 = '33e63ec7fe607658be712bd6dd3c16c6549960d8e7f0483d34b939881b55f94
 INDEX_SHA256 = 'dfaf0918f4c088c98b011def38475d9b1cb395f35ed5e279abc0c57610e23be4'
 
 
-def select_mtp_shards(root, config, get_spec_layer):
+def select_mtp_shards(root, config, get_spec_layer, *, sort_key):
     root = Path(root)
     raw = (root / 'quant_model_weights.safetensors.index.json').read_bytes()
     if (hashlib.sha256(raw).hexdigest() != INDEX_SHA256
@@ -29,22 +29,24 @@ def select_mtp_shards(root, config, get_spec_layer):
                 raise ValueError('MTP index shard is not an ordinary checkpoint filename')
             selected.add(shard)
             accepted += 1
-    # Preserve the original loader's filesystem enumeration order.
-    ordered = [p.name for p in root.glob('*.safetensors') if p.name in selected]
+    # Preserve the original iterator's natural file order, not glob order.
+    ordered = sorted((p.name for p in root.glob('*.safetensors') if p.name in selected), key=sort_key)
     if not accepted or set(ordered) != selected:
         raise ValueError('MTP index has missing or empty required shard coverage')
     return ordered, accepted
 
 
 def install_mtp_indexed_loading(*, expected_loader_sha256, expected_mtp_sha256,
-                               expected_model_sha256):
+                               expected_model_sha256, expected_weight_utils_sha256):
     from vllm.model_executor.model_loader.default_loader import DefaultModelLoader
+    from vllm.model_executor.model_loader.weight_utils import _natural_sort_key
     from vllm_ascend.models.glm5next.mtp import Glm5NextMTP
     from vllm_ascend.models.glm5next.model import get_spec_layer_idx_from_weight_name
 
     for obj, expected in ((DefaultModelLoader, expected_loader_sha256),
                           (Glm5NextMTP, expected_mtp_sha256),
-                          (get_spec_layer_idx_from_weight_name, expected_model_sha256)):
+                          (get_spec_layer_idx_from_weight_name, expected_model_sha256),
+                          (_natural_sort_key, expected_weight_utils_sha256)):
         if hashlib.sha256(Path(inspect.getsourcefile(obj)).read_bytes()).hexdigest() != expected:
             raise RuntimeError('MTP indexed loading source differs from audited SDK')
     original = Glm5NextMTP.__init__
@@ -57,7 +59,8 @@ def install_mtp_indexed_loading(*, expected_loader_sha256, expected_mtp_sha256,
         if getattr(model, 'allow_patterns_overrides', None) is not None or getattr(model, 'secondary_weights', ()):
             raise ValueError('MTP model already has a custom weight source')
         cfg = vllm_config.model_config
-        shards, accepted = select_mtp_shards(cfg.model, model.config, get_spec_layer_idx_from_weight_name)
+        shards, accepted = select_mtp_shards(cfg.model, model.config, get_spec_layer_idx_from_weight_name,
+                                           sort_key=_natural_sort_key)
         model.allow_patterns_overrides = [shards[0]]
         model.fall_back_to_pt_during_load = False
         # Each Source has one exact pattern because _prepare_weights treats a

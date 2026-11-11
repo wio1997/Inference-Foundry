@@ -152,7 +152,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             install_mtp_indexed_loading(
                 expected_loader_sha256='9c9d54b1b650bf5affc924ebb8b8c73711e187ae7486cadd9f737bb1279cc7b8',
                 expected_mtp_sha256='f20b9eb0bfdf187f45c0905f4b3296074680ecc10871107f913a51c4bc6aa10f',
-                expected_model_sha256='2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe')
+                expected_model_sha256='2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe',
+                expected_weight_utils_sha256='7443e55184777dcc99f621b0d97d9149d52c2ea8b4304c6621eb4902e1c8ba5b')
     args = EngineArgs(model=str(root), tensor_parallel_size=len(ranks),
         pipeline_parallel_size=1, data_parallel_size=1,
         enable_expert_parallel=expert_parallel, distributed_executor_backend='external_launcher',
