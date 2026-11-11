@@ -1,3 +1,38 @@
+# 当前共有配置前沿与源码候选
+
+**独有≥30%尚未证实。** 此前约1.7倍受KDA捕获差异影响；后来的子集测试也未控制最终HCCL/task queue环境。历史数字保留，不能据此声明完整公平收益。
+
+## 当前实测参考
+
+固定vLLM core0.30.0+empty / Ascend0.30.0rc2 g8fde6d4e3，910C/aarch64、8die/TP8/EP8、W8A8/BF16、每rank缓存4GiB、context2048、maxseq8、批token预算1792。共同开启5draft/eager draft、DSA-CP、依赖的FlashComm/SP MoE、FULL target、static/super、async及prefix/align。HCCL_BUFFSIZE=400、TASK_QUEUE_ENABLE=1、AIV、V1 runner均记录为实际有效值。SDK将请求捕获尺寸[6,12,24,48]按TP对齐调整为[24,48]，双方须遵循同一解析规则。
+
+fused MC2与shared-expert overlap在固定SDK中互斥，按模型指南选择后者；不声称两者同时打开或穷尽全局最优配置。
+
+|并发|vLLM输出token/s|TTFT中位ms|TPOT中位ms|DeepInfer至少30%所需token/s|
+|---|---:|---:|---:|---:|
+|C4|171.7722|1463.71|12.59|223.3039|
+|C8|251.3519|1165.38|12.67|326.7574|
+
+每档32请求、1024入/256出，2次排除的预热；0失败。只有一批每档，没有足够噪声证据声明稳定优势。当前只有参考分数，不能与旧原生结果混算倍率。固定工程用例通过不代表通用模型质量通过。
+
+## 修复与源码范围
+
+DeepInfer仍拥有原生引擎、C++调度、Worker与请求生命周期，SDK提供模型计算、设备采样与物理缓存。新增代码位于[模型适配目录](../DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/)。
+
+- 单draft原生短请求曾通过；5draft在旧平台代码下因EP通信缓冲实际只有16MiB、小于算子要求30,867,456字节而在预热失败，无性能分数。
+- [平台初始化](../DeepInfer/deepinfer/platform.py)已修复为保留显式HCCL与task queue值；[计算运行时](../DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py)在加载权重前拒绝环境漂移，记录实际共有能力及KDA投影契约。
+- 共有5draft、EP、DSA-CP、static/super为显式选项；未伪造draft、权重或已加载集合。索引加载只选择原严格加载器需要的分片，属于共有启动优化。
+- 参考首次加载与图捕获完成后，被旧门禁错误要求SP关闭而中止。DSA-CP实际依赖SP；修正门禁后保持全部推理参数与helper字节不变，完成本表测试。该编排失败保留，不冒称模型故障。
+- 原生当前候选源码`3999fcbc283404faeb149c458ceea7f71bf09af5`尚在同配置控制测试。该提交的静态检查与元数据检查不冒充NPU功能或性能验收。
+
+独有融合仅为隔离草稿，不在本提交中声称成功。开启共有SP后，旧GEMM/all-reduce草稿不适用，不能通过关闭参考SP配合它。
+
+[脱敏实测摘要与证据哈希](../validation/shared-features-20261111/summary.json)。原始请求、数据库、日志和本机路径保留在受控任务材料中，不公开凭据、服务器地址、权重或私有路径。
+
+---
+
+## 历史记录与旧数据（保留原数字，不作当前目标验收）
+
 # 原生共同优化接入与公平对照状态
 
 此前约1.7倍来自DeepInfer开启KDA捕获而参考保留KDA eager边界，不能作为双方同优化的框架优势。旧数据保留，原验收结论不适用于新的公平对照目标。
