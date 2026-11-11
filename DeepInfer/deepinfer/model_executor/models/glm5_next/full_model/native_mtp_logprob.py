@@ -78,6 +78,12 @@ class NativeMTPLogprobGather:
                 'contract': 'real raw token logprobs and ranks;sampling unchanged;no full-vocabulary scatter reconstruction'}
 
     def close(self):
+        # The native service drains after its last request and Worker teardown
+        # drains again. The second call must preserve the restored class method.
+        if self.closed:
+            if '_get_logprobs_tensors' in self.sampler.__dict__:
+                raise RuntimeError('restored native logprob sampler acquired another owner')
+            return
         if self.sampler.__dict__.get('_get_logprobs_tensors') is not self.installed:
             raise RuntimeError('native logprob adapter ownership changed')
         del self.sampler._get_logprobs_tensors
