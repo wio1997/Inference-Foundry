@@ -1,3 +1,21 @@
+# 最新参考与实验源码范围
+
+最新状态以[当前开发状态](../STATUS.zh-CN.md)和[脱敏摘要](../validation/shared-features-20261111/summary.json)为准。独有≥30%未达成，不能把旧约1.7倍或计分完成但退出失败的候选写成验收通过。
+
+当前新卡组为8die/TP8/EP8、物理卡0/1/2/3/5/7；活动die [0,1,2,3,4,6,10,14]。这不是8物理卡。vLLM与后续DeepInfer须使用同一映射；旧卡组[0,1,2,4,6,8,10,14]的成绩单列，不混算。
+
+固定vLLM core0.30.0+empty、Ascend0.30.0rc2 g8fde6d4e3、aarch64/910C、CANN9.2、W8A8/BF16和既有镜像。共有配置保持5draft/eager draft、FULL target、DSA-CP及依赖的FlashComm/SP MoE、AIV、shared-expert overlap、static/super、async、prefix/align；HCCL400、task queue1、4GiB cache/rank、context2048、maxseq8、batch tokens1792。fused MC2与shared-expert overlap互斥，选择后者，不声称全局最优已穷尽。
+
+新参考C4/C8为177.40808/257.49225 token/s，各32成功、0失败、1024入/256出。原始SQLite重算与官方统计一致；仅各一批。新原生测试待可用资源，不存在新卡组原生收益结论。
+
+新增[原生logprob取行](../DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_mtp_logprob.py)只跳过raw词表scatter重建，保留既有采样、拒绝采样、实际token概率和rank；raw模式以外回退。原生C++输出接口需要真实概率，因此没有填零或伪造输出。旧卡组一次真实NPU同输入检查通过，256-token计分完成，但重复drain使退出失败。源码修复与缓存解析修复的最终硬件验证未完成。
+
+启动选项`--native-mtp-logprob-gather`默认关闭；本轮候选显式开启。DeepInfer仍拥有请求生命周期、C++ scheduler与Worker，SDK提供计算/采样/缓存组件；没有用SDK引擎代理原生请求。记录的局部或工程检查不能代表通用模型质量。
+
+---
+
+## 以下为历史记录，不能覆盖以上当前状态
+
 # 当前共有配置前沿与源码候选
 
 **独有≥30%尚未证实。** 此前约1.7倍受KDA捕获差异影响；后来的子集测试也未控制最终HCCL/task queue环境。历史数字保留，不能据此声明完整公平收益。
