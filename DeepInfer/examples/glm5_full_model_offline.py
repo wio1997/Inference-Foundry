@@ -59,6 +59,8 @@ def main():
                    help='enable the same experimental SFA/DSA CP path as the reference SDK')
     p.add_argument('--static-kernel', action='store_true')
     p.add_argument('--super-kernel', action='store_true')
+    p.add_argument('--native-mtp-logprob-gather', action='store_true',
+                   help='reuse original raw rows for native sampled-token probabilities;sampling unchanged')
     p.add_argument('--mtp-tokens', type=int, choices=(0, 1, 5), default=0,
                    help='explicit MTP width: one-draft candidate or pinned five-draft recipe')
     p.add_argument('--mtp-indexed-loading', action='store_true',
@@ -81,6 +83,8 @@ def main():
         p.error('MTP requires SDK async sampling and excludes the ordinary KDA/breakable capture shim')
     if a.mtp_indexed_loading and not a.mtp_tokens:
         p.error('indexed draft loading requires MTP')
+    if a.native_mtp_logprob_gather and not a.mtp_tokens:
+        p.error('native MTP logprob gather requires MTP')
     if a.super_kernel and not a.static_kernel:
         p.error('super kernel requires static kernel')
     if (a.static_kernel or a.super_kernel) and (not a.graph_decode or a.breakable_graph):
@@ -165,8 +169,12 @@ def main():
                 expert_parallel=a.enable_expert_parallel, shared_expert_overlap=a.shared_expert_overlap,
                 mtp_tokens=a.mtp_tokens, mtp_indexed_loading=a.mtp_indexed_loading,
                 dsa_context_parallel=a.dsa_context_parallel,
-                static_kernel=a.static_kernel, super_kernel=a.super_kernel)
+                static_kernel=a.static_kernel, super_kernel=a.super_kernel,
+                native_mtp_logprob_gather=a.native_mtp_logprob_gather)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
+            if getattr(runtime, 'native_mtp_logprob', None) is not None:
+                runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
+                runtime.native_mtp_logprob.stats_path = runtime.native_mtp_logprob_stats_path
             runtime.install(self)
             model = runtime.compute_worker.get_model()
             (out / 'loaded.json').write_text(json.dumps({'rank': a.rank,

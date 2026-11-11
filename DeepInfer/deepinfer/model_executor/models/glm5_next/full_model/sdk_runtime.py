@@ -83,6 +83,10 @@ class SDKComputeRuntime:
         import torch
         get_offloader().join_after_forward()
         torch.npu.synchronize(self.compute_worker.device)
+        if getattr(self, 'native_mtp_logprob', None) is not None:
+            import json
+            self.native_mtp_logprob.close()
+            self.native_mtp_logprob_stats_path.write_text(json.dumps(self.native_mtp_logprob.snapshot()) + '\n')
         if getattr(self, "kda_capture", None) is not None:
             import json
             self.kda_capture.close()
@@ -103,7 +107,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         prefix_caching=False, async_scheduling=False,
                         expert_parallel=False, shared_expert_overlap=False,
                         mtp_tokens=0, mtp_indexed_loading=False,
-                        dsa_context_parallel=False, static_kernel=False, super_kernel=False):
+                        dsa_context_parallel=False, static_kernel=False, super_kernel=False,
+                        native_mtp_logprob_gather=False):
     import torch
     import os
     import torch.distributed as dist
@@ -330,4 +335,10 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     result.kda_capture = kda_capture
     result.shared_profile = shared_profile
     result.request_block_hasher = request_block_hasher
+    if native_mtp_logprob_gather:
+        if not mtp_tokens:
+            raise ValueError('native MTP logprob gather requires speculative decoding')
+        from .native_mtp_logprob import NativeMTPLogprobGather
+        result.native_mtp_logprob = NativeMTPLogprobGather(worker.model_runner)
+        shared_profile['native_mtp_logprob_gather'] = result.native_mtp_logprob.snapshot()
     return result
