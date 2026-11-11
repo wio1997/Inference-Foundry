@@ -55,6 +55,8 @@ def main():
                    help='overlap next decode with previous native output handling (SDK batch backend)')
     p.add_argument('--enable-expert-parallel', action='store_true')
     p.add_argument('--shared-expert-overlap', action='store_true')
+    p.add_argument('--mtp-tokens', type=int, choices=(0, 1), default=0,
+                   help='functional one-draft native MTP bridge; host outputs resolve inline')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -68,6 +70,9 @@ def main():
         p.error('async scheduling requires SDK compute backend')
     if (a.enable_expert_parallel or a.shared_expert_overlap) and a.compute_backend != 'sdk-batch':
         p.error('expert parallelism and overlap require SDK compute backend')
+    if a.mtp_tokens and (a.compute_backend != 'sdk-batch' or not a.async_scheduling
+                         or a.breakable_graph or a.kda_decode_capture):
+        p.error('MTP requires SDK async sampling and excludes the ordinary KDA/breakable capture shim')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
     if (a.compute_backend == 'sdk-batch' and (
@@ -92,11 +97,15 @@ def main():
         # rather than inheriting the legacy 70/100 decode-step polling cadence.
         os.environ['DEEPINFER_PREFILL_ATTEMPT_INTERVAL'] = '1'
         os.environ['DEEPINFER_PREFILL_ANY_ATTEMPT_INTERVAL'] = '1'
-    os.environ['DEEPINFER_USE_NEXTN_DECODE'] = '0'
+    os.environ['DEEPINFER_USE_NEXTN_DECODE'] = str(a.mtp_tokens)
     os.environ['DEEPINFER_ZERO_OVERHEAD_SCHEDULING'] = '0'
     os.environ['HF_HUB_OFFLINE'] = '1'
     os.environ['TRANSFORMERS_OFFLINE'] = '1'
     os.environ['VLLM_ENABLE_V1_MULTIPROCESSING'] = '0'
+    if a.mtp_tokens:
+        os.environ['VLLM_USE_V2_MODEL_RUNNER'] = '0'
+        os.environ['HCCL_OP_EXPANSION_MODE'] = 'AIV'
+        os.environ['HCCL_BUFFSIZE'] = '400'
     out = a.output_dir / ('rank' + str(a.rank))
     out.mkdir(parents=True, exist_ok=True)
     for key in ('HF_HOME', 'XDG_CACHE_HOME', 'TORCHINDUCTOR_CACHE_DIR', 'TRITON_CACHE_DIR'):
@@ -138,7 +147,8 @@ def main():
                 init_method=a.init_method, max_context=a.max_context,
                 max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, kda_decode_capture=a.kda_decode_capture,
                 prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling,
-                expert_parallel=a.enable_expert_parallel, shared_expert_overlap=a.shared_expert_overlap)
+                expert_parallel=a.enable_expert_parallel, shared_expert_overlap=a.shared_expert_overlap,
+                mtp_tokens=a.mtp_tokens)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             runtime.install(self)
             model = runtime.compute_worker.get_model()
@@ -214,7 +224,7 @@ def main():
             context_parallel_size=a.world_size, expert_parallel_size=1, engram_parallel_size=1,
             tokens_per_block=128, chunked_prefill=True,
             disable_log_stats=True, offline_inference=True)
-        logical_blocks = a.max_sequences * (3 + (a.max_context - 1) // 128)
+        logical_blocks = a.max_sequences * (3 + (a.max_context + 2*a.mtp_tokens - 1) // 128)
         llm = LLMEngine.from_bounded_glm_worker(config, worker=worker, logical_blocks=logical_blocks)
         if a.batch_smoke_cases is not None:
             from deepinfer.model_executor.models.glm5_next.full_model.sdk_smoke import run_batch_smoke

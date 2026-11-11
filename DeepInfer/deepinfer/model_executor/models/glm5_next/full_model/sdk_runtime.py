@@ -33,10 +33,22 @@ class SDKComputeRuntime:
     def vocab_size(self):
         return self.config.model_config.get_vocab_size()
 
+    @property
+    def num_speculative_tokens(self):
+        return self.config.num_speculative_tokens
+
     def install(self, worker):
         from .sdk_schedule import SDKBatchSchedule
         from .sdk_dispatch import SDKBatchWorkerAdapter
-        if self.config.scheduler_config.async_scheduling:
+        controller_kwargs = {}
+        if self.num_speculative_tokens:
+            from .sdk_mtp_schedule import SDKMTPBatchSchedule
+            from .sdk_mtp_dispatch import SDKMTPBatchWorkerAdapter
+            if worker.nextn != 1 or self.num_speculative_tokens != 1:
+                raise ValueError('native and SDK MTP widths must both equal one')
+            SDKBatchSchedule, SDKBatchWorkerAdapter = SDKMTPBatchSchedule, SDKMTPBatchWorkerAdapter
+            controller_kwargs['num_lookahead_tokens'] = self.config.num_lookahead_tokens
+        elif self.config.scheduler_config.async_scheduling:
             from .sdk_async_schedule import SDKAsyncBatchSchedule
             from .sdk_async_dispatch import SDKAsyncBatchWorkerAdapter
             SDKBatchSchedule, SDKBatchWorkerAdapter = SDKAsyncBatchSchedule, SDKAsyncBatchWorkerAdapter
@@ -47,7 +59,7 @@ class SDKComputeRuntime:
                 max_requests=self.max_requests, vocab_size=self.vocab_size,
                 num_cache_groups=len(self.scheduler_cache_config.kv_cache_groups),
                 request_block_hasher=self.request_block_hasher,
-                prefill_cache_block_size=self.config.cache_config.block_size)
+                prefill_cache_block_size=self.config.cache_config.block_size, **controller_kwargs)
         self.adapter = SDKBatchWorkerAdapter(self, controller, self.native_group)
         worker.install_glm_single_request_adapter(self.adapter)
         worker._glm_worker_runtime = self
@@ -58,6 +70,9 @@ class SDKComputeRuntime:
             output = self.compute_worker.execute_model(descriptor)
             if output is None:
                 output = self.compute_worker.sample_tokens(None)
+            if self.num_speculative_tokens:
+                from .sdk_mtp_output import capture_mtp_output
+                output = capture_mtp_output(self, output, descriptor)
             return output
 
     def drain(self):
@@ -75,6 +90,9 @@ class SDKComputeRuntime:
     @staticmethod
     def resolve_output(output):
         from vllm.v1.outputs import AsyncModelRunnerOutput
+        from .sdk_mtp_output import PendingMTPOutput
+        if isinstance(output, PendingMTPOutput):
+            return output.resolve()
         return output.get_output() if isinstance(output, AsyncModelRunnerOutput) else output
 
 
@@ -82,7 +100,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         init_method, max_context=2048, max_step=1792,
                         max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, kda_decode_capture=False,
                         prefix_caching=False, async_scheduling=False,
-                        expert_parallel=False, shared_expert_overlap=False):
+                        expert_parallel=False, shared_expert_overlap=False,
+                        mtp_tokens=0):
     import torch
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
@@ -102,6 +121,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             or min(max_context, max_step, max_requests, cache_bytes) < 1
             or max_step > max_context):
         raise ValueError('initialized native NPU worker and explicit positive bounds required')
+    if mtp_tokens not in (0, 1) or (mtp_tokens and (breakable_graph or kda_decode_capture or not async_scheduling)):
+        raise ValueError('initial MTP bridge requires one draft, SDK async sampling and no breakable capture')
     ranks = dist.get_process_group_ranks(native_group)
     if ranks != list(range(dist.get_world_size())):
         raise ValueError('candidate requires native Worker to own the whole TP world')
@@ -113,12 +134,22 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     additional_config = {'enable_dsa_cp': False}
     if shared_expert_overlap:
         additional_config['multistream_overlap_shared_expert'] = True
+    compilation = ({'mode': 0, 'cudagraph_mode': ('PIECEWISE' if breakable_graph else 'FULL_DECODE_ONLY'),
+        'cudagraph_capture_sizes': [1, 2, 4, 8]} if graph_decode else {})
+    extra_args = {}
+    if mtp_tokens:
+        additional_config['enable_flashcomm1'] = False
+        extra_args.update(quantization='ascend', speculative_config={
+            'method': 'deepseek_mtp', 'num_speculative_tokens': 1, 'enforce_eager': True})
+        if graph_decode:
+            compilation = {'cudagraph_mode': 'FULL_DECODE_ONLY', 'cudagraph_capture_sizes': [2, 4, 8, 16]}
+        from .sdk_mtp_norm_contract import install_mtp_norm_contract
+        install_mtp_norm_contract('d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc')
     args = EngineArgs(model=str(root), tensor_parallel_size=len(ranks),
         pipeline_parallel_size=1, data_parallel_size=1,
         enable_expert_parallel=expert_parallel, distributed_executor_backend='external_launcher',
         dtype='bfloat16', seed=0, enforce_eager=not graph_decode,
-        compilation_config=({'mode': 0, 'cudagraph_mode': ('PIECEWISE' if breakable_graph else 'FULL_DECODE_ONLY'),
-            'cudagraph_capture_sizes': [1, 2, 4, 8]} if graph_decode else {}),
+        compilation_config=compilation,
         max_model_len=max_context, max_num_seqs=max_requests,
         max_num_batched_tokens=max_step, enable_chunked_prefill=True,
         enable_prefix_caching=prefix_caching, block_size=128, mamba_block_size=128,
@@ -126,7 +157,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         async_scheduling=async_scheduling, skip_mm_profiling=True,
         kv_cache_memory_bytes=cache_bytes, cpu_offload_gb=0,
         offload_backend='auto', offload_group_size=0,
-        trust_remote_code=False, disable_log_stats=True)
+        trust_remote_code=False, disable_log_stats=True, **extra_args)
     config = args.create_engine_config()
     rank = dist.get_rank(native_group)
     with set_current_vllm_config(config):
@@ -164,7 +195,10 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         if expert_parallel and (not moe_modules or shared_profile['moe_group_sizes'] != [len(ranks)]):
             raise ValueError('GLM expert modules did not use the requested EP group')
         kda_capture = None
-        if kda_decode_capture:
+        if mtp_tokens:
+            from .sdk_mtp_observer import install_mtp_observer
+            kda_capture = install_mtp_observer(config, worker.model_runner, max_requests=max_requests)
+        elif kda_decode_capture:
             if not (graph_decode and breakable_graph):
                 raise ValueError("KDA capture requires PIECEWISE graph mode")
             from .kda_graph_capture import install_kda_decode_capture
@@ -196,6 +230,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             raise ValueError('physical cache cannot honor the declared native sequence capacity')
         worker.initialize_from_config(physical)
         worker.compile_or_warm_up_model()
+        if mtp_tokens:
+            snapshot = kda_capture.snapshot()
+            if not snapshot['draft_enforce_eager'] or snapshot['draft_use_cuda_graph']:
+                raise RuntimeError('shared MTP draft eager configuration did not take effect')
+            shared_profile['mtp'] = snapshot
+            shared_profile['native_mtp_host_output_overlap'] = False
         if graph_decode:
             from vllm.config.compilation import CUDAGraphMode
             if (config.model_config.enforce_eager or
@@ -211,10 +251,13 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                 hash_fn = get_hash_fn_by_name(config.cache_config.prefix_caching_hash_algo)
                 init_none_hash(hash_fn)
                 request_block_hasher = get_request_block_hasher(hash_block, hash_fn)
+            speculative = config.speculative_config
+            use_eagle = speculative is not None and speculative.use_eagle_block_drop()
+            prefill_lookahead = (config.num_speculative_tokens if speculative.use_multi_module_mtp() else 1) if speculative is not None and speculative.use_eagle() else 0
             manager = KVCacheManager(kv_cache_config=scheduler_cache,
                 max_model_len=max_context, scheduler_block_size=scheduler_block,
                 hash_block_size=hash_block, max_in_flight_tokens=config.max_in_flight_tokens,
-                enable_caching=prefix_caching, use_eagle=False, num_prefill_lookahead=0,
+                enable_caching=prefix_caching, use_eagle=use_eagle, num_prefill_lookahead=prefill_lookahead,
                 log_stats=False, dcp_world_size=1, pcp_world_size=1,
                 watermark=config.scheduler_config.watermark,
                 enable_mamba_fine_grained_prefix_cache=False)

@@ -121,9 +121,9 @@ class SDKBatchSchedule:
                         if span.token_start != 0 or req.num_computed_tokens != 0:
                             raise ValueError('prefix reuse requires a fresh native request')
                         scheduled -= hit_tokens
-                allocation_kwargs = {}
+                allocation_kwargs = self._allocation_kwargs(req)
                 if self.request_block_hasher is not None:
-                    allocation_kwargs = dict(num_new_computed_tokens=hit_tokens,
+                    allocation_kwargs.update(num_new_computed_tokens=hit_tokens,
                         new_computed_blocks=hit_blocks, delay_cache_blocks=True)
                 allocation = self.cache.allocate_slots(req, scheduled, **allocation_kwargs)
                 if allocation is None:
@@ -188,6 +188,9 @@ class SDKBatchSchedule:
 
     def _output_count(self, request):
         return request.num_output_tokens
+
+    def _allocation_kwargs(self, request):
+        return {}
 
     def commit(self, runner_output):
         if self.poisoned or self.pending is None:

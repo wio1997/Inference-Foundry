@@ -144,7 +144,7 @@ class WorkerBase:
                 or pc.engram_parallel_size != 1 or pc.engine_rank != 0
                 or not 0 <= self.cp_rank < pc.context_parallel_size or self.local_rank < 0
                 or bool(self.is_driver_worker) != (self.cp_rank == 0)
-                or self.nextn != 0 or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING):
+                or self.nextn not in (0, 1) or envs.DEEPINFER_ZERO_OVERHEAD_SCHEDULING):
             raise ValueError("unsupported bounded GLM Worker configuration")
         self.model_runner = None
         self.cache_engine = None
