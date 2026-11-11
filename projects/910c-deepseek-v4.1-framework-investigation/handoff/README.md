@@ -1,5 +1,12 @@
 # 171 · DeepSeek‑V4.1‑Flash 融合优化研究工作台
 
+## V1 编码器缓存到解码输入交付
+
+介绍 · 沿 scheduler、V1 encoder、cache/connector 与 merge 走到 decoder 和图像 span。到了哪里 · 29 份当前源码、24 组原 Python 控制、平衡 C8 的 176 个 `_preprocess` 调用。结果 · 冻结文本的图像设备交付为 0，空 MM mask/gather 所在整段的单卡全免上界 0.752%。保留更大的 input bank/Engram 交付；合法图片路径的 PCP mask 与端点待确认。
+
+继续 KV/PD 完整交付，从 Scheduler 的外部 KV 命中与无 forward 分支，追实际 backend 的 per-layer load/save、V4.1 SWA/C1/C2 与 DSpark cache 读写，核对每组页与跨迭代退役。复用旧 connector-off、归还与 DSpark finalize 证据，按实际冻结配置和合法替代分支分别判断计算、搬运与等待。 [源码、分支和定价](evidence/V1编码器缓存到解码输入交付判断.md)。
+
+
 ## 末层 FFN 合并逐位边界与修复判断
 
 介绍 · 第 39 层 EP16 路由、shared、BF16 合并到 head 交付。到了哪里 · 64 份实际 C8 记录、11 份冻结源码、两份同 seed 单卡 Down 对照。结果 · 全宽只改 M 已有 12 个位差，原紧凑配方停止。保留原 shared、BF16 add、HCPost 后 readout 全免 13.563 ms。待确认原形状和舍入下联合提前 EP16 退役，新增逐位准入 0。
@@ -833,7 +840,7 @@ M09 --> M11 -->|下一轮| M00
 
 2026-11-10 **有效Token与Padding分段账本**：[全局图新增页](evidence/balanced-profile-171/index.html) · [报告](evidence/token-efficiency-171/REPORT.md) · [接续断点](evidence/token-efficiency-171/STATUS.md) · [454组逐波CSV](evidence/token-efficiency-171/draft-dp-waves.csv)。新配平批次输出8192/草稿接受73.25%；原C8草稿body有效8840/物理10688行，额外17.29%，主要TP8对齐。两cohort和行/时间分开；当前全模型pad比例未知。Target若实际进24行桶，B1..4条件pad75/50/25/0%，桶人口未测。本轮新profile/模型请求/服务动作0，原全模型源码排查继续。
 
-本轮覆盖第 39 层 DFC、shared Down、BF16 add、HCPost 与付成本边界。全链路继续扫描。
+本轮覆盖 V1 encoder、分层缓存、EC 与 decoder 输入，区分冻结文本和合法图像。全链路继续扫描。
 
 
 2026-11-10 **空档操作、数据用途与真实消费者**：[全局图默认页](evidence/balanced-profile-171/index.html) · [逐项说明](evidence/gap-dataflow-171/REPORT.md) · [接续断点](evidence/gap-dataflow-171/STATUS.md) · [数据字典CSV](evidence/gap-dataflow-171/operations.csv)。28项/8阶段/9份冻结源；逐项给读取、生成、作用、消费者、提前依赖及代码。CP/base/local helper自身占细函数诊断准备空档65.10%；字段独立时间未测，同一函数不重复加价。真实KV数据读写与地址/metadata分开，附同窗算子shape；未认领缓存池容量为读流量。复用旧profile与loop046读者证据，本轮新采集/模型/服务动作0，全模型搜索仍未扫全。
@@ -930,6 +937,7 @@ M09 --> M11 -->|下一轮| M00
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
+| M00/M03 · encoder→cache→decoder 的完整图像交付 | 冻结文本图像设备工作为零。合法 V4.1 PCP 分支未读旧 sibling 的图像 span 字段 | 实际图像命中、原生 mask、逐位及付成本端点待确认。[分支与读者](evidence/V1编码器缓存到解码输入交付判断.md)。 |
 | [M03 Attention 主体](../modules/M03.md) · [📄 C08](opportunities.md#c08) producer/通信重排 | 待确认；已测local-M与stock AGMM直接替换已因位差停止 | 同M真实root/P2P和保留原归约的流水待协议/净价；不继承旧30.27ms或7/8计算信用。 |
 | [M03 Attention 主体](../modules/M03.md) · [📄 C09](opportunities.md#c09) 原序selected-KV直达L1与尾块复用 · 读写融合 | 待确认；已核原pair/半区顺序、910C uint16元素stride与QK/PV布局，CPU地址通过不作NPU位准入 | 两块L1尾pin与direct/首段联合待真实K/分组、padding/LoadData/MMAD逐位、新flags/预取净价；[当前证据](evidence/smla-direct-l1-frontier.json)，不继承旧17.78ms为实测。 |
 | [M06 MoE](../modules/M06.md) · [📄 K03](opportunities.md#k03) DFC与共享分支联合 · megakernel | 待确认；wholeDFC实际24AIC/48AIV，旧20/40闲核前提已撤回；4/8独立原语位证明不等于共驻 | 原GMM/激活/别名/flags及有成本整段价已分开；实际共驻、原语逐位和净请求收益仍缺，旧τ20us局部周期只保留为历史场景。 |
@@ -970,6 +978,7 @@ M09 --> M11 -->|下一轮| M00
 
 | 介绍（模块、优化点与类型） | 到了哪里 | 结果 |
 |---|---|---|
+| M00 · 冻结文本的独立 encoder/cache 与空 MM mask/gather | 图像设备交付零次，平衡 C8 的 176 次原 `_preprocess` 全免最多 0.752% 单卡窗口 | 停止本预算小方案，较大的输入 bank/Engram 交付继续。[原始范围与价格](evidence/V1编码器缓存到解码输入交付判断.md)。 |
 | M06 · 末层原紧凑 FFN、shared Down 变 M 通用配方、原 M3 保 M 列切片 | 两份单卡全宽对照各有 12 个位差；M3 保 M 列切片局部 35.30 vs 23.88–23.95 µs | 停止原配方及同固定 EP join 下的小变体。[原语与净价](evidence/末层FFN合并逐位边界与修复判断.md)。 |
 | M01 · standalone compact E8M0 / group broadcast / lookup-only融合 | 成对加载/UVA owner已追，7248原生lookup/906TP8组已绑定 | 整段lookup全免的固定C8端点条件上界：TTFT最多0.118045%、整批0.046259%；停止同旧1%延迟预算小开发。主机容量/更大联合另列，见[判断](evidence/Engram成对UVA寿命与整段lookup价值判断.md)。 |
 
