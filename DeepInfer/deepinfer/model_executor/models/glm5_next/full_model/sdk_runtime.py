@@ -81,7 +81,8 @@ class SDKComputeRuntime:
 def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         init_method, max_context=2048, max_step=1792,
                         max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, kda_decode_capture=False,
-                        prefix_caching=False, async_scheduling=False):
+                        prefix_caching=False, async_scheduling=False,
+                        expert_parallel=False, shared_expert_overlap=False):
     import torch
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
@@ -89,7 +90,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     from vllm.engine.arg_utils import EngineArgs
     from vllm.config import set_current_vllm_config
     from vllm_ascend.worker.worker import NPUWorker
-    from vllm.distributed.parallel_state import get_tp_group, get_pp_group, get_dp_group
+    from vllm.distributed.parallel_state import get_tp_group, get_pp_group, get_dp_group, get_ep_group
+    from vllm_ascend.ascend_config import get_ascend_config
     from vllm.v1.core.kv_cache_utils import (
         get_kv_cache_configs, generate_scheduler_kv_cache_config,
         resolve_kv_cache_block_sizes, get_max_concurrency_for_kv_cache_config)
@@ -108,16 +110,19 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     for name, expected in CHECKPOINT_PINS.items():
         if hashlib.sha256((root/name).read_bytes()).hexdigest() != expected:
             raise ValueError('checkpoint identity mismatch: '+name)
+    additional_config = {'enable_dsa_cp': False}
+    if shared_expert_overlap:
+        additional_config['multistream_overlap_shared_expert'] = True
     args = EngineArgs(model=str(root), tensor_parallel_size=len(ranks),
         pipeline_parallel_size=1, data_parallel_size=1,
-        enable_expert_parallel=False, distributed_executor_backend='external_launcher',
+        enable_expert_parallel=expert_parallel, distributed_executor_backend='external_launcher',
         dtype='bfloat16', seed=0, enforce_eager=not graph_decode,
         compilation_config=({'mode': 0, 'cudagraph_mode': ('PIECEWISE' if breakable_graph else 'FULL_DECODE_ONLY'),
             'cudagraph_capture_sizes': [1, 2, 4, 8]} if graph_decode else {}),
         max_model_len=max_context, max_num_seqs=max_requests,
         max_num_batched_tokens=max_step, enable_chunked_prefill=True,
         enable_prefix_caching=prefix_caching, block_size=128, mamba_block_size=128,
-        mamba_cache_mode='align' if prefix_caching else 'none', additional_config={'enable_dsa_cp': False},
+        mamba_cache_mode='align' if prefix_caching else 'none', additional_config=additional_config,
         async_scheduling=async_scheduling, skip_mm_profiling=True,
         kv_cache_memory_bytes=cache_bytes, cpu_offload_gb=0,
         offload_backend='auto', offload_group_size=0,
@@ -133,7 +138,31 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         if (list(tp.ranks) != ranks or tp.rank_in_group != rank
                 or get_pp_group().world_size != 1 or get_dp_group().world_size != 1):
             raise ValueError('SDK compute TP membership differs from native Worker')
+        ep = get_ep_group()
+        ascend_config = get_ascend_config()
+        if expert_parallel and (ep.world_size != len(ranks) or list(ep.ranks) != ranks):
+            raise ValueError('SDK expert group differs from the owned native TP8 world')
+        if shared_expert_overlap and not ascend_config.multistream_overlap_shared_expert:
+            raise ValueError('requested shared expert overlap was disabled by SDK config')
         worker.load_model()
+        moe_modules = [module for module in worker.model_runner.get_model().modules()
+                       if type(module).__name__ == 'Glm5NextMoE']
+        shared_profile = {
+            'expert_parallel': config.parallel_config.enable_expert_parallel,
+            'expert_group_size': ep.world_size,
+            'expert_group_ranks': list(ep.ranks),
+            'moe_group_sizes': sorted({module.ep_size for module in moe_modules}),
+            'moe_local_expert_counts': sorted({module.n_local_physical_experts for module in moe_modules}),
+            'shared_expert_overlap': ascend_config.multistream_overlap_shared_expert,
+            'fused_mc2': ascend_config.enable_fused_mc2,
+            'compilation_mode': str(config.compilation_config.mode),
+            'quantization_type': type(config.quant_config).__name__,
+            'ascend_graph_config': {
+                name: getattr(ascend_config.ascend_compilation_config, name)
+                for name in ('enable_npugraph_ex', 'enable_static_kernel', 'enable_super_kernel')},
+        }
+        if expert_parallel and (not moe_modules or shared_profile['moe_group_sizes'] != [len(ranks)]):
+            raise ValueError('GLM expert modules did not use the requested EP group')
         kda_capture = None
         if kda_decode_capture:
             if not (graph_decode and breakable_graph):
@@ -192,5 +221,6 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     result = SDKComputeRuntime(config, worker, physical, scheduler_cache,
                              manager, max_requests, all_memory, native_group)
     result.kda_capture = kda_capture
+    result.shared_profile = shared_profile
     result.request_block_hasher = request_block_hasher
     return result

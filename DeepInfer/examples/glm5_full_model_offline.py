@@ -53,6 +53,8 @@ def main():
     p.add_argument('--kda-decode-capture', action='store_true', help='experimental: capture existing pure-decode KDA in the root graph')
     p.add_argument('--async-scheduling', action='store_true',
                    help='overlap next decode with previous native output handling (SDK batch backend)')
+    p.add_argument('--enable-expert-parallel', action='store_true')
+    p.add_argument('--shared-expert-overlap', action='store_true')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -64,6 +66,8 @@ def main():
         p.error('prefix caching requires SDK compute backend')
     if a.async_scheduling and a.compute_backend != 'sdk-batch':
         p.error('async scheduling requires SDK compute backend')
+    if (a.enable_expert_parallel or a.shared_expert_overlap) and a.compute_backend != 'sdk-batch':
+        p.error('expert parallelism and overlap require SDK compute backend')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
     if (a.compute_backend == 'sdk-batch' and (
@@ -133,7 +137,8 @@ def main():
                 native_group=PG.context_parallel_group(), local_rank=a.local_device,
                 init_method=a.init_method, max_context=a.max_context,
                 max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, kda_decode_capture=a.kda_decode_capture,
-                prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling)
+                prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling,
+                expert_parallel=a.enable_expert_parallel, shared_expert_overlap=a.shared_expert_overlap)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             runtime.install(self)
             model = runtime.compute_worker.get_model()
@@ -146,6 +151,7 @@ def main():
                 'breakable_graph_enabled': a.breakable_graph,
                 'kda_decode_capture_requested': a.kda_decode_capture,
                 'shared_features': {
+                    **runtime.shared_profile,
                     'async_scheduling': runtime.config.scheduler_config.async_scheduling,
                     'runner_use_async_scheduling': runtime.compute_worker.model_runner.use_async_scheduling,
                     'prefix_caching': runtime.config.cache_config.enable_prefix_caching,
