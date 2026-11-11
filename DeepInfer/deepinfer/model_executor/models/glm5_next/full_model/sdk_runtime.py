@@ -102,7 +102,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         max_requests=8, cache_bytes=2*1024**3, graph_decode=False, breakable_graph=False, kda_decode_capture=False,
                         prefix_caching=False, async_scheduling=False,
                         expert_parallel=False, shared_expert_overlap=False,
-                        mtp_tokens=0, mtp_indexed_loading=False):
+                        mtp_tokens=0, mtp_indexed_loading=False,
+                        dsa_context_parallel=False, static_kernel=False, super_kernel=False):
     import torch
     import torch.distributed as dist
     from deepinfer.model_executor.models.glm5_next.full_model.reference_factory import (
@@ -126,6 +127,10 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         raise ValueError('MTP bridge requires supported draft width, SDK async sampling and no breakable capture')
     if mtp_indexed_loading and not mtp_tokens:
         raise ValueError('indexed draft loading requires an MTP model')
+    if super_kernel and not static_kernel:
+        raise ValueError('the shared SDK super kernel requires static kernel')
+    if (static_kernel or super_kernel) and (not graph_decode or breakable_graph):
+        raise ValueError('static/super kernels require the shared FULL graph path')
     ranks = dist.get_process_group_ranks(native_group)
     if ranks != list(range(dist.get_world_size())):
         raise ValueError('candidate requires native Worker to own the whole TP world')
@@ -134,7 +139,11 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     for name, expected in CHECKPOINT_PINS.items():
         if hashlib.sha256((root/name).read_bytes()).hexdigest() != expected:
             raise ValueError('checkpoint identity mismatch: '+name)
-    additional_config = {'enable_dsa_cp': False}
+    additional_config = {'enable_dsa_cp': dsa_context_parallel}
+    if static_kernel or super_kernel:
+        additional_config['ascend_compilation_config'] = {
+            'enable_npugraph_ex': True,
+            'enable_static_kernel': static_kernel, 'enable_super_kernel': super_kernel}
     if shared_expert_overlap:
         additional_config['multistream_overlap_shared_expert'] = True
     compilation = ({'mode': 0, 'cudagraph_mode': ('PIECEWISE' if breakable_graph else 'FULL_DECODE_ONLY'),
@@ -186,6 +195,11 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             raise ValueError('SDK expert group differs from the owned native TP8 world')
         if shared_expert_overlap and not ascend_config.multistream_overlap_shared_expert:
             raise ValueError('requested shared expert overlap was disabled by SDK config')
+        graph_config = ascend_config.ascend_compilation_config
+        if (bool(ascend_config.enable_dsa_cp) != dsa_context_parallel
+                or (static_kernel and not graph_config.enable_static_kernel)
+                or (super_kernel and not graph_config.enable_super_kernel)):
+            raise ValueError('requested common optimization was disabled;do not benchmark a weaker arm')
         worker.load_model()
         moe_modules = [module for module in worker.model_runner.get_model().modules()
                        if type(module).__name__ == 'Glm5NextMoE']
@@ -196,6 +210,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             'moe_group_sizes': sorted({module.ep_size for module in moe_modules}),
             'moe_local_expert_counts': sorted({module.n_local_physical_experts for module in moe_modules}),
             'shared_expert_overlap': ascend_config.multistream_overlap_shared_expert,
+            'dsa_context_parallel': ascend_config.enable_dsa_cp,
             'fused_mc2': ascend_config.enable_fused_mc2,
             'compilation_mode': str(config.compilation_config.mode),
             'quantization_type': type(config.quant_config).__name__,

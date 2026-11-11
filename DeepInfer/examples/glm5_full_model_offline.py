@@ -55,6 +55,10 @@ def main():
                    help='overlap next decode with previous native output handling (SDK batch backend)')
     p.add_argument('--enable-expert-parallel', action='store_true')
     p.add_argument('--shared-expert-overlap', action='store_true')
+    p.add_argument('--dsa-context-parallel', action='store_true',
+                   help='enable the same experimental SFA/DSA CP path as the reference SDK')
+    p.add_argument('--static-kernel', action='store_true')
+    p.add_argument('--super-kernel', action='store_true')
     p.add_argument('--mtp-tokens', type=int, choices=(0, 1, 5), default=0,
                    help='explicit MTP width: one-draft candidate or pinned five-draft recipe')
     p.add_argument('--mtp-indexed-loading', action='store_true',
@@ -77,6 +81,12 @@ def main():
         p.error('MTP requires SDK async sampling and excludes the ordinary KDA/breakable capture shim')
     if a.mtp_indexed_loading and not a.mtp_tokens:
         p.error('indexed draft loading requires MTP')
+    if a.super_kernel and not a.static_kernel:
+        p.error('super kernel requires static kernel')
+    if (a.static_kernel or a.super_kernel) and (not a.graph_decode or a.breakable_graph):
+        p.error('static/super kernels require FULL graph mode')
+    if (a.dsa_context_parallel or a.static_kernel or a.super_kernel) and a.compute_backend != 'sdk-batch':
+        p.error('shared SDK optimization flags require SDK batch compute')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
     if (a.compute_backend == 'sdk-batch' and (
@@ -152,7 +162,9 @@ def main():
                 max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, kda_decode_capture=a.kda_decode_capture,
                 prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling,
                 expert_parallel=a.enable_expert_parallel, shared_expert_overlap=a.shared_expert_overlap,
-                mtp_tokens=a.mtp_tokens, mtp_indexed_loading=a.mtp_indexed_loading)
+                mtp_tokens=a.mtp_tokens, mtp_indexed_loading=a.mtp_indexed_loading,
+                dsa_context_parallel=a.dsa_context_parallel,
+                static_kernel=a.static_kernel, super_kernel=a.super_kernel)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             runtime.install(self)
             model = runtime.compute_worker.get_model()
