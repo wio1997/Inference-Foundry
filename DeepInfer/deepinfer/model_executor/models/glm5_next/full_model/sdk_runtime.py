@@ -83,6 +83,10 @@ class SDKComputeRuntime:
         import torch
         get_offloader().join_after_forward()
         torch.npu.synchronize(self.compute_worker.device)
+        if getattr(self, 'native_mtp_logprob', None) is not None:
+            import json
+            self.native_mtp_logprob.close()
+            self.native_mtp_logprob_stats_path.write_text(json.dumps(self.native_mtp_logprob.snapshot()) + '\n')
         if getattr(self, "kda_capture", None) is not None:
             import json
             self.kda_capture.close()
@@ -103,7 +107,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         prefix_caching=False, async_scheduling=False,
                         expert_parallel=False, shared_expert_overlap=False,
                         mtp_tokens=0, mtp_indexed_loading=False,
-                        dsa_context_parallel=False, static_kernel=False, super_kernel=False):
+                        dsa_context_parallel=False, static_kernel=False, super_kernel=False,
+                        native_mtp_logprob_gather=False):
     import torch
     import os
     import torch.distributed as dist
@@ -116,7 +121,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     from vllm_ascend.ascend_config import get_ascend_config
     from vllm.v1.core.kv_cache_utils import (
         get_kv_cache_configs, generate_scheduler_kv_cache_config,
-        resolve_kv_cache_block_sizes, get_max_concurrency_for_kv_cache_config)
+        get_max_concurrency_for_kv_cache_config)
     from vllm.v1.core.kv_cache_manager import KVCacheManager
     from vllm.model_executor.offloader.base import get_offloader, NoopOffloader
 
@@ -305,7 +310,27 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             if (config.model_config.enforce_eager or
                     config.compilation_config.cudagraph_mode != (CUDAGraphMode.PIECEWISE if breakable_graph else CUDAGraphMode.FULL_DECODE_ONLY)):
                 raise RuntimeError("requested decode graph fell back; do not score as graph")
-        scheduler_block, hash_block = resolve_kv_cache_block_sizes(scheduler_cache, config)
+        # Ascend replaces this function during platform bootstrap. Importing
+        # the function before create_engine_config/init_device retains the
+        # original CUDA-oriented alias, unlike the SDK EngineCore whose alias
+        # is explicitly patched. Resolve through the module after bootstrap.
+        import inspect
+        from vllm.v1.core import kv_cache_utils as active_cache_utils
+        resolver = active_cache_utils.resolve_kv_cache_block_sizes
+        resolver_source = Path(inspect.getsourcefile(resolver))
+        if (resolver.__module__ != 'vllm_ascend.patch.platform.patch_kv_cache_utils'
+                or hashlib.sha256(resolver_source.read_bytes()).hexdigest()
+                != '5fc49ebb9b64a2f14c4eb38b8c66d3daf1b7612961cf76392cf113d76f555aab'):
+            raise ValueError('native cache alignment must use the pinned active Ascend resolver')
+        scheduler_block, hash_block = resolver(scheduler_cache, config)
+        shared_profile['cache_alignment'] = {
+            'resolver_module': resolver.__module__, 'resolver_name': resolver.__name__,
+            'resolver_source_sha256': hashlib.sha256(resolver_source.read_bytes()).hexdigest(),
+            'scheduler_block_size': scheduler_block, 'hash_block_size': hash_block,
+            'physical_groups': [{'block_size': g.kv_cache_spec.block_size,
+                                 'prefix_cacheable': g.kv_cache_spec.prefix_cacheable}
+                                for g in scheduler_cache.kv_cache_groups],
+            'scope': 'physical groups retained;private scratch groups excluded by shared SDK alignment policy'}
         manager = None
         request_block_hasher = None
         if rank == 0:
@@ -330,4 +355,10 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     result.kda_capture = kda_capture
     result.shared_profile = shared_profile
     result.request_block_hasher = request_block_hasher
+    if native_mtp_logprob_gather:
+        if not mtp_tokens:
+            raise ValueError('native MTP logprob gather requires speculative decoding')
+        from .native_mtp_logprob import NativeMTPLogprobGather
+        result.native_mtp_logprob = NativeMTPLogprobGather(worker.model_runner)
+        shared_profile['native_mtp_logprob_gather'] = result.native_mtp_logprob.snapshot()
     return result
