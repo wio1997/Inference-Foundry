@@ -212,6 +212,25 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         worker.load_model()
         moe_modules = [module for module in worker.model_runner.get_model().modules()
                        if type(module).__name__ == 'Glm5NextMoE']
+        # Startup metadata only: establish whether the proposed projection
+        # integration actually matches the loaded checkpoint and SP boundary.
+        kda_projection_contracts = []
+        for decoder in worker.model_runner.get_model().modules():
+            if (type(decoder).__name__ != 'Glm5NextDecoderLayer'
+                    or getattr(decoder, 'layer_kind', None) != 'kda'):
+                continue
+            projection = decoder.self_attn.o_proj
+            kda_projection_contracts.append({
+                'prefix': decoder.self_attn.prefix,
+                'mhc': decoder.mhc, 'mtp_layer': decoder.is_mtp_layer,
+                'sequence_parallel': decoder.is_sequence_parallel,
+                'weight_dtype': str(projection.weight.dtype),
+                'weight_shape': list(projection.weight.shape),
+                'quant_method': type(projection.quant_method).__name__,
+                'custom_op': type(projection.custom_op).__name__ if projection.custom_op is not None else None,
+                'reduce_results': projection.reduce_results,
+                'input_is_parallel': projection.input_is_parallel,
+                'return_bias': projection.return_bias, 'has_bias': projection.bias is not None})
         shared_profile = {
             'expert_parallel': config.parallel_config.enable_expert_parallel,
             'expert_group_size': ep.world_size,
@@ -221,6 +240,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             'shared_expert_overlap': ascend_config.multistream_overlap_shared_expert,
             'effective_environment': effective_environment,
             'dsa_context_parallel': ascend_config.enable_dsa_cp,
+            'kda_projection_contracts': kda_projection_contracts,
             'fused_mc2': ascend_config.enable_fused_mc2,
             'compilation_mode': str(config.compilation_config.mode),
             'quantization_type': type(config.quant_config).__name__,
