@@ -27,6 +27,7 @@ class SDKBatchSchedule:
         self.num_cache_groups = num_cache_groups
         self.requests = {}
         self.finished = set()
+        self.previous_scheduled_req_ids = set()
         self.pending = None
         self.poisoned = False
         self.retained_copy_blocks = []
@@ -144,8 +145,14 @@ class SDKBatchSchedule:
                     cached_blocks.append(allocation.get_block_ids())
                     computed.append(req.num_computed_tokens)
                     output_counts.append(self._output_count(req))
+            # A native prefill wave can temporarily remove a running request
+            # from the SDK input batch. Async re-admission needs its committed
+            # CPU token history (pinned GPUModelRunner._update_states), even
+            # though this was a pause rather than cache preemption.
+            resumed_history = {rid: list(self.requests[rid].request.all_token_ids)
+                for rid in cached_ids if rid not in self.previous_scheduled_req_ids}
             cached = CachedRequestData(req_ids=cached_ids, resumed_req_ids=set(),
-                new_token_ids=[[] for _ in cached_ids], all_token_ids={},
+                new_token_ids=[[] for _ in cached_ids], all_token_ids=resumed_history,
                 new_block_ids=cached_blocks, num_computed_tokens=computed,
                 num_output_tokens=output_counts)
             copies, retained = self.cache.take_kv_cache_block_copies()
@@ -166,6 +173,7 @@ class SDKBatchSchedule:
         self.pending = [(m.request_id, m.seq_id, s.token_stop,
             not m.is_prompt or m.is_last_prompt_chunk)
             for m, s in zip(metadata_list, spans, strict=True)]
+        self.previous_scheduled_req_ids = set(ids)
         return result
 
     def _validated_span(self, meta, state):
