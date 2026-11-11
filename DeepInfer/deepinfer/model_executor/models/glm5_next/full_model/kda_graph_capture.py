@@ -11,6 +11,7 @@ def install_kda_decode_capture(config, runner, *, max_requests):
     import torch
     from vllm.forward_context import get_forward_context
     from vllm_ascend.models.glm5next.kda import Glm5NextLinearAttention
+    from vllm_ascend.ops.gdn_attn_builder import AscendGDNAttentionMetadataBuilder
     if config.kv_transfer_config is not None or config.speculative_config is not None:
         raise ValueError('KDA decode capture does not support KV transfer or speculation')
     cls = Glm5NextLinearAttention
@@ -20,6 +21,8 @@ def install_kda_decode_capture(config, runner, *, max_requests):
         raise RuntimeError('expected pinned SDK eager-break wrapper')
     counts = Counter()
     layers = set()
+    stable_builders = set()
+    stable_pointer_pairs = set()
     observed = set()
     capture_phase = False
     original_metadata = runner._should_build_dummy_attn_metadata
@@ -28,6 +31,43 @@ def install_kda_decode_capture(config, runner, *, max_requests):
     import inspect
     determine_signature = inspect.signature(original_determine)
     exact_shapes = frozenset(config.compilation_config.cudagraph_capture_sizes)
+    original_builder_build = AscendGDNAttentionMetadataBuilder.build
+
+    def build_attention_metadata(builder, *args, **kwargs):
+        metadata = original_builder_build(builder, *args, **kwargs)
+        pure_decode = (metadata.num_prefills == 0 and metadata.num_decodes > 0
+                       and metadata.num_actual_tokens == metadata.num_decodes
+                       and metadata.spec_sequence_masks is None
+                       and metadata.num_decodes <= max_requests)
+        if not pure_decode:
+            return metadata
+        # The SDK normally materializes these buffers only for FULL graphs.
+        # In align mode its block-table selection can instead allocate a new
+        # tensor each step. A PIECEWISE graph would then keep the capture-time
+        # state IDs. Reuse the SDK's own materialization and attach routines for
+        # both capture and replay, without changing its model/state math.
+        fields = (
+            ('non_spec_state_indices_tensor', metadata.non_spec_state_indices_tensor, max_requests),
+            ('non_spec_query_start_loc', metadata.non_spec_query_start_loc, max_requests + 1),
+        )
+        for name, values, capacity in fields:
+            if values is None or values.ndim != 1:
+                raise RuntimeError('unexpected pinned SDK decode metadata: ' + name)
+            buffer = getattr(builder, name, None)
+            if buffer is None:
+                setattr(builder, name, values.new_empty((capacity,)))
+            elif (buffer.ndim != 1 or buffer.shape[0] < capacity
+                  or buffer.dtype != values.dtype or buffer.device != values.device):
+                raise RuntimeError('incompatible SDK stable decode buffer: ' + name)
+        builder._pad_decode_metadata(metadata, metadata.num_decodes)
+        builder._attach_non_spec_decode_metadata(metadata, metadata.non_spec_state_indices_tensor)
+        stable_pointer_pairs.add((metadata.non_spec_state_indices_tensor.data_ptr(),
+                                  metadata.non_spec_query_start_loc.data_ptr()))
+        stable_builders.add(id(builder))
+        counts['stable_decode_metadata_builds'] += 1
+        return metadata
+
+    AscendGDNAttentionMetadataBuilder.build = build_attention_metadata
 
     def build_metadata(force_attention=False, is_profile=False, cudagraph_runtime_mode=None):
         if capture_phase and not is_profile:
@@ -86,6 +126,12 @@ def install_kda_decode_capture(config, runner, *, max_requests):
                         and item.num_actual_tokens == item.num_decodes
                         and item.spec_sequence_masks is None)
             if eligible:
+                pointers = (item.non_spec_state_indices_tensor.data_ptr(),
+                            item.non_spec_query_start_loc.data_ptr())
+                if (pointers not in stable_pointer_pairs
+                        or item.non_spec_decode_metadata.causal_conv1d.cache_indices.data_ptr() != pointers[0]):
+                    raise RuntimeError('captured KDA metadata does not use stable SDK buffers')
+                counts['stable_metadata_capture_calls'] += 1
                 counts['captured_decode_calls'] += 1
                 layers.add(layer.prefix)
                 return unwrapped(layer, *args, **kwargs)
@@ -101,6 +147,7 @@ def install_kda_decode_capture(config, runner, *, max_requests):
 
         def snapshot(self):
             return {'closed': self.closed, 'counts': dict(counts), 'captured_layers': len(layers),
+                    'stable_decode_builders': len(stable_builders),
                     'observed_capture_metadata': [list(v) for v in observed],
                     'scope': 'same SDK KDA math; pure decode graph coverage only;no KV transfer/speculation'}
 
@@ -118,6 +165,9 @@ def install_kda_decode_capture(config, runner, *, max_requests):
             if runner._determine_batch_execution_and_padding is not determine:
                 raise RuntimeError('KDA dispatch hook ownership changed')
             runner._determine_batch_execution_and_padding = original_determine
+            if AscendGDNAttentionMetadataBuilder.build is not build_attention_metadata:
+                raise RuntimeError('KDA builder hook ownership changed')
+            AscendGDNAttentionMetadataBuilder.build = original_builder_build
             self.closed = True
 
     return Control()

@@ -48,7 +48,11 @@ def main():
     p.add_argument('--batch-smoke-cases', type=Path)
     p.add_argument('--graph-decode', action='store_true')
     p.add_argument('--breakable-graph', action='store_true')
+    p.add_argument('--prefix-caching', action='store_true',
+                   help='use the shared SDK prefix cache with aligned hybrid states')
     p.add_argument('--kda-decode-capture', action='store_true', help='experimental: capture existing pure-decode KDA in the root graph')
+    p.add_argument('--async-scheduling', action='store_true',
+                   help='overlap next decode with previous native output handling (SDK batch backend)')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -56,6 +60,10 @@ def main():
         os.environ['VLLM_USE_BREAKABLE_CUDAGRAPH'] = '1'
     if a.graph_decode and a.compute_backend != 'sdk-batch':
         p.error('graph decode requires SDK compute backend')
+    if a.prefix_caching and a.compute_backend != 'sdk-batch':
+        p.error('prefix caching requires SDK compute backend')
+    if a.async_scheduling and a.compute_backend != 'sdk-batch':
+        p.error('async scheduling requires SDK compute backend')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
     if (a.compute_backend == 'sdk-batch' and (
@@ -124,7 +132,8 @@ def main():
             runtime = prepare_sdk_compute(a.model, device=self.device,
                 native_group=PG.context_parallel_group(), local_rank=a.local_device,
                 init_method=a.init_method, max_context=a.max_context,
-                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, kda_decode_capture=a.kda_decode_capture)
+                max_step=a.max_step, max_requests=a.max_sequences, cache_bytes=a.cache_bytes, graph_decode=a.graph_decode, breakable_graph=a.breakable_graph, kda_decode_capture=a.kda_decode_capture,
+                prefix_caching=a.prefix_caching, async_scheduling=a.async_scheduling)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             runtime.install(self)
             model = runtime.compute_worker.get_model()
@@ -136,6 +145,12 @@ def main():
                 'capture_sizes': runtime.config.compilation_config.cudagraph_capture_sizes,
                 'breakable_graph_enabled': a.breakable_graph,
                 'kda_decode_capture_requested': a.kda_decode_capture,
+                'shared_features': {
+                    'async_scheduling': runtime.config.scheduler_config.async_scheduling,
+                    'runner_use_async_scheduling': runtime.compute_worker.model_runner.use_async_scheduling,
+                    'prefix_caching': runtime.config.cache_config.enable_prefix_caching,
+                    'mamba_cache_mode': runtime.config.cache_config.mamba_cache_mode,
+                    'sequence_parallel_moe': runtime.config.parallel_config.use_sequence_parallel_moe},
                 'parameter_numel_by_device': {d: sum(p.numel() for p in model.parameters() if p.device.type == d)
                     for d in {p.device.type for p in model.parameters()}},
                 'state': 'loaded;native batch execution unverified'})+'\n')
