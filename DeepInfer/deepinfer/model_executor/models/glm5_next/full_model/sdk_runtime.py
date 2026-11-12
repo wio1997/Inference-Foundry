@@ -219,7 +219,11 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         effective_environment = {key: os.environ.get(key) for key in (
             'HCCL_BUFFSIZE', 'HCCL_OP_EXPANSION_MODE', 'TASK_QUEUE_ENABLE',
             'VLLM_USE_V2_MODEL_RUNNER')}
-        if mtp_tokens and (effective_environment['HCCL_BUFFSIZE'] != '400'
+        # The pinned 1792-token prefill MC2 path reports a 1,152,385,024-byte
+        # minimum communication window. Use the same bounded 1280-MiB window
+        # as the reference; the existing decode-only policy remains 400 MiB.
+        expected_hccl_mib = '1280' if prefill_mc2 else '400'
+        if mtp_tokens and (effective_environment['HCCL_BUFFSIZE'] != expected_hccl_mib
                 or effective_environment['HCCL_OP_EXPANSION_MODE'] != 'AIV'
                 or effective_environment['TASK_QUEUE_ENABLE'] != '1'):
             raise ValueError('shared MTP environment was overridden before weight loading: '
