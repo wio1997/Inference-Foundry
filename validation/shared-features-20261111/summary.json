@@ -1,5 +1,5 @@
 {
-  "status": "参考93已验证；原生91实际启动在认领前受外部进程阻塞，0模型/0AIS；30%未验证",
+  "status": "原生91与参考93同拓扑匹配基线已验证；单批领先12.86%/13.85%，30%未达成",
   "source_commit": "52c38617aba8779f4e6e2d458fd9791b9d5c00fa",
   "architecture": "aarch64",
   "hardware": "Ascend910C",
@@ -160,19 +160,10 @@
     "scope": "old raw numbers preserved;final effective environments were not controlled;no stable fair framework-gain claim"
   },
   "current_native_candidate": {
-    "source_commit": "0dc887ebacc432c0cf80810f999baf5e586a3417",
-    "flag": "--native-prefix-admission",
-    "default_enabled": false,
-    "status": "真实SDK缓存块租约及原生调度衔接已实现，6项元数据/引用计数检查通过；NPU状态与性能未验证",
-    "source_file_sha256": {
-      "DeepInfer/deepinfer/engine/llm_engine.py": "2f5f3305edc70a5a38a9adbe913781d9d79f1653366827bf59955f702e27615e",
-      "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/prefix_admission.py": "39f20c4ff727dcf218db71ffe1b929fd148d1a754af8d5d761631f65ec49cb10",
-      "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_dispatch.py": "3f097d264def8ac8425bce40e9c0e4f9bd070e4af9759488779c0e5e56927b40",
-      "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py": "219ae7fee140d8b10441e734490d85bfdccdeda07624b44e7c0d4fb380955d0b",
-      "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_schedule.py": "14e2298f349b26885365cf5eba372d9df8564fdc82ddfce0f996f5d16416a9c6",
-      "DeepInfer/examples/glm5_full_model_offline.py": "a418ed0fd4905128d2c6257ee5f9d8b219b7c4d617da19b0a5dd772ed2c788a6"
-    },
-    "priority_note": "prefix衔接归为共同能力补齐；不是已证实专有缓存算法；下一主候选待匹配成本预算决定"
+    "source_commit": "2a8d34a9b60df34eda736bb948801a9f2e732922",
+    "patch": "../../patches/native-singleton-dp.patch",
+    "status": "单成员DP快速路径已提交，目标CPU编译中；NPU机制和收益未验证",
+    "priority_note": "只实施此一个主性能候选；前缀候选不自动排队"
   },
   "current_shared_reference": {
     "generation": 93,
@@ -332,142 +323,76 @@
     }
   },
   "current_native_result": {
-    "generation": 82,
-    "source_commit": "6b00f78ee354a97085903f20d61a729af640a4b8",
-    "active_dies": [
-      0,
-      1,
-      2,
-      3,
-      4,
-      6,
-      10,
-      14
-    ],
-    "worker_exit_codes": [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ],
-    "prefix_cache": {
-      "lookups": 80,
-      "hit_requests": 37,
-      "hit_tokens": 23680,
-      "hits_beyond_native_chunk": 7
-    },
-    "cache_alignment": {
-      "resolver_module": "vllm_ascend.patch.platform.patch_kv_cache_utils",
-      "resolver_name": "_ascend_resolve_kv_cache_block_sizes",
-      "resolver_source_sha256": "5fc49ebb9b64a2f14c4eb38b8c66d3daf1b7612961cf76392cf113d76f555aab",
-      "scheduler_block_size": 640,
-      "hash_block_size": 640,
-      "physical_groups": [
-        {
-          "block_size": 640,
-          "prefix_cacheable": true
-        },
-        {
-          "block_size": 9,
-          "prefix_cacheable": false
-        },
-        {
-          "block_size": 640,
-          "prefix_cacheable": true
-        },
-        {
-          "block_size": 640,
-          "prefix_cacheable": true
-        },
-        {
-          "block_size": 640,
-          "prefix_cacheable": true
-        }
-      ],
-      "scope": "physical groups retained;private scratch groups excluded by shared SDK alignment policy"
-    },
-    "native_logprob": {
-      "enabled": true,
-      "closed": true,
-      "calls": 670,
-      "fallback_calls": 0,
-      "validated_calls": 1,
-      "validation_shapes": [
-        {
-          "logits": [
-            18,
-            154880
-          ],
-          "sampled": [
-            3,
-            6
-          ]
-        }
-      ],
-      "contract": "real raw token logprobs and ranks;sampling unchanged;no full-vocabulary scatter reconstruction"
-    },
-    "archive_sha256": "61ab1e28a476a1b99efd10503d97ef2500540343dd8a67be5cce6f60d2701216",
-    "metrics": {
+    "generation": 91,
+    "source_commit": "3de3dadd8780d23cb74311400221a1056fc94476",
+    "evidence": "native91.json",
+    "comparison": {
       "C4": {
+        "native_vs_reference_percent": 12.860708901002216,
+        "full_prediction_matches": 30,
+        "prediction_count": 32,
+        "required_native_time_reduction_for_30pct": 0.13184070076152155,
         "native": {
           "requests": 32,
           "successful": 32,
           "failed": 0,
           "input_tokens": 32768,
           "output_tokens": 8192,
-          "benchmark_seconds": 41.383788790000835,
-          "output_token_throughput": 197.9519091780053,
-          "ttft_median_ms": 1167.71499501192,
-          "tpot_median_ms": 15.904227411773913
+          "benchmark_seconds": 35.811971919611096,
+          "output_token_throughput": 228.75031898240587,
+          "ttft_median_ms": 1258.0273253843188,
+          "tpot_median_ms": 12.227954021563717,
+          "timestamps_finite_nondecreasing": true,
+          "official_global_throughput_agrees": true
         },
-        "reference81": {
+        "reference": {
           "requests": 32,
           "successful": 32,
           "failed": 0,
           "input_tokens": 32768,
           "output_tokens": 8192,
-          "benchmark_seconds": 46.176025250024395,
-          "output_token_throughput": 177.4080803976447,
-          "ttft_median_ms": 1432.9576599993743,
-          "tpot_median_ms": 11.9398538039212
-        },
-        "native_vs_reference_percent": 11.579984820484723,
-        "full_prediction_matches": 28,
-        "prediction_count": 32
+          "benchmark_seconds": 40.41764537990093,
+          "output_token_throughput": 202.6837516881613,
+          "ttft_median_ms": 1169.5255292579532,
+          "tpot_median_ms": 10.71724870844799,
+          "timestamps_finite_nondecreasing": true,
+          "official_global_throughput_agrees": true
+        }
       },
       "C8": {
+        "native_vs_reference_percent": 13.851616307716919,
+        "full_prediction_matches": 26,
+        "prediction_count": 32,
+        "required_native_time_reduction_for_30pct": 0.12421833609448518,
         "native": {
           "requests": 32,
           "successful": 32,
           "failed": 0,
           "input_tokens": 32768,
           "output_tokens": 8192,
-          "benchmark_seconds": 29.71161648997804,
-          "output_token_throughput": 275.71707526459306,
-          "ttft_median_ms": 1628.745150010218,
-          "tpot_median_ms": 16.824530490203852
+          "benchmark_seconds": 24.581890190020204,
+          "output_token_throughput": 333.25346166121113,
+          "ttft_median_ms": 1249.2074593901634,
+          "tpot_median_ms": 16.761247430215864,
+          "timestamps_finite_nondecreasing": true,
+          "official_global_throughput_agrees": true
         },
-        "reference81": {
+        "reference": {
           "requests": 32,
           "successful": 32,
           "failed": 0,
           "input_tokens": 32768,
           "output_tokens": 8192,
-          "benchmark_seconds": 31.814550089999102,
-          "output_token_throughput": 257.4922473153299,
-          "ttft_median_ms": 873.1867900060024,
-          "tpot_median_ms": 12.509650921542654
-        },
-        "native_vs_reference_percent": 7.077816182537222,
-        "full_prediction_matches": 28,
-        "prediction_count": 32
+          "benchmark_seconds": 27.98687930032611,
+          "output_token_throughput": 292.70859076826565,
+          "ttft_median_ms": 2445.802414789796,
+          "tpot_median_ms": 12.97429562637619,
+          "timestamps_finite_nondecreasing": true,
+          "official_global_throughput_agrees": true
+        }
       }
     },
-    "scope": "single batch each;56/64 complete texts match;difference quality impact not verified;general quality and stable gains not accepted"
+    "exclusive30pct_verified": false
   },
   "latest_native_failed_trial": {
     "generation": 86,
@@ -490,10 +415,11 @@
       8,
       9
     ],
-    "status": "首次preclaim失败，原生模型未启动；等待同拓扑真实资源窗口",
-    "attempts": 1,
-    "model_requests": 0,
-    "recovery": "保留首次失败，在新的空闲证据下按现有入口有界恢复；不终止他人进程，不混算不同拓扑"
+    "status": "已完成工程、正式C4/C8及8真实Worker exit0，已释放",
+    "attempts": 2,
+    "model_requests": 80,
+    "recovery": "保留首次失败，在新的空闲证据下按现有入口有界恢复；不终止他人进程，不混算不同拓扑",
+    "evidence": "native91.json"
   },
   "execution_lifecycle_cpu_check": {
     "client_exit_code": -15,
@@ -506,7 +432,9 @@
     "native_control_generation": 91,
     "scored_samples": 64,
     "exclusive30pct_verified": false,
-    "reference_status": "passed and released;raw timestamps verified"
+    "reference_status": "passed and released;raw timestamps verified",
+    "native_status": "passed and released",
+    "native_scored_samples": 64
   },
   "historical_shared_reference_before_migration": {
     "generation": 83,

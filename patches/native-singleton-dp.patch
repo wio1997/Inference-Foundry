@@ -1,0 +1,19 @@
+diff --git a/DeepInfer/csrc/engine/scheduler.hpp b/DeepInfer/csrc/engine/scheduler.hpp
+index 84e7cba..7077815 100644
+--- a/DeepInfer/csrc/engine/scheduler.hpp
++++ b/DeepInfer/csrc/engine/scheduler.hpp
+@@ -177,8 +177,13 @@ struct Scheduler {
+ 
+     int get_num_unfinished_seqs() { return waiting.size() + running.size() + prompted.size(); }
+ 
+-    /// dp 内做一次 allreduce 并返回归约结果（dp_size==1 时也会走通信，调用方自行短路）。
++    /// Reduce a host scheduling scalar across DP ranks. A singleton is an identity.
+     template <typename T> T _dp_allreduce(T value, c10d::ReduceOp op) {
++        // Do not materialize an accelerator tensor for DP=1: item() would
++        // wait for the current device stream and serialize asynchronous decode.
++        if (dp_size == 1) {
++            return value;
++        }
+         auto dtype = std::is_same_v<T, double> ? torch::kFloat32 : torch::kInt32;
+         auto options = torch::TensorOptions().dtype(dtype).device(use_cpu_dp_group ? torch::kCPU : get_default_device());
+         auto tensor = torch::tensor(value, options);
