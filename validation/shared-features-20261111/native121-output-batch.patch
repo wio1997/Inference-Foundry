@@ -1,0 +1,237 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+index 984edf4..fff0a13 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+@@ -22,6 +22,50 @@ class Pending:
+     disconnected: threading.Event = field(default_factory=threading.Event)
+ 
+ 
++def _collect_step_outputs(pointers, output_type, active, completed_ids, stats):
++    """Consume an already completed native step, preserving per-request order.
++
++    Native output pointers remain borrowed only until the next engine step.
++    Keep the terminal pointer for its finish reason; never buffer across steps.
++    """
++    grouped = {}
++    stats['engine_steps'] += 1
++    for pointer in pointers:
++        pointer = int(pointer)
++        rid = output_type.get_request_id(pointer)
++        token = int(output_type.get_token_id(pointer))
++        if rid not in active or (rid in grouped and grouped[rid]['terminal'] is not None):
++            if token < 0 and (rid in completed_ids or rid in grouped):
++                continue
++            raise RuntimeError('output does not belong to an active HTTP request')
++        item = grouped.setdefault(rid, {'terminal': None, 'tokens': 0})
++        if token >= 0:
++            active[rid]['ids'].append(token)
++            item['tokens'] += 1
++            stats['token_pointers'] += 1
++        if output_type.get_finished(pointer):
++            item['terminal'] = pointer
++    for item in grouped.values():
++        stats['request_steps'] += 1
++        stats['multi_token_request_steps'] += int(item['tokens'] > 1)
++        stats['max_tokens_per_request_step'] = max(
++            stats['max_tokens_per_request_step'], item['tokens'])
++    return grouped
++
++
++def _step_text_delta(tokenizer, state, finished, stats):
++    """Decode once per request/step; incomplete UTF-8 stays until the next step."""
++    stats['decode_calls'] += 1
++    text = tokenizer.decode(state['ids'], skip_special_tokens=True)
++    if not finished and text.endswith('\ufffd'):
++        return ''
++    if not text.startswith(state['decoded']):
++        raise RuntimeError('unstable final prefix' if finished else 'tokenizer changed an emitted prefix')
++    delta = text[len(state['decoded']):]
++    state['decoded'] = text
++    return delta
++
++
+ def serve_sdk_batch_engine(llm, worker, args, out):
+     import numpy as np
+     from transformers import AutoTokenizer
+@@ -37,6 +81,9 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+     waiting = queue.Queue(maxsize=64)
+     stopped = threading.Event()
+     model_name = args.served_model_name
++    output_batching = dict(engine_steps=0, token_pointers=0, request_steps=0,
++        multi_token_request_steps=0, max_tokens_per_request_step=0,
++        decode_calls=0, text_events=0, terminal_events=0)
+ 
+     class Handler(BaseHTTPRequestHandler):
+         protocol_version = 'HTTP/1.1'
+@@ -56,6 +103,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+             if self.path == '/health':
+                 self.reply(200, {'status': 'ready', 'engine': 'deepinfer',
+                                 'max_active_requests': args.max_sequences,
++                                'output_batching': dict(output_batching),
+                                 'prefix_cache': dict(worker._glm_worker_runtime.adapter.controller.prefix_stats),
+                                 'mtp': dict(getattr(worker._glm_worker_runtime.adapter.controller, 'mtp_stats', {})),
+                                 'kda_decode_capture': (worker._glm_worker_runtime.kda_capture.snapshot()
+@@ -151,6 +199,10 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+             event['usage'] = usage
+         if not state['request'].disconnected.is_set():
+             state['request'].events.put(event)
++            if text:
++                output_batching['text_events'] += 1
++            if finish is not None:
++                output_batching['terminal_events'] += 1
+ 
+     def admit(request):
+         if request.disconnected.is_set():
+@@ -211,33 +263,21 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+                     state['steps'] += 1
+                     if state['steps'] > args.max_context + args.max_new_tokens + 128:
+                         raise RuntimeError('native HTTP request exceeded bounded scheduling steps')
+-                for pointer in llm.step():
+-                    pointer = int(pointer)
+-                    rid = engine.RequestOutput.get_request_id(pointer)
+-                    token = int(engine.RequestOutput.get_token_id(pointer))
+-                    if rid not in active:
+-                        if rid in completed_ids and token < 0:
+-                            continue
+-                        raise RuntimeError('output does not belong to an active HTTP request')
++                # llm.step has already returned all accepted tokens. Coalesce
++                # their transport work without waiting for another model step.
++                grouped = _collect_step_outputs(llm.step(), engine.RequestOutput,
++                    active, completed_ids, output_batching)
++                for rid, item in grouped.items():
+                     state = active[rid]
+-                    if token >= 0:
+-                        state['ids'].append(token)
+-                        text = tokenizer.decode(state['ids'], skip_special_tokens=True)
+-                        if not text.endswith('\ufffd'):
+-                            if not text.startswith(state['decoded']):
+-                                raise RuntimeError('tokenizer changed an emitted prefix')
+-                            if len(text) > len(state['decoded']):
+-                                emit(state, text[len(state['decoded']):])
+-                            state['decoded'] = text
+-                    if not engine.RequestOutput.get_finished(pointer):
++                    pointer = item['terminal']
++                    if item['tokens'] or pointer is not None:
++                        delta = _step_text_delta(tokenizer, state, pointer is not None, output_batching)
++                        if delta:
++                            emit(state, delta)
++                    if pointer is None:
+                         continue
+                     if rid in runtime.adapter.controller.requests:
+                         raise RuntimeError('terminal request retained SDK allocator ownership')
+-                    final = tokenizer.decode(state['ids'], skip_special_tokens=True)
+-                    if not final.startswith(state['decoded']):
+-                        raise RuntimeError('unstable final prefix')
+-                    if final != state['decoded']:
+-                        emit(state, final[len(state['decoded']):])
+                     reason = engine.RequestOutput.get_finish_reason(pointer)
+                     emit(state, '', reason)
+                     if state['request'].body.get('stream_options', {}).get('include_usage'):
+@@ -257,6 +297,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+             (out / 'result.json').write_text(json.dumps({'status': 'executed',
+                 'scope': 'native SDK batch HTTP;quality/performance separately measured',
+                 'completed_requests': completed,
++                'output_batching': dict(output_batching),
+                 'max_actual_batch': max(runtime.adapter.batch_sizes, default=0),
+                 'batch_sizes': runtime.adapter.batch_sizes,
+                 'driver_owner_released': not runtime.adapter.controller.requests,
+diff --git a/DeepInfer/tests/test_glm_sdk_http_batch_output.py b/DeepInfer/tests/test_glm_sdk_http_batch_output.py
+new file mode 100644
+index 0000000..3a1ba4c
+--- /dev/null
++++ b/DeepInfer/tests/test_glm_sdk_http_batch_output.py
+@@ -0,0 +1,94 @@
++"""Transport contracts only; no model, torch, NPU or CPU model simulation."""
++import importlib.util
++from pathlib import Path
++import sys
++import unittest
++
++PATH = Path(__file__).resolve().parents[1] / 'deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py'
++spec = importlib.util.spec_from_file_location('sdk_http_transport_only', PATH)
++http = importlib.util.module_from_spec(spec)
++sys.modules[spec.name] = http
++spec.loader.exec_module(http)
++
++
++def stats():
++    return dict(engine_steps=0, token_pointers=0, request_steps=0,
++                multi_token_request_steps=0, max_tokens_per_request_step=0,
++                decode_calls=0, text_events=0, terminal_events=0)
++
++
++def state():
++    return {'ids': [], 'decoded': ''}
++
++
++class Outputs:
++    def __init__(self, rows):
++        self.rows = rows
++
++    def get_request_id(self, pointer):
++        return self.rows[pointer][0]
++
++    def get_token_id(self, pointer):
++        return self.rows[pointer][1]
++
++    def get_finished(self, pointer):
++        return self.rows[pointer][2]
++
++
++class ByteTokenizer:
++    def decode(self, ids, skip_special_tokens):
++        assert skip_special_tokens
++        return bytes(ids).decode('utf-8', errors='replace')
++
++
++class BatchOutputContracts(unittest.TestCase):
++    def test_interleaved_requests_preserve_all_tokens_and_terminal(self):
++        rows = [('a', 65, False), ('b', 88, False), ('a', 66, False),
++                ('b', 89, True), ('a', 67, True), ('a', -1, True)]
++        active = {'a': state(), 'b': state()}; count = stats()
++        grouped = http._collect_step_outputs(range(len(rows)), Outputs(rows), active, set(), count)
++        self.assertEqual(active['a']['ids'], [65, 66, 67])
++        self.assertEqual(active['b']['ids'], [88, 89])
++        self.assertEqual(grouped['a']['terminal'], 4)
++        self.assertEqual(grouped['b']['terminal'], 3)
++        self.assertEqual(count['multi_token_request_steps'], 2)
++        self.assertEqual(count['token_pointers'], 5)
++        text = {rid: http._step_text_delta(ByteTokenizer(), active[rid], True, count) for rid in grouped}
++        self.assertEqual(text, {'a': 'ABC', 'b': 'XY'})
++        self.assertEqual(count['decode_calls'], 2)
++
++    def test_utf8_split_across_steps_and_final_flush(self):
++        s = state(); count = stats(); tokenizer = ByteTokenizer()
++        s['ids'] = [0xe4, 0xbd]
++        self.assertEqual(http._step_text_delta(tokenizer, s, False, count), '')
++        self.assertEqual(s['decoded'], '')
++        s['ids'].extend([0xa0, 0x21])
++        self.assertEqual(http._step_text_delta(tokenizer, s, False, count), '你!')
++        self.assertEqual(http._step_text_delta(tokenizer, s, True, count), '')
++        s['ids'].append(0xe4)
++        self.assertEqual(http._step_text_delta(tokenizer, s, True, count), '\ufffd')
++
++    def test_completed_sentinel_is_reaped_but_late_token_fails(self):
++        self.assertEqual(http._collect_step_outputs([0], Outputs([('done', -1, True)]), {}, {'done'}, stats()), {})
++        with self.assertRaises(RuntimeError):
++            http._collect_step_outputs([0], Outputs([('done', 65, True)]), {}, {'done'}, stats())
++        with self.assertRaises(RuntimeError):
++            http._collect_step_outputs([0, 1], Outputs([('a', 65, True), ('a', 66, False)]), {'a': state()}, set(), stats())
++
++    def test_empty_terminal_and_cross_step_continuation(self):
++        active = {'a': state()}; count = stats()
++        g = http._collect_step_outputs([0], Outputs([('a', 65, False)]), active, set(), count)
++        self.assertIsNone(g['a']['terminal'])
++        self.assertEqual(http._step_text_delta(ByteTokenizer(), active['a'], False, count), 'A')
++        g = http._collect_step_outputs([0], Outputs([('a', -1, True)]), active, set(), count)
++        self.assertEqual(g['a']['terminal'], 0)
++        self.assertEqual(http._step_text_delta(ByteTokenizer(), active['a'], True, count), '')
++
++    def test_already_emitted_prefix_may_not_change(self):
++        s = {'ids': [66], 'decoded': 'A'}
++        with self.assertRaises(RuntimeError):
++            http._step_text_delta(ByteTokenizer(), s, False, stats())
++
++
++if __name__ == '__main__':
++    unittest.main()
