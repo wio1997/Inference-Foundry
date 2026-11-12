@@ -1,3 +1,17 @@
+# 2026-11-12：同卡组限定里程碑已核验
+
+当前权威状态见[开发状态](../STATUS.zh-CN.md)与[脱敏摘要](../validation/shared-features-20261111/summary.json)。原生82/参考81均在die[0,1,2,3,4,6,10,14]、TP8/DP1/PP1/EP8，同一镜像、权重、共享配置和AISBench负载下完成。原生C4/C8为197.95191/275.71708 token/s，参考为177.40808/257.49225；本批+11.58%/+7.08%，未达30%。
+
+源提交6b00f78已通过80请求与8rank正常退出；活动缓存解析器640/640、37次prefix命中及真实logprob输出均有回执。两档每档32成功、1024入/256出，原始时间戳独立重算通过。完整文本56/64相同；不据此宣称通用质量或稳定性能通过。
+
+两方保持5draft/eager draft、FULL target、DSA-CP与其依赖SP MoE、AIV、shared-expert overlap、static/super、async、prefix/align；HCCL400、task queue1、每rank4GiB、context2048、maxseq8、batchtokens1792。原生仍内部提供实际sampled-token logprobs，参考HTTP不请求此项；没有向参考添加额外工作来降低其速度。
+
+旧g79测量完成但退出失败、旧卡组结果和此前不公平KDA对比都保留为历史，不能覆盖本节或与本次卡组混算。下一阶段不改变精度、模型层数或正式负载来凑收益。
+
+---
+
+## 以下为历史状态
+
 # 最新参考与实验源码范围
 
 最新状态以[当前开发状态](../STATUS.zh-CN.md)和[脱敏摘要](../validation/shared-features-20261111/summary.json)为准。独有≥30%未达成，不能把旧约1.7倍或计分完成但退出失败的候选写成验收通过。
