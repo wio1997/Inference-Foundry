@@ -6,6 +6,9 @@
 
 [对照结果、限制与下一决策](docs/performance-decision-20261112.md) · [原生命令与源码](validation/shared-features-20261111/native94.json) · [参考命令与环境](validation/shared-features-20261111/reference95.json)
 
+
+下一候选96（8cd3bfc）已完成目标ARM64编译和导入，同一8die的实际Worker已加载新扩展。只合并被640-token状态checkpoint提前截断的独立预填充片段，保留共同开关、状态及批次上限；性能未验证。[决策和否决条件](docs/checkpoint-prefill-candidate-20261112.md) · [源码补丁及实际命令](validation/shared-features-20261111/native96-candidate.json)
+
 ---
 
 ## 2026-11-12：执行器缺陷已复现并最小修复，当前资源阻塞

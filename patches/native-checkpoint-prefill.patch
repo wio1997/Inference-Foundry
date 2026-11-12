@@ -1,0 +1,22 @@
+diff --git a/DeepInfer/csrc/engine/scheduler.hpp b/DeepInfer/csrc/engine/scheduler.hpp
+index 7077815..2c6fee8 100644
+--- a/DeepInfer/csrc/engine/scheduler.hpp
++++ b/DeepInfer/csrc/engine/scheduler.hpp
+@@ -557,7 +557,16 @@ struct Scheduler {
+             waiting.pop_front();
+ 
+             if (is_chunked && engine_type == EngineType::NORMAL) {
+-                break;
++                // An explicit state checkpoint can end a chunk before the
++                // batch token budget is exhausted. Keep that boundary, but
++                // allow independent waiting requests to use the spare budget.
++                // Count partial requests too: they occupy a row in this batch
++                // even though they are not yet members of the running queue.
++                num_curr_seqs += 1;
++                bool stopped_at_checkpoint = checkpoint > start_offset && start_offset + seqlen_q == checkpoint;
++                if (!stopped_at_checkpoint) {
++                    break;
++                }
+             }
+         }
+ 
