@@ -1,0 +1,141 @@
+{
+  "created_at": "2026-11-12T18:49:52.937831+00:00",
+  "decision": "admit_one_bounded_implementation_feasibility_stage_only",
+  "candidate": "native_compact_later_MTP_steps_under_full_graph",
+  "baseline_commit": "c4ec8e000d04966574970802ae01db76e57a01b5",
+  "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "source_sha256": {
+    "native122-decision-source/proposer.py": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+    "native122-decision-source/sfa_cp.py": "03ba131897d45159976218e7f1f800724a9d75eeea9c982a308c4fded761d5b7",
+    "native123-source/multi_kv.py": "d08e6fb9f290b0ec359cd803af56462a0488cdd1a44e79d7c2406f36bf0b11a6",
+    "native123-layout-source/glm5next/mtp.py": "f20b9eb0bfdf187f45c0905f4b3296074680ecc10871107f913a51c4bc6aa10f",
+    "native123-layout-source/glm5next/model.py": "2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe"
+  },
+  "source_locations": {
+    "later_forward_uses_initial_width": [
+      1669
+    ],
+    "later_model_slice": [
+      1725
+    ],
+    "existing_disable_padding_switch": [
+      316
+    ],
+    "full_graph_padding_guard": [
+      318
+    ],
+    "capture_metadata_hook": [
+      915
+    ]
+  },
+  "proposer_and_sfa_cp_equal_to_fixed_reference117": true,
+  "c8_diagnostic122": {
+    "trace_sha256": "f77273957ba305dac1afc6aca502e105a7b2e4ecbdf4411f99efa434774bed8e",
+    "arm_sha256": "631f73d320526a899c08fecd09915be245931263a3ed87ef62bd5b5173c796c9",
+    "nonempty_runtime_steps_after_arm": 195,
+    "steps_with_six_target_tokens_per_request": 181,
+    "pure_decode_request_count_histogram": {
+      "2": 2,
+      "3": 2,
+      "4": 4,
+      "6": 1,
+      "7": 4,
+      "8": 168
+    },
+    "eight_request_full_steps_fraction": 0.8615384615384616,
+    "formal_performance_evidence": false
+  },
+  "row_work_hypothesis": {
+    "C4": {
+      "real_requests": 4,
+      "speculative_tokens": 5,
+      "tp": 8,
+      "inferred_current_model_input_rows": [
+        24,
+        24,
+        24,
+        24,
+        24
+      ],
+      "proposed_model_input_rows": [
+        24,
+        8,
+        8,
+        8,
+        8
+      ],
+      "input_row_calls_before": 120,
+      "input_row_calls_after": 56,
+      "row_call_reduction_fraction": 0.5333333333333333,
+      "scope": "full stable decode batch; source-inferred row counts, not measured NPU work or time savings"
+    },
+    "C8": {
+      "real_requests": 8,
+      "speculative_tokens": 5,
+      "tp": 8,
+      "inferred_current_model_input_rows": [
+        48,
+        48,
+        48,
+        48,
+        48
+      ],
+      "proposed_model_input_rows": [
+        48,
+        8,
+        8,
+        8,
+        8
+      ],
+      "input_row_calls_before": 240,
+      "input_row_calls_after": 80,
+      "row_call_reduction_fraction": 0.6666666666666667,
+      "scope": "full stable decode batch; source-inferred row counts, not measured NPU work or time savings"
+    }
+  },
+  "remaining_score_gap": {
+    "C4": {
+      "baseline114_tps": 306.94205422447425,
+      "reference117_tps": 228.57796562220054,
+      "baseline_vs_reference_percent": 34.28330827468991,
+      "target_tps": 297.15135530886073,
+      "baseline_seconds": 26.689076609909534,
+      "target_max_seconds": 27.568442322886902,
+      "required_seconds_saved": 0,
+      "baseline_margin_seconds": 0.8793657129773678
+    },
+    "C8": {
+      "baseline114_tps": 501.22022621045363,
+      "reference117_tps": 415.6101816397917,
+      "baseline_vs_reference_percent": 20.598639867985714,
+      "target_tps": 540.2932361317291,
+      "baseline_seconds": 16.34411296993494,
+      "target_max_seconds": 15.162136877098911,
+      "required_seconds_saved": 1.1819760928360292,
+      "baseline_margin_seconds": 0
+    }
+  },
+  "known_common_flag": {
+    "name": "disable_padded_drafter_batch",
+    "fixed_source_rejects_with_full_draft_graph": true,
+    "no_claim_that_vllm_has_no_padding_control": true,
+    "do_not_disable_common_full_graph_to_obtain_gain": true
+  },
+  "necessary_contracts": [
+    "Keep first draft pass, five draft tokens, target verification and accepted-token semantics unchanged",
+    "Match runtime and initial graph capture metadata for three backends and two physical cache groups",
+    "Match TP8/DSA-CP/SP row ownership, request indices, positions, padded slots and communication context",
+    "Retain separate stable buffers for all five substeps and existing fallback outside supported decode scope",
+    "Do not infer MoE actual FLOPs or LM-head savings solely from input row counts"
+  ],
+  "unverified": [
+    "Whether reduced rows shorten the end-to-end device critical path",
+    "Whether existing expert masks already avoid some padded computation",
+    "Whether 8-row graph compilation and all collective/cache contracts remain valid",
+    "Incremental performance, output quality and reproducibility"
+  ],
+  "no_model_imports": true,
+  "new_npu_loads": 0,
+  "new_performance_claim": false,
+  "goal_complete": false
+}
