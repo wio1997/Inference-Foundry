@@ -1,0 +1,55 @@
+{
+  "scope": "read-only source from stopped scored99 container;no process or model launched",
+  "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "files": {
+    "ascend_platform.py": {
+      "source_path": "/vllm-workspace/vllm-ascend/vllm_ascend/platform.py",
+      "sha256": "0f4e619517058f36b700a521e93c449d78b269c1d29ed1a18cbc312f2d67b082",
+      "bytes": 83785,
+      "markers": {
+        "requires_piecewise_compilation()": [
+          1310
+        ],
+        "_cudagraph_support = AttentionCGSupport.UNIFORM_BATCH": []
+      },
+      "snippets": {
+        "requires_piecewise_compilation()": [
+          {
+            "line": 1310,
+            "text": "    elif compilation_config.cudagraph_mode.requires_piecewise_compilation():\n        # Our is_cuda_alike is False so we cannot reuse the assertion of upstream\n        if compilation_config.mode != CompilationMode.VLLM_COMPILE and not envs_vllm.VLLM_USE_BREAKABLE_CUDAGRAPH:\n            raise AssertionError(\n                \"Compilation mode should be CompilationMode.VLLM_COMPILE \"\n                \"when cudagraph_mode piecewise cudagraphs is used, \"\n                \"cudagraph_mode=%s\",\n                compilation_config.cudagraph_mode,\n            )\n        compilation_config.set_splitting_ops_for_v1(\n            all2all_backend=vllm_config.parallel_config.all2all_backend,\n            data_parallel_size=vllm_config.parallel_config.data_parallel_size,\n        )\n        # NOTE: Theoretically, we should also add this in the attention ops; the\n        # class attribute may still hold the pre-modification value after spawn.\n        compilation_config.splitting_ops.extend(\n            [\n                \"vllm::mla_forward\",\n                \"vllm::dsa_forward\",\n            ]\n        )\n        additional_config[\"ascend_compilation_config\"][\"enable_npugraph_ex\"] = False\n        additional_config[\"ascend_compilation_config\"][\"enable_static_kernel\"] = False\n        additional_config[\"ascend_compilation_config\"][\"enable_super_kernel\"] = False\n    elif compilation_config.cudagraph_mode.has_full_cudagraphs():\n        # Don't split the FX graph for static kernel; it would compile multiple times.\n        compilation_config.splitting_ops = []"
+          }
+        ]
+      },
+      "matches_local_source": true
+    },
+    "gdn_attn_builder.py": {
+      "source_path": "/vllm-workspace/vllm-ascend/vllm_ascend/ops/gdn_attn_builder.py",
+      "sha256": "66c1475836292660b6502cfcfc08f8a0dcd3e25f4941dcec11d6db0baa96987a",
+      "bytes": 45243,
+      "markers": {
+        "requires_piecewise_compilation()": [],
+        "_cudagraph_support = AttentionCGSupport.UNIFORM_BATCH": [
+          338
+        ]
+      },
+      "snippets": {
+        "_cudagraph_support = AttentionCGSupport.UNIFORM_BATCH": [
+          {
+            "line": 338,
+            "text": "    _cudagraph_support = AttentionCGSupport.UNIFORM_BATCH\n    build_device_chunk_metadata = True\n\n    def __init__(\n        self,\n        kv_cache_spec: AttentionSpec,\n        layer_names: list[str],\n        vllm_config: VllmConfig,\n        device: torch.device,\n    ):\n        super().__init__(kv_cache_spec, layer_names, vllm_config, device)\n        sequence_index_capacity = max(\n            self.vllm_config.scheduler_config.max_num_seqs,\n            self.decode_cudagraph_max_bs,\n        )\n\n        self.spec_sequence_masks: torch.Tensor = torch.empty(\n            (sequence_index_capacity,), dtype=torch.bool, device=device\n        )\n\n        self.spec_sequence_masks_cpu: torch.Tensor = torch.empty(\n            (sequence_index_capacity,),\n            dtype=torch.bool,\n            device=\"cpu\",\n            pin_memory=device.type != \"cpu\",\n        )\n"
+          }
+        ]
+      },
+      "matches_local_source": true
+    }
+  },
+  "findings": {
+    "piecewise_disables": [
+      "enable_npugraph_ex",
+      "enable_static_kernel",
+      "enable_super_kernel"
+    ],
+    "gdn_declared_graph_support": "UNIFORM_BATCH",
+    "decision": "FULL_AND_PIECEWISE is not a free additive switch to current full/static/super path;do not launch graph-mode matrix or claim existing graph capability exclusive. Full-prefill capture would require model/metadata compatibility work;not implemented or validated."
+  }
+}
