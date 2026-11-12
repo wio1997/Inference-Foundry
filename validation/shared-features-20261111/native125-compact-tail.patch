@@ -1,0 +1,610 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_mtp_compact_tail.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_mtp_compact_tail.py
+new file mode 100644
+index 0000000..9faaa83
+--- /dev/null
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_mtp_compact_tail.py
+@@ -0,0 +1,334 @@
++# SPDX-License-Identifier: Apache-2.0
++# Top-k transfer adapts the pinned vLLM-Ascend spec_decode/utils.py algorithm.
++"""Instance-owned compact MTP tails for the pinned TP8/GLM FULL graph.
++
++The first pass retains the target verification width. Four subsequent passes
++use one TP-aligned row per request. Model arithmetic and the five draft tokens
++are unchanged. Capture metadata, runtime metadata, shared top-k ownership and
++SP/communication shapes must all agree; slicing the model alone is invalid.
++"""
++import ast
++from collections import Counter
++import copy
++import hashlib
++import inspect
++from pathlib import Path
++import textwrap
++import time
++from types import MethodType
++
++
++PINS = {
++    'vllm_ascend.spec_decode.llm_base_proposer': '458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31',
++    'vllm_ascend.spec_decode.multi_kv_cache_group_proposer': 'd08e6fb9f290b0ec359cd803af56462a0488cdd1a44e79d7c2406f36bf0b11a6',
++    'vllm_ascend.spec_decode.utils': '94a569fa2b54fcd206d6992c29e13a852ee5f6596d6d483fd4a33ca182c3f1f7',
++    'vllm_ascend.compilation.acl_graph': '8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955',
++    'vllm_ascend.ascend_forward_context': '848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb',
++    'vllm_ascend.attention.sfa_v1': '9b94f67f30364d40caf4a7a67af0f0365d1ba0b5048939873ab0464e95b096dc',
++    'vllm_ascend.attention.context_parallel.sfa_cp': '03ba131897d45159976218e7f1f800724a9d75eeea9c982a308c4fded761d5b7',
++    'vllm_ascend.attention.indexer_kpool': 'c0788252516cb1063d1ec85f17326e714bc4441e45b5dd949194390cf2a14001',
++    'vllm_ascend.models.glm5next.mtp': 'f20b9eb0bfdf187f45c0905f4b3296074680ecc10871107f913a51c4bc6aa10f',
++    'vllm_ascend.models.glm5next.model': '2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe',
++}
++
++
++def verify_compact_tail_sources():
++    import importlib
++    for name, digest in PINS.items():
++        module = importlib.import_module(name)
++        if hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() != digest:
++            raise ValueError('compact MTP source contract changed: ' + name)
++
++
++def tail_width(input_rows, batch_size, full_graph):
++    """The two existing FULL buckets share an eight-row later-step shape."""
++    if not full_graph or input_rows not in (24, 48):
++        return input_rows
++    if not 1 <= batch_size <= input_rows // 6:
++        raise ValueError('FULL MTP request count exceeds the captured bucket')
++    return 8
++
++
++def topk_row_layout(input_rows, output_rows, requests, rank, world=8):
++    """Separate first-pass row ownership from later request-row ownership."""
++    if input_rows % world or output_rows % world or not 0 <= rank < world:
++        raise ValueError('unaligned MTP top-k ownership')
++    source_count = input_rows // world
++    destination_count = output_rows // world
++    destination_start = rank * destination_count
++    return (rank * source_count, source_count, destination_start,
++            max(0, min(destination_count, requests - destination_start)))
++
++
++def specialize_merged_draft(source):
++    """Change three AST sites in a verified SDK function, without a fork copy.
++
++    All model calls, sampling and first-pass behavior remain the SDK function.
++    Fail closed if the expected AST changes; no textual global monkeypatch.
++    """
++    tree = ast.parse(textwrap.dedent(source))
++    if len(tree.body) != 1 or not isinstance(tree.body[0], ast.FunctionDef):
++        raise ValueError('expected one merged-draft function')
++    fn = tree.body[0]
++    if fn.name != '_run_merged_draft':
++        raise ValueError('unexpected source function')
++    expected = ast.parse('num_input_tokens if (self.method == "mtp" or self.use_cuda_graph) else batch_size', mode='eval').body
++    found = Counter()
++
++    class Transform(ast.NodeTransformer):
++        def visit_Assign(self, node):
++            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'input_batch_size':
++                if ast.dump(node.value) != ast.dump(expected):
++                    raise ValueError('SDK tail-width contract changed')
++                node.value = ast.parse('_native_tail.model_width(num_input_tokens, batch_size)', mode='eval').body
++                found['width'] += 1
++            if (len(node.targets) == 1 and isinstance(node.targets[0], ast.Attribute)
++                    and isinstance(node.targets[0].value, ast.Name)
++                    and node.targets[0].value.id == '_EXTRA_CTX'
++                    and node.targets[0].attr == 'num_accept_tokens'):
++                found['context'] += 1
++                return [node, ast.parse('_native_tail.enter_tail(forward_context, num_input_tokens, input_batch_size)').body[0]]
++            return self.generic_visit(node)
++
++        def visit_Call(self, node):
++            if isinstance(node.func, ast.Name) and node.func.id == 'compact_mtp_topk_indices':
++                node.func = ast.parse('_native_tail.compact_topk_indices', mode='eval').body
++                found['topk'] += 1
++            return self.generic_visit(node)
++
++    tree = Transform().visit(tree)
++    if found != Counter(width=1, context=1, topk=1):
++        raise ValueError('unexpected merged draft specialization sites: ' + repr(found))
++    return ast.fix_missing_locations(tree)
++
++
++def compact_capture_view(drafter, common, draft_index):
++    """Build the same eight-row tail contract during initial graph capture.
++
++    Preserve the outer capture loop's first-pass metadata. Reuse the SDK's
++    per-step persistent query/length/slot buffers, which runtime updates later.
++    """
++    width = tail_width(common.num_input_tokens, common.num_input_tokens // 6, True)
++    if draft_index == 0 or width == common.num_input_tokens:
++        return common
++    result = copy.copy(common)
++    actual = min(common.num_reqs, common.num_input_tokens // 6)
++    result.num_input_tokens = width
++    result.num_reqs = width
++    result.num_actual_tokens = actual
++    result.max_query_len = 1
++    result.decode_token_per_req = 1
++    result.graph_pad_size = -1
++    result.query_start_loc = drafter.query_start_loc_group[draft_index][:width + 1]
++    result.query_start_loc.copy_(drafter.arange[:width + 1])
++    result.query_start_loc_cpu = common.query_start_loc_cpu.new_tensor(range(width + 1))
++    result.seq_lens = drafter.seq_lens_group[draft_index][:width]
++    result.seq_lens[actual:].zero_()
++    result.block_table_tensor = drafter._adjust_tensor(common.block_table_tensor, width)
++    result.positions = common.positions[:width]
++    for field in ('seq_lens_cpu', '_seq_lens_cpu', 'seq_lens_cpu_upper_bound',
++                  'num_computed_tokens_cpu', '_num_computed_tokens_cpu', 'is_prefilling'):
++        value = getattr(common, field, None)
++        if value is not None:
++            setattr(result, field, drafter._adjust_tensor(value[:actual], width))
++    # Slot storage stays at the original per-draft base address. Builders use
++    # num_input_tokens to slice it; the remaining request rows must be invalid.
++    result.slot_mapping = drafter.slot_mapping_group[draft_index]
++    result.slot_mapping[actual:].fill_(-1)
++    return result
++
++
++class NativeMTPCompactTail:
++    def __init__(self, runner):
++        import torch
++        from vllm.config.compilation import CUDAGraphMode
++        from vllm.forward_context import get_forward_context
++        from vllm_ascend.spec_decode.utils import compact_mtp_topk_indices
++        from vllm_ascend.spec_decode.multi_kv_cache_group_proposer import AscendMultiKVCacheGroupMTPProposer
++        from vllm_ascend.utils import lmhead_tp_enable
++        d = runner.drafter
++        verify_compact_tail_sources()
++        parallel = d.vllm_config.parallel_config
++        if (type(d) is not AscendMultiKVCacheGroupMTPProposer
++                or d.method != 'mtp' or d.num_speculative_tokens != 5 or not d.use_cuda_graph
++                or d.parallel_drafting or d.use_compress or d.uses_mrope or d.dcp_size != 1
++                or getattr(runner, 'dcp_manager', None) is not None
++                or getattr(runner, 'sparse_kv_offload_enabled', False)
++                or d.sliding_window is not None or getattr(d, 'constant_draft_positions', False)
++                or parallel.tensor_parallel_size != 8 or parallel.data_parallel_size != 1
++                or not parallel.use_sequence_parallel_moe or lmhead_tp_enable()
++                or d._lim_topk_compactors):
++            raise ValueError('compact MTP requires the pinned resident TP8/SP GLM MTP5 path')
++        primary = d._get_primary_draft_attn_group()
++        self.layout = [(g.kv_cache_group_id, type(g.get_metadata_builder()).__name__) for g in d.draft_attn_groups]
++        by_name = {name: gid for gid, name in self.layout}
++        if (len(self.layout) != 3 or len(by_name) != 3
++                or by_name.get('AscendSFADSACPMetadataBuilder') != primary.kv_cache_group_id
++                or by_name.get('AscendIndexerKPoolMetadataBuilder') != primary.kv_cache_group_id
++                or 'AscendIndexerKPoolTailMetadataBuilder' not in by_name
++                or by_name['AscendIndexerKPoolTailMetadataBuilder'] == primary.kv_cache_group_id
++                or not primary.get_metadata_builder().nope):
++            raise ValueError('compact MTP requires three known backends in two physical groups')
++        graph = d._runnable
++        if graph.concrete_aclgraph_entries:
++            raise ValueError('compact MTP must install before graph capture')
++        original_run = graph.runnable
++        if getattr(original_run, '__func__', None) is not d._run_merged_draft.__func__:
++            raise ValueError('merged-draft callable already has another owner')
++        self.drafter, self.graph, self.torch = d, graph, torch
++        self.full, self.context = CUDAGraphMode.FULL, get_forward_context
++        self.original_compact = compact_mtp_topk_indices
++        self.counts, self.model_rows = Counter(), Counter()
++        self.events, self.closed, self.stats_path = [], False, None
++        self.clock_anchor = {'monotonic_ns': time.monotonic_ns(), 'wall_ns': time.time_ns()}
++        self.originals = {}
++        self.bindings = {}
++        owner = self
++        for name in ('attn_update_stack_num_spec_norm', '_build_cache_only_group_next_step_attn_metadata',
++                     '_build_multi_group_graph_capture_metadata'):
++            if name in d.__dict__:
++                raise ValueError('draft metadata already has an instance owner: ' + name)
++            self.originals[name] = getattr(d, name)
++
++        def update(instance, draft_index, old_common_metadata, batch_size, input_batch_size,
++                   used_update_positions, aclgraph_runtime_mode, **kwargs):
++            width = tail_width(input_batch_size, batch_size, aclgraph_runtime_mode == owner.full)
++            if draft_index == 1:
++                owner.counts['compact_proposes' if width < input_batch_size else 'fallback_proposes'] += 1
++                if len(owner.events) < 2048:
++                    owner.events.append([time.monotonic_ns(), input_batch_size, batch_size, width])
++                else:
++                    owner.counts['dropped_events'] += 1
++            return owner.originals['attn_update_stack_num_spec_norm'](
++                draft_index, old_common_metadata, batch_size, width,
++                used_update_positions, aclgraph_runtime_mode, **kwargs)
++
++        def cache_only(instance, common, draft_index, num_input_tokens, primary_group, primary_metadata, cache_only_groups):
++            return owner.originals['_build_cache_only_group_next_step_attn_metadata'](
++                common, draft_index, common.num_input_tokens, primary_group, primary_metadata, cache_only_groups)
++
++        def capture(instance, common, draft_index):
++            view = compact_capture_view(d, common, draft_index)
++            if view is not common:
++                owner.counts['compact_capture_metadata_steps'] += 1
++                # The normal capture entry uses draft_index=None internally.
++                # With two widths that would alias first-pass CP query buffers.
++                # Use the SAME indexed persistent buffers as runtime drafting.
++                group_view = d._common_attn_metadata_for_draft_group(
++                    view, primary, view.num_input_tokens, draft_index)
++                primary_metadata = primary.get_metadata_builder().build_for_drafting(group_view, draft_index)
++                cache_only_groups = [g for g in d.draft_attn_groups if d._is_cache_only_draft_attn_group(g)]
++                return owner.originals['_build_cache_only_group_next_step_attn_metadata'](
++                    view, draft_index, view.num_input_tokens, primary, primary_metadata, cache_only_groups)
++            return owner.originals['_build_multi_group_graph_capture_metadata'](view, draft_index)
++
++        tree = specialize_merged_draft(inspect.getsource(original_run.__func__))
++        namespace = dict(original_run.__func__.__globals__, _native_tail=self)
++        exec(compile(tree, '<DeepInfer native compact MTP tail>', 'exec'), namespace)
++        specialized = MethodType(namespace['_run_merged_draft'], d)
++        self.original_run = original_run
++        context_fields = ('num_tokens', 'num_accept_tokens', 'max_tokens_across_dp',
++                          'padded_length', 'padded_num_tokens', 'mc2_mask')
++        missing = object()
++
++        def run(*args, **kwargs):
++            ctx = owner.context()
++            saved = {key: getattr(ctx, key, missing) for key in context_fields}
++            try:
++                return specialized(*args, **kwargs)
++            finally:
++                for key, value in saved.items():
++                    if value is missing:
++                        if hasattr(ctx, key):
++                            delattr(ctx, key)
++                    else:
++                        setattr(ctx, key, value)
++
++        self.bound_run = run
++        for name, fn in [('attn_update_stack_num_spec_norm', update),
++                         ('_build_cache_only_group_next_step_attn_metadata', cache_only),
++                         ('_build_multi_group_graph_capture_metadata', capture)]:
++            bound = MethodType(fn, d)
++            self.bindings[name] = bound
++            setattr(d, name, bound)
++        graph.runnable = run
++        model = d.get_model()
++        self.model, self.original_forward = model, model.forward
++
++        def forward(instance, *args, **kwargs):
++            ids = kwargs.get('input_ids', args[0] if args else None)
++            width = ids.shape[0] if ids is not None else -1
++            prefix = 'capture' if torch.npu.is_current_stream_capturing() else 'ordinary'
++            owner.model_rows[f'{prefix}:{width}'] += 1
++            return owner.original_forward(*args, **kwargs)
++
++        self.bound_forward = MethodType(forward, model)
++        model.forward = self.bound_forward
++
++    def model_width(self, input_rows, batch_size):
++        return tail_width(input_rows, batch_size, self.context().cudagraph_runtime_mode == self.full)
++
++    def enter_tail(self, context, initial_rows, width):
++        if width == initial_rows:
++            return
++        context.max_tokens_across_dp = width
++        context.padded_length = width
++        context.padded_num_tokens = width
++        mask = getattr(context, 'mc2_mask', None)
++        if mask is not None:
++            # Preserve mask values and collective type; only narrow the view.
++            context.mc2_mask = mask[:width]
++        self.counts['compact_merged_function_calls'] += 1
++
++    def compact_topk_indices(self, draft_model, token_indices_to_sample, num_input_tokens,
++                            tp_group=None, lim_topk_compactors=()):
++        requests = token_indices_to_sample.numel()
++        width = self.model_width(num_input_tokens, requests)
++        if width == num_input_tokens:
++            return self.original_compact(draft_model, token_indices_to_sample, num_input_tokens,
++                                         tp_group, lim_topk_compactors)
++        if tp_group is None or tp_group.world_size != 8 or lim_topk_compactors:
++            raise ValueError('compact MTP top-k requires fixed DSA-CP TP8 ownership')
++        source_start, source_count, destination_start, destination_count = topk_row_layout(
++            num_input_tokens, width, requests, tp_group.rank_in_group)
++        local_indices = token_indices_to_sample - source_start
++        owns_row = (local_indices >= 0) & (local_indices < source_count)
++        indices = local_indices.clamp(0, source_count - 1).long()
++        seen = set()
++        for module in draft_model.modules():
++            buffer = getattr(module, 'topk_indices_buffer', None)
++            if buffer is None or id(buffer) in seen:
++                continue
++            seen.add(id(buffer))
++            rows = buffer.index_select(0, indices)
++            rows.masked_fill_(~owns_row.view(-1, *([1] * (rows.ndim - 1))), 0)
++            # Same collective/count as the SDK. Only destination ownership
++            # changes from six/three rows per rank to one row per rank.
++            rows = tp_group.all_reduce(rows)
++            if destination_count:
++                buffer[:destination_count].copy_(rows[destination_start:destination_start + destination_count])
++        self.counts['compact_topk_function_calls'] += 1
++
++    def snapshot(self):
++        return {'closed': self.closed, 'mechanism': 'FULL MTP5 later-step TP8 row compaction',
++                'cache_layout': self.layout, 'counts': dict(self.counts),
++                'observed_model_forward_rows': dict(self.model_rows),
++                'clock_anchor': self.clock_anchor,
++                'runtime_propose_events': self.events,
++                'event_fields': ['monotonic_ns', 'first_input_rows', 'requests', 'later_input_rows'],
++                'source_pins': PINS,
++                'scope': 'capture/ordinary model entry shapes and runtime metadata selection;not device duration'}
++
++    def close(self):
++        if self.closed:
++            return
++        if self.graph.runnable is not self.bound_run or self.model.forward is not self.bound_forward:
++            raise RuntimeError('native compact MTP ownership changed')
++        for name, bound in self.bindings.items():
++            if self.drafter.__dict__.get(name) is not bound:
++                raise RuntimeError('native compact MTP metadata ownership changed')
++        self.graph.runnable = self.original_run
++        self.model.forward = self.original_forward
++        for name in self.bindings:
++            delattr(self.drafter, name)
++        self.closed = True
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+index 8ec2018..03d2080 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+@@ -85,6 +85,11 @@ class SDKComputeRuntime:
+         import torch
+         get_offloader().join_after_forward()
+         torch.npu.synchronize(self.compute_worker.device)
++        if getattr(self, 'native_compact_mtp_tail', None) is not None:
++            import json
++            self.native_compact_mtp_tail.close()
++            self.native_compact_mtp_tail_stats_path.write_text(
++                json.dumps(self.native_compact_mtp_tail.snapshot()) + '\n')
+         if getattr(self, 'native_mtp_logprob', None) is not None:
+             import json
+             self.native_mtp_logprob.close()
+@@ -111,7 +116,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+                         mtp_tokens=0, mtp_indexed_loading=False,
+                         dsa_context_parallel=False, static_kernel=False, super_kernel=False,
+                         native_mtp_logprob_gather=False, mtp_draft_graph=False,
+-                        native_prefix_admission=False, prefill_mc2=False):
++                        native_prefix_admission=False, prefill_mc2=False,
++                        native_compact_mtp_tail=False):
+     import torch
+     import os
+     import torch.distributed as dist
+@@ -141,6 +147,11 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+     if mtp_draft_graph:
+         from .sdk_mtp_output import verify_draft_output_sources
+         verify_draft_output_sources()
++    if native_compact_mtp_tail:
++        if not (mtp_tokens == 5 and mtp_draft_graph and dsa_context_parallel):
++            raise ValueError('compact MTP tails require MTP5, draft FULL graphs and DSA CP')
++        from .native_mtp_compact_tail import verify_compact_tail_sources
++        verify_compact_tail_sources()
+     if native_prefix_admission:
+         if not prefix_caching:
+             raise ValueError('native prefix admission requires physical prefix caching')
+@@ -311,7 +322,23 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+         if capacity < max_requests:
+             raise ValueError('physical cache cannot honor the declared native sequence capacity')
+         worker.initialize_from_config(physical)
+-        worker.compile_or_warm_up_model()
++        compact_tail = None
++        if native_compact_mtp_tail:
++            from .native_mtp_compact_tail import NativeMTPCompactTail
++            compact_tail = NativeMTPCompactTail(worker.model_runner)
++        try:
++            worker.compile_or_warm_up_model()
++        except Exception:
++            if compact_tail is not None:
++                import json
++                import sys
++                print('NATIVE_COMPACT_MTP_CAPTURE_FAILURE ' + json.dumps(compact_tail.snapshot()),
++                      file=sys.stderr, flush=True)
++            raise
++        if compact_tail is not None:
++            if compact_tail.model_rows['capture:8'] < 8:
++                raise RuntimeError('compact MTP requested but eight-row tail capture was not observed')
++            shared_profile['native_compact_mtp_tail'] = compact_tail.snapshot()
+         if mtp_tokens:
+             snapshot = kda_capture.snapshot()
+             if (snapshot['draft_enforce_eager'] != (not mtp_draft_graph)
+@@ -378,6 +405,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+     result = SDKComputeRuntime(config, worker, physical, scheduler_cache,
+                              manager, max_requests, all_memory, native_group)
+     result.kda_capture = kda_capture
++    result.native_compact_mtp_tail = compact_tail
+     result.shared_profile = shared_profile
+     result.request_block_hasher = request_block_hasher
+     result.native_prefix_admission = native_prefix_admission
+diff --git a/DeepInfer/examples/glm5_full_model_offline.py b/DeepInfer/examples/glm5_full_model_offline.py
+index 777900f..c8247d3 100644
+--- a/DeepInfer/examples/glm5_full_model_offline.py
++++ b/DeepInfer/examples/glm5_full_model_offline.py
+@@ -61,6 +61,8 @@ def main():
+     p.add_argument('--super-kernel', action='store_true')
+     p.add_argument('--native-mtp-logprob-gather', action='store_true',
+                    help='reuse original raw rows for native sampled-token probabilities;sampling unchanged')
++    p.add_argument('--native-compact-mtp-tail', action='store_true',
++                   help='experimental: keep FULL MTP5 first pass and compact later TP8 draft rows')
+     p.add_argument('--mtp-tokens', type=int, choices=(0, 1, 5), default=0,
+                    help='explicit MTP width: one-draft candidate or pinned five-draft recipe')
+     p.add_argument('--mtp-indexed-loading', action='store_true',
+@@ -95,6 +97,8 @@ def main():
+         p.error('native prefix admission requires prefix caching')
+     if a.native_mtp_logprob_gather and not a.mtp_tokens:
+         p.error('native MTP logprob gather requires MTP')
++    if a.native_compact_mtp_tail and not (a.mtp_tokens == 5 and a.mtp_draft_graph and a.dsa_context_parallel):
++        p.error('native compact MTP tails require MTP5, draft FULL graphs and DSA CP')
+     if a.super_kernel and not a.static_kernel:
+         p.error('super kernel requires static kernel')
+     if (a.static_kernel or a.super_kernel) and (not a.graph_decode or a.breakable_graph):
+@@ -182,8 +186,11 @@ def main():
+                 static_kernel=a.static_kernel, super_kernel=a.super_kernel,
+                 native_mtp_logprob_gather=a.native_mtp_logprob_gather,
+                 mtp_draft_graph=a.mtp_draft_graph,
+-                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2)
++                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2,
++                native_compact_mtp_tail=a.native_compact_mtp_tail)
+             runtime.kda_capture_stats_path = out / "kda-capture.json"
++            if runtime.native_compact_mtp_tail is not None:
++                runtime.native_compact_mtp_tail_stats_path = out / 'native-compact-mtp-tail.json'
+             if getattr(runtime, 'native_mtp_logprob', None) is not None:
+                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
+                 runtime.native_mtp_logprob.stats_path = runtime.native_mtp_logprob_stats_path
+diff --git a/DeepInfer/tests/ascend/test_native_mtp_compact_tail.py b/DeepInfer/tests/ascend/test_native_mtp_compact_tail.py
+new file mode 100644
+index 0000000..cfad6ff
+--- /dev/null
++++ b/DeepInfer/tests/ascend/test_native_mtp_compact_tail.py
+@@ -0,0 +1,158 @@
++"""Host checks of integer ownership and capture contracts; no model execution."""
++import ast
++import importlib.util
++from pathlib import Path
++from types import SimpleNamespace
++import unittest
++
++ROOT = Path(__file__).resolve().parents[2]
++PATH = ROOT / 'deepinfer/model_executor/models/glm5_next/full_model/native_mtp_compact_tail.py'
++spec = importlib.util.spec_from_file_location('native_mtp_compact_tail', PATH)
++module = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(module)
++
++
++class IntBuffer:
++    """A shared integer-storage view, sufficient for metadata ownership tests."""
++    def __init__(self, data, start=0, stop=None):
++        self.data, self.start = data, start
++        self.stop = len(data) if stop is None else stop
++
++    def __len__(self):
++        return self.stop - self.start
++
++    def __getitem__(self, item):
++        if isinstance(item, slice):
++            start, stop, step = item.indices(len(self))
++            assert step == 1
++            return IntBuffer(self.data, self.start + start, self.start + stop)
++        return self.data[self.start + item]
++
++    def values(self):
++        return self.data[self.start:self.stop]
++
++    def copy_(self, other):
++        values = other.values()
++        assert len(values) == len(self)
++        self.data[self.start:self.stop] = values
++        return self
++
++    def fill_(self, value):
++        self.data[self.start:self.stop] = [value] * len(self)
++        return self
++
++    def zero_(self):
++        return self.fill_(0)
++
++    def new_tensor(self, values):
++        return IntBuffer(list(values))
++
++
++def capture_fixture(rows, requests):
++    def adjust(tensor, width):
++        values = tensor.values()
++        return IntBuffer((values + [0] * width)[:width])
++    d = SimpleNamespace(
++        arange=IntBuffer(list(range(64))), _adjust_tensor=adjust,
++        query_start_loc_group=[IntBuffer([-9] * 65) for _ in range(5)],
++        seq_lens_group=[IntBuffer([17] * requests + [0] * (64 - requests)) for _ in range(5)],
++        slot_mapping_group=[IntBuffer(list(range(64))) for _ in range(5)],
++    )
++    m = SimpleNamespace(num_input_tokens=rows, num_reqs=requests,
++        num_actual_tokens=rows, max_query_len=6, decode_token_per_req=6,
++        query_start_loc=IntBuffer(list(range(0, rows + 1, 6))),
++        query_start_loc_cpu=IntBuffer(list(range(0, rows + 1, 6))),
++        seq_lens=IntBuffer([17] * requests), block_table_tensor=IntBuffer(list(range(requests))),
++        positions=IntBuffer(list(range(rows))), slot_mapping=IntBuffer(list(range(rows))),
++        seq_lens_cpu=IntBuffer([17] * requests), _seq_lens_cpu=None,
++        is_prefilling=IntBuffer([0] * requests))
++    return d, m
++
++
++class CompactTailContractTests(unittest.TestCase):
++    def test_full_buckets_and_fallback(self):
++        for rows, max_requests in [(24, 4), (48, 8)]:
++            for requests in range(1, max_requests + 1):
++                self.assertEqual(module.tail_width(rows, requests, True), 8)
++                self.assertEqual(module.tail_width(rows, requests, False), rows)
++        self.assertEqual(module.tail_width(96, 8, True), 96)
++        with self.assertRaises(ValueError):
++            module.tail_width(24, 8, True)
++
++    def test_first_pass_unchanged_and_capture_tails_independent(self):
++        d, first = capture_fixture(24, 4)
++        self.assertIs(module.compact_capture_view(d, first, 0), first)
++        views = [module.compact_capture_view(d, first, i) for i in range(1, 5)]
++        self.assertEqual((first.num_input_tokens, first.num_reqs, first.max_query_len), (24, 4, 6))
++        self.assertEqual(first.query_start_loc.values(), [0, 6, 12, 18, 24])
++        for v in views:
++            self.assertEqual((v.num_input_tokens, v.num_reqs, v.num_actual_tokens), (8, 8, 4))
++            self.assertEqual(v.query_start_loc.values(), list(range(9)))
++            self.assertEqual(v.seq_lens.values(), [17] * 4 + [0] * 4)
++            self.assertEqual(v.block_table_tensor.values(), [0, 1, 2, 3, 0, 0, 0, 0])
++            self.assertEqual(v.slot_mapping.values()[4:], [-1] * 60)
++        views[0].query_start_loc.fill_(77)
++        views[0].seq_lens.fill_(99)
++        self.assertEqual(views[1].query_start_loc.values(), list(range(9)))
++        self.assertEqual(views[1].seq_lens.values(), [17] * 4 + [0] * 4)
++        self.assertEqual(first.seq_lens.values(), [17] * 4)
++
++    def test_c8_capture_has_one_query_per_rank(self):
++        d, first = capture_fixture(48, 8)
++        tail = module.compact_capture_view(d, first, 1)
++        self.assertEqual(tail.num_actual_tokens, 8)
++        self.assertEqual(tail.query_start_loc.values(), list(range(9)))
++        self.assertEqual(tail.slot_mapping.values()[:8], list(range(8)))
++
++    def test_shared_topk_source_and_destination_ownership(self):
++        # Each selected row may live on any first-pass rank. After compaction,
++        # request i must live on rank i, not on the old 3/6-rows-per-rank owner.
++        for first_rows, maximum in [(24, 4), (48, 8)]:
++            for requests in range(1, maximum + 1):
++                selected = [6 * i + (i % 6) for i in range(requests)]
++                reduced = [0] * requests
++                owners = [0] * requests
++                for rank in range(8):
++                    start, count, _, _ = module.topk_row_layout(first_rows, 8, requests, rank)
++                    for i, source_row in enumerate(selected):
++                        if start <= source_row < start + count:
++                            reduced[i] += source_row + 100
++                            owners[i] += 1
++                self.assertEqual(owners, [1] * requests)
++                received = {}
++                for rank in range(8):
++                    _, _, start, count = module.topk_row_layout(first_rows, 8, requests, rank)
++                    if count:
++                        received[rank] = reduced[start:start + count]
++                self.assertEqual(received, {i: [row + 100] for i, row in enumerate(selected)})
++
++    def test_specialization_has_only_three_expected_edits(self):
++        source = '''def _run_merged_draft(self, num_input_tokens, batch_size):
++    first = self.model(num_input_tokens)
++    compact_mtp_topk_indices(first, indices, num_input_tokens)
++    input_batch_size = num_input_tokens if (self.method == "mtp" or self.use_cuda_graph) else batch_size
++    forward_context = get_forward_context()
++    _EXTRA_CTX.num_tokens = input_batch_size
++    _EXTRA_CTX.num_accept_tokens = batch_size
++    return self.model(input_batch_size)
++'''
++        tree = module.specialize_merged_draft(source)
++        rendered = ast.unparse(tree)
++        self.assertIn('_native_tail.model_width(num_input_tokens, batch_size)', rendered)
++        self.assertIn('_native_tail.compact_topk_indices', rendered)
++        self.assertIn('_native_tail.enter_tail', rendered)
++        self.assertEqual(rendered.count('self.model('), 2)
++        with self.assertRaises(ValueError):
++            module.specialize_merged_draft(source.replace('else batch_size', 'else num_input_tokens'))
++        with self.assertRaises(ValueError):
++            module.specialize_merged_draft(source.replace('compact_mtp_topk_indices', 'new_sdk_topk'))
++
++    def test_install_precedes_capture_and_closes_before_observer(self):
++        src = (PATH.parent / 'sdk_runtime.py').read_text()
++        self.assertLess(src.index('worker.initialize_from_config(physical)'), src.index('compact_tail = NativeMTPCompactTail'))
++        self.assertLess(src.index('compact_tail = NativeMTPCompactTail'), src.index('worker.compile_or_warm_up_model()'))
++        self.assertLess(src.index('self.native_compact_mtp_tail.close()'), src.index('self.kda_capture.close()'))
++
++
++if __name__ == '__main__':
++    unittest.main()
