@@ -4,19 +4,17 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：默认保留114，C4/C8相对强参考117单批+34.28%/+20.60%，完整双档30%未完成。**
+**当前状态（2026-11-13）：原生适配已完成本负载运行；同一版本 C4/C8 均领先强参考 30% 尚未验收，默认仍保留114。**
 
-最新[127混合prefill状态复用实测与裁决](docs/native127-result-20261113.md)：72请求、8rank退出0并释放资源。C4/C8为278.768/557.129 token/s，相对强参考+21.96%/+34.05%，相对114为−9.18%/+11.15%。C8单批过线，但C4未过，不能拼接不同实现的最好成绩。
+最新[128实测](docs/native128-result-20261113.md)：C4/C8 为 **285.796 / 597.893 token/s**，相对强参考117为 **+25.03% / +43.86%**，相对默认114为 −6.89% / +19.29%。72请求完成、8rank退出0且占用释放。C4还缺约1.095秒净收益，不能拼接114的C4和128的C8。
 
-新机制实际复用19请求，省掉13次目标prefill forward；总缓存仍4GiB。C4阶段新机制无命中、增加状态保存，冷侧退化原因尚未被独立控制；C8与参考完整文本23/32一致，新增分叉未解释。**127不采用为默认，R3控制不触发，本阶段1次加载后结束，不追加变体。**
+新机制复用完整混合模型状态，命中时跳过目标prefill，仍正常生成答案。正式C4/C8分别复用2/16请求；C8是在C4之后缓存保留的重复输入场景，不能外推到所有高并发流量。批量复制来自固定SDK，差异在框架状态复用协议，不在算子来源。
 
-[实际命令、环境与原始计时](validation/shared-features-20261111/native127-reproduction.json) · [隔离源码补丁](validation/shared-features-20261111/native127-prefill-state.patch) · [候选设计](docs/native127-prefill-state-20261113.md)。该特性的已测收益范围是重复输入的温缓存场景，不能外推到冷启动或全新prompt。
+正式C4的复制stream区间每rank仅数毫秒；约1.69秒慢调用发生在无复制的原模型执行/前序等待内，原因尚未定位。**128不采用为默认，本阶段1次加载后关闭，控制未触发。** [反思与下一轮有界计划](docs/after128-reflection-and-plan-20261113.md)只保留一个有因果证据的候选，停止复制微优化和参数网格。
 
-历史：[125缩行无足够收益](docs/native125-result-20261113.md)；[124 metadata图退化](docs/native124-decision-and-stage-review-20261113.md)；[126取证及D2裁决](docs/native126-D2-decision-20261113.md)。[累计计划与停止条件](docs/performance-replan-20261113.md)保留，未用额度不自动改作新实验。
+[完整启动参数、环境与计时](validation/shared-features-20261111/native128-reproduction.json) · [实测裁决](validation/shared-features-20261111/native128-decision.json) · [候选源码及增量补丁](docs/native128-source-candidate-20261113.md)。完整文本与参考两档各30/32一致，这是诊断而非通用质量得分；同期消融、强参考复核及稳定独有30%仍未验证。
 
-[127之后的时间轴复核与下一阶段决策](docs/next-decision-after127-20261113.md)：C4额外2.697秒中，2.223秒落在首token后的请求区间；不等同于纯decode或复制耗时。本轮0模型加载，未改变默认源码；下一阶段仅提议低开销完整状态复用，未启动新预算。
-
-最新[128源码候选](docs/native128-source-candidate-20261113.md)已形成隔离增量补丁：复用固定SDK批量复制，将每条状态102次逐项D2D提交改为一次批量提交加一次元数据上传；11项主机契约检查通过。**尚未运行NPU，不能声称性能改善或输出正确性通过。** 默认114、完整双档30%未完成。
+历史：[127](docs/native127-result-20261113.md) · [125缩行](docs/native125-result-20261113.md) · [124 metadata图](docs/native124-decision-and-stage-review-20261113.md)。
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
