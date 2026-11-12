@@ -1,3 +1,23 @@
+## 2026-11-12更新：共同draft图能力已实测，匹配原生结果待出
+
+固定SDK的GLM多缓存组MTP实现支持draft图。此前双方采用镜像示例的eager draft配置，不能作为共同适用优化全部开启的最终参考。新参考83只将`speculative_config.enforce_eager`改为`false`；卡组、5draft、target FULL、EP8、DSA-CP/SP、static/super、async、prefix及冻结AISBench负载均保留。
+
+|并发|旧eager参考81 token/s|新draft图参考83 token/s|原生至少领先30%的新门槛|
+|---|---:|---:|---:|
+|C4|177.40808|214.40089|278.72115|
+|C8|257.49225|299.82196|389.76855|
+
+新参考每档32成功、0失败，原始时间戳独立重算通过；8rank各10次capture内MTP forward，请求阶段各612次已有draft图成功重放，关闭及资源释放已核实。每档只有一批，未标定自然波动，不将差值直接宣布为稳定收益。draft图是双方共同能力，不计作DeepInfer独有优化。
+
+源码`b1b5b48`新增`--mtp-draft-graph`，映射到同一SDK的`enforce_eager=false`；双方使用相同字节的只读重放计数器，不替换模型计算或分派。原生84已启动，但本更新时尚无结果。旧82对旧81的+11.58%/+7.08%保留为历史限定结果，不能拿来与83混算，也不能代表当前目标完成。
+
+下一候选针对原生调度预算与真实缓存命中的衔接，仍待NPU验证；不会把现成prefix cache或CANN算子改名为新技术。目标仍为同等共有优化条件下至少30%的原生优势。
+
+[新参考完整参数和脱敏核验](../validation/shared-features-20261111/reference83.json) · [配置及历史](shared-features-20261111.md)
+
+
+---
+
 # 2026-11-12：同卡组限定里程碑已核验
 
 当前权威状态见[开发状态](../STATUS.zh-CN.md)与[脱敏摘要](../validation/shared-features-20261111/summary.json)。原生82/参考81均在die[0,1,2,3,4,6,10,14]、TP8/DP1/PP1/EP8，同一镜像、权重、共享配置和AISBench负载下完成。原生C4/C8为197.95191/275.71708 token/s，参考为177.40808/257.49225；本批+11.58%/+7.08%，未达30%。
