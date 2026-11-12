@@ -1,3 +1,18 @@
+## 2026-11-12：原生84工程失败，输出行契约修复86正在验证
+
+原生84在三并发工程请求中触发`SDK did not produce the expected real device draft tensor`，没有进入AISBench；8rank实际图捕获已完成，资源已退出释放。旧失败保留，不写成性能或正确性通过。参考83的图模式结果仍有效。
+
+固定SDK源码显示，draft图可以返回补齐后的请求行，普通SDK消费端按`[:len(req_ids), :K]`取真实请求前缀。原生桥此前强制整张draft tensor行数等于当前请求数，拒绝该契约。新源码`3de3dad`仅对当前runnable已经捕获、实际缓冲区地址和形状匹配的输出取有效行，随后保留原有独占快照与异步复制；不改draft token、采样、模型计算或共有图开关。未知补齐、行不足和宽度错误仍拒绝。
+
+同时补上驱动端元数据拒绝时的同阶段失败回执，避免其他rank把后续RPC误当成本步回执。新候选86已启动；本更新时未完成硬件验收。元数据边界检查通过不等于NPU状态或性能通过。
+
+固定源码指纹：core GPUModelRunner `87c29d08c0bbf66993d8b984811e7325e35e6436242a773feb55ec88f16b2c51`；Ascend proposer `458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31`。这不是换SDK、补零token或关闭参考图功能。
+
+当前参考83为214.40089/299.82196 token/s，原生+30%目标仍为278.72115/389.76855；没有新的合格原生性能数据。前缀调度候选留待本项通过后试验。
+
+
+---
+
 ## 2026-11-12更新：共同draft图能力已实测，匹配原生结果待出
 
 固定SDK的GLM多缓存组MTP实现支持draft图。此前双方采用镜像示例的eager draft配置，不能作为共同适用优化全部开启的最终参考。新参考83只将`speculative_config.enforce_eager`改为`false`；卡组、5draft、target FULL、EP8、DSA-CP/SP、static/super、async、prefix及冻结AISBench负载均保留。
