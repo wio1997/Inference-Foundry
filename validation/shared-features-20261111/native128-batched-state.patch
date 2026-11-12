@@ -1,0 +1,303 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py
+index 6fd7b10..b730e34 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py
+@@ -18,6 +18,7 @@ from types import MethodType
+ 
+ 
+ PINS = {
++    'vllm.v1.worker.mamba_utils': '23fdaa4e8f63ee8f938eaa1a2b39f803cb04fa6ecd69789563254b1a0691413a',
+     'vllm_ascend.worker.model_runner_v1': '568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c',
+     'vllm_ascend.models.glm5next.model': '2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe',
+     'vllm_ascend.models.glm5next.kda': 'b2e0dca0ed6f9b686e9e3e4a73ba2a610860d62ece1be271a14627c6cb4a9924',
+@@ -26,6 +27,46 @@ PINS = {
+     'vllm_ascend.models.glm5next.kv_cache': '6d790b58a9ebbaf3b8f89146418e1de22053478459fc13703a2058a84c929e58',
+ }
+ 
++# One fixed launch plan, not a shape/tile sweep. Split large byte ranges because
++# the existing SDK helper assigns a sequential byte-copy loop to each program.
++COPY_SEGMENT_BYTES = 64 * 1024
++MAX_PENDING_COPY_HOST_BUFFERS = 4
++
++
++def plan_byte_copies(rows, capacity):
++    """Validate disjoint byte ranges and split them for the fixed SDK helper.
++
++    The helper uses raw addresses, so it does not retain Tensor storage or make
++    cross-program overlap safe. Callers own both lifetimes and stream ordering.
++    """
++    rows = tuple(rows)
++    if not rows or capacity <= 0:
++        raise ValueError('empty copy plan or nonpositive descriptor capacity')
++    if any(len(row) != 3 or not all(isinstance(x, int) and 0 < x < 2**63 for x in row)
++           for row in rows):
++        raise ValueError('copy addresses and lengths must be positive integers')
++    if any(max(s, d) + n >= 2**63 for s, d, n in rows):
++        raise ValueError('copy address range exceeds signed descriptor width')
++    sources = sorted((s, s + n) for s, _d, n in rows)
++    destinations = sorted((d, d + n) for _s, d, n in rows)
++    if any(b > c for (_a, b), (c, _d) in zip(destinations, destinations[1:])):
++        raise ValueError('copy destinations overlap')
++    i = j = 0
++    while i < len(sources) and j < len(destinations):
++        a, b = sources[i]
++        c, d = destinations[j]
++        if a < d and c < b:
++            raise ValueError('copy source overlaps a destination')
++        if b <= c:
++            i += 1
++        else:
++            j += 1
++    count = sum((n + COPY_SEGMENT_BYTES - 1) // COPY_SEGMENT_BYTES for _s, _d, n in rows)
++    if count > capacity:
++        raise ValueError('copy descriptor capacity exceeded')
++    return tuple((s + offset, d + offset, min(COPY_SEGMENT_BYTES, n - offset))
++                 for s, d, n in rows for offset in range(0, n, COPY_SEGMENT_BYTES))
++
+ 
+ def align_bytes(n):
+     return (n + 511) // 512 * 512
+@@ -127,6 +168,10 @@ class NativePrefillState:
+         self.last_use = None
+         self.original_reshape = runner._reshape_kv_cache_tensors
+         self.original_forward = runner._model_forward
++        self.batch_memcpy = importlib.import_module('vllm.v1.worker.mamba_utils').batch_memcpy
++        self.pending_copy_buffers = []
++        self.copy_events = []
++        self.copy_timings_ms = []
+         self.raw, self.views = None, None
+         owner = self
+ 
+@@ -204,6 +249,17 @@ class NativePrefillState:
+             sum(t[0].numel() * t.element_size() for t in x.views)
+             if x.role == 'mamba' else int(x.raw_pages.shape[1])
+             for x in self.layers)
++        state_sizes = []
++        for layer in self.layers:
++            state_sizes.extend([t[0].numel() * t.element_size() for t in layer.views]
++                               if layer.role == 'mamba' else [int(layer.raw_pages.shape[1])])
++        hidden_size = self.block_size * r.model_config.hf_text_config.hidden_size * 2
++        self.copy_descriptor_capacity = sum(
++            (n + COPY_SEGMENT_BYTES - 1) // COPY_SEGMENT_BYTES for n in state_sizes + [hidden_size])
++        self.copy_metadata_bytes = align_bytes(3 * 8 * self.copy_descriptor_capacity)
++        self.copy_metadata_offset = self.ledger.allocate('_copy_metadata', self.copy_metadata_bytes)
++        if self.copy_metadata_offset is None:
++            raise ValueError('memo arena cannot hold copy metadata within its budget')
+         self.owner_cache = cache_manager
+         self.runner._reshape_kv_cache_tensors = self.original_reshape
+         owner = self
+@@ -293,6 +349,53 @@ class NativePrefillState:
+         if any(value != found[0] for value in found) or payload.get('error'):
+             raise RuntimeError('target-prefill state ownership/decision disagrees across ranks: ' + repr(found))
+ 
++    def _retire_copy_buffers(self):
++        self.pending_copy_buffers = [item for item in self.pending_copy_buffers if not item[0].query()]
++        if len(self.pending_copy_buffers) >= MAX_PENDING_COPY_HOST_BUFFERS:
++            self.counts['copy_host_backpressure_waits'] += 1
++            # Keep storage owned even if waiting raises. Popping first would
++            # release raw-pointer storage before completion on the error path.
++            self.pending_copy_buffers[0][0].synchronize()
++            del self.pending_copy_buffers[0]
++
++    def _copy_parts(self, sources, destinations, stream, operation):
++        torch = self.torch
++        rows = []
++        for source, destination in zip(sources, destinations, strict=True):
++            if (not source.is_contiguous() or not destination.is_contiguous()
++                    or source.shape != destination.shape or source.dtype != destination.dtype
++                    or source.device != destination.device):
++                raise ValueError('batched state copy requires matching contiguous device tensors')
++            rows.append((source.data_ptr(), destination.data_ptr(),
++                         source.numel() * source.element_size()))
++        plan = plan_byte_copies(rows, self.copy_descriptor_capacity)
++        # Bound pinned host memory and raw-pointer Tensor lifetimes. Any wait
++        # is counted, never silently treated as asynchronous.
++        self._retire_copy_buffers()
++        host = torch.empty((3, len(plan)), dtype=torch.int64, device='cpu', pin_memory=True)
++        host.numpy()[:] = tuple(zip(*plan))
++        metadata = self.arena.narrow(0, self.copy_metadata_offset, 3 * len(plan) * 8).view(
++            torch.int64).view(3, len(plan))
++        before = torch.npu.Event(enable_timing=True)
++        after = torch.npu.Event(enable_timing=True)
++        # Own raw-pointer storage before the first asynchronous enqueue. If
++        # launch raises after the H2D copy, the finally event still guards it.
++        self.pending_copy_buffers.append((after, host, tuple(sources), tuple(destinations)))
++        before.record(stream)
++        try:
++            metadata.copy_(host, non_blocking=True)
++            self.batch_memcpy(metadata[0], metadata[1], metadata[2])
++        finally:
++            after.record(stream)
++        self.counts['state_copy_kernel_launches'] += 1
++        self.counts['state_copy_descriptors'] += len(plan)
++        self.counts['state_copy_original_tensor_calls_replaced'] += len(rows)
++        self.counts['state_copy_metadata_bytes_uploaded'] += host.numel() * host.element_size()
++        if len(self.copy_events) < 256:
++            self.copy_events.append((before, after, operation, len(rows), len(plan), sum(n for _s, _d, n in rows)))
++        else:
++            self.counts['copy_timing_events_dropped'] += 1
++
+     def forward(self, *args, **kwargs):
+         self.counts['target_forward_calls'] += 1
+         records = self._records()
+@@ -316,8 +419,10 @@ class NativePrefillState:
+             key is not None and key in self.entries and start >= self.entries[key]['start']
+             for _rid, start, _stop, _row, key in records))
+         decision_identity = [(start, stop, row, key) for _rid, start, stop, row, key in records]
++        planned_ns = time.monotonic_ns()
+         self._consensus({'keys_sha256': hashlib.sha256(repr(decision_identity).encode()).hexdigest(),
+                          'hit': hit, 'error': error})
++        consensus_ns = time.monotonic_ns()
+         torch = self.torch
+         stream = torch.npu.current_stream(self.runner.device)
+         if self.last_use is not None:
+@@ -335,13 +440,14 @@ class NativePrefillState:
+                 if self._signature(tensors) != entry['signature'][:-1]:
+                     raise ValueError('restored state layout differs from saved layout')
+                 stream.wait_event(entry['ready'])
+-                for part, offset in zip(tensors, entry['offsets'][:-1], strict=True):
+-                    part.copy_(self._view(offset, part), non_blocking=True)
++                source_parts = [self._view(offset, part)
++                                for part, offset in zip(tensors, entry['offsets'][:-1], strict=True)]
+                 shape, _dtype = entry['signature'][-1]
+                 nbytes = shape[0] * shape[1] * target_hidden.element_size()
+                 saved_hidden = self.arena.narrow(0, entry['offsets'][-1], nbytes).view(
+                     target_hidden.dtype).view(shape)
+-                target_hidden.copy_(saved_hidden[start - entry['start']:], non_blocking=True)
++                source_parts.append(saved_hidden[start - entry['start']:])
++                self._copy_parts(source_parts, tensors + [target_hidden], stream, 'restore')
+                 self.counts['restored_bytes'] += entry['payload_bytes']
+                 self.counts['reused_requests'] += 1
+                 self.counts['target_tokens_skipped'] += stop - start
+@@ -349,6 +455,7 @@ class NativePrefillState:
+             self.counts['target_prefill_forwards_skipped'] += 1
+         else:
+             hidden = self.original_forward(*args, **kwargs)
++            original_forward_return_ns = time.monotonic_ns()
+             if (not isinstance(hidden, torch.Tensor) or hidden.ndim != 2
+                     or hidden.shape[0] < self.descriptor.total_num_scheduled_tokens):
+                 raise ValueError('target forward did not return complete hidden activations')
+@@ -372,6 +479,9 @@ class NativePrefillState:
+         if len(self.events) < 256:
+             self.events.append({'started_monotonic_ns': started_ns,
+                 'host_return_monotonic_ns': time.monotonic_ns(), 'hit': hit,
++                'planning_finished_monotonic_ns': planned_ns,
++                'consensus_finished_monotonic_ns': consensus_ns,
++                'original_forward_return_monotonic_ns': None if hit else original_forward_return_ns,
+                 'spans': [(start, stop) for _rid, start, stop, _row, _key in records],
+                 'entries': len(self.entries), 'counts': dict(self.counts)})
+         else:
+@@ -396,11 +506,12 @@ class NativePrefillState:
+             self.ledger.release(old)
+             self.counts['evictions'] += 1
+             offset = self.ledger.allocate(key, size)
+-        offsets = []
++        offsets, destinations = [], []
+         for part, nbytes in zip(parts, sizes, strict=True):
+             offsets.append(offset)
+-            self._view(offset, part).copy_(part, non_blocking=True)
++            destinations.append(self._view(offset, part))
+             offset += align_bytes(nbytes)
++        self._copy_parts(parts, destinations, stream, 'save')
+         ready = self.torch.npu.Event()
+         ready.record(stream)
+         self.entries[key] = {'offsets': offsets, 'signature': self._signature(parts),
+@@ -419,12 +530,29 @@ class NativePrefillState:
+                 'physical_pool_storage_bytes_including_sdk_alignment': self.physical_pool_storage_bytes,
+                 'state_bytes_per_entry_excluding_hidden': self.state_bytes_per_entry,
+                 'copies_per_entry_including_hidden': sum(2 if x.role == 'mamba' else 1 for x in self.layers) + 1,
++                'copy_backend': 'fixed vllm.v1.worker.mamba_utils.batch_memcpy',
++                'copy_segment_bytes': COPY_SEGMENT_BYTES,
++                'copy_metadata_bytes_in_arena': self.copy_metadata_bytes,
++                'copy_descriptor_capacity': self.copy_descriptor_capacity,
++                'copy_device_timings_ms_after_drain': self.copy_timings_ms,
+                 'entries': len(self.entries), 'target_layers': self.layout,
+                 'scope': 'pure eager final target-prefill;normal logits/sampler/MTP;no answer cache',
+                 'NPU_validated': False}
+ 
+     def close(self):
++        if self.closed:
++            return
+         if self.descriptor is not None:
+             raise RuntimeError('cannot close an active prefill transaction')
++        # SDKRuntime.drain synchronizes the device first. No timing read or
++        # device-wide synchronization is added inside formal request handling.
++        if any(not event.query() for event, *_ in self.pending_copy_buffers):
++            raise RuntimeError('cannot release raw copy pointers before device completion')
++        self.copy_timings_ms = [{'operation': op, 'tensor_regions': parts,
++                                'descriptors': descriptors, 'bytes': size,
++                                'elapsed_ms': before.elapsed_time(after)}
++                               for before, after, op, parts, descriptors, size in self.copy_events]
++        self.pending_copy_buffers.clear()
++        self.copy_events.clear()
+         self.runner._model_forward = self.original_forward
+         self.closed = True
+diff --git a/DeepInfer/tests/test_native_prefill_state.py b/DeepInfer/tests/test_native_prefill_state.py
+index 08111e0..5da3364 100644
+--- a/DeepInfer/tests/test_native_prefill_state.py
++++ b/DeepInfer/tests/test_native_prefill_state.py
+@@ -5,6 +5,7 @@ import random
+ import sys
+ from types import SimpleNamespace as NS
+ import unittest
++from collections import Counter
+ 
+ PATH = Path(__file__).parents[1] / 'deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py'
+ SPEC = importlib.util.spec_from_file_location('tested_native_prefill_state', PATH)
+@@ -27,6 +28,56 @@ class Rows:
+ 
+ 
+ class Contracts(unittest.TestCase):
++    def test_batched_descriptors_preserve_exact_byte_extents_and_tails(self):
++        rows = [(4096, 1000000, 65537), (80000, 2000000, 17)]
++        plan = M.plan_byte_copies(rows, 3)
++        self.assertEqual(plan, ((4096, 1000000, 65536), (69632, 1065536, 1),
++                                (80000, 2000000, 17)))
++        self.assertEqual(sum(n for _s, _d, n in plan), sum(n for _s, _d, n in rows))
++        for s, d, n in plan:
++            self.assertTrue(any(a <= s < s+n <= a+length and b <= d < d+n <= b+length
++                                and s-a == d-b for a, b, length in rows))
++
++    def test_batched_copy_rejects_cross_region_alias_and_overflow(self):
++        for rows, capacity in [([(1000, 2000, 32), (1100, 2010, 16)], 4),
++                               ([(1000, 2000, 128), (3000, 1100, 32)], 4),
++                               ([(1000, 1000, 32)], 4),
++                               ([(1000, 1000000, 65537)], 1),
++                               ([(1000, 2**63-1, 2)], 4), ([], 4)]:
++            with self.subTest(rows=rows), self.assertRaises(ValueError):
++                M.plan_byte_copies(rows, capacity)
++
++    def test_pending_raw_storage_survives_wait_failure(self):
++        memo = M.NativePrefillState.__new__(M.NativePrefillState)
++        memo.counts = Counter()
++        storage = object()
++        def wait():
++            self.assertIs(memo.pending_copy_buffers[0][1], storage)
++            raise RuntimeError('device wait failed')
++        pending = [(NS(query=lambda: False, synchronize=wait), storage)]
++        pending += [(NS(query=lambda: False), object()) for _ in range(M.MAX_PENDING_COPY_HOST_BUFFERS-1)]
++        memo.pending_copy_buffers = pending.copy()
++        with self.assertRaisesRegex(RuntimeError, 'device wait failed'):
++            memo._retire_copy_buffers()
++        self.assertEqual(memo.pending_copy_buffers, pending)
++        self.assertEqual(memo.counts['copy_host_backpressure_waits'], 1)
++
++    def test_retire_only_completed_or_successfully_waited_buffers(self):
++        memo = M.NativePrefillState.__new__(M.NativePrefillState)
++        memo.counts = Counter()
++        pending = [(NS(query=lambda: False, synchronize=lambda: None), object())
++                   for _ in range(M.MAX_PENDING_COPY_HOST_BUFFERS)]
++        memo.pending_copy_buffers = [(NS(query=lambda: True), object())] + pending
++        memo._retire_copy_buffers()
++        self.assertEqual(memo.pending_copy_buffers, pending[1:])
++
++    def test_repeated_close_preserves_device_timing_receipt(self):
++        memo = M.NativePrefillState.__new__(M.NativePrefillState)
++        memo.closed = True
++        memo.copy_timings_ms = [{'example': 'already collected'}]
++        memo.close()
++        self.assertEqual(memo.copy_timings_ms, [{'example': 'already collected'}])
++
+     def test_suffix_allows_different_prefill_chunking_without_missing_hidden_rows(self):
+         self.assertEqual(M.reusable_suffix_start(0, 1024, 640), 640)
+         self.assertEqual(M.reusable_suffix_start(640, 1024, 640), 640)
