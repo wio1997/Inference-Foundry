@@ -14,6 +14,8 @@
 
 历史：[125缩行无足够收益](docs/native125-result-20261113.md)；[124 metadata图退化](docs/native124-decision-and-stage-review-20261113.md)；[126取证及D2裁决](docs/native126-D2-decision-20261113.md)。[累计计划与停止条件](docs/performance-replan-20261113.md)保留，未用额度不自动改作新实验。
 
+[127之后的时间轴复核与下一阶段决策](docs/next-decision-after127-20261113.md)：C4额外2.697秒中，2.223秒落在首token后的请求区间；不等同于纯decode或复制耗时。本轮0模型加载，未改变默认源码；下一阶段仅提议低开销完整状态复用，未启动新预算。
+
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
 ## 目录导航
