@@ -1,0 +1,95 @@
+{
+  "recorded_at_utc": "2026-11-12T20:14:10.179135+00:00",
+  "stage": "D1",
+  "status": "completed_existing_data_insufficient_and_one_capture_method_identified",
+  "new_model_loads": 0,
+  "new_performance_result": false,
+  "candidate_admitted": null,
+  "default_source_commit": "c4ec8e000d04966574970802ae01db76e57a01b5",
+  "frozen_reference_generation": 117,
+  "measured_gap": {
+    "C4": {
+      "baseline_output_tps": 306.94205422447425,
+      "reference_output_tps": 228.57796562220054,
+      "baseline_advantage_percent": 34.28330827468991,
+      "target_output_tps": 297.15135530886073,
+      "baseline_seconds": 26.689076609909534,
+      "target_maximum_seconds": 27.568442322886902,
+      "net_seconds_to_remove": -0.8793657129773678
+    },
+    "C8": {
+      "baseline_output_tps": 501.22022621045363,
+      "reference_output_tps": 415.6101816397917,
+      "baseline_advantage_percent": 20.598639867985714,
+      "target_output_tps": 540.2932361317291,
+      "baseline_seconds": 16.34411296993494,
+      "target_maximum_seconds": 15.162136877098911,
+      "net_seconds_to_remove": 1.1819760928360292
+    }
+  },
+  "observations": {
+    "target_graph": {
+      "model_id": 49,
+      "observed_wait_intervals": 8,
+      "wait_envelope_sum_ms": 354.554104
+    },
+    "draft_graph": {
+      "model_id": 48,
+      "observed_wait_intervals": 8,
+      "wait_envelope_sum_ms": 59.084162
+    },
+    "selected_target_interval_start_ns": 1794503801598142000,
+    "selected_target_interval_end_ns": 1794503801643409384,
+    "selected_target_interval_ms": 45.267384,
+    "selected_target_named_compute_rows": 0,
+    "conclusion": "旧采样缺少目标图内主要计算/通信归属，不能用少量外部任务推算图内瓶颈或空闲。"
+  },
+  "evidence_hashes": {
+    "native122-graph-db-audit.json": "e6a8d4a549fb1c1b91089ba118bcea5a71ddded9db35b1bb1fe7994e62931171",
+    "native122-state-submit-decision.json": "3e93066f75c9f9777862193b452486c4495160acccf481fe876dbc5ed84d22af",
+    "profile-capture-contract122/provenance.json": "5ded1d01168f9ab7f8a177115a9842c3d6b528e21c17b88172d90c8bc353e777"
+  },
+  "fixed_profiler_source": {
+    "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+    "file_sha256": {
+      "ascend_profiler.py": "5242ee153033afcf12dbfe022dbd807fa248d991ff5c53efbd1adb372d5575f4",
+      "profiler_config.py": "04d24fa1dc7cfedca6b5c7d9115f7f7021722fc46a5b15234a1e3b3a506c93e5",
+      "ascend_worker.py": "51cfb3da18046af8c72ccefe940de5f24d9502bfdae75b941e1798c0a165cda4"
+    },
+    "actual_api": "Ascend Worker.profile -> TorchNPUProfilerWrapper -> torch_npu.profiler.profile",
+    "actual_activities": [
+      "CPU",
+      "NPU"
+    ],
+    "actual_level": "Level1",
+    "capture_before_compile_supported_as_call_order": true,
+    "graph_internal_coverage_after_change": "未验证",
+    "late_start_as_root_cause": "待验证假设，非已复现根因"
+  },
+  "next_measurement": {
+    "source": "retained114",
+    "purpose": "取得目标图内部可归属的计算、通信和跨rank依赖，最多放行一个有足够净收益依据的候选",
+    "start_boundary": "after cache initialization, before compile_or_warm_up_model; exclude weight loading",
+    "coverage": "capture plus actual decode replay; common step identifiers and all participating rank timelines",
+    "prelaunch_requirements": [
+      "固定实际API，单设备单profiler",
+      "核实可用空间与采集起止、导出和超时边界",
+      "已有资源互斥与完整作业回收协议"
+    ],
+    "workload": "沿用既有请求序列；所有带采样计时只用于诊断，不用于性能验收",
+    "pass": "目标图主要kernel和通信可归属，能形成一处具体干预及净省至少1.18198秒的估计与假设",
+    "failure": "一次加载仍无覆盖、无可行干预或预算到期，结束本阶段，不再重复采样",
+    "runtime_verified": false
+  },
+  "budget": {
+    "started_at": "2026-11-12T19:59:20.949946+00:00",
+    "deadline": "2026-11-13T01:59:20.949946+00:00",
+    "new_model_loads_maximum": 4,
+    "model_loads_used": 0
+  },
+  "limitations": [
+    "图外框时长包含等待，不能作为纯计算成本或直接外推正式C8收益。",
+    "未再次核查服务器实时空闲；本轮未启动或修改任何NPU作业。",
+    "完整双档30%、独有机制归因和通用模型质量仍未验收。"
+  ]
+}
