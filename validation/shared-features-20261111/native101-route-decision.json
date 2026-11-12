@@ -1,0 +1,114 @@
+{
+  "updated_at": "2026-11-12T09:00:10.856186+00:00",
+  "model_source_commit": "58e20789507080e1f0f9284d268dc1f00f5de4dd",
+  "status": "diagnostic_closed;one_integration_candidate_preparation_selected;exclusive_performance_gate_not_passed",
+  "scope": "101有插桩且卡组不同，只用于依赖/批次诊断；正式比例仍为98/99",
+  "validated_lifecycle": {
+    "requests": 80,
+    "workers_exit_zero": 8,
+    "claims_released_at": "2026-11-12T08:53:14.591486+00:00"
+  },
+  "batch_observations": {
+    "C4": {
+      "prefill_batches": 27,
+      "native_scheduled_prefill_tokens": 32768,
+      "sdk_executed_prefill_tokens": 31488,
+      "batches_with_post_schedule_reduction": 2,
+      "batches_with_unselected_registered_prompts": 6,
+      "median_prefill_host_ms": 414.75001,
+      "hit_requests": 2,
+      "no_credit_short_first_chunk_with_no_admission_checkpoint": 0
+    },
+    "C8": {
+      "prefill_batches": 20,
+      "native_scheduled_prefill_tokens": 32768,
+      "sdk_executed_prefill_tokens": 16768,
+      "batches_with_post_schedule_reduction": 20,
+      "batches_with_unselected_registered_prompts": 13,
+      "median_prefill_host_ms": 396.568425,
+      "hit_requests": 25,
+      "no_credit_short_first_chunk_with_no_admission_checkpoint": 7
+    }
+  },
+  "device_phase_observations": {
+    "diag.native.prefill": {
+      "count": 5,
+      "median": {
+        "host_ms": 445.5985,
+        "device_active_union_ms": 206.0285,
+        "compute_active_union_ms": 131.4785,
+        "visible_device_idle_ms": 239.86925
+      }
+    },
+    "diag.native.decode": {
+      "count": 8,
+      "median": {
+        "host_ms": 53.152125,
+        "device_active_union_ms": 48.898375,
+        "compute_active_union_ms": 48.307375,
+        "visible_device_idle_ms": 4.335125
+      }
+    },
+    "deepinfer.native_step": {
+      "count": 13,
+      "median": {
+        "host_ms": 55.49925,
+        "device_active_union_ms": 51.0955,
+        "compute_active_union_ms": 50.49075,
+        "visible_device_idle_ms": 4.474
+      }
+    }
+  },
+  "accepted_count_wait_observation": {
+    "count": 13,
+    "host_union_ms": 138.03575,
+    "device_active_clipped_sum_ms": 129.7525,
+    "visible_idle_clipped_sum_ms": 8.283249999999999,
+    "warning": "may overlap other wait categories;idle is an upper screening quantity,not proven removable cost"
+  },
+  "selected_next_candidate": {
+    "name": "原生调度与SDK前缀缓存的实际工作量契约",
+    "classification": "共有前缀能力的原生接入修复；不构成专有特性证明",
+    "intervention": "在原生扣除批次预算之前取得并保住有效缓存命中；按未缓存工作量合批，保留真实位置和KDA检查点",
+    "files": [
+      "full_model/sdk_schedule.py",
+      "full_model/sdk_dispatch.py",
+      "deepinfer/engine/llm_engine.py",
+      "csrc/engine/scheduler.hpp"
+    ],
+    "constraints": [
+      "实际计算预算仍1792",
+      "不得仅用可能过期的命中估计扩大批次",
+      "不虚构已计算位置或KDA状态",
+      "缓存引用释放/失效必须有确定处理",
+      "不改数学计算、采样或正式负载"
+    ],
+    "release": "只放行有界接口设计与实现准备；没有现成独有候选获正式性能验收放行",
+    "next_gate": "安全缓存归属和实际预算成立；同源开关消融减少prefill次数/实际重复工作；C4/C8均报告",
+    "not_yet_established": [
+      "可合并请求在调度时的完整资格",
+      "可兑现端到端节省",
+      "C4差额能否补齐",
+      "参考不存在的独有机制"
+    ]
+  },
+  "rejected_as_primary_now": [
+    "仅凭接受数同步累计时间改造稳定decode反馈",
+    "把注册但未选中的请求全部当成可合并",
+    "把prefix预算修复称作独有创新",
+    "再加载模型补一轮同类观测"
+  ],
+  "counterfactual_limits": "20个C8批次和约397ms主机时长说明值得干预；不能将减少批次数直接乘成收益。C4仅2个命中，不能外推同等改善。",
+  "observation_model_load_budget_used": 1,
+  "observation_model_load_budget_remaining": 0,
+  "goal_complete": false,
+  "new_formal_performance_claim": false,
+  "budget_origin_utc": "2026-11-12T06:40:39.953626+00:00",
+  "decision_hours": 6,
+  "candidate_total_hours": 12,
+  "evidence": {
+    "native-g101-verification.json": "54a22667713fcf713216feab024da761a7c7fc191d93a794824fc9da80128dcb",
+    "native101-host-dependency-analysis.json": "a0276f776647785688e91fa603b1008c6598c0b21dfac5ad69c032bc9035480c",
+    "native101-device-analysis.json": "0e6dfbd69ba96beb4cfa9f6c517bd068534a7d96e6774a9a540b42b174497c23"
+  }
+}
