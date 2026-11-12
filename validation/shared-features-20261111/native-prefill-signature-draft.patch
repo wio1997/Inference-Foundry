@@ -1,9 +1,9 @@
 diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py
 new file mode 100644
-index 0000000..9700986
+index 0000000..fc6e807
 --- /dev/null
 +++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py
-@@ -0,0 +1,371 @@
+@@ -0,0 +1,375 @@
 +"""Bounded, lazy prefill capture over the unchanged GLM SDK computation.
 +
 +Experimental and disabled by default. CPU descriptors are part of the graph
@@ -292,6 +292,8 @@ index 0000000..9700986
 +            raise
 +        if decision == 0:
 +            self.counts['coordinated_eager'] += 1
++            if self.counts['host_control_collectives'] == 1:
++                self.save()  # Preserve the first rejection reason without polling.
 +            return self.original(*args, **kwargs)
 +        capturing = getattr(context, 'capturing', False)
 +        self.counts['eligible_calls'] += 1
@@ -333,6 +335,8 @@ index 0000000..9700986
 +                self.counts['replay_hits'] += 1
 +            entry['graph'].replay()
 +            self.counts['executions'] += 1
++            if self.counts['executions'] == 1:
++                self.save()  # First engineering request only; final counters on close.
 +            # The SDK retains hidden states for deferred sampling and MTP.
 +            # Never hand those consumers the reusable graph output buffer.
 +            output = self._clone_output(entry['output'])
