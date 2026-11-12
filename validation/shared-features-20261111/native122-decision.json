@@ -1,0 +1,177 @@
+{
+  "created_at": "2026-11-12T17:24:02.896440+00:00",
+  "generation": 122,
+  "source_commit": "c4ec8e000d04966574970802ae01db76e57a01b5",
+  "image": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "status": "N1_completed_with_profile_coverage_limit;N2_single_feasibility_candidate_only",
+  "requests_completed": 72,
+  "scored_recipe_requests": 64,
+  "postscore_requests": 0,
+  "worker_exit_codes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "claims_released": true,
+  "source_pins": {
+    "proposer.py": {
+      "native_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "reference_sha256": "458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31",
+      "equal": true
+    },
+    "sfa_cp.py": {
+      "native_sha256": "03ba131897d45159976218e7f1f800724a9d75eeea9c982a308c4fded761d5b7",
+      "reference_sha256": "03ba131897d45159976218e7f1f800724a9d75eeea9c982a308c4fded761d5b7",
+      "equal": true
+    },
+    "indexer_kpool.py": {
+      "native_sha256": "c0788252516cb1063d1ec85f17326e714bc4441e45b5dd949194390cf2a14001",
+      "reference_sha256": "c0788252516cb1063d1ec85f17326e714bc4441e45b5dd949194390cf2a14001",
+      "equal": true
+    },
+    "gdn_attn_builder.py": {
+      "native_sha256": "66c1475836292660b6502cfcfc08f8a0dcd3e25f4941dcec11d6db0baa96987a",
+      "reference_sha256": "66c1475836292660b6502cfcfc08f8a0dcd3e25f4941dcec11d6db0baa96987a",
+      "equal": true
+    },
+    "common_cp.py": {
+      "native_sha256": "8d460603563a70b25e5dcdca19245eb59c033c8842f84aaaaf2c4149bf00f9c1",
+      "reference_sha256": "8d460603563a70b25e5dcdca19245eb59c033c8842f84aaaaf2c4149bf00f9c1",
+      "equal": true
+    }
+  },
+  "trace_sha256": "e0305329618623adde3a45100a8005196b9a090aa406e3542b687e1ed18585bd",
+  "cpu_window_steps": 8,
+  "cpu_profile_seconds": 0.44144302999999996,
+  "cpu_metadata_rows": [
+    {
+      "function": "attn_update_stack_num_spec_norm",
+      "calls": 32,
+      "self_seconds": 0.0076717600000000006,
+      "cumulative_seconds": 0.035366810000000005,
+      "source_file": "llm_base_proposer.py"
+    },
+    {
+      "function": "_prepare_parallel_metadata",
+      "calls": 48,
+      "self_seconds": 0.00565457,
+      "cumulative_seconds": 0.015126690000000002,
+      "source_file": "sfa_cp.py"
+    },
+    {
+      "function": "build",
+      "calls": 24,
+      "self_seconds": 0.00479081,
+      "cumulative_seconds": 0.02737565,
+      "source_file": "gdn_attn_builder.py"
+    },
+    {
+      "function": "build",
+      "calls": 48,
+      "self_seconds": 0.00464848,
+      "cumulative_seconds": 0.03414587,
+      "source_file": "indexer_kpool.py"
+    },
+    {
+      "function": "build",
+      "calls": 48,
+      "self_seconds": 0.00132367,
+      "cumulative_seconds": 0.0029305800000000003,
+      "source_file": "indexer_kpool.py"
+    },
+    {
+      "function": "attn_update_stack_num_spec_norm",
+      "calls": 32,
+      "self_seconds": 0.0007810400000000001,
+      "cumulative_seconds": 0.03651179,
+      "source_file": "multi_kv_cache_group_proposer.py"
+    },
+    {
+      "function": "_propose",
+      "calls": 8,
+      "self_seconds": 0.00070587,
+      "cumulative_seconds": 0.10255173000000001,
+      "source_file": "llm_base_proposer.py"
+    }
+  ],
+  "profile_coverage": {
+    "decode_windows": 8,
+    "kernel_rows": 4635,
+    "kernel_model_ids": {
+      "4294967295": 4635
+    },
+    "hardware_model_ids": {
+      "4294967295": 7444,
+      "49": 16,
+      "48": 14
+    },
+    "conclusion": "decode includes MODEL_EXECUTE/MODEL_WAIT_COMPLETE for captured models48/49, but kernel_details contains only unset model IDs and does not enumerate their model computation; kernel-active complement must not be interpreted as NPU idle or removable time",
+    "missing_model_operator_examples": [
+      "HcPre",
+      "HcPost",
+      "GroupedMatmul",
+      "GroupedMatmulSwigluQuant",
+      "SparseFlashAttention"
+    ],
+    "invalidated_metric": "dependency-device-analysis visible_device_idle_ms is only an unobserved-activity complement; withdrawn as a cost estimate"
+  },
+  "startup_result": "this retained114 run passed the prior failure interval;121 root cause not proven fixed",
+  "source_findings": [
+    {
+      "file": "proposer.py",
+      "lines": [
+        1307,
+        1327,
+        1357
+      ],
+      "finding": "four additional draft steps rebuild/update attention metadata per generation; device_metadata_executor selection is gated to method dspark, not general mtp; not proof all metadata lacks device execution"
+    },
+    {
+      "file": "indexer_kpool.py",
+      "lines": [
+        203,
+        266
+      ],
+      "finding": "build discards fast_build; build_for_drafting delegates to full build and discards draft_index"
+    },
+    {
+      "file": "gdn_attn_builder.py",
+      "lines": [
+        669
+      ],
+      "finding": "full builder has graph padding and request-phase/state-dependent logic; cannot safely cache by batch size alone"
+    }
+  ],
+  "decision": {
+    "candidate": "DeepInfer native GLM execution-plan reuse/incremental update of MTP mixed-cache metadata",
+    "implementation_budget_minutes": 45,
+    "scope": "one bounded feasibility prototype from114; no whole-ZOS port, no model math or new NPU operator rewrite",
+    "baseline_exclusive_feature": false,
+    "expected_speedup": "unknown",
+    "removable_critical_path_seconds": "unknown",
+    "not_admitted": [
+      "another diagnostic-only model load",
+      "120/121 retry",
+      "graph idle based speed prediction",
+      "multi-candidate parameter search"
+    ],
+    "formal_trial_condition": "one coherent rollback-safe implementation with concrete eliminated rebuilds and semantic checks; only within original investment budget; preserve fixed shared optimization recipe",
+    "stop": "unsupported GLM state contract, patch expands into model algorithms/full runner rewrite, or45min expires without testable candidate => no model launch; after one formal trial fail threshold => reject, no tuning ladder"
+  },
+  "formal_scores_unchanged": true,
+  "goal_complete": false,
+  "new_performance_claim": false,
+  "raw_evidence_hashes": {
+    "native-g122-verification.json": "9183dc258174ff4b5730802e7e8f4dd92ac097e11a1326f05f2c56b32d8f2120",
+    "native122-collection.json": "4933086a9ecc17ec77841b0100f47b5dc30fdd9c5be6fede523adb00d340838b",
+    "native122-host-dependency-analysis.json": "cabf4574ded6b10dec1e401f2f95adfe0bb2485ec10ba9165a1b14cae805730e",
+    "native122-profile-coverage.json": "0f14e2070a3f83fa5a9cc8e1d20bf60aabc5990ad7fffe6782d8d2ffc1b8e357",
+    "native122-decision-source/coverage-decode.json": "3f589428f351187873742b6488b3c0a10d4ba97c372f81a2ba7bb9a85318b389",
+    "reference117-metadata-pins.json": "c0ee56c6f54bab06377c4c0bfc9aae223e54b68c855bec95ac9142b137ab1066"
+  }
+}
