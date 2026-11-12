@@ -1,0 +1,488 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_mtp_metadata_plan.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_mtp_metadata_plan.py
+new file mode 100644
+index 0000000..70407ae
+--- /dev/null
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_mtp_metadata_plan.py
+@@ -0,0 +1,351 @@
++"""Native, instance-owned preparation plan for GLM's four later MTP steps.
++
++This records only the pinned SDK's integer addressing/length preparation.
++It never captures a model forward, sampling, cache contents or a collective.
++The first draft pass and target/KDA metadata still use the original SDK.
++An accepted entry replays all four later steps once, rather than rebuilding
++SFA, pooled-indexer and compressor-tail metadata in four Python iterations. Unsupported batches
++use the original methods. The graph and every returned object remain owned by
++this native runtime; no process-wide SDK monkey patch is installed.
++"""
++from collections import Counter
++from dataclasses import fields, is_dataclass
++from enum import Enum
++import copy
++import hashlib
++import inspect
++import json
++from pathlib import Path
++from types import MethodType
++
++
++PINS = {
++    'vllm_ascend.attention.utils': '67e1c2e33efce8616a6845d605d2ed2522c2e10e91ad4b7752d5084da5813405',
++    'vllm_ascend.spec_decode.eagle_proposer': 'aa5994f69f3050dd0a7cd374676857ddb787153083d7f6f9b3566cd3e4dc3474',
++    'vllm.v1.spec_decode.eagle': 'b2b1f7d15117b43108be368756d9c6e9334d9415a070e46178e18bb7c6476378',
++    'vllm_ascend.spec_decode.llm_base_proposer': '458fb50e6839f3a353ddc7181ace4fdae02e35093d8ccd1c4327dc24ae5fff31',
++    'vllm_ascend.spec_decode.multi_kv_cache_group_proposer': 'd08e6fb9f290b0ec359cd803af56462a0488cdd1a44e79d7c2406f36bf0b11a6',
++    'vllm_ascend.attention.sfa_v1': '9b94f67f30364d40caf4a7a67af0f0365d1ba0b5048939873ab0464e95b096dc',
++    'vllm_ascend.attention.context_parallel.sfa_cp': '03ba131897d45159976218e7f1f800724a9d75eeea9c982a308c4fded761d5b7',
++    'vllm_ascend.attention.indexer_kpool': 'c0788252516cb1063d1ec85f17326e714bc4441e45b5dd949194390cf2a14001',
++    'vllm_ascend.attention.context_parallel.common_cp': '8d460603563a70b25e5dcdca19245eb59c033c8842f84aaaaf2c4149bf00f9c1',
++}
++
++
++def stable_decode_scope(*, prefill_requests, decode_requests, request_ids,
++                        previous_request_ids, draft_width, uniform):
++    """Host-only admission predicate; no model tensors or guessed state."""
++    return (prefill_requests == 0 and decode_requests > 0 and draft_width == 5
++            and uniform and len(request_ids) == decode_requests
++            and tuple(request_ids) == previous_request_ids)
++
++
++def layout(tensor):
++    return (tuple(tensor.shape), tuple(tensor.stride()), str(tensor.dtype),
++            str(tensor.device), tensor.storage_offset())
++
++
++def supported_cache_layout(primary_gid, groups):
++    """Three attention backends share two physical GLM cache groups.
++
++    The main SFA and compressed indexer share the same physical group; the
++    request-owned compressor tail has a separate group. Group IDs alone do
++    not identify the attention builders.
++    """
++    if len(groups) != 3:
++        return False
++    by_name = {name: gid for gid, name in groups}
++    return (len(by_name) == 3
++            and by_name.get('AscendSFADSACPMetadataBuilder') == primary_gid
++            and by_name.get('AscendIndexerKPoolMetadataBuilder') == primary_gid
++            and 'AscendIndexerKPoolTailMetadataBuilder' in by_name
++            and by_name['AscendIndexerKPoolTailMetadataBuilder'] != primary_gid)
++
++
++def flatten_metadata(value, torch, path=(), seen=None):
++    """Snapshot comparison surface, excluding no fields and no tensor values.
++
++    Only dataclass metadata, dicts, sequences and scalar leaves are allowed.
++    NPU equality is done against the original NPU preparation, never CPU math.
++    """
++    if seen is None:
++        seen = set()
++    if isinstance(value, torch.Tensor):
++        return {path: value}
++    if value is None or isinstance(value, (str, int, float, bool, Enum)):
++        return {path: value}
++    if id(value) in seen:
++        return {}
++    seen.add(id(value))
++    if is_dataclass(value):
++        items = [(f.name, getattr(value, f.name)) for f in fields(value)]
++    elif isinstance(value, dict):
++        items = sorted(value.items())
++    elif isinstance(value, (list, tuple)):
++        items = list(enumerate(value))
++    else:
++        raise TypeError('unsupported metadata comparison leaf: '+type(value).__name__)
++    result = {}
++    for key, child in items:
++        result.update(flatten_metadata(child, torch, path+(key,), seen))
++    return result
++
++
++class NativeMTPMetadataPlan:
++    def __init__(self, runner, max_entries=4):
++        import importlib
++        import torch
++        from vllm.config.compilation import CUDAGraphMode
++        from vllm_ascend.spec_decode.multi_kv_cache_group_proposer import AscendMultiKVCacheGroupMTPProposer
++        d = runner.drafter
++        if type(d) is not AscendMultiKVCacheGroupMTPProposer:
++            raise ValueError('native metadata plan requires the fixed GLM multi-cache proposer')
++        for name, digest in PINS.items():
++            module = importlib.import_module(name)
++            if hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() != digest:
++                raise ValueError('native metadata plan source contract changed: '+name)
++        if (d.method != 'mtp' or d.num_speculative_tokens != 5 or not d.use_cuda_graph
++                or d.parallel_drafting or d.use_compress or d.uses_mrope
++                or d.dcp_size != 1 or getattr(runner, 'dcp_manager', None) is not None
++                or getattr(runner, 'sparse_kv_offload_enabled', False)
++                or d.sliding_window is not None or getattr(d, 'constant_draft_positions', False)):
++            raise ValueError('unsupported native metadata plan model/layout configuration')
++        self.primary = d._get_primary_draft_attn_group()
++        self.secondary = [g for g in d.draft_attn_groups if d._is_cache_only_draft_attn_group(g)]
++        builder = self.primary.get_metadata_builder()
++        self.cache_layout = [(g.kv_cache_group_id, type(g.get_metadata_builder()).__name__)
++                             for g in d.draft_attn_groups]
++        if (len(self.secondary) != 2
++                or not supported_cache_layout(self.primary.kv_cache_group_id, self.cache_layout)
++                or not builder.nope or builder.use_pcp):
++            raise ValueError('native plan requires NoPE SFA + pooled indexer + independent tail: '
++                             + repr(self.cache_layout))
++        self.torch, self.full = torch, CUDAGraphMode.FULL
++        self.runner, self.drafter = runner, d
++        self.entries, self.max_entries = {}, max_entries
++        self.counts = Counter()
++        self.stats_path = None
++        self.closed = False
++        self.previous_ids = None
++        self.allowed = False
++        self.active = None
++        self.originals = {}
++        for name in ('_propose', 'attn_update_stack_num_spec_norm',
++                     '_build_cache_only_group_next_step_attn_metadata'):
++            if name in d.__dict__:
++                raise ValueError('metadata method already has an instance owner: '+name)
++            self.originals[name] = getattr(d, name)
++        self.signature = inspect.signature(self.originals['_propose'])
++        owner = self
++
++        def propose(instance, *args, **kwargs):
++            if owner.active is not None:
++                raise RuntimeError('metadata plan scope leaked across propose calls')
++            values = owner.signature.bind(*args, **kwargs)
++            values.apply_defaults()
++            v = values.arguments
++            ids = tuple(runner.input_batch.req_ids)
++            desc = v['target_model_batch_desc']
++            # The pinned runner passes both DCP counters as zero when DCP
++            # is disabled. Use the actual native SDK batch's host prompt
++            # progress, not those optional DCP-only arguments.
++            n = len(ids)
++            prefill_done = bool((runner.input_batch.num_computed_tokens_cpu[:n]
++                                >= runner.input_batch.num_prompt_tokens[:n]).all())
++            owner.allowed = stable_decode_scope(
++                prefill_requests=0 if prefill_done else 1, decode_requests=n,
++                request_ids=ids, previous_request_ids=owner.previous_ids,
++                draft_width=v['num_speculative_tokens'], uniform=bool(desc.uniform))
++            owner.previous_ids = ids
++            owner.counts['propose_calls'] += 1
++            if not owner.allowed:
++                owner.counts['scope_fallback'] += 1
++            try:
++                return owner.originals['_propose'](*args, **kwargs)
++            finally:
++                if owner.active is not None and (owner.active['next_update'] != 5 or owner.active['next_cache'] != 5):
++                    owner.counts['incomplete_plan_consumptions'] += 1
++                owner.active = None
++                owner.allowed = False
++
++        def update(instance, draft_index, old_common_metadata, batch_size,
++                   input_batch_size, used_update_positions, aclgraph_runtime_mode,
++                   ori_seq_len=None, ori_seq_len_cpu=None, slot_indices=None,
++                   mtp_slot_mapping=None, attn_group=None):
++            extra = dict(ori_seq_len=ori_seq_len, ori_seq_len_cpu=ori_seq_len_cpu,
++                         slot_indices=slot_indices, mtp_slot_mapping=mtp_slot_mapping,
++                         attn_group=attn_group)
++            if draft_index == 1 and owner.allowed:
++                owner.active = owner.prepare(old_common_metadata, batch_size,
++                    input_batch_size, used_update_positions, aclgraph_runtime_mode, extra)
++            if owner.active is not None:
++                if draft_index != owner.active['next_update']:
++                    raise RuntimeError('unexpected metadata update order')
++                owner.active['next_update'] += 1
++                owner.counts['reused_primary_builds'] += 1
++                return owner.active['entry']['outputs'][draft_index-1][:2]
++            owner.counts['original_primary_builds'] += 1
++            return owner.originals['attn_update_stack_num_spec_norm'](
++                draft_index, old_common_metadata, batch_size, input_batch_size,
++                used_update_positions, aclgraph_runtime_mode, **extra)
++
++        def cache_only(instance, common, draft_index, num_input_tokens,
++                       primary_group, primary_metadata, cache_only_groups):
++            if owner.active is not None:
++                if (draft_index != owner.active['next_cache']
++                        or primary_group is not owner.primary
++                        or list(cache_only_groups) != owner.secondary):
++                    raise RuntimeError('unexpected metadata cache group/order')
++                owner.active['next_cache'] += 1
++                owner.counts['reused_cache_builds'] += 1
++                return owner.active['entry']['outputs'][draft_index-1][2]
++            owner.counts['original_cache_builds'] += 1
++            return owner.originals['_build_cache_only_group_next_step_attn_metadata'](
++                common, draft_index, num_input_tokens, primary_group, primary_metadata, cache_only_groups)
++
++        self.installed = {name: MethodType(fn, d) for name, fn in (
++            ('_propose', propose), ('attn_update_stack_num_spec_norm', update),
++            ('_build_cache_only_group_next_step_attn_metadata', cache_only))}
++        for name, method in self.installed.items():
++            setattr(d, name, method)
++
++    def _key(self, common, batch, width, positions, mode, extra):
++        t, d = self.torch, self.drafter
++        if (mode != self.full or t.npu.is_current_stream_capturing()
++                or extra['attn_group'] is not self.primary
++                or any(extra[k] is not None for k in ('ori_seq_len','ori_seq_len_cpu','slot_indices','mtp_slot_mapping'))
++                or not 0 < batch <= width or common.context_parallel_metadata is not None):
++            return None
++        # Only these tensors are read before the first later-step updater
++        # overwrites query starts and invalidates all CPU length mirrors.
++        tensors = (common.seq_lens, common.positions, common.block_table_tensor, positions)
++        if any(x.device.type != 'npu' or not x.is_contiguous() for x in tensors):
++            return None
++        if positions.ndim != 1 or positions.numel() != batch:
++            return None
++        if common.block_table_tensor.shape[0] < batch:
++            return None
++        # Secondary-group tables are runner-owned and refreshed upstream.
++        # Graphs bind their actual addresses, not the previous requests' IDs.
++        physical = []
++        for g in self.secondary:
++            table = self.runner.input_batch.block_table[g.kv_cache_group_id]
++            physical.append((g.kv_cache_group_id, table.get_device_tensor().data_ptr(),
++                             layout(table.get_device_tensor()), table.slot_mapping.gpu.data_ptr(),
++                             layout(table.slot_mapping.gpu)))
++        static = (batch, width, common.num_reqs, common.num_actual_tokens,
++                  common.num_input_tokens, common.max_query_len,
++                  common.decode_token_per_req, common.graph_pad_size, common.attn_state)
++        return static + tuple(layout(x) for x in tensors) + tuple(physical)
++
++    def _make_inputs(self, common, positions):
++        frozen = copy.copy(common)
++        for name in ('seq_lens', 'positions', 'block_table_tensor'):
++            setattr(frozen, name, getattr(common, name).clone())
++        # The pinned multi-group transition invalidates these itself. Clearing
++        # here additionally prevents retaining stale host views in the plan.
++        for name in ('seq_lens_cpu','_seq_lens_cpu','num_computed_tokens_cpu','_num_computed_tokens_cpu'):
++            setattr(frozen, name, None)
++        return frozen, positions.clone()
++
++    def _refresh(self, entry, common, positions):
++        frozen = entry['common']
++        for name in ('seq_lens', 'positions', 'block_table_tensor'):
++            getattr(frozen, name).copy_(getattr(common, name))
++        entry['positions'].copy_(positions)
++        frozen.max_seq_len = common.max_seq_len
++        # max_seq_len is only propagated by these pinned NoPE builders;
++        # it is not an input to their integer preparation operations.
++        for updated, primary, per_layer in entry['outputs']:
++            updated.max_seq_len = common.max_seq_len
++            primary.max_seq_len = common.max_seq_len
++            nope = getattr(primary, 'nope_metadata', None)
++            if nope is not None:
++                nope.max_seq_len = common.max_seq_len
++
++    def _build(self, frozen, batch, width, positions, mode):
++        result = []
++        for index in range(1, 5):
++            frozen, primary = self.originals['attn_update_stack_num_spec_norm'](
++                index, frozen, batch, width, positions, mode, attn_group=self.primary)
++            per_layer = self.originals['_build_cache_only_group_next_step_attn_metadata'](
++                frozen, index, width, self.primary, primary, self.secondary)
++            result.append((frozen, primary, per_layer))
++        return result
++
++    def _validate(self, entry, common, batch, width, positions, mode):
++        t = self.torch
++        # The comparison is integer metadata from NPU versus the original NPU
++        # implementation. It does not add any model forward or benchmark request.
++        actual = flatten_metadata([x[2] for x in entry['outputs']], t)
++        actual = {p: x.clone() if isinstance(x, t.Tensor) else x for p,x in actual.items()}
++        frozen, used = self._make_inputs(common, positions)
++        expected = self._build(frozen, batch, width, used, mode)
++        expected = flatten_metadata([x[2] for x in expected], t)
++        if actual.keys() != expected.keys():
++            raise RuntimeError('metadata plan output fields differ from the original')
++        for path, a in actual.items():
++            b = expected[path]
++            if isinstance(a, t.Tensor):
++                if not isinstance(b, t.Tensor) or a.shape != b.shape or a.dtype != b.dtype or not t.equal(a, b):
++                    raise RuntimeError('metadata plan NPU mismatch: '+repr(path))
++            elif a != b:
++                raise RuntimeError('metadata plan scalar mismatch: '+repr(path))
++        self.counts['validated_entries'] += 1
++        self.counts['validated_tensor_leaves'] += sum(isinstance(x,t.Tensor) for x in actual.values())
++        # Validation wrote shared persistent preparation buffers; restore them
++        # with exactly this entry before normal model execution consumes them.
++        self._refresh(entry, common, positions)
++        entry['graph'].replay()
++
++    def prepare(self, common, batch, width, positions, mode, extra):
++        key = self._key(common, batch, width, positions, mode, extra)
++        if key is None:
++            self.counts['layout_fallback'] += 1
++            return None
++        entry = self.entries.get(key)
++        if entry is None:
++            if len(self.entries) >= self.max_entries:
++                self.counts['capacity_fallback'] += 1
++                return None
++            frozen, used = self._make_inputs(common, positions)
++            graph = self.torch.npu.NPUGraph()
++            # No model/cache-state warmup or full-model capture. A capture
++            # exception is fatal; do not retry after uncertain device state.
++            with self.torch.npu.graph(graph):
++                outputs = self._build(frozen, batch, width, used, mode)
++            entry = {'common':frozen,'positions':used,'outputs':outputs,'graph':graph}
++            self._refresh(entry, common, positions)
++            graph.replay()
++            self._validate(entry, common, batch, width, positions, mode)
++            self.entries[key] = entry
++            self.counts['captures'] += 1
++            self.save()
++        else:
++            self._refresh(entry, common, positions)
++            entry['graph'].replay()
++            self.counts['replays'] += 1
++        return {'entry':entry,'next_update':1,'next_cache':1}
++
++    def snapshot(self):
++        return {'enabled':True,'closed':self.closed,'counts':dict(self.counts),
++                'entries':len(self.entries),'max_entries':self.max_entries,
++                'cache_layout':self.cache_layout,
++                'source_pins':PINS,
++                'scope':'native GLM later-four-step MTP metadata only;original target/first draft/model/sampling',
++                'hardware_validated':self.counts['validated_entries']>0,
++                'performance_accepted':False}
++
++    def save(self):
++        if self.stats_path is not None:
++            self.stats_path.write_text(json.dumps(self.snapshot())+'\n')
++
++    def close(self):
++        if self.closed:
++            return
++        for name, method in self.installed.items():
++            if getattr(self.drafter,name) is not method:
++                raise RuntimeError('native metadata plan lost method ownership')
++            delattr(self.drafter,name)
++        self.closed = True
++        self.save()
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+index 8ec2018..31a2062 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+@@ -89,6 +89,8 @@ class SDKComputeRuntime:
+             import json
+             self.native_mtp_logprob.close()
+             self.native_mtp_logprob_stats_path.write_text(json.dumps(self.native_mtp_logprob.snapshot()) + '\n')
++        if getattr(self, 'native_mtp_metadata_plan', None) is not None:
++            self.native_mtp_metadata_plan.close()
+         if getattr(self, "kda_capture", None) is not None:
+             import json
+             self.kda_capture.close()
+@@ -111,7 +113,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+                         mtp_tokens=0, mtp_indexed_loading=False,
+                         dsa_context_parallel=False, static_kernel=False, super_kernel=False,
+                         native_mtp_logprob_gather=False, mtp_draft_graph=False,
+-                        native_prefix_admission=False, prefill_mc2=False):
++                        native_prefix_admission=False, prefill_mc2=False, native_mtp_metadata_plan=False):
+     import torch
+     import os
+     import torch.distributed as dist
+@@ -388,4 +390,10 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+         from .native_mtp_logprob import NativeMTPLogprobGather
+         result.native_mtp_logprob = NativeMTPLogprobGather(worker.model_runner)
+         shared_profile['native_mtp_logprob_gather'] = result.native_mtp_logprob.snapshot()
++    if native_mtp_metadata_plan:
++        if not mtp_draft_graph or mtp_tokens != 5:
++            raise ValueError('native metadata plan requires five-step MTP draft graph')
++        from .native_mtp_metadata_plan import NativeMTPMetadataPlan
++        result.native_mtp_metadata_plan = NativeMTPMetadataPlan(worker.model_runner)
++        shared_profile['native_mtp_metadata_plan'] = result.native_mtp_metadata_plan.snapshot()
+     return result
+diff --git a/DeepInfer/examples/glm5_full_model_offline.py b/DeepInfer/examples/glm5_full_model_offline.py
+index 777900f..a2d47b8 100644
+--- a/DeepInfer/examples/glm5_full_model_offline.py
++++ b/DeepInfer/examples/glm5_full_model_offline.py
+@@ -59,6 +59,8 @@ def main():
+                    help='enable the same experimental SFA/DSA CP path as the reference SDK')
+     p.add_argument('--static-kernel', action='store_true')
+     p.add_argument('--super-kernel', action='store_true')
++    p.add_argument('--native-mtp-metadata-plan', action='store_true',
++                   help='experimental native GLM later-step MTP metadata preparation plan')
+     p.add_argument('--native-mtp-logprob-gather', action='store_true',
+                    help='reuse original raw rows for native sampled-token probabilities;sampling unchanged')
+     p.add_argument('--mtp-tokens', type=int, choices=(0, 1, 5), default=0,
+@@ -182,11 +184,15 @@ def main():
+                 static_kernel=a.static_kernel, super_kernel=a.super_kernel,
+                 native_mtp_logprob_gather=a.native_mtp_logprob_gather,
+                 mtp_draft_graph=a.mtp_draft_graph,
+-                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2)
++                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2,
++                native_mtp_metadata_plan=a.native_mtp_metadata_plan)
+             runtime.kda_capture_stats_path = out / "kda-capture.json"
+             if getattr(runtime, 'native_mtp_logprob', None) is not None:
+                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
+                 runtime.native_mtp_logprob.stats_path = runtime.native_mtp_logprob_stats_path
++            if getattr(runtime, 'native_mtp_metadata_plan', None) is not None:
++                runtime.native_mtp_metadata_plan.stats_path = out / 'native-mtp-metadata-plan.json'
++                runtime.native_mtp_metadata_plan.save()
+             runtime.install(self)
+             model = runtime.compute_worker.get_model()
+             (out / 'loaded.json').write_text(json.dumps({'rank': a.rank,
+diff --git a/DeepInfer/tests/ascend/test_native_mtp_metadata_plan.py b/DeepInfer/tests/ascend/test_native_mtp_metadata_plan.py
+new file mode 100644
+index 0000000..1e31421
+--- /dev/null
++++ b/DeepInfer/tests/ascend/test_native_mtp_metadata_plan.py
+@@ -0,0 +1,62 @@
++"""Host-only metadata contract checks; no client-side model or NPU simulation."""
++import importlib.util
++from pathlib import Path
++import unittest
++from dataclasses import dataclass
++
++P = Path(__file__).resolve().parents[2] / 'deepinfer/model_executor/models/glm5_next/full_model/native_mtp_metadata_plan.py'
++spec = importlib.util.spec_from_file_location('metadata_plan', P)
++module = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(module)
++
++
++class AdmissionTests(unittest.TestCase):
++    def base(self, **changes):
++        v=dict(prefill_requests=0, decode_requests=4, request_ids=('a','b','c','d'),
++               previous_request_ids=('a','b','c','d'), draft_width=5, uniform=True)
++        v.update(changes)
++        return module.stable_decode_scope(**v)
++
++    def test_unchanged_decode_admitted(self):
++        self.assertTrue(self.base())
++
++    def test_equal_batch_size_does_not_allow_replacement_or_reordering(self):
++        for ids in [('x','b','c','d'), ('b','a','c','d')]:
++            with self.subTest(ids=ids): self.assertFalse(self.base(request_ids=ids))
++
++    def test_prefill_partial_graph_and_width_change_fall_back(self):
++        for fields in [dict(prefill_requests=1), dict(uniform=False), dict(draft_width=1),
++                       dict(decode_requests=3),dict(previous_request_ids=None)]:
++            with self.subTest(fields=fields): self.assertFalse(self.base(**fields))
++
++    def test_metadata_comparison_keeps_nested_fields_and_rejects_unknown_objects(self):
++        class T:
++            class Tensor: pass
++        @dataclass
++        class Meta:
++            position: object
++            nested: object
++        tensor=T.Tensor()
++        value=Meta(tensor, {'slot':tensor,'length':7})
++        out=module.flatten_metadata(value,T)
++        self.assertEqual(set(out),{('position',),('nested','slot'),('nested','length')})
++        self.assertIs(out[('nested','slot')],tensor)
++        with self.assertRaises(TypeError): module.flatten_metadata(Meta(tensor,object()),T)
++
++    def test_three_backends_in_two_physical_groups_are_supported(self):
++        actual_layout = [(0, 'AscendSFADSACPMetadataBuilder'),
++                         (0, 'AscendIndexerKPoolMetadataBuilder'),
++                         (1, 'AscendIndexerKPoolTailMetadataBuilder')]
++        self.assertTrue(module.supported_cache_layout(0, actual_layout))
++        self.assertTrue(module.supported_cache_layout(0, list(reversed(actual_layout))))
++
++    def test_missing_or_aliased_tail_is_not_a_supported_layout(self):
++        main = [(0, 'AscendSFADSACPMetadataBuilder'),
++                (0, 'AscendIndexerKPoolMetadataBuilder')]
++        for groups in [main, main+[(0, 'AscendIndexerKPoolTailMetadataBuilder')],
++                       main+[(1, 'AscendIndexerKPoolMetadataBuilder')],
++                       main+[(1, 'UnknownMetadataBuilder')]]:
++            with self.subTest(groups=groups):
++                self.assertFalse(module.supported_cache_layout(0, groups))
++
++if __name__=='__main__': unittest.main()
