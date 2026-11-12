@@ -1,0 +1,346 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py
+new file mode 100644
+index 0000000..c323a1d
+--- /dev/null
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py
+@@ -0,0 +1,267 @@
++"""Bounded, lazy prefill capture over the unchanged GLM SDK computation.
++
++Experimental and disabled by default. CPU descriptors are part of the graph
++key; device metadata is copied into graph-owned storage. Capture has no warmup
++forward and is followed by exactly one replay. Outputs are cloned before they
++can be retained by asynchronous sampling/MTP. Capture failure is fatal: never
++silently run the same stateful request again after an uncertain failure.
++"""
++from collections import Counter
++from dataclasses import is_dataclass
++from enum import Enum
++import copy
++
++
++class UnsupportedMetadata(ValueError):
++    pass
++
++
++class MetadataPacket:
++    """Describe alias structure, CPU constants and device tensor slots.
++
++    Walking this packet never reads device tensor contents. Metadata object
++    types outside the pinned SDK dataclasses are rejected before capture.
++    """
++
++    def __init__(self, value, torch):
++        self.torch = torch
++        self.devices = []
++        self.memo = {}
++        self.value = value
++        self.key = self._describe(value)
++
++    def _describe(self, value):
++        if value is None or type(value) in (bool, int, float, str):
++            return (type(value).__name__, value)
++        if isinstance(value, Enum):
++            return ('enum', type(value).__module__, type(value).__qualname__, value.name)
++        if isinstance(value, self.torch.Tensor):
++            if id(value) in self.memo:
++                return ('ref', self.memo[id(value)])
++            self.memo[id(value)] = len(self.memo)
++            layout = (tuple(value.shape), tuple(value.stride()), str(value.dtype))
++            if value.device.type == 'cpu':
++                if value.numel() > 65536:
++                    raise UnsupportedMetadata('oversized CPU descriptor')
++                return ('cpu_tensor', layout, tuple(value.reshape(-1).tolist()))
++            if value.device.type != 'npu':
++                raise UnsupportedMetadata('non-NPU device descriptor')
++            self.devices.append(value)
++            return ('device_tensor', layout, len(self.devices) - 1)
++        if isinstance(value, (dict, list, tuple)) or is_dataclass(value):
++            if id(value) in self.memo:
++                return ('ref', self.memo[id(value)])
++            self.memo[id(value)] = len(self.memo)
++            if isinstance(value, dict):
++                if not all(isinstance(k, (str, int)) for k in value):
++                    raise UnsupportedMetadata('unsupported dictionary key')
++                return ('dict', tuple((k, self._describe(v)) for k, v in value.items()))
++            if isinstance(value, (list, tuple)):
++                if type(value) not in (list, tuple):
++                    raise UnsupportedMetadata('namedtuple metadata requires explicit support')
++                return (type(value).__name__, tuple(self._describe(v) for v in value))
++            if not type(value).__module__.startswith(('vllm.', 'vllm_ascend.')):
++                raise UnsupportedMetadata('unknown dataclass source')
++            return ('dataclass', type(value).__module__, type(value).__qualname__,
++                    tuple((k, self._describe(v)) for k, v in vars(value).items()))
++        raise UnsupportedMetadata('unsupported metadata type: ' + type(value).__qualname__)
++
++    def freeze(self):
++        memo, device_copies = {}, []
++
++        def clone(value):
++            if value is None or type(value) in (bool, int, float, str) or isinstance(value, Enum):
++                return value
++            if id(value) in memo:
++                return memo[id(value)]
++            if isinstance(value, self.torch.Tensor):
++                out = value.clone()
++                if tuple(out.stride()) != tuple(value.stride()):
++                    raise UnsupportedMetadata('clone changes metadata tensor strides')
++                memo[id(value)] = out
++                if value.device.type == 'npu':
++                    device_copies.append(out)
++                return out
++            if isinstance(value, dict):
++                out = {}; memo[id(value)] = out
++                out.update((k, clone(v)) for k, v in value.items())
++                return out
++            if type(value) is list:
++                out = []; memo[id(value)] = out
++                out.extend(clone(v) for v in value)
++                return out
++            if type(value) is tuple:
++                out = tuple(clone(v) for v in value); memo[id(value)] = out
++                return out
++            if is_dataclass(value):
++                out = copy.copy(value); memo[id(value)] = out
++                for k, v in vars(value).items():
++                    object.__setattr__(out, k, clone(v))
++                return out
++            raise UnsupportedMetadata(type(value).__qualname__)
++
++        frozen = clone(self.value)
++        if len(device_copies) != len(self.devices):
++            raise RuntimeError('metadata tensor alias accounting mismatch')
++        return frozen, device_copies
++
++
++class NativePrefillGraph:
++    """One fixed-signature prefill policy; preserves all existing decode paths."""
++
++    _context_fields = (
++        'attn_metadata', 'mc2_mask', 'dp_metadata', 'num_tokens',
++        'max_tokens_across_dp', 'max_tokens_across_pcp', 'padded_length',
++        'padded_num_tokens', 'mmrs_fusion', 'sinks', 'use_mega_moe',
++        'is_decode_only_node', 'is_draft_model', 'is_draft_model_prefill',
++        'is_first_layer', 'layer_idx', 'prefetch_mlp_gate_up_proj',
++        'prefetch_mlp_down_proj', 'eplb_heat_collection_status',
++    )
++    _post_fields = ('is_first_layer', 'layer_idx', 'prefetch_mlp_gate_up_proj', 'prefetch_mlp_down_proj')
++
++    def __init__(self, runner, config, max_entries=16):
++        import torch
++        from vllm_ascend.ascend_config import get_ascend_config
++        asc = get_ascend_config()
++        if (config.parallel_config.data_parallel_size != 1
++                or config.parallel_config.pipeline_parallel_size != 1
++                or config.kv_transfer_config is not None
++                or not asc.enable_prefill_mc2):
++            raise ValueError('prefill graph requires resident DP1/PP1 with shared MC2')
++        if getattr(runner, 'dynamic_eplb', False) or getattr(runner, 'enable_enpu', False):
++            raise ValueError('dynamic EPLB/ENPU execution is outside this capture contract')
++        if callable(getattr(runner.model, 'prepare_engram_inputs', None)):
++            raise ValueError('Engram host preparation is outside this capture contract')
++        if not 1 <= max_entries <= 16:
++            raise ValueError('bounded graph cache required')
++        self.torch, self.runner = torch, runner
++        self.original = runner._model_forward
++        self.entries, self.counts = {}, Counter()
++        self.max_entries = max_entries
++        self.pool = torch.npu.graph_pool_handle()
++        self.super_kernel = asc.ascend_compilation_config.enable_super_kernel
++        self.stats_path = None
++        self.closed = False
++        self.dispatch = self._forward
++        runner._model_forward = self.dispatch
++
++    def _clone_output(self, value):
++        if isinstance(value, self.torch.Tensor):
++            return value.clone()
++        if isinstance(value, tuple):
++            return tuple(self._clone_output(v) for v in value)
++        if isinstance(value, list):
++            return [self._clone_output(v) for v in value]
++        raise RuntimeError('unsupported graph output ownership')
++
++    def _forward(self, *args, **kwargs):
++        from vllm.forward_context import get_forward_context
++        from vllm.config.compilation import CUDAGraphMode
++        from vllm_ascend.ascend_forward_context import MoECommType
++        context = get_forward_context()
++        metadata = context.attn_metadata
++        eligible = (not self.closed and not getattr(context, 'in_profile_run', False)
++            and not getattr(context, 'is_draft_model', False)
++            and context.cudagraph_runtime_mode == CUDAGraphMode.NONE
++            and context.moe_comm_type == MoECommType.MC2
++            and isinstance(metadata, dict)
++            and any(getattr(m, 'num_prefills', 0) > 0 for m in metadata.values()))
++        if not eligible:
++            self.counts['ineligible_eager'] += 1
++            return self.original(*args, **kwargs)
++        # The fixed host-metadata path does not need a producer executor.
++        # Copying its buffers before an asynchronous producer's stage wait
++        # would snapshot stale values; capturing ordinary Event waits is not
++        # a substitute for a replay-aware producer protocol. Do not alter
++        # that protocol or insert a global barrier to force this experiment.
++        if getattr(context, 'device_metadata_executor', None) is not None:
++            self.counts['producer_executor_fallback'] += 1
++            return self.original(*args, **kwargs)
++        if getattr(context, 'draft_attn_metadatas', None) is not None:
++            self.counts['draft_metadata_fallback'] += 1
++            return self.original(*args, **kwargs)
++        current = {k: getattr(context, k) for k in self._context_fields if hasattr(context, k)}
++        try:
++            packet = MetadataPacket({'args':args, 'kwargs':kwargs, 'context':current}, self.torch)
++        except UnsupportedMetadata as exc:
++            self.counts['metadata_fallback'] += 1
++            self.counts['fallback:' + str(exc)] += 1
++            return self.original(*args, **kwargs)
++        entry = self.entries.get(packet.key)
++        if entry is None and len(self.entries) >= self.max_entries:
++            self.counts['capacity_fallback'] += 1
++            return self.original(*args, **kwargs)
++        if entry is None:
++            try:
++                frozen, destinations = packet.freeze()
++            except UnsupportedMetadata as exc:
++                # Metadata-only copies have not submitted a model forward.
++                self.counts['metadata_fallback'] += 1
++                self.counts['fallback:' + str(exc)] += 1
++                return self.original(*args, **kwargs)
++        capturing = getattr(context, 'capturing', False)
++        self.counts['eligible_calls'] += 1
++        try:
++            if entry is None:
++                graph = self.torch.npu.NPUGraph()
++                for k, v in frozen['context'].items():
++                    setattr(context, k, v)
++                context.capturing = True
++                # No warmup on live cache/state. CANN capture records work;
++                # the single replay below performs this request's update.
++                with self.torch.npu.graph(graph, pool=self.pool):
++                    from vllm_ascend.utils import super_kernel_scope
++                    with super_kernel_scope('full_model', self.super_kernel):
++                        output = self.original(*frozen['args'], **frozen['kwargs'])
++                if self.super_kernel:
++                    graph.super_kernel_optimize(optimize_options={'dcci_after_kernel_end':['.*']})
++                post = {k:getattr(context,k) for k in self._post_fields if hasattr(context,k)}
++                entry = {'graph':graph,'frozen':frozen,'destinations':destinations,'output':output,'post':post}
++                self.entries[packet.key] = entry
++                self.counts['captures'] += 1
++            else:
++                for target, source in zip(entry['destinations'], packet.devices, strict=True):
++                    target.copy_(source, non_blocking=True)
++                self.counts['replay_hits'] += 1
++            entry['graph'].replay()
++            self.counts['executions'] += 1
++            # The SDK retains hidden states for deferred sampling and MTP.
++            # Never hand those consumers the reusable graph output buffer.
++            output = self._clone_output(entry['output'])
++            for k, v in entry['post'].items():
++                setattr(context, k, v)
++            return output
++        except Exception:
++            self.counts['fatal_errors'] += 1
++            self.save()
++            raise
++        finally:
++            for k, v in current.items():
++                if k not in self._post_fields:
++                    setattr(context, k, v)
++            context.capturing = capturing
++            executor = getattr(context, 'device_metadata_executor', None)
++            if executor is not None and executor.submission_in_flight:
++                executor.release()
++
++    def snapshot(self):
++        return {'enabled':True,'closed':self.closed,'entries':len(self.entries),
++            'max_entries':self.max_entries,'counts':dict(self.counts),
++            'scope':'experimental native prefill signature replay;not NPU or performance acceptance',
++            'live_state_warmups':0,'output_ownership':'clone after one replay'}
++
++    def close(self):
++        if self.closed:
++            return
++        if self.runner._model_forward is not self.dispatch:
++            raise RuntimeError('prefill graph dispatch ownership changed')
++        self.runner._model_forward = self.original
++        self.closed = True
++        self.save()
++
++    def save(self):
++        if self.stats_path is not None:
++            import json
++            temporary = self.stats_path.with_suffix('.tmp')
++            temporary.write_text(json.dumps(self.snapshot()) + '\n')
++            temporary.replace(self.stats_path)
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+index 8ec2018..30161d5 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+@@ -85,6 +85,8 @@ class SDKComputeRuntime:
+         import torch
+         get_offloader().join_after_forward()
+         torch.npu.synchronize(self.compute_worker.device)
++        if getattr(self, 'native_prefill_graph', None) is not None:
++            self.native_prefill_graph.close()
+         if getattr(self, 'native_mtp_logprob', None) is not None:
+             import json
+             self.native_mtp_logprob.close()
+@@ -111,7 +113,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+                         mtp_tokens=0, mtp_indexed_loading=False,
+                         dsa_context_parallel=False, static_kernel=False, super_kernel=False,
+                         native_mtp_logprob_gather=False, mtp_draft_graph=False,
+-                        native_prefix_admission=False, prefill_mc2=False):
++                        native_prefix_admission=False, prefill_mc2=False,
++                        native_prefill_graph=False):
+     import torch
+     import os
+     import torch.distributed as dist
+@@ -382,6 +385,13 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+     result.request_block_hasher = request_block_hasher
+     result.native_prefix_admission = native_prefix_admission
+     shared_profile['native_prefix_admission'] = native_prefix_admission
++    if native_prefill_graph:
++        if not (prefill_mc2 and graph_decode and async_scheduling and mtp_tokens == 5
++                and len(ranks) == 8 and not breakable_graph):
++            raise ValueError('native prefill graph requires the fixed TP8/MC2/async/MTP5 baseline')
++        from .native_prefill_graph import NativePrefillGraph
++        result.native_prefill_graph = NativePrefillGraph(worker.model_runner, config)
++        shared_profile['native_prefill_graph'] = result.native_prefill_graph.snapshot()
+     if native_mtp_logprob_gather:
+         if not mtp_tokens:
+             raise ValueError('native MTP logprob gather requires speculative decoding')
+diff --git a/DeepInfer/examples/glm5_full_model_offline.py b/DeepInfer/examples/glm5_full_model_offline.py
+index 777900f..cc5d0ad 100644
+--- a/DeepInfer/examples/glm5_full_model_offline.py
++++ b/DeepInfer/examples/glm5_full_model_offline.py
+@@ -71,6 +71,8 @@ def main():
+                    help='pin real SDK cache hits before native scheduler token-budget admission')
+     p.add_argument('--prefill-mc2', action='store_true',
+                    help='enable the shared Ascend SDK prefill MC2 communication path')
++    p.add_argument('--native-prefill-graph', action='store_true',
++                   help='experimental bounded prefill signature replay;disabled by default')
+     a = p.parse_args()
+     if a.breakable_graph and not a.graph_decode:
+         p.error('breakable graph requires explicit graph-decode')
+@@ -95,6 +97,9 @@ def main():
+         p.error('native prefix admission requires prefix caching')
+     if a.native_mtp_logprob_gather and not a.mtp_tokens:
+         p.error('native MTP logprob gather requires MTP')
++    if a.native_prefill_graph and (not a.prefill_mc2 or not a.graph_decode
++            or a.breakable_graph or a.mtp_tokens != 5 or not a.async_scheduling):
++        p.error('native prefill graph requires shared MC2 and the fixed async MTP5 FULL-decode baseline')
+     if a.super_kernel and not a.static_kernel:
+         p.error('super kernel requires static kernel')
+     if (a.static_kernel or a.super_kernel) and (not a.graph_decode or a.breakable_graph):
+@@ -182,8 +187,11 @@ def main():
+                 static_kernel=a.static_kernel, super_kernel=a.super_kernel,
+                 native_mtp_logprob_gather=a.native_mtp_logprob_gather,
+                 mtp_draft_graph=a.mtp_draft_graph,
+-                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2)
++                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2,
++                native_prefill_graph=a.native_prefill_graph)
+             runtime.kda_capture_stats_path = out / "kda-capture.json"
++            if getattr(runtime, 'native_prefill_graph', None) is not None:
++                runtime.native_prefill_graph.stats_path = out / 'native-prefill-graph.json'
+             if getattr(runtime, 'native_mtp_logprob', None) is not None:
+                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
+                 runtime.native_mtp_logprob.stats_path = runtime.native_mtp_logprob_stats_path
