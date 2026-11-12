@@ -8,23 +8,78 @@
     "shared tensor references survive freeze and produce one copy",
     "dynamic dataclass fields participate in the key",
     "unknown object type rejected before capture",
-    "changed metadata strides rejected before model capture"
+    "changed metadata strides rejected before model capture",
+    "all eight capture the same graph creation index",
+    "all eight replay the corresponding graph",
+    "one unsupported rank makes every rank eager",
+    "mixed capture and replay cannot execute different communication phases",
+    "different cached graph indices cannot replay together",
+    "one capture/preflight failure rejects replay on all ranks",
+    "every pinned ForwardContext base and Ascend-added field has an explicit policy",
+    "slot mapping and padding tensors are frozen metadata, not ignored fields"
   ],
   "source_sha256": {
-    "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py": "ee2cf04d1ce98b5bae50accccdfbe0022692e7a5795f91bc4d960b95eda1e30a",
+    "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py": "7af31eb0729264755ed87e4e7f5f0931c1d01076a44aabb3582e3010cea62d87",
     "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py": "9a571a3c581a244df76eed30c66aabbe1767e12d07f673bf16e4c0f2dc90f4e8",
     "DeepInfer/examples/glm5_full_model_offline.py": "91a919bceaec62a8e6b7c7c4350d6cf874f0f2c5b9a25fd6ea34ea92ccdff796"
   },
   "model_or_NPU_execution": false,
   "hardware_capture_accepted": false,
   "performance_accepted": false,
-  "unresolved_release_gates": [
-    "complete forward-context field audit",
-    "persistent cache/weight address and first-use initialization contract",
-    "all-rank capture/fallback agreement",
-    "shared MC2 native baseline and cost gate"
+  "reviewed_context_fields": [
+    "additional_kwargs",
+    "all_moe_layers",
+    "attn_metadata",
+    "batch_descriptor",
+    "capturing",
+    "cudagraph_runtime_mode",
+    "device_metadata_executor",
+    "dp_metadata",
+    "draft_attn_metadatas",
+    "draft_moe_quant_type",
+    "eplb_heat_collection_status",
+    "in_profile_run",
+    "is_decode_only_node",
+    "is_draft_model",
+    "is_draft_model_prefill",
+    "is_first_layer",
+    "is_padding",
+    "layer_idx",
+    "max_tokens_across_dp",
+    "max_tokens_across_pcp",
+    "mc2_mask",
+    "mmrs_fusion",
+    "model_instance",
+    "moe_comm_method",
+    "moe_comm_type",
+    "moe_layer_index",
+    "no_compile_layers",
+    "num_tokens",
+    "padded_length",
+    "padded_num_tokens",
+    "prefetch_mlp_down_proj",
+    "prefetch_mlp_gate_up_proj",
+    "sinks",
+    "skip_compiled",
+    "slot_mapping",
+    "ubatch_slices",
+    "use_mega_moe"
   ],
-  "source_commit": "d3c5b7cb14f15e6fda6c65395d5e865bb8b9c6e5",
+  "context_source_sha256": {
+    "forward_context.py": "cc1473477dcc7b762c3901b25cc7bf35c06a2c42f193136fed553abf6fe33f0e",
+    "ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb"
+  },
+  "source_guards": [
+    "complete context field allowlist with unknown-field fallback",
+    "persistent parameter/buffer/KV/merged-conv addresses and layouts checked without copying",
+    "lazy conv initialization stays eager;no extra unscored warmup",
+    "Gloo all-rank action/graph-ID vote;capture errors voted before replay"
+  ],
+  "unresolved_release_gates": [
+    "shared MC2 native baseline and cost gate",
+    "hardware engineering:graph capture/state/metadata/collective agreement and overhead"
+  ],
+  "source_commit": "a907c5b6644b076b13777e4a8cdda635b1c47b0e",
   "hardware_release": false,
   "patch": "native-prefill-signature-draft.patch"
 }

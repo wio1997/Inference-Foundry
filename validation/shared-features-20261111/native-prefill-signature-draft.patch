@@ -1,9 +1,9 @@
 diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py
 new file mode 100644
-index 0000000..c323a1d
+index 0000000..9700986
 --- /dev/null
 +++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_graph.py
-@@ -0,0 +1,267 @@
+@@ -0,0 +1,371 @@
 +"""Bounded, lazy prefill capture over the unchanged GLM SDK computation.
 +
 +Experimental and disabled by default. CPU descriptors are part of the graph
@@ -16,10 +16,27 @@ index 0000000..c323a1d
 +from dataclasses import is_dataclass
 +from enum import Enum
 +import copy
++import time
 +
 +
 +class UnsupportedMetadata(ValueError):
 +    pass
++
++
++def decide_rank_actions(votes):
++    """0=eager, 1=capture, 2=replay, 3=fatal; graph IDs are creation order.
++
++    Rank-local metadata keys may differ under CP. A graph may only be used
++    when every rank has the same action and corresponding creation-order ID.
++    """
++    if not votes or any(len(v) != 2 or v[0] not in (0, 1, 2, 3) for v in votes):
++        raise ValueError('invalid graph control votes')
++    if any(v[0] == 3 for v in votes):
++        raise RuntimeError('prefill graph preflight/capture failed on at least one rank')
++    if any(v[0] == 0 for v in votes):
++        return 0
++    first = tuple(votes[0])
++    return first[0] if all(tuple(v) == first for v in votes) else 0
 +
 +
 +class MetadataPacket:
@@ -116,17 +133,24 @@ index 0000000..c323a1d
 +    """One fixed-signature prefill policy; preserves all existing decode paths."""
 +
 +    _context_fields = (
-+        'attn_metadata', 'mc2_mask', 'dp_metadata', 'num_tokens',
++        'attn_metadata', 'slot_mapping', 'is_padding', 'mc2_mask', 'dp_metadata', 'num_tokens',
++        'batch_descriptor', 'ubatch_slices', 'skip_compiled', 'additional_kwargs',
++        'all_moe_layers', 'moe_layer_index', 'draft_moe_quant_type',
 +        'max_tokens_across_dp', 'max_tokens_across_pcp', 'padded_length',
 +        'padded_num_tokens', 'mmrs_fusion', 'sinks', 'use_mega_moe',
 +        'is_decode_only_node', 'is_draft_model', 'is_draft_model_prefill',
 +        'is_first_layer', 'layer_idx', 'prefetch_mlp_gate_up_proj',
 +        'prefetch_mlp_down_proj', 'eplb_heat_collection_status',
 +    )
-+    _post_fields = ('is_first_layer', 'layer_idx', 'prefetch_mlp_gate_up_proj', 'prefetch_mlp_down_proj')
++    _post_fields = ('is_first_layer', 'layer_idx', 'moe_layer_index',
++                    'prefetch_mlp_gate_up_proj', 'prefetch_mlp_down_proj')
++    _control_fields = ('cudagraph_runtime_mode', 'moe_comm_type', 'capturing',
++                       'in_profile_run', 'device_metadata_executor', 'draft_attn_metadatas')
++    _fixed_fields = ('no_compile_layers', 'model_instance', 'moe_comm_method')
 +
 +    def __init__(self, runner, config, max_entries=16):
 +        import torch
++        import torch.distributed as dist
 +        from vllm_ascend.ascend_config import get_ascend_config
 +        asc = get_ascend_config()
 +        if (config.parallel_config.data_parallel_size != 1
@@ -140,7 +164,14 @@ index 0000000..c323a1d
 +            raise ValueError('Engram host preparation is outside this capture contract')
 +        if not 1 <= max_entries <= 16:
 +            raise ValueError('bounded graph cache required')
++        if dist.get_world_size() != 8 or dist.get_backend(dist.group.WORLD) != 'gloo':
++            raise ValueError('use the existing eight-rank native Gloo control group')
 +        self.torch, self.runner = torch, runner
++        self.dist, self.control_group = dist, dist.group.WORLD
++        self.vote_input = torch.empty(2, dtype=torch.int64, device='cpu')
++        self.vote_outputs = [torch.empty_like(self.vote_input) for _ in range(8)]
++        self.fixed_context_ids = None
++        self.persistent_signature = None
 +        self.original = runner._model_forward
 +        self.entries, self.counts = {}, Counter()
 +        self.max_entries = max_entries
@@ -150,6 +181,73 @@ index 0000000..c323a1d
 +        self.closed = False
 +        self.dispatch = self._forward
 +        runner._model_forward = self.dispatch
++
++    def _agree(self, action, graph_id):
++        self.vote_input[0], self.vote_input[1] = action, graph_id
++        started = time.perf_counter()
++        self.dist.all_gather(self.vote_outputs, self.vote_input, group=self.control_group)
++        self.counts['host_control_seconds'] += time.perf_counter() - started
++        self.counts['host_control_collectives'] += 1
++        return decide_rank_actions([v.tolist() for v in self.vote_outputs])
++
++    def _persistent_state(self):
++        """Address/layout checks only: never copy weights, KV or states."""
++        rows = []
++
++        def describe(name, value):
++            if isinstance(value, self.torch.Tensor):
++                rows.append((name, value.data_ptr(), tuple(value.shape), tuple(value.stride()),
++                             str(value.dtype), str(value.device)))
++            elif isinstance(value, dict):
++                for k, v in value.items():
++                    describe(name + '.' + str(k), v)
++            elif isinstance(value, (list, tuple)):
++                for i, v in enumerate(value):
++                    describe(name + '.' + str(i), v)
++            elif value is not None:
++                raise UnsupportedMetadata('unknown persistent cache storage')
++
++        for name, tensor in self.runner.model.named_parameters():
++            describe('weight.' + name, tensor)
++        for name, tensor in self.runner.model.named_buffers():
++            describe('buffer.' + name, tensor)
++        describe('kv', self.runner.kv_caches)
++        for name, submodule in self.runner.model.named_modules():
++            if hasattr(submodule, '_merged_conv_weight'):
++                if submodule._merged_conv_weight is None:
++                    raise UnsupportedMetadata('lazy convolution weight not initialized')
++                describe('merged_conv.' + name, submodule._merged_conv_weight)
++        return tuple(rows)
++
++    def _prepare(self, context, args, kwargs):
++        from vllm_ascend.ascend_forward_context import MoECommType
++        metadata = context.attn_metadata
++        if (context.moe_comm_type != MoECommType.MC2 or not isinstance(metadata, dict)
++                or not any(getattr(m, 'num_prefills', 0) > 0 for m in metadata.values())):
++            raise UnsupportedMetadata('not MC2 prefill')
++        known = set(self._context_fields + self._control_fields + self._fixed_fields)
++        unknown = set(vars(context)) - known
++        if unknown:
++            raise UnsupportedMetadata('unreviewed forward context fields: ' + ','.join(sorted(unknown)))
++        # A separate producer's buffers cannot be snapshotted before its waits.
++        if getattr(context, 'device_metadata_executor', None) is not None:
++            raise UnsupportedMetadata('asynchronous metadata producer')
++        if getattr(context, 'draft_attn_metadatas', None) is not None:
++            raise UnsupportedMetadata('draft metadata attached to target')
++        fixed = tuple((k, id(getattr(context, k, None))) for k in self._fixed_fields)
++        persistent = self._persistent_state()
++        if self.entries and (fixed != self.fixed_context_ids or persistent != self.persistent_signature):
++            raise RuntimeError('model/context/cache address contract changed after capture')
++        self.fixed_context_ids, self.persistent_signature = fixed, persistent
++        current = {k: getattr(context, k) for k in self._context_fields if hasattr(context, k)}
++        packet = MetadataPacket({'args': args, 'kwargs': kwargs, 'context': current}, self.torch)
++        entry = self.entries.get(packet.key)
++        if entry is not None:
++            return current, packet, entry, None, None
++        if len(self.entries) >= self.max_entries:
++            raise UnsupportedMetadata('graph capacity reached')
++        frozen, destinations = packet.freeze()
++        return current, packet, None, frozen, destinations
 +
 +    def _clone_output(self, value):
 +        if isinstance(value, self.torch.Tensor):
@@ -163,66 +261,70 @@ index 0000000..c323a1d
 +    def _forward(self, *args, **kwargs):
 +        from vllm.forward_context import get_forward_context
 +        from vllm.config.compilation import CUDAGraphMode
-+        from vllm_ascend.ascend_forward_context import MoECommType
 +        context = get_forward_context()
-+        metadata = context.attn_metadata
-+        eligible = (not self.closed and not getattr(context, 'in_profile_run', False)
-+            and not getattr(context, 'is_draft_model', False)
-+            and context.cudagraph_runtime_mode == CUDAGraphMode.NONE
-+            and context.moe_comm_type == MoECommType.MC2
-+            and isinstance(metadata, dict)
-+            and any(getattr(m, 'num_prefills', 0) > 0 for m in metadata.values()))
-+        if not eligible:
++        # All target eager forwards take the same control exchange. A
++        # rank-local metadata failure must never let one rank skip the vote.
++        # Existing FULL decode and the draft runner do not enter this hook.
++        if (self.closed or getattr(context, 'in_profile_run', False)
++                or getattr(context, 'is_draft_model', False)
++                or context.cudagraph_runtime_mode != CUDAGraphMode.NONE):
 +            self.counts['ineligible_eager'] += 1
 +            return self.original(*args, **kwargs)
-+        # The fixed host-metadata path does not need a producer executor.
-+        # Copying its buffers before an asynchronous producer's stage wait
-+        # would snapshot stale values; capturing ordinary Event waits is not
-+        # a substitute for a replay-aware producer protocol. Do not alter
-+        # that protocol or insert a global barrier to force this experiment.
-+        if getattr(context, 'device_metadata_executor', None) is not None:
-+            self.counts['producer_executor_fallback'] += 1
-+            return self.original(*args, **kwargs)
-+        if getattr(context, 'draft_attn_metadatas', None) is not None:
-+            self.counts['draft_metadata_fallback'] += 1
-+            return self.original(*args, **kwargs)
-+        current = {k: getattr(context, k) for k in self._context_fields if hasattr(context, k)}
++        error = None
++        action, graph_id = 0, -1
++        preflight_started = time.perf_counter()
 +        try:
-+            packet = MetadataPacket({'args':args, 'kwargs':kwargs, 'context':current}, self.torch)
++            current, packet, entry, frozen, destinations = self._prepare(context, args, kwargs)
++            action, graph_id = (1, len(self.entries)) if entry is None else (2, entry['graph_id'])
 +        except UnsupportedMetadata as exc:
 +            self.counts['metadata_fallback'] += 1
 +            self.counts['fallback:' + str(exc)] += 1
++        except Exception as exc:
++            action, error = 3, exc
++        self.counts['host_preflight_seconds'] += time.perf_counter() - preflight_started
++        try:
++            decision = self._agree(action, graph_id)
++        except Exception:
++            self.counts['fatal_errors'] += 1
++            self.save()
++            if error is not None:
++                raise RuntimeError('local graph preflight failed') from error
++            raise
++        if decision == 0:
++            self.counts['coordinated_eager'] += 1
 +            return self.original(*args, **kwargs)
-+        entry = self.entries.get(packet.key)
-+        if entry is None and len(self.entries) >= self.max_entries:
-+            self.counts['capacity_fallback'] += 1
-+            return self.original(*args, **kwargs)
-+        if entry is None:
-+            try:
-+                frozen, destinations = packet.freeze()
-+            except UnsupportedMetadata as exc:
-+                # Metadata-only copies have not submitted a model forward.
-+                self.counts['metadata_fallback'] += 1
-+                self.counts['fallback:' + str(exc)] += 1
-+                return self.original(*args, **kwargs)
 +        capturing = getattr(context, 'capturing', False)
 +        self.counts['eligible_calls'] += 1
 +        try:
 +            if entry is None:
-+                graph = self.torch.npu.NPUGraph()
-+                for k, v in frozen['context'].items():
-+                    setattr(context, k, v)
-+                context.capturing = True
-+                # No warmup on live cache/state. CANN capture records work;
-+                # the single replay below performs this request's update.
-+                with self.torch.npu.graph(graph, pool=self.pool):
-+                    from vllm_ascend.utils import super_kernel_scope
-+                    with super_kernel_scope('full_model', self.super_kernel):
-+                        output = self.original(*frozen['args'], **frozen['kwargs'])
-+                if self.super_kernel:
-+                    graph.super_kernel_optimize(optimize_options={'dcci_after_kernel_end':['.*']})
++                capture_error = None
++                try:
++                    graph = self.torch.npu.NPUGraph()
++                    for k, v in frozen['context'].items():
++                        setattr(context, k, v)
++                    context.capturing = True
++                    # No warmup on live cache/state. CANN records work;
++                    # the one replay below performs this request's update.
++                    with self.torch.npu.graph(graph, pool=self.pool):
++                        from vllm_ascend.utils import super_kernel_scope
++                        with super_kernel_scope('full_model', self.super_kernel):
++                            output = self.original(*frozen['args'], **frozen['kwargs'])
++                    if self.super_kernel:
++                        graph.super_kernel_optimize(optimize_options={'dcci_after_kernel_end':['.*']})
++                except Exception as exc:
++                    capture_error = exc
++                # Do not replay on healthy ranks if another rank failed
++                # capture. No stateful eager retry after uncertain failure.
++                try:
++                    if self._agree(3 if capture_error is not None else 1, graph_id) != 1:
++                        raise RuntimeError('capture completion disagreed across ranks')
++                except Exception:
++                    if capture_error is not None:
++                        raise RuntimeError('local graph capture failed') from capture_error
++                    raise
 +                post = {k:getattr(context,k) for k in self._post_fields if hasattr(context,k)}
-+                entry = {'graph':graph,'frozen':frozen,'destinations':destinations,'output':output,'post':post}
++                entry = {'graph':graph,'frozen':frozen,'destinations':destinations,
++                         'output':output,'post':post,'graph_id':graph_id}
 +                self.entries[packet.key] = entry
 +                self.counts['captures'] += 1
 +            else:
@@ -254,7 +356,9 @@ index 0000000..c323a1d
 +        return {'enabled':True,'closed':self.closed,'entries':len(self.entries),
 +            'max_entries':self.max_entries,'counts':dict(self.counts),
 +            'scope':'experimental native prefill signature replay;not NPU or performance acceptance',
-+            'live_state_warmups':0,'output_ownership':'clone after one replay'}
++            'live_state_warmups':0,'output_ownership':'clone after one replay',
++            'rank_agreement':'native Gloo control;all eager/capture/replay;fatal on any capture error',
++            'persistent_state':'parameter/buffer/KV/merged-conv addresses and layouts checked;not copied'}
 +
 +    def close(self):
 +        if self.closed:
