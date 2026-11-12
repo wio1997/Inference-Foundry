@@ -4,15 +4,13 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：保留DeepInfer114在固定C4/C8相对强参考117的单批优势为34.28%/20.60%，双档30%未完成。新候选124运行通过但性能不采用，默认源码保持114。通用质量与生产部署未验收。**
+**当前状态（2026-11-13）：默认保留114，相对强参考117的C4/C8单批优势为34.28%/20.60%，双档30%未完成。125缩行候选运行通过，但未带来足够净收益，不采用。**
 
-最新[124阶段裁决、反思和后续放行条件](docs/native124-decision-and-stage-review-20261113.md)：72请求、8Worker exit0并释放；C4/C8为271.80357/455.09738 token/s，相对114为−11.45%/−9.20%。8rank各4次捕获、421次重放证明新metadata路径实际运行，不能当作收益证明。与参考完整文本一致47/64，影响未验收。当前阶段结束，不增加第三次模型加载。
+最新[125实测、复现与去留裁决](docs/native125-result-20261113.md)：72请求、8Worker退出0及设备释放；C4/C8为299.3803/501.5165 token/s，相对114为−2.46%/+0.06%，相对117为+30.98%/+20.67%。缩行路径真实命中，但不能当作性能突破。与参考完整文本58/64一致，通用质量未验收。
 
-[完整复现清单](validation/shared-features-20261111/native124-reproduction.json)记录源码、实际启动参数、依赖、硬件、原始时间点和有限验证范围；[已测但不采用的补丁](validation/shared-features-20261111/native124-layout-correction.patch)保留。保留114及参考117复现记录仍有效。
+[完整实际参数、环境和原始计时端点](validation/shared-features-20261111/native125-reproduction.json)及[已测隔离补丁](validation/shared-features-20261111/native125-compact-tail.patch)保留。候选仅加载一次；未触发控制加载，不追加本阶段变体，默认源码仍是114。
 
-历史路线：120 prefill图已否决；121初始化失败、0正式样本；123布局缺口已由124修正，但124没有转化为性能改善。
-
-最新[125原型与代码补丁](docs/native125-compact-tail-20261113.md)：已实现保留FULL/MTP5、后四步TP8缩行，6项主机契约检查通过。单次NPU候选已启动，正确性和性能结果未验证，默认114源码未变。[路线复盘](docs/performance-direction-review-20261113.md)的6小时裁决及最多3次条件性加载预算不变。
+历史路线：[124 metadata图不采用](docs/native124-decision-and-stage-review-20261113.md)；120 prefill图否决，121初始化失败。当前[路线反思](docs/performance-direction-review-20261113.md)的C阶段已作否决并收尾，整体性能目标仍未完成。
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
