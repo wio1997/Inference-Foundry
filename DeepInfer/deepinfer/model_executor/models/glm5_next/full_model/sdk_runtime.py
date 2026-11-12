@@ -108,7 +108,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         expert_parallel=False, shared_expert_overlap=False,
                         mtp_tokens=0, mtp_indexed_loading=False,
                         dsa_context_parallel=False, static_kernel=False, super_kernel=False,
-                        native_mtp_logprob_gather=False):
+                        native_mtp_logprob_gather=False, mtp_draft_graph=False):
     import torch
     import os
     import torch.distributed as dist
@@ -133,6 +133,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         raise ValueError('MTP bridge requires supported draft width, SDK async sampling and no breakable capture')
     if mtp_indexed_loading and not mtp_tokens:
         raise ValueError('indexed draft loading requires an MTP model')
+    if mtp_draft_graph and (not mtp_tokens or not graph_decode):
+        raise ValueError('MTP draft graph requires MTP and graph decode')
     if super_kernel and not static_kernel:
         raise ValueError('the shared SDK super kernel requires static kernel')
     if (static_kernel or super_kernel) and (not graph_decode or breakable_graph):
@@ -158,7 +160,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     if mtp_tokens:
         additional_config['enable_flashcomm1'] = False
         extra_args.update(quantization='ascend', speculative_config={
-            'method': 'deepseek_mtp', 'num_speculative_tokens': mtp_tokens, 'enforce_eager': True})
+            'method': 'deepseek_mtp', 'num_speculative_tokens': mtp_tokens,
+            'enforce_eager': not mtp_draft_graph})
         if graph_decode:
             compilation = {'cudagraph_mode': 'FULL_DECODE_ONLY',
                 'cudagraph_capture_sizes': [(1 + mtp_tokens) * n for n in (1, 2, 4, 8)]}
@@ -293,8 +296,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         worker.compile_or_warm_up_model()
         if mtp_tokens:
             snapshot = kda_capture.snapshot()
-            if not snapshot['draft_enforce_eager'] or snapshot['draft_use_cuda_graph']:
-                raise RuntimeError('shared MTP draft eager configuration did not take effect')
+            if (snapshot['draft_enforce_eager'] != (not mtp_draft_graph)
+                    or snapshot['draft_use_cuda_graph'] != mtp_draft_graph):
+                raise RuntimeError('shared MTP draft graph configuration did not take effect')
+            if mtp_draft_graph and (snapshot['draft_graph_entries'] < 1
+                    or snapshot['counts'].get('captured_mtp_forward_calls', 0) < 1):
+                raise RuntimeError('MTP draft graph requested but no actual capture was observed')
             shared_profile['mtp'] = snapshot
             draft_model = worker.model_runner.drafter.model
             if callable(getattr(draft_model, 'unwrap', None)):

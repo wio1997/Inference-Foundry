@@ -65,6 +65,8 @@ def main():
                    help='explicit MTP width: one-draft candidate or pinned five-draft recipe')
     p.add_argument('--mtp-indexed-loading', action='store_true',
                    help='load only draft-required shards through the shared strict SDK loader')
+    p.add_argument('--mtp-draft-graph', action='store_true',
+                   help='enable the same supported SDK MTP draft graph as the matched reference')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -83,6 +85,8 @@ def main():
         p.error('MTP requires SDK async sampling and excludes the ordinary KDA/breakable capture shim')
     if a.mtp_indexed_loading and not a.mtp_tokens:
         p.error('indexed draft loading requires MTP')
+    if a.mtp_draft_graph and (not a.mtp_tokens or not a.graph_decode):
+        p.error('MTP draft graph requires MTP and graph decode')
     if a.native_mtp_logprob_gather and not a.mtp_tokens:
         p.error('native MTP logprob gather requires MTP')
     if a.super_kernel and not a.static_kernel:
@@ -170,7 +174,8 @@ def main():
                 mtp_tokens=a.mtp_tokens, mtp_indexed_loading=a.mtp_indexed_loading,
                 dsa_context_parallel=a.dsa_context_parallel,
                 static_kernel=a.static_kernel, super_kernel=a.super_kernel,
-                native_mtp_logprob_gather=a.native_mtp_logprob_gather)
+                native_mtp_logprob_gather=a.native_mtp_logprob_gather,
+                mtp_draft_graph=a.mtp_draft_graph)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             if getattr(runtime, 'native_mtp_logprob', None) is not None:
                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
