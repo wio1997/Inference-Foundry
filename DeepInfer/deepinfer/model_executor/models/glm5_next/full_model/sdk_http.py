@@ -262,6 +262,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
                 'driver_owner_released': not runtime.adapter.controller.requests,
                 'prefix_cache': dict(runtime.adapter.controller.prefix_stats),
                 'mtp': dict(getattr(runtime.adapter.controller, 'mtp_stats', {})),
+                'mtp_output': dict(getattr(runtime, 'mtp_output_stats', {})),
                 'async_execution': dict(getattr(runtime.adapter, 'async_stats', {})),
                 'async_schedule': dict(getattr(runtime.adapter.controller, 'async_stats', {}))})+'\n')
     except Exception as error:

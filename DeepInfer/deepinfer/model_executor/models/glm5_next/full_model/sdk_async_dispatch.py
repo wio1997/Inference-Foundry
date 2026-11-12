@@ -131,8 +131,14 @@ class SDKAsyncBatchWorkerAdapter(SDKBatchWorkerAdapter):
             if driver:
                 self.async_stats['execute_host_elapsed_ns'] += execute_returned - execute_started
                 self.async_stats['npu_pending_at_execute_return'] += int(not end.query())
-        except Exception:
+        except Exception as error:
             self.poisoned = True
+            from .sdk_mtp_output import DraftOutputContractError
+            if driver and isinstance(error, DraftOutputContractError):
+                # Peers have finished SDK execution and are awaiting this
+                # step's acknowledgement. Do not send the next RPC method
+                # into that metadata phase during teardown.
+                broadcast_tensor_dict({'ok': False, 'error': str(error)}, src=0)
             raise
         previous = self.deferred
         step = _Step(seq_metadata_list, scheduler_outputs, is_prompt, output, end)

@@ -135,6 +135,9 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
         raise ValueError('indexed draft loading requires an MTP model')
     if mtp_draft_graph and (not mtp_tokens or not graph_decode):
         raise ValueError('MTP draft graph requires MTP and graph decode')
+    if mtp_draft_graph:
+        from .sdk_mtp_output import verify_draft_output_sources
+        verify_draft_output_sources()
     if super_kernel and not static_kernel:
         raise ValueError('the shared SDK super kernel requires static kernel')
     if (static_kernel or super_kernel) and (not graph_decode or breakable_graph):
