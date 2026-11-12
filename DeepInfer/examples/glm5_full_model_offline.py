@@ -67,6 +67,8 @@ def main():
                    help='load only draft-required shards through the shared strict SDK loader')
     p.add_argument('--mtp-draft-graph', action='store_true',
                    help='enable the same supported SDK MTP draft graph as the matched reference')
+    p.add_argument('--native-prefix-admission', action='store_true',
+                   help='pin real SDK cache hits before native scheduler token-budget admission')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -87,6 +89,8 @@ def main():
         p.error('indexed draft loading requires MTP')
     if a.mtp_draft_graph and (not a.mtp_tokens or not a.graph_decode):
         p.error('MTP draft graph requires MTP and graph decode')
+    if a.native_prefix_admission and not a.prefix_caching:
+        p.error('native prefix admission requires prefix caching')
     if a.native_mtp_logprob_gather and not a.mtp_tokens:
         p.error('native MTP logprob gather requires MTP')
     if a.super_kernel and not a.static_kernel:
@@ -175,7 +179,8 @@ def main():
                 dsa_context_parallel=a.dsa_context_parallel,
                 static_kernel=a.static_kernel, super_kernel=a.super_kernel,
                 native_mtp_logprob_gather=a.native_mtp_logprob_gather,
-                mtp_draft_graph=a.mtp_draft_graph)
+                mtp_draft_graph=a.mtp_draft_graph,
+                native_prefix_admission=a.native_prefix_admission)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             if getattr(runtime, 'native_mtp_logprob', None) is not None:
                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
@@ -253,6 +258,14 @@ def main():
             context_parallel_size=a.world_size, expert_parallel_size=1, engram_parallel_size=1,
             tokens_per_block=128, chunked_prefill=True,
             disable_log_stats=True, offline_inference=True)
+        if a.native_prefix_admission:
+            cached_property = getattr(engine.Sequence, 'num_cached_tokens', None)
+            if (not isinstance(cached_property, property) or cached_property.fset is None
+                    or not hasattr(engine.Sequence, 'old_cached_tokens')):
+                raise ValueError('compiled native Sequence lacks external cache-progress admission')
+            (out / 'prefix-admission-abi-preflight.json').write_text(json.dumps({
+                'status': 'compiled cached-token setter and previous-token getter available',
+                'scope': 'ABI introspection before model loading;physical cache behavior unverified'})+'\n')
         if a.mtp_tokens:
             # Exercise the exact lightweight import that empty native schedule
             # results need, before the expensive target/draft weight loading.

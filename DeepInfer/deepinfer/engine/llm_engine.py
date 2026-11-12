@@ -782,7 +782,25 @@ class LLMEngine:
                             # token budgeting and callbacks stay native.
                             seq.chunk_checkpoints = sorted(set(
                                 (chunk_checkpoints or []) + cache_checkpoints))
-                _enqueue(seq)
+                        try:
+                            cached = getattr(adapter, "cached_prefix_tokens", lambda _: 0)(request_id)
+                            if type(cached) is not int or not 0 <= cached < len(prompt_token_ids):
+                                raise ValueError("invalid physical cache admission progress")
+                            if cached:
+                                # Existing compiled setter updates current AND
+                                # previous cached counts. The SDK owns a real
+                                # physical lease; no cache data is fabricated.
+                                seq.num_cached_tokens = cached
+                            _enqueue(seq)
+                        except Exception:
+                            cancel = getattr(adapter, "cancel_registration", None)
+                            if cancel is not None:
+                                cancel(request_id)
+                            raise
+                    else:
+                        _enqueue(seq)
+                else:
+                    _enqueue(seq)
         return seq
 
     def abort_request(self, request_id: str | Iterable[str]) -> tuple[int, int]:

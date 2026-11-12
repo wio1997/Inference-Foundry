@@ -16,7 +16,17 @@ class SDKBatchWorkerAdapter:
         if self.controller is None:
             raise RuntimeError('request admission belongs to the native driver')
         self.controller.register(request_id, prompt_ids, sampling_params)
-        return self.controller.prefill_checkpoints(request_id)
+        try:
+            return self.controller.prefill_checkpoints(request_id)
+        except Exception:
+            self.controller.cancel_registration(request_id)
+            raise
+
+    def cached_prefix_tokens(self, request_id):
+        return self.controller.cached_prefix_tokens(request_id)
+
+    def cancel_registration(self, request_id):
+        self.controller.cancel_registration(request_id)
 
     def execute_model_step(self, worker, is_prompt, is_placeholder,
                            seq_metadata_list, scheduler_outputs):

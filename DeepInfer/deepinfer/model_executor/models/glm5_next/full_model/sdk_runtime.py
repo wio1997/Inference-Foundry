@@ -20,6 +20,7 @@ class SDKComputeRuntime:
     memory_bytes_per_rank: list
     native_group: object
     request_block_hasher: object = None
+    native_prefix_admission: bool = False
 
     @property
     def max_context_tokens(self):
@@ -60,7 +61,8 @@ class SDKComputeRuntime:
                 max_requests=self.max_requests, vocab_size=self.vocab_size,
                 num_cache_groups=len(self.scheduler_cache_config.kv_cache_groups),
                 request_block_hasher=self.request_block_hasher,
-                prefill_cache_block_size=self.config.cache_config.block_size, **controller_kwargs)
+                prefill_cache_block_size=self.config.cache_config.block_size,
+                native_prefix_admission=self.native_prefix_admission, **controller_kwargs)
         self.adapter = SDKBatchWorkerAdapter(self, controller, self.native_group)
         worker.install_glm_single_request_adapter(self.adapter)
         worker._glm_worker_runtime = self
@@ -108,7 +110,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         expert_parallel=False, shared_expert_overlap=False,
                         mtp_tokens=0, mtp_indexed_loading=False,
                         dsa_context_parallel=False, static_kernel=False, super_kernel=False,
-                        native_mtp_logprob_gather=False, mtp_draft_graph=False):
+                        native_mtp_logprob_gather=False, mtp_draft_graph=False,
+                        native_prefix_admission=False):
     import torch
     import os
     import torch.distributed as dist
@@ -138,6 +141,11 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     if mtp_draft_graph:
         from .sdk_mtp_output import verify_draft_output_sources
         verify_draft_output_sources()
+    if native_prefix_admission:
+        if not prefix_caching:
+            raise ValueError('native prefix admission requires physical prefix caching')
+        from .prefix_admission import verify_prefix_sources
+        verify_prefix_sources()
     if super_kernel and not static_kernel:
         raise ValueError('the shared SDK super kernel requires static kernel')
     if (static_kernel or super_kernel) and (not graph_decode or breakable_graph):
@@ -365,6 +373,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     result.kda_capture = kda_capture
     result.shared_profile = shared_profile
     result.request_block_hasher = request_block_hasher
+    result.native_prefix_admission = native_prefix_admission
+    shared_profile['native_prefix_admission'] = native_prefix_admission
     if native_mtp_logprob_gather:
         if not mtp_tokens:
             raise ValueError('native MTP logprob gather requires speculative decoding')

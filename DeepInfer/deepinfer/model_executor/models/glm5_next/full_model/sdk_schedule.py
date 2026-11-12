@@ -12,11 +12,13 @@ class Registered:
     request: object
     seq_id: int | None = None
     submitted: bool = False
+    prefix_lease: object = None
 
 
 class SDKBatchSchedule:
     def __init__(self, cache_manager, *, max_context, max_batch_tokens, max_requests, vocab_size, num_cache_groups,
-                 request_block_hasher=None, prefill_cache_block_size=None):
+                 request_block_hasher=None, prefill_cache_block_size=None,
+                 native_prefix_admission=False):
         if min(max_context, max_batch_tokens, max_requests, vocab_size, num_cache_groups) < 1:
             raise ValueError('positive explicit runtime limits required')
         self.cache = cache_manager
@@ -33,11 +35,18 @@ class SDKBatchSchedule:
         self.retained_copy_blocks = []
         self.request_block_hasher = request_block_hasher
         self.prefill_cache_block_size = prefill_cache_block_size
+        self.native_prefix_admission = native_prefix_admission
         if request_block_hasher is not None and (
                 type(prefill_cache_block_size) is not int or prefill_cache_block_size < 1):
             raise ValueError('prefix reuse requires the resolved physical cache boundary')
+        if native_prefix_admission and request_block_hasher is None:
+            raise ValueError('native prefix admission requires the shared physical prefix cache')
         self.prefix_stats = {'lookups': 0, 'hit_requests': 0, 'hit_tokens': 0,
                              'hits_beyond_native_chunk': 0}
+        self.prefix_stats.update(admission_enabled=bool(native_prefix_admission),
+            admission_lookups=0, admission_hit_requests=0, admission_hit_tokens=0,
+            admission_leases_acquired=0, admission_leases_released=0,
+            admission_leases_live=0, admission_adopted=0, admission_cancelled=0)
 
     def register(self, request_id, prompt_ids, native_params):
         from vllm import SamplingParams
@@ -47,6 +56,8 @@ class SDKBatchSchedule:
         if (self.poisoned or not isinstance(request_id, str) or not request_id
                 or request_id in self.requests or request_id in self.finished):
             raise ValueError('invalid or already registered request identity')
+        if self.native_prefix_admission and len(self.requests) >= self.max_requests:
+            raise ValueError('native admission would exceed the bounded prefix-lease capacity')
         ids = list(prompt_ids)
         if (not ids or any(type(i) is not int or not 0 <= i < self.vocab_size for i in ids)
                 or len(ids) + native_params.max_tokens > self.max_context):
@@ -67,15 +78,54 @@ class SDKBatchSchedule:
         The native scheduler must stop at that physical boundary, as the SDK
         scheduler does in Mamba align mode. A fresh request with an existing
         prefix skips those stops so prepare can actually consume the hit.
-        Admission lookup is only a hint; prepare revalidates and allocates it.
+        Normally lookup is a hint. With native_prefix_admission, a real block
+        lease makes the exact hit safe for the C++ scheduler to budget early.
         """
         if self.request_block_hasher is None:
             return []
-        request = self.requests[request_id].request
-        _, hit_tokens, _ = self.cache.get_computed_blocks(request)
+        state = self.requests[request_id]
+        request = state.request
+        if state.prefix_lease is not None:
+            hit_tokens = state.prefix_lease.tokens
+        else:
+            blocks, hit_tokens, boundary = self.cache.get_computed_blocks(request)
+            if self.native_prefix_admission:
+                self.prefix_stats['admission_lookups'] += 1
+                if hit_tokens:
+                    from .prefix_admission import CachedPrefixLease
+                    state.prefix_lease = CachedPrefixLease.acquire(self.cache,
+                        blocks, hit_tokens, boundary, len(request.prompt_token_ids),
+                        self.prefill_cache_block_size)
+                    self.prefix_stats['admission_hit_requests'] += 1
+                    self.prefix_stats['admission_hit_tokens'] += hit_tokens
+                    self.prefix_stats['admission_leases_acquired'] += 1
+                    self.prefix_stats['admission_leases_live'] += 1
         return [position for position in range(self.prefill_cache_block_size,
                     len(request.prompt_token_ids), self.prefill_cache_block_size)
                 if position > hit_tokens]
+
+    def cached_prefix_tokens(self, request_id):
+        lease = self.requests[request_id].prefix_lease
+        return lease.tokens if lease is not None else 0
+
+    def _release_prefix_lease(self, state):
+        lease = state.prefix_lease
+        if lease is not None:
+            if not lease.release():
+                raise RuntimeError('native admission lease was released outside its owner')
+            self.prefix_stats['admission_leases_released'] += 1
+            self.prefix_stats['admission_leases_live'] -= 1
+            state.prefix_lease = None
+
+    def cancel_registration(self, request_id):
+        state = self.requests.get(request_id)
+        if state is None:
+            return
+        if state.submitted or state.request.num_computed_tokens != 0:
+            raise RuntimeError('only unsubmitted native admissions can be cancelled locally')
+        self._release_prefix_lease(state)
+        self.requests.pop(request_id)
+        self.prefix_stats['admission_cancelled'] += 1
 
     def prepare(self, metadata_list):
         from vllm.v1.core.sched.output import SchedulerOutput, NewRequestData, CachedRequestData
@@ -107,7 +157,16 @@ class SDKBatchSchedule:
                 req = state.request
                 scheduled = span.token_stop-span.token_start
                 hit_blocks, hit_tokens, boundary = None, 0, 0
-                if self.request_block_hasher is not None and not state.submitted:
+                lease = state.prefix_lease
+                if lease is not None:
+                    if (state.submitted or req.num_computed_tokens != 0
+                            or span.token_start != lease.tokens or scheduled < 1):
+                        raise ValueError('native scheduled prefix differs from its live admission lease')
+                    hit_blocks, hit_tokens, boundary = lease.blocks, lease.tokens, lease.boundary
+                    self.prefix_stats['lookups'] += 1
+                    # Native has already excluded these tokens from its span.
+                    # Do not subtract the hit again or invent a zero-token step.
+                elif self.request_block_hasher is not None and not state.submitted:
                     self.prefix_stats['lookups'] += 1
                     hit_blocks, hit_tokens, boundary = self.cache.get_computed_blocks(req)
                     # The native scheduler may issue only a short first chunk.
@@ -128,6 +187,11 @@ class SDKBatchSchedule:
                 allocation = self.cache.allocate_slots(req, scheduled, **allocation_kwargs)
                 if allocation is None:
                     raise RuntimeError('SDK physical cache exhausted;do not execute a partially prepared batch')
+                if lease is not None:
+                    # allocate_slots has now acquired the SDK's normal references
+                    # and retained any state-copy inputs. Drop only our extra pin.
+                    self._release_prefix_lease(state)
+                    self.prefix_stats['admission_adopted'] += 1
                 if hit_tokens:
                     req.num_computed_tokens = hit_tokens
                     req.shared_prefix_boundary = boundary
@@ -181,7 +245,8 @@ class SDKBatchSchedule:
         req = state.request
         span = scheduled_text_span(meta, request_id=meta.request_id,
             seq_id=meta.seq_id if state.seq_id is None else state.seq_id,
-            tokens_seen=req.num_computed_tokens, max_context_tokens=self.max_context)
+            tokens_seen=(state.prefix_lease.tokens if state.prefix_lease is not None
+                         else req.num_computed_tokens), max_context_tokens=self.max_context)
         if meta.get_input_token_ids() != list(req.all_token_ids[span.token_start:span.token_stop]):
             raise ValueError('native input tokens differ from registered SDK request history')
         return span
@@ -252,6 +317,7 @@ class SDKBatchSchedule:
         try:
             for request_id in request_ids:
                 state = self.requests.pop(request_id)
+                self._release_prefix_lease(state)
                 self.cache.free(state.request)
                 if state.submitted:
                     self.finished.add(request_id)
