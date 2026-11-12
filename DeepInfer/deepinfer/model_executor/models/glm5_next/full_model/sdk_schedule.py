@@ -47,6 +47,8 @@ class SDKBatchSchedule:
             admission_lookups=0, admission_hit_requests=0, admission_hit_tokens=0,
             admission_leases_acquired=0, admission_leases_released=0,
             admission_leases_live=0, admission_adopted=0, admission_cancelled=0)
+        self.prefix_stats.update(prefill_batches=0, prefill_native_tokens=0,
+            prefill_executed_tokens=0, prefill_executed_token_histogram={})
 
     def register(self, request_id, prompt_ids, native_params):
         from vllm import SamplingParams
@@ -228,6 +230,14 @@ class SDKBatchSchedule:
                 finished_req_ids=set(self.finished), free_encoder_mm_hashes=[],
                 new_block_ids_to_zero=self.cache.take_new_block_ids(),
                 kv_cache_block_copies=copies or None)
+            if all(meta.is_prompt for meta in metadata_list):
+                # Integer metadata only: no synchronization, tensor read or timer.
+                actual = result.total_num_scheduled_tokens
+                self.prefix_stats['prefill_batches'] += 1
+                self.prefix_stats['prefill_native_tokens'] += total
+                self.prefix_stats['prefill_executed_tokens'] += actual
+                hist = self.prefix_stats['prefill_executed_token_histogram']
+                hist[actual] = hist.get(actual, 0) + 1
         except Exception:
             # Allocator mutation is not rolled back piecemeal. The owning worker
             # must fail the bounded run and discard the entire candidate state.

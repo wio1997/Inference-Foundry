@@ -177,8 +177,13 @@ struct Scheduler {
 
     int get_num_unfinished_seqs() { return waiting.size() + running.size() + prompted.size(); }
 
-    /// dp 内做一次 allreduce 并返回归约结果（dp_size==1 时也会走通信，调用方自行短路）。
+    /// Reduce a host scheduling scalar across DP ranks. A singleton is an identity.
     template <typename T> T _dp_allreduce(T value, c10d::ReduceOp op) {
+        // Do not materialize an accelerator tensor for DP=1: item() would
+        // wait for the current device stream and serialize asynchronous decode.
+        if (dp_size == 1) {
+            return value;
+        }
         auto dtype = std::is_same_v<T, double> ? torch::kFloat32 : torch::kInt32;
         auto options = torch::TensorOptions().dtype(dtype).device(use_cpu_dp_group ? torch::kCPU : get_default_device());
         auto tensor = torch::tensor(value, options);
@@ -552,7 +557,16 @@ struct Scheduler {
             waiting.pop_front();
 
             if (is_chunked && engine_type == EngineType::NORMAL) {
-                break;
+                // An explicit state checkpoint can end a chunk before the
+                // batch token budget is exhausted. Keep that boundary, but
+                // allow independent waiting requests to use the spare budget.
+                // Count partial requests too: they occupy a row in this batch
+                // even though they are not yet members of the running queue.
+                num_curr_seqs += 1;
+                bool stopped_at_checkpoint = checkpoint > start_offset && start_offset + seqlen_q == checkpoint;
+                if (!stopped_at_checkpoint) {
+                    break;
+                }
             }
         }
 
