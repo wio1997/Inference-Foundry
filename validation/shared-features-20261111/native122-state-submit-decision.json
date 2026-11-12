@@ -1,0 +1,110 @@
+{
+  "decision": "不放行仅前移状态提交的实现；已有观测窗口内状态提交先于草稿图",
+  "new_model_loads": 0,
+  "trace_sha256": "e0305329618623adde3a45100a8005196b9a090aa406e3542b687e1ed18585bd",
+  "scope": "generation122 rank0 diagnostic; three complete cycles within a bounded existing trace window",
+  "graph_host_phase_mapping": [
+    {
+      "model_id": 49,
+      "host_phase": "sdk_execute_model",
+      "device_start_offset_us": 1374.962
+    },
+    {
+      "model_id": 48,
+      "host_phase": "sdk_sample_tokens",
+      "device_start_offset_us": 48399.442
+    },
+    {
+      "model_id": 49,
+      "host_phase": "sdk_execute_model",
+      "device_start_offset_us": 58121.696
+    },
+    {
+      "model_id": 48,
+      "host_phase": "sdk_sample_tokens",
+      "device_start_offset_us": 105605.884
+    },
+    {
+      "model_id": 49,
+      "host_phase": "sdk_execute_model",
+      "device_start_offset_us": 115291.898
+    },
+    {
+      "model_id": 48,
+      "host_phase": "sdk_sample_tokens",
+      "device_start_offset_us": 161901.668
+    },
+    {
+      "model_id": 49,
+      "host_phase": "sdk_execute_model",
+      "device_start_offset_us": 171629.604
+    }
+  ],
+  "cycles": [
+    {
+      "target_wait_complete_ms": 44.810676,
+      "target_envelope_end_offset_us": 46211.278,
+      "state_wait_start_offset_us": 17872.772,
+      "state_wait_ms": 29.182342000000002,
+      "state_kernel_start_offset_us": 47070.034,
+      "state_kernel_duration_us": 8.0,
+      "draft_graph_start_offset_us": 48399.442,
+      "state_kernel_finishes_before_draft_us": 1321.408,
+      "draft_wait_complete_ms": 7.547770000000001
+    },
+    {
+      "target_wait_complete_ms": 45.267384,
+      "target_envelope_end_offset_us": 103409.48,
+      "state_wait_start_offset_us": 74597.484,
+      "state_wait_ms": 29.668633999999997,
+      "state_kernel_start_offset_us": 104282.138,
+      "state_kernel_duration_us": 8.22,
+      "draft_graph_start_offset_us": 105605.884,
+      "state_kernel_finishes_before_draft_us": 1315.526,
+      "draft_wait_complete_ms": 7.417688
+    },
+    {
+      "target_wait_complete_ms": 44.408148000000004,
+      "target_envelope_end_offset_us": 159720.646,
+      "state_wait_start_offset_us": 132089.994,
+      "state_wait_ms": 28.472388,
+      "state_kernel_start_offset_us": 160578.942,
+      "state_kernel_duration_us": 8.06,
+      "draft_graph_start_offset_us": 161901.668,
+      "state_kernel_finishes_before_draft_us": 1314.666,
+      "draft_wait_complete_ms": 7.292526
+    }
+  ],
+  "medians": {
+    "target_wait_complete_ms": 44.810676,
+    "draft_wait_complete_ms": 7.417688,
+    "state_kernel_us": 8.06,
+    "state_before_draft_us": 1315.526
+  },
+  "source_contract": {
+    "ascend_model_runner.py": {
+      "sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+      "sampling_event_record_line": 2820,
+      "independent_stream_wait_line": 2950,
+      "state_submit_line": 2951,
+      "next_input_cpu_wait_line": 1495
+    },
+    "mamba_utils.py": {
+      "sha256": "23fdaa4e8f63ee8f938eaa1a2b39f803cb04fa6ecd69789563254b1a0691413a",
+      "postprocess_definition_line": 1587
+    }
+  },
+  "limitations": [
+    "MODEL_WAIT_COMPLETE is a graph execution envelope including possible internal waits, not pure arithmetic kernel time.",
+    "Graph-internal kernel coverage remains incomplete; absent kernel rows are not device-idle proof.",
+    "Profiler perturbs execution; these durations do not replace formal114/117 benchmark timings.",
+    "Three rank0 cycles establish this ordering only within the observed window; no all-request or all-rank performance extrapolation.",
+    "Moving host submission earlier is not proven to reduce required sampling-event dependency.",
+    "No claim that all framework-side optimization opportunities have been exhausted."
+  ],
+  "input_sha256": {
+    "native122-acceptance-timeline.json": "4ffda73c6198a4ed239f8c013bcc999c40cc6409635727b209343654ac0a6cc7",
+    "native122-profile-coverage.json": "0f14e2070a3f83fa5a9cc8e1d20bf60aabc5990ad7fffe6782d8d2ffc1b8e357",
+    "native-g122-complete/native-run/communication/native-tp8/rank0/first-wave-host-trace.json": "f77273957ba305dac1afc6aca502e105a7b2e4ecbdf4411f99efa434774bed8e"
+  }
+}
