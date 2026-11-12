@@ -111,7 +111,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                         mtp_tokens=0, mtp_indexed_loading=False,
                         dsa_context_parallel=False, static_kernel=False, super_kernel=False,
                         native_mtp_logprob_gather=False, mtp_draft_graph=False,
-                        native_prefix_admission=False):
+                        native_prefix_admission=False, prefill_mc2=False):
     import torch
     import os
     import torch.distributed as dist
@@ -158,7 +158,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
     for name, expected in CHECKPOINT_PINS.items():
         if hashlib.sha256((root/name).read_bytes()).hexdigest() != expected:
             raise ValueError('checkpoint identity mismatch: '+name)
-    additional_config = {'enable_dsa_cp': dsa_context_parallel}
+    additional_config = {'enable_dsa_cp': dsa_context_parallel,
+                         'enable_prefill_mc2': prefill_mc2}
     if static_kernel or super_kernel:
         additional_config['ascend_compilation_config'] = {
             'enable_npugraph_ex': True,
@@ -225,6 +226,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
                              + repr(effective_environment))
         graph_config = ascend_config.ascend_compilation_config
         if (bool(ascend_config.enable_dsa_cp) != dsa_context_parallel
+                or bool(ascend_config.enable_prefill_mc2) != prefill_mc2
                 or (static_kernel and not graph_config.enable_static_kernel)
                 or (super_kernel and not graph_config.enable_super_kernel)):
             raise ValueError('requested common optimization was disabled;do not benchmark a weaker arm')
@@ -259,6 +261,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
             'shared_expert_overlap': ascend_config.multistream_overlap_shared_expert,
             'effective_environment': effective_environment,
             'dsa_context_parallel': ascend_config.enable_dsa_cp,
+            'prefill_mc2': ascend_config.enable_prefill_mc2,
             'kda_projection_contracts': kda_projection_contracts,
             'fused_mc2': ascend_config.enable_fused_mc2,
             'compilation_mode': str(config.compilation_config.mode),

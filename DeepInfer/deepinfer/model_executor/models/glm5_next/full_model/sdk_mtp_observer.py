@@ -11,6 +11,23 @@ def install_mtp_observer(config, runner, *, max_requests):
         raise ValueError('resident MTP requires a supported explicit draft width')
     original = Glm5NextLinearAttention._forward
     counts = Counter()
+    # Observe the existing selector without reading tensors or changing its
+    # return value. Copied identically to the reference plugin for matched runs.
+    from vllm_ascend import ascend_forward_context as moe_context
+    from vllm_ascend.ascend_config import get_ascend_config
+    from vllm_ascend.device.hardware_profile import get_current_hardware_profile
+    original_select = moe_context.select_moe_comm_method
+    moe_counts = Counter()
+    decode_limit = config.compilation_config.max_cudagraph_capture_size
+
+    def select_moe(num_tokens, vllm_config, *args, **kwargs):
+        result = original_select(num_tokens, vllm_config, *args, **kwargs)
+        draft = kwargs.get('is_draft_model', args[0] if args else False)
+        if not draft and num_tokens is not None and num_tokens > decode_limit:
+            moe_counts['target_above_decode_limit_' + str(getattr(result, 'name', result))] += 1
+        return result
+
+    moe_context.select_moe_comm_method = select_moe
 
     def forward(layer, *args, **kwargs):
         context = get_forward_context()
@@ -61,6 +78,13 @@ def install_mtp_observer(config, runner, *, max_requests):
             if callable(getattr(model, 'unwrap', None)):
                 model = model.unwrap()
             return {'closed': self.closed, 'counts': dict(counts),
+                    'moe_communication': {
+                        'prefill_mc2': get_ascend_config().enable_prefill_mc2,
+                        'capacity': moe_context.get_mc2_tokens_capacity(),
+                        'policy': get_current_hardware_profile().moe_comm_policy.name,
+                        'decode_token_limit': decode_limit,
+                        'counts': dict(moe_counts),
+                        'scope': 'original target selector above largest decode graph;subtract startup counts'},
                     'method': spec.method, 'num_speculative_tokens': spec.num_speculative_tokens,
                     'draft_enforce_eager': spec.enforce_eager,
                     'draft_model_config_enforce_eager': spec.draft_model_config.enforce_eager,
@@ -81,6 +105,9 @@ def install_mtp_observer(config, runner, *, max_requests):
                 raise RuntimeError('MTP draft forward ownership changed')
             if ACLGraphWrapper.__call__ is not graph_call:
                 raise RuntimeError('MTP graph observer ownership changed')
+            if moe_context.select_moe_comm_method is not select_moe:
+                raise RuntimeError('MoE selector observer ownership changed')
+            moe_context.select_moe_comm_method = original_select
             ACLGraphWrapper.__call__ = original_graph_call
             draft_model.forward = original_draft
             Glm5NextLinearAttention._forward = original

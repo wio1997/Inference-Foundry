@@ -69,6 +69,8 @@ def main():
                    help='enable the same supported SDK MTP draft graph as the matched reference')
     p.add_argument('--native-prefix-admission', action='store_true',
                    help='pin real SDK cache hits before native scheduler token-budget admission')
+    p.add_argument('--prefill-mc2', action='store_true',
+                   help='enable the shared Ascend SDK prefill MC2 communication path')
     a = p.parse_args()
     if a.breakable_graph and not a.graph_decode:
         p.error('breakable graph requires explicit graph-decode')
@@ -97,7 +99,7 @@ def main():
         p.error('super kernel requires static kernel')
     if (a.static_kernel or a.super_kernel) and (not a.graph_decode or a.breakable_graph):
         p.error('static/super kernels require FULL graph mode')
-    if (a.dsa_context_parallel or a.static_kernel or a.super_kernel) and a.compute_backend != 'sdk-batch':
+    if (a.dsa_context_parallel or a.static_kernel or a.super_kernel or a.prefill_mc2) and a.compute_backend != 'sdk-batch':
         p.error('shared SDK optimization flags require SDK batch compute')
     if not 1 <= a.max_sequences <= 8 or (a.compute_backend == 'reference' and a.max_sequences != 1):
         p.error('explicit SDK batch backend required for multi-sequence admission')
@@ -180,7 +182,7 @@ def main():
                 static_kernel=a.static_kernel, super_kernel=a.super_kernel,
                 native_mtp_logprob_gather=a.native_mtp_logprob_gather,
                 mtp_draft_graph=a.mtp_draft_graph,
-                native_prefix_admission=a.native_prefix_admission)
+                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2)
             runtime.kda_capture_stats_path = out / "kda-capture.json"
             if getattr(runtime, 'native_mtp_logprob', None) is not None:
                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
