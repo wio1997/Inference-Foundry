@@ -1,0 +1,71 @@
+{
+  "recorded_at_utc": "2026-11-12T21:37:06.930130+00:00",
+  "source_commit": "c4ec8e000d04966574970802ae01db76e57a01b5",
+  "status": "规划已修订；简单端点替换否决；完整候选尚未放行",
+  "new_model_loads": 0,
+  "new_performance_result": false,
+  "goal_complete": false,
+  "scores": {
+    "C4": {
+      "native_tps": 306.94205422447425,
+      "reference_tps": 228.57796562220054,
+      "single_batch_advantage_percent": 34.28330827468991,
+      "target_tps": 297.15135530886073,
+      "native_seconds": 26.689076609909534,
+      "target_seconds": 27.568442322886902,
+      "required_seconds_saved": -0.8793657129773678
+    },
+    "C8": {
+      "native_tps": 501.22022621045363,
+      "reference_tps": 415.6101816397917,
+      "single_batch_advantage_percent": 20.598639867985714,
+      "target_tps": 540.2932361317291,
+      "native_seconds": 16.34411296993494,
+      "target_seconds": 15.162136877098911,
+      "required_seconds_saved": 1.1819760928360292
+    }
+  },
+  "native_source_sha256_verified_against_runtime_manifest": {
+    "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/prefix_admission.py": "39f20c4ff727dcf218db71ffe1b929fd148d1a754af8d5d761631f65ec49cb10",
+    "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_async_mtp_schedule.py": "f58467b0b06868ffb893c17ef3b4e5242fdab58129d48b5695b8503b3ade449c",
+    "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py": "f2ad68570fd7e2cac5c904da1655815c6ae6a2cce2673bfc6303703733a4043b",
+    "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_schedule.py": "51364ddea163a4dac35e6ce8b1312486d89bd3eecb67a05c39de0fe23a1d0e3c"
+  },
+  "sdk_cache_manager_sha256_matches_runtime_pin": "58800535eda854580d84e1025bf32fe01b2a43ce0bba501b4f3d125e4f2c8afa",
+  "fixed_runner_evidence_sha256": "568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c",
+  "source_findings": [
+    "原生前缀租约要求对齐且非终点。",
+    "固定SDK命中上限为输入长度减1，以获得logits。",
+    "异步MTP拒绝零输入步，采样及draft依赖本步临时状态。",
+    "SDK已有细粒度前缀与部分checkpoint能力，不能未核对就称独有。"
+  ],
+  "endpoint_audit_decision": "仅改长度不可行；完整恢复的内存/状态/采样契约未闭合，不放行硬件。",
+  "remaining_prefill": {
+    "calls": 14,
+    "tokens": 12288,
+    "host_dispatch_sum_ms_recomputed": 7054.4221800000005,
+    "previous_report_host_sum_ms": 6900.05752,
+    "scope_discrepancy_resolved": false,
+    "used_as_net_savings_prediction": false,
+    "evidence_sha256": "cabf4574ded6b10dec1e401f2f95adfe0bb2485ec10ba9165a1b14cae805730e"
+  },
+  "route": "仅一个混合计算状态复用候选；不缓存答案，不增加原4GiB预算，不改计分负载。",
+  "total_budget": {
+    "started_at_utc": "2026-11-12T21:25:06.866109+00:00",
+    "deadline_utc": "2026-11-13T05:25:06.866109+00:00",
+    "implementation_gate_utc": "2026-11-12T23:25:06.866109+00:00",
+    "first_candidate_deadline_utc": "2026-11-13T02:25:06.866109+00:00",
+    "model_loads_max": 3,
+    "model_loads_used": 0,
+    "recovery_wait_failures_included": true,
+    "automatic_extension_allowed": false,
+    "controls_conditional_on_candidate_promise": true,
+    "npu_candidate_admitted_now": false
+  },
+  "evidence_sha256": {
+    "native114-reproduction.json": "43159224bfde17577c8f0c7235fadc4e7da3cd814a13adbfba3a15371aa83ab2",
+    "reference117-reproduction.json": "15ee1a8ef62421f0210cf649ef550ac8c03eb6622f80298bf01b414f243a9263",
+    "native124-decision.json": "c96f86acba3926189a95b7bbb6b0a67e9e28fab966adbc88c9b2c2e58d812a76",
+    "native126-D2-decision.json": "f8e27f06c8836a4d9afe9216e35cf622596269dba4471f5fc68bc2d9d5e9cc18"
+  }
+}
