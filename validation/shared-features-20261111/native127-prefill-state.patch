@@ -1,0 +1,689 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py
+new file mode 100644
+index 0000000..6fd7b10
+--- /dev/null
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py
+@@ -0,0 +1,430 @@
++"""Instance-local target-prefill memoization with real hybrid-state writeback.
++
++Only a whole, eager, final-prefill batch can skip target forward. The SDK still
++prepares every input and cache allocation, computes logits, samples, runs MTP,
++and accounts for the real positive input span. Entries contain target state and
++hidden activations, never sampled tokens or responses. The arena is deducted
++from the configured cache budget before the ordinary pool is allocated.
++"""
++from collections import Counter, OrderedDict
++from dataclasses import dataclass
++import hashlib
++import importlib
++import json
++from pathlib import Path
++import re
++import time
++from types import MethodType
++
++
++PINS = {
++    'vllm_ascend.worker.model_runner_v1': '568c3049205b9caff5c656a7f5dd4c6e79fb358abe526f89fb9fb3f70a60a43c',
++    'vllm_ascend.models.glm5next.model': '2a9381fa5897578bf4922b4b2bef99635dbc58236cd0f31fe5f93664b7252bbe',
++    'vllm_ascend.models.glm5next.kda': 'b2e0dca0ed6f9b686e9e3e4a73ba2a610860d62ece1be271a14627c6cb4a9924',
++    'vllm_ascend.models.glm5next.cache_config': '00559085edd75a1719254b3f52dedbcd4fb0ce93c511b17c06ab3d975ed2e1e4',
++    'vllm_ascend.models.glm5next.cache_views': 'd95fe2831045f102435db21bf2760d6716ecf48906b8e2ae459de8fe9af3ef6c',
++    'vllm_ascend.models.glm5next.kv_cache': '6d790b58a9ebbaf3b8f89146418e1de22053478459fc13703a2058a84c929e58',
++}
++
++
++def align_bytes(n):
++    return (n + 511) // 512 * 512
++
++
++def written_columns(role, start, stop, block_size):
++    """Logical columns actually written by target prefill, not draft lookahead."""
++    if not (0 <= start < stop and block_size > 0):
++        raise ValueError('invalid positive prefill span')
++    if role == 'tail':
++        return (0,)
++    if role == 'mamba':
++        return ((stop - 1) // block_size,)
++    if role == 'attention':
++        return tuple(range(start // block_size, (stop - 1) // block_size + 1))
++    raise ValueError('unsupported cache role')
++
++
++def reusable_suffix_start(start, stop, block_size):
++    """Retain only the last nonterminal page and available hidden rows."""
++    written_columns('attention', start, stop, block_size)
++    return max(start, (stop - 1) // block_size * block_size)
++
++
++class ByteArena:
++    """Host allocation ledger; no model arithmetic or hidden device allocations."""
++    def __init__(self, capacity):
++        if capacity < 512 or capacity % 512:
++            raise ValueError('arena capacity must be 512-byte aligned')
++        self.capacity = capacity
++        self.free = [(0, capacity)]
++        self.live = {}
++
++    def allocate(self, owner, size):
++        size = align_bytes(size)
++        if owner in self.live or size <= 0:
++            raise ValueError('duplicate owner or empty allocation')
++        for i, (offset, length) in enumerate(self.free):
++            if length >= size:
++                self.free[i:i + 1] = ([(offset + size, length - size)] if length > size else [])
++                self.live[owner] = (offset, size)
++                return offset
++        return None
++
++    def release(self, owner):
++        self.free.append(self.live.pop(owner))
++        merged = []
++        for offset, length in sorted(self.free):
++            if merged and merged[-1][0] + merged[-1][1] == offset:
++                a, n = merged[-1]
++                merged[-1] = (a, n + length)
++            else:
++                merged.append((offset, length))
++        self.free = merged
++
++
++@dataclass
++class Layer:
++    name: str
++    gid: int
++    role: str
++    block_size: int
++    raw_pages: object
++    views: tuple
++
++
++class NativePrefillState:
++    def __init__(self, runner, *, reserve_bytes, total_cache_bytes, native_group):
++        import torch
++        for name, digest in PINS.items():
++            module = importlib.import_module(name)
++            if hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() != digest:
++                raise ValueError('prefill state source contract differs: ' + name)
++        config = runner.vllm_config
++        if (config.parallel_config.pipeline_parallel_size != 1
++                or config.parallel_config.data_parallel_size != 1
++                or config.parallel_config.tensor_parallel_size != 8
++                or config.num_speculative_tokens != 5
++                or config.model_config.dtype != torch.bfloat16
++                or config.kv_transfer_config is not None
++                or runner.use_aux_hidden_state_outputs
++                or runner.dynamic_eplb
++                or getattr(runner.kvpp, 'scheduler', None) is not None
++                or getattr(runner, 'sparse_kv_offload_enabled', False)
++                or config.cache_config.mamba_cache_mode != 'align'):
++            raise ValueError('unsupported target-prefill state configuration')
++        self.torch, self.runner, self.group = torch, runner, native_group
++        self.reserve_bytes, self.total_cache_bytes = reserve_bytes, total_cache_bytes
++        self.ledger = ByteArena(reserve_bytes)
++        self.arena = torch.empty(reserve_bytes, dtype=torch.uint8, device=runner.device)
++        self.entries = OrderedDict()
++        self.counts = Counter()
++        self.events = []
++        self.layers = []
++        self.descriptor = None
++        self.owner_cache = None
++        self.stats_path = None
++        self.closed = False
++        self.last_use = None
++        self.original_reshape = runner._reshape_kv_cache_tensors
++        self.original_forward = runner._model_forward
++        self.raw, self.views = None, None
++        owner = self
++
++        def reshape(_runner, cache_config, raw, *args, **kwargs):
++            views = owner.original_reshape(cache_config, raw, *args, **kwargs)
++            if owner.raw is not None:
++                raise RuntimeError('cache pool was initialized twice')
++            owner.raw, owner.views = raw, views
++            return views
++
++        runner._reshape_kv_cache_tensors = MethodType(reshape, runner)
++
++    def attach(self, cache_manager):
++        from vllm.v1.kv_cache_interface import MambaSpec
++        from vllm_ascend.core.kv_cache_interface import AscendIndexerKPoolTailSpec
++        r, torch = self.runner, self.torch
++        if self.raw is None or self.views is None:
++            raise RuntimeError('fixed SDK did not expose its actual cache allocation')
++        raw_payloads = {}
++        raw_storages = {}
++        for value in self.raw.values():
++            parts = value if isinstance(value, tuple) else (value,)
++            for part in parts:
++                raw_payloads[(part.data_ptr(), part.numel(), part.element_size())] = part.numel() * part.element_size()
++                storage = part.untyped_storage()
++                raw_storages[storage.data_ptr()] = storage.nbytes()
++        self.physical_pool_payload_bytes = sum(raw_payloads.values())
++        self.physical_pool_storage_bytes = sum(raw_storages.values())
++        if self.physical_pool_payload_bytes + self.reserve_bytes > self.total_cache_bytes:
++            raise ValueError('actual pooled payload plus memo arena exceeds total cache budget')
++        specs = r._get_layer_kv_cache_specs(r.kv_cache_config)
++        n_layers = r.model_config.hf_text_config.num_hidden_layers
++        if n_layers != 45:
++            raise ValueError('unexpected target layer count')
++        roles = Counter()
++        for gid, group in enumerate(r.kv_cache_config.kv_cache_groups):
++            for name in group.layer_names:
++                match = re.search(r'\.layers\.(\d+)\.', name)
++                if match is None:
++                    raise ValueError('unclassified cache layer: ' + name)
++                if int(match[1]) >= n_layers:
++                    continue  # Draft caches remain owned and updated by the SDK.
++                spec = specs[name]
++                if isinstance(spec, MambaSpec):
++                    role = 'mamba'
++                elif isinstance(spec, AscendIndexerKPoolTailSpec):
++                    role = 'tail'
++                elif getattr(spec, 'model_version', None) == 'glm5_next':
++                    role = 'attention'
++                else:
++                    raise ValueError('unclassified target cache spec: ' + name)
++                raw = self.raw[name]
++                if (not isinstance(raw, torch.Tensor) or not raw.is_contiguous()
++                        or raw.element_size() != 1
++                        or raw.numel() != r.kv_cache_config.num_blocks * spec.page_size_bytes):
++                    raise ValueError('noncanonical target cache backing: ' + name)
++                views = self.views[name]
++                if not isinstance(views, (list, tuple)):
++                    views = (views,)
++                if role == 'mamba' and (len(views) != 2 or any(
++                        t.shape[0] != r.kv_cache_config.num_blocks for t in views)):
++                    raise ValueError('KDA state must expose conv and recurrent slots')
++                self.layers.append(Layer(name, gid, role, spec.block_size,
++                    raw.view(torch.uint8).view(r.kv_cache_config.num_blocks, spec.page_size_bytes),
++                    tuple(views)))
++                roles[role] += 1
++        if roles != {'mamba': 34, 'attention': 22, 'tail': 11}:
++            raise ValueError('incomplete target-state coverage: ' + repr(roles))
++        self.layers.sort(key=lambda x: x.name)
++        block_sizes = {x.block_size for x in self.layers if x.role != 'tail'}
++        if len(block_sizes) != 1:
++            raise ValueError('target state groups require one shared token alignment')
++        self.block_size = block_sizes.pop()
++        self.state_bytes_per_entry = sum(
++            sum(t[0].numel() * t.element_size() for t in x.views)
++            if x.role == 'mamba' else int(x.raw_pages.shape[1])
++            for x in self.layers)
++        self.owner_cache = cache_manager
++        self.runner._reshape_kv_cache_tensors = self.original_reshape
++        owner = self
++
++        def forward(_runner, *args, **kwargs):
++            return owner.forward(*args, **kwargs)
++
++        self.runner._model_forward = MethodType(forward, self.runner)
++        self.layout = [(x.name, x.gid, x.role, x.block_size,
++                        int(x.raw_pages.shape[1]),
++                        [(tuple(t.shape[1:]), str(t.dtype)) for t in x.views] if x.role == 'mamba' else [])
++                       for x in self.layers]
++
++    def begin(self, descriptor):
++        if self.descriptor is not None or self.closed:
++            raise RuntimeError('prefill memo execution overlap or use after close')
++        self.descriptor = descriptor
++
++    def end(self):
++        self.descriptor = None
++
++    def _records(self):
++        r, d = self.runner, self.descriptor
++        if d is None or not d.total_num_scheduled_tokens or d.scheduled_spec_decode_tokens:
++            return None
++        from vllm.forward_context import get_forward_context
++        from vllm.config.compilation import CUDAGraphMode
++        if get_forward_context().cudagraph_runtime_mode != CUDAGraphMode.NONE:
++            return None
++        records, offset = [], 0
++        for rid in r.input_batch.req_ids:
++            state = r.requests[rid]
++            q = d.num_scheduled_tokens[rid]
++            start = int(state.num_computed_tokens)
++            stop = start + q
++            prompt = state.prompt_token_ids
++            if start >= len(prompt) or stop > len(prompt) or state.output_token_ids:
++                return None
++            key = tuple(prompt) if stop == len(prompt) else None
++            records.append((rid, start, stop, offset, key))
++            offset += q
++        if offset != d.total_num_scheduled_tokens:
++            raise RuntimeError('SDK input row order disagrees with scheduled spans')
++        return records
++
++    def _segments(self, record):
++        rid, start, stop, _offset, _key = record
++        state = self.runner.requests[rid]
++        tensors, addresses = [], []
++        for layer in self.layers:
++            for column in written_columns(layer.role, start, stop, layer.block_size):
++                blocks = state.block_ids[layer.gid]
++                if not 0 <= column < len(blocks):
++                    raise ValueError('missing request cache column')
++                block_id = blocks[column]
++                if not 0 <= block_id < layer.raw_pages.shape[0]:
++                    raise ValueError('cache slot out of bounds')
++                if layer.role == 'mamba' and self.runner.mamba_state_idx[rid] != column:
++                    raise ValueError('running KDA state column differs from fixed SDK contract')
++                if self.owner_cache is not None:
++                    manager = self.owner_cache.coordinator.single_type_managers[layer.gid]
++                    block = manager.req_to_blocks[rid][column]
++                    if block.block_id != block_id or block.is_null or block.ref_cnt != 1:
++                        raise ValueError('state writeback requires request-private live slots')
++                parts = ([t[block_id] for t in layer.views] if layer.role == 'mamba'
++                         else [layer.raw_pages[block_id]])
++                for part in parts:
++                    if not part.is_contiguous():
++                        raise ValueError('individual state row must be contiguous')
++                    tensors.append(part)
++                addresses.append((layer.gid, column, block_id))
++        return tensors, addresses
++
++    @staticmethod
++    def _signature(tensors):
++        return tuple((tuple(t.shape), str(t.dtype)) for t in tensors)
++
++    def _view(self, offset, tensor):
++        size = tensor.numel() * tensor.element_size()
++        return self.arena.narrow(0, offset, size).view(tensor.dtype).view(tensor.shape)
++
++    def _consensus(self, payload):
++        import torch.distributed as dist
++        # Every rank must make the same skip/execute decision before collectives.
++        found = [None] * dist.get_world_size(self.group)
++        dist.all_gather_object(found, payload, group=dist.group.WORLD)
++        if any(value != found[0] for value in found) or payload.get('error'):
++            raise RuntimeError('target-prefill state ownership/decision disagrees across ranks: ' + repr(found))
++
++    def forward(self, *args, **kwargs):
++        self.counts['target_forward_calls'] += 1
++        records = self._records()
++        if not records:
++            return self.original_forward(*args, **kwargs)
++        started_ns = time.monotonic_ns()
++        self.counts['prefill_batches'] += 1
++        planned, error = [], None
++        try:
++            for record in records:
++                rid, start, stop, row, key = record
++                if key is None:
++                    continue
++                saved_start = reusable_suffix_start(start, stop, self.block_size)
++                saved_record = (rid, saved_start, stop, row + saved_start - start, key)
++                tensors, addresses = self._segments(saved_record)
++                planned.append((record, saved_record, tensors, addresses))
++        except Exception as exc:
++            error = type(exc).__name__ + ': ' + str(exc)
++        hit = bool(error is None and all(
++            key is not None and key in self.entries and start >= self.entries[key]['start']
++            for _rid, start, _stop, _row, key in records))
++        decision_identity = [(start, stop, row, key) for _rid, start, stop, row, key in records]
++        self._consensus({'keys_sha256': hashlib.sha256(repr(decision_identity).encode()).hexdigest(),
++                         'hit': hit, 'error': error})
++        torch = self.torch
++        stream = torch.npu.current_stream(self.runner.device)
++        if self.last_use is not None:
++            stream.wait_event(self.last_use)
++        if hit:
++            num_tokens = int(args[0] if args else kwargs['num_tokens_padded'])
++            hidden = torch.empty((num_tokens, self.runner.model_config.hf_text_config.hidden_size),
++                                 dtype=self.runner.model_config.dtype, device=self.runner.device)
++            if num_tokens > self.descriptor.total_num_scheduled_tokens:
++                hidden[self.descriptor.total_num_scheduled_tokens:].zero_()
++            for record, _saved_record, tensors, _addresses in planned:
++                _rid, start, stop, row, key = record
++                target_hidden = hidden[row:row + stop - start]
++                entry = self.entries[key]
++                if self._signature(tensors) != entry['signature'][:-1]:
++                    raise ValueError('restored state layout differs from saved layout')
++                stream.wait_event(entry['ready'])
++                for part, offset in zip(tensors, entry['offsets'][:-1], strict=True):
++                    part.copy_(self._view(offset, part), non_blocking=True)
++                shape, _dtype = entry['signature'][-1]
++                nbytes = shape[0] * shape[1] * target_hidden.element_size()
++                saved_hidden = self.arena.narrow(0, entry['offsets'][-1], nbytes).view(
++                    target_hidden.dtype).view(shape)
++                target_hidden.copy_(saved_hidden[start - entry['start']:], non_blocking=True)
++                self.counts['restored_bytes'] += entry['payload_bytes']
++                self.counts['reused_requests'] += 1
++                self.counts['target_tokens_skipped'] += stop - start
++                self.entries.move_to_end(key)
++            self.counts['target_prefill_forwards_skipped'] += 1
++        else:
++            hidden = self.original_forward(*args, **kwargs)
++            if (not isinstance(hidden, torch.Tensor) or hidden.ndim != 2
++                    or hidden.shape[0] < self.descriptor.total_num_scheduled_tokens):
++                raise ValueError('target forward did not return complete hidden activations')
++            for _record, saved_record, tensors, _addresses in planned:
++                _rid, start, stop, row, key = saved_record
++                if key in self.entries and start >= self.entries[key]['start']:
++                    continue
++                if key in self.entries:
++                    self.entries.pop(key)
++                    self.ledger.release(key)
++                self._save(key, start, tensors + [hidden[row:row + stop - start]], stream)
++        if hit:
++            # Match the fixed runner's finally contract even though model work
++            # was replaced. FULL-graph updates are a no-op on this eager path.
++            from vllm.forward_context import get_forward_context
++            executor = getattr(get_forward_context(), 'device_metadata_executor', None)
++            if executor is not None and executor.submission_in_flight:
++                executor.release()
++        self.last_use = torch.npu.Event()
++        self.last_use.record(stream)
++        if len(self.events) < 256:
++            self.events.append({'started_monotonic_ns': started_ns,
++                'host_return_monotonic_ns': time.monotonic_ns(), 'hit': hit,
++                'spans': [(start, stop) for _rid, start, stop, _row, _key in records],
++                'entries': len(self.entries), 'counts': dict(self.counts)})
++        else:
++            self.counts['events_dropped'] += 1
++        if hit and self.counts['target_prefill_forwards_skipped'] == 1 and self.stats_path is not None:
++            # One preflight receipt, before formal timing. Final receipt is
++            # written by drain; no per-step logging or device synchronization.
++            tmp = self.stats_path.with_suffix('.tmp')
++            tmp.write_text(json.dumps(self.snapshot()) + '\n')
++            tmp.replace(self.stats_path)
++        return hidden
++
++    def _save(self, key, start, parts, stream):
++        sizes = [t.numel() * t.element_size() for t in parts]
++        size = sum(align_bytes(n) for n in sizes)
++        if size > self.reserve_bytes:
++            self.counts['oversized_entries'] += 1
++            return
++        offset = self.ledger.allocate(key, size)
++        while offset is None:
++            old, _ = self.entries.popitem(last=False)
++            self.ledger.release(old)
++            self.counts['evictions'] += 1
++            offset = self.ledger.allocate(key, size)
++        offsets = []
++        for part, nbytes in zip(parts, sizes, strict=True):
++            offsets.append(offset)
++            self._view(offset, part).copy_(part, non_blocking=True)
++            offset += align_bytes(nbytes)
++        ready = self.torch.npu.Event()
++        ready.record(stream)
++        self.entries[key] = {'offsets': offsets, 'signature': self._signature(parts),
++                             'ready': ready, 'payload_bytes': sum(sizes), 'start': start}
++        self.counts['saved_entries'] += 1
++        self.counts['saved_bytes'] += sum(sizes)
++        self.counts['peak_arena_used_bytes'] = max(self.counts['peak_arena_used_bytes'],
++                                                  sum(n for _, n in self.ledger.live.values()))
++
++    def snapshot(self):
++        return {'counts': dict(self.counts), 'closed': self.closed, 'events': self.events,
++                'total_cache_budget_bytes': self.total_cache_bytes,
++                'state_arena_bytes': self.reserve_bytes,
++                'ordinary_pool_budget_bytes': self.total_cache_bytes - self.reserve_bytes,
++                'physical_pool_payload_bytes': self.physical_pool_payload_bytes,
++                'physical_pool_storage_bytes_including_sdk_alignment': self.physical_pool_storage_bytes,
++                'state_bytes_per_entry_excluding_hidden': self.state_bytes_per_entry,
++                'copies_per_entry_including_hidden': sum(2 if x.role == 'mamba' else 1 for x in self.layers) + 1,
++                'entries': len(self.entries), 'target_layers': self.layout,
++                'scope': 'pure eager final target-prefill;normal logits/sampler/MTP;no answer cache',
++                'NPU_validated': False}
++
++    def close(self):
++        if self.descriptor is not None:
++            raise RuntimeError('cannot close an active prefill transaction')
++        self.runner._model_forward = self.original_forward
++        self.closed = True
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+index 8ec2018..ec59726 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+@@ -70,13 +70,20 @@ class SDKComputeRuntime:
+     def execute(self, descriptor):
+         from vllm.config import set_current_vllm_config
+         with set_current_vllm_config(self.config):
+-            output = self.compute_worker.execute_model(descriptor)
+-            if output is None:
+-                output = self.compute_worker.sample_tokens(None)
+-            if self.num_speculative_tokens:
+-                from .sdk_mtp_output import capture_mtp_output
+-                output = capture_mtp_output(self, output, descriptor)
+-            return output
++            memo = getattr(self, 'native_prefill_state', None)
++            if memo is not None:
++                memo.begin(descriptor)
++            try:
++                output = self.compute_worker.execute_model(descriptor)
++                if output is None:
++                    output = self.compute_worker.sample_tokens(None)
++                if self.num_speculative_tokens:
++                    from .sdk_mtp_output import capture_mtp_output
++                    output = capture_mtp_output(self, output, descriptor)
++                return output
++            finally:
++                if memo is not None:
++                    memo.end()
+ 
+     def drain(self):
+         # Do not call SDKWorker.shutdown here: its distributed groups share
+@@ -85,6 +92,11 @@ class SDKComputeRuntime:
+         import torch
+         get_offloader().join_after_forward()
+         torch.npu.synchronize(self.compute_worker.device)
++        if getattr(self, 'native_prefill_state', None) is not None:
++            import json
++            self.native_prefill_state.close()
++            self.native_prefill_state_stats_path.write_text(
++                json.dumps(self.native_prefill_state.snapshot()) + '\n')
+         if getattr(self, 'native_mtp_logprob', None) is not None:
+             import json
+             self.native_mtp_logprob.close()
+@@ -111,7 +123,8 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+                         mtp_tokens=0, mtp_indexed_loading=False,
+                         dsa_context_parallel=False, static_kernel=False, super_kernel=False,
+                         native_mtp_logprob_gather=False, mtp_draft_graph=False,
+-                        native_prefix_admission=False, prefill_mc2=False):
++                        native_prefix_admission=False, prefill_mc2=False,
++                        native_prefill_state=False):
+     import torch
+     import os
+     import torch.distributed as dist
+@@ -146,6 +159,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+             raise ValueError('native prefix admission requires physical prefix caching')
+         from .prefix_admission import verify_prefix_sources
+         verify_prefix_sources()
++    if native_prefill_state and not (native_prefix_admission and mtp_tokens == 5
++                                    and mtp_draft_graph and dsa_context_parallel):
++        raise ValueError('native prefill state requires the retained hybrid MTP5 recipe')
++    # Divide the original total budget; never allocate a second cache outside it.
++    state_arena_bytes = (cache_bytes // 4 // 512 * 512) if native_prefill_state else 0
++    physical_cache_bytes = cache_bytes - state_arena_bytes
+     if super_kernel and not static_kernel:
+         raise ValueError('the shared SDK super kernel requires static kernel')
+     if (static_kernel or super_kernel) and (not graph_decode or breakable_graph):
+@@ -196,7 +215,7 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+         enable_prefix_caching=prefix_caching, block_size=128, mamba_block_size=128,
+         mamba_cache_mode='align' if prefix_caching else 'none', additional_config=additional_config,
+         async_scheduling=async_scheduling, skip_mm_profiling=True,
+-        kv_cache_memory_bytes=cache_bytes, cpu_offload_gb=0,
++        kv_cache_memory_bytes=physical_cache_bytes, cpu_offload_gb=0,
+         offload_backend='auto', offload_group_size=0,
+         trust_remote_code=False, disable_log_stats=True, **extra_args)
+     config = args.create_engine_config()
+@@ -297,6 +316,12 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+         if any(p.numel() and p.device.type != 'npu' for p in model.parameters()):
+             raise ValueError('nonempty model parameter outside NPU')
+         spec = worker.get_kv_cache_spec()
++        prefill_state = None
++        if native_prefill_state:
++            from .native_prefill_state import NativePrefillState
++            prefill_state = NativePrefillState(worker.model_runner,
++                reserve_bytes=state_arena_bytes, total_cache_bytes=cache_bytes,
++                native_group=native_group)
+         available = int(worker.determine_available_memory())
+         # This one-off CPU exchange uses the native Gloo world, not a new
+         # scheduler/executor. Each real worker contributes its own cache spec.
+@@ -382,6 +407,16 @@ def prepare_sdk_compute(model_dir, *, device, native_group, local_rank,
+     result.request_block_hasher = request_block_hasher
+     result.native_prefix_admission = native_prefix_admission
+     shared_profile['native_prefix_admission'] = native_prefix_admission
++    if prefill_state is not None:
++        prefill_state.attach(manager)
++        result.native_prefill_state = prefill_state
++        shared_profile['native_prefill_state'] = {
++            'enabled': True, 'total_cache_budget_bytes': cache_bytes,
++            'ordinary_pool_budget_bytes': physical_cache_bytes,
++            'state_arena_bytes': state_arena_bytes,
++            'declared_sequence_capacity': max_requests,
++            'estimated_physical_sequence_capacity': capacity,
++            'scope': 'target final-prefill states;normal sampling/MTP unchanged'}
+     if native_mtp_logprob_gather:
+         if not mtp_tokens:
+             raise ValueError('native MTP logprob gather requires speculative decoding')
+diff --git a/DeepInfer/examples/glm5_full_model_offline.py b/DeepInfer/examples/glm5_full_model_offline.py
+index 777900f..4c89402 100644
+--- a/DeepInfer/examples/glm5_full_model_offline.py
++++ b/DeepInfer/examples/glm5_full_model_offline.py
+@@ -69,6 +69,8 @@ def main():
+                    help='enable the same supported SDK MTP draft graph as the matched reference')
+     p.add_argument('--native-prefix-admission', action='store_true',
+                    help='pin real SDK cache hits before native scheduler token-budget admission')
++    p.add_argument('--native-prefill-state', action='store_true',
++                   help='reuse target-prefill state/activations within the existing cache budget')
+     p.add_argument('--prefill-mc2', action='store_true',
+                    help='enable the shared Ascend SDK prefill MC2 communication path')
+     a = p.parse_args()
+@@ -93,6 +95,9 @@ def main():
+         p.error('MTP draft graph requires MTP and graph decode')
+     if a.native_prefix_admission and not a.prefix_caching:
+         p.error('native prefix admission requires prefix caching')
++    if a.native_prefill_state and not (a.native_prefix_admission and a.mtp_tokens == 5
++                                       and a.mtp_draft_graph and a.dsa_context_parallel):
++        p.error('native prefill state requires the retained hybrid MTP5 recipe')
+     if a.native_mtp_logprob_gather and not a.mtp_tokens:
+         p.error('native MTP logprob gather requires MTP')
+     if a.super_kernel and not a.static_kernel:
+@@ -182,8 +187,12 @@ def main():
+                 static_kernel=a.static_kernel, super_kernel=a.super_kernel,
+                 native_mtp_logprob_gather=a.native_mtp_logprob_gather,
+                 mtp_draft_graph=a.mtp_draft_graph,
+-                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2)
++                native_prefix_admission=a.native_prefix_admission, prefill_mc2=a.prefill_mc2,
++                native_prefill_state=a.native_prefill_state)
+             runtime.kda_capture_stats_path = out / "kda-capture.json"
++            if getattr(runtime, 'native_prefill_state', None) is not None:
++                runtime.native_prefill_state_stats_path = out / 'native-prefill-state.json'
++                runtime.native_prefill_state.stats_path = runtime.native_prefill_state_stats_path
+             if getattr(runtime, 'native_mtp_logprob', None) is not None:
+                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
+                 runtime.native_mtp_logprob.stats_path = runtime.native_mtp_logprob_stats_path
+diff --git a/DeepInfer/tests/test_native_prefill_state.py b/DeepInfer/tests/test_native_prefill_state.py
+new file mode 100644
+index 0000000..08111e0
+--- /dev/null
++++ b/DeepInfer/tests/test_native_prefill_state.py
+@@ -0,0 +1,104 @@
++"""Host metadata invariants only; no CPU model or numerical NPU simulation."""
++import importlib.util
++from pathlib import Path
++import random
++import sys
++from types import SimpleNamespace as NS
++import unittest
++
++PATH = Path(__file__).parents[1] / 'deepinfer/model_executor/models/glm5_next/full_model/native_prefill_state.py'
++SPEC = importlib.util.spec_from_file_location('tested_native_prefill_state', PATH)
++M = importlib.util.module_from_spec(SPEC)
++sys.modules[SPEC.name] = M
++SPEC.loader.exec_module(M)
++
++
++class Part:
++    def is_contiguous(self):
++        return True
++
++
++class Rows:
++    shape = (100, 512)
++    def __getitem__(self, idx):
++        if not 0 <= idx < 100:
++            raise IndexError(idx)
++        return Part()
++
++
++class Contracts(unittest.TestCase):
++    def test_suffix_allows_different_prefill_chunking_without_missing_hidden_rows(self):
++        self.assertEqual(M.reusable_suffix_start(0, 1024, 640), 640)
++        self.assertEqual(M.reusable_suffix_start(640, 1024, 640), 640)
++        self.assertEqual(M.reusable_suffix_start(896, 1024, 640), 896)
++        self.assertEqual(M.reusable_suffix_start(0, 640, 640), 0)
++
++    def test_arena_never_overlaps_and_conserves_capacity(self):
++        arena = M.ByteArena(16384)
++        rng = random.Random(53)
++        for i in range(500):
++            if arena.live and rng.randrange(3) == 0:
++                arena.release(rng.choice(list(arena.live)))
++            else:
++                before = (list(arena.free), dict(arena.live))
++                pos = arena.allocate(i, rng.randrange(1, 4097))
++                if pos is None:
++                    self.assertEqual(before, (arena.free, arena.live))
++            extents = sorted(arena.free + list(arena.live.values()))
++            self.assertEqual(sum(n for _, n in extents), arena.capacity)
++            cursor = 0
++            for start, length in extents:
++                self.assertEqual(start, cursor)
++                self.assertEqual(length % 512, 0)
++                cursor += length
++        for owner in list(arena.live):
++            arena.release(owner)
++        self.assertEqual(arena.free, [(0, arena.capacity)])
++
++    def test_state_pages_follow_semantics_not_draft_reservation(self):
++        self.assertEqual(M.written_columns('attention', 640, 1024, 640), (1,))
++        self.assertEqual(M.written_columns('attention', 512, 1536, 640), (0, 1, 2))
++        self.assertEqual(M.written_columns('mamba', 512, 1536, 640), (2,))
++        self.assertEqual(M.written_columns('tail', 640, 1024, 9), (0,))
++        with self.assertRaises(ValueError):
++            M.written_columns('attention', 1024, 1024, 640)
++
++    def make_memo(self, ref_cnt=1):
++        memo = M.NativePrefillState.__new__(M.NativePrefillState)
++        memo.runner = NS(requests={'r': NS(block_ids=[[8, 9], [12], [20, 21, 22, 23]])},
++                         mamba_state_idx={'r': 1})
++        memo.layers = [M.Layer('attn', 0, 'attention', 640, Rows(), ()),
++                       M.Layer('tail', 1, 'tail', 9, Rows(), ()),
++                       M.Layer('kda', 2, 'mamba', 640, Rows(), (Rows(), Rows()))]
++        managers = []
++        for ids in memo.runner.requests['r'].block_ids:
++            managers.append(NS(req_to_blocks={'r': [NS(block_id=i, is_null=False, ref_cnt=ref_cnt) for i in ids]}))
++        memo.owner_cache = NS(coordinator=NS(single_type_managers=managers))
++        return memo
++
++    def test_restore_writes_current_private_state_not_shared_prefix(self):
++        memo = self.make_memo()
++        tensors, addresses = memo._segments(('r', 640, 1024, 0, 'key'))
++        self.assertEqual(addresses, [(0, 1, 9), (1, 0, 12), (2, 1, 21)])
++        self.assertEqual(len(tensors), 4)
++        self.assertNotIn((0, 0, 8), addresses)
++        self.assertNotIn((2, 2, 22), addresses)
++
++    def test_refuses_shared_or_reassigned_destination(self):
++        memo = self.make_memo(ref_cnt=2)
++        with self.assertRaisesRegex(ValueError, 'request-private'):
++            memo._segments(('r', 640, 1024, 0, 'key'))
++        memo = self.make_memo()
++        memo.owner_cache.coordinator.single_type_managers[0].req_to_blocks['r'][1].block_id = 99
++        with self.assertRaisesRegex(ValueError, 'request-private'):
++            memo._segments(('r', 640, 1024, 0, 'key'))
++
++    def test_refuses_wrong_running_kda_column(self):
++        memo = self.make_memo()
++        memo.runner.mamba_state_idx['r'] = 2
++        with self.assertRaisesRegex(ValueError, 'running KDA'):
++            memo._segments(('r', 640, 1024, 0, 'key'))
++
++
++if __name__ == '__main__':
++    unittest.main()
