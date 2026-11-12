@@ -4,19 +4,15 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：默认保留114，相对强参考117的C4/C8单批优势为34.28%/20.60%，双档30%未完成。125缩行候选运行通过，但未带来足够净收益，不采用。**
+**当前状态（2026-11-13）：默认保留114，C4/C8相对强参考117单批+34.28%/+20.60%，完整双档30%未完成。**
 
-最新[125实测、复现与去留裁决](docs/native125-result-20261113.md)：72请求、8Worker退出0及设备释放；C4/C8为299.3803/501.5165 token/s，相对114为−2.46%/+0.06%，相对117为+30.98%/+20.67%。缩行路径真实命中，但不能当作性能突破。与参考完整文本58/64一致，通用质量未验收。
+最新[127混合prefill状态复用实测与裁决](docs/native127-result-20261113.md)：72请求、8rank退出0并释放资源。C4/C8为278.768/557.129 token/s，相对强参考+21.96%/+34.05%，相对114为−9.18%/+11.15%。C8单批过线，但C4未过，不能拼接不同实现的最好成绩。
 
-[完整实际参数、环境和原始计时端点](validation/shared-features-20261111/native125-reproduction.json)及[已测隔离补丁](validation/shared-features-20261111/native125-compact-tail.patch)保留。候选仅加载一次；未触发控制加载，不追加本阶段变体，默认源码仍是114。
+新机制实际复用19请求，省掉13次目标prefill forward；总缓存仍4GiB。C4阶段新机制无命中、增加状态保存，冷侧退化原因尚未被独立控制；C8与参考完整文本23/32一致，新增分叉未解释。**127不采用为默认，R3控制不触发，本阶段1次加载后结束，不追加变体。**
 
-历史路线：[124 metadata图不采用](docs/native124-decision-and-stage-review-20261113.md)；120 prefill图否决，121初始化失败。当前[路线反思](docs/performance-direction-review-20261113.md)的C阶段已作否决并收尾，整体性能目标仍未完成。
+[实际命令、环境与原始计时](validation/shared-features-20261111/native127-reproduction.json) · [隔离源码补丁](validation/shared-features-20261111/native127-prefill-state.patch) · [候选设计](docs/native127-prefill-state-20261113.md)。该特性的已测收益范围是重复输入的温缓存场景，不能外推到冷启动或全新prompt。
 
-最新[126的D2裁决](docs/native126-D2-decision-20261113.md)：8rank局部目标图任务已对应算子，仍没有安全且有足够净收益依据的新候选；D阶段结束，1次取证加载，候选与控制测试均未触发。完整导出失败、非正常退出和释放记录保留；此前4个rank的captured标记不能当导出成功。默认114不变，C4/C8单批+34.28%/+20.60%，双档30%未完成。后续只做有界源码可行性判断，不自动追加NPU测试。
-
-[当前127候选：混合prefill状态复用](docs/native127-prefill-state-20261113.md)：源码605a4bb、6项主机元数据检查通过，已放行一次有界候选加载，NPU结果待回收。总缓存仍4GiB，恢复目标混合状态和隐藏激活后正常采样与MTP；不缓存答案。默认114不变，无新增性能成绩。累计8小时、最多3次条件性加载的[总计划](docs/performance-replan-20261113.md)继续生效。
-
-[隔离补丁](validation/shared-features-20261111/native127-prefill-state.patch)可在114源码上应用，仅用于明确开启的候选验证；尚未纳入默认实现。
+历史：[125缩行无足够收益](docs/native125-result-20261113.md)；[124 metadata图退化](docs/native124-decision-and-stage-review-20261113.md)；[126取证及D2裁决](docs/native126-D2-decision-20261113.md)。[累计计划与停止条件](docs/performance-replan-20261113.md)保留，未用额度不自动改作新实验。
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
