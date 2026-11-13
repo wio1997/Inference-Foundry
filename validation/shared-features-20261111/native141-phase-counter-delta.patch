@@ -1,0 +1,31 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+index 1caf20e..14b3663 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+@@ -23,6 +23,18 @@ class Pending:
+     queued_monotonic_ns: int = field(default_factory=time.monotonic_ns)
+ 
+ 
++def runtime_progress_snapshot(runtime):
++    """Host counters for existing between-phase health queries; no device read."""
++    adapter = runtime.adapter
++    terminal = getattr(runtime, 'native_terminal_prefill', None)
++    memo = getattr(runtime, 'native_prefill_state', None)
++    return {'snapshot_monotonic_ns': time.monotonic_ns(),
++            'async_execution': dict(getattr(adapter, 'async_stats', {})),
++            'async_schedule': dict(getattr(adapter.controller, 'async_stats', {})),
++            'native_prefill_state_counts': dict(memo.counts) if memo is not None else {},
++            'native_terminal_prefill': terminal.snapshot() if terminal is not None else {'enabled': False}}
++
++
+ def serve_sdk_batch_engine(llm, worker, args, out):
+     import numpy as np
+     from transformers import AutoTokenizer
+@@ -60,6 +72,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+             if self.path == '/health':
+                 self.reply(200, {'status': 'ready', 'engine': 'deepinfer',
+                                 'max_active_requests': args.max_sequences,
++                                **runtime_progress_snapshot(worker._glm_worker_runtime),
+                                 'prefix_cache': dict(worker._glm_worker_runtime.adapter.controller.prefix_stats),
+                                 'mtp': dict(getattr(worker._glm_worker_runtime.adapter.controller, 'mtp_stats', {})),
+                                 'kda_decode_capture': (worker._glm_worker_runtime.kda_capture.snapshot()
