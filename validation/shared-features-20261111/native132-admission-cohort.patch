@@ -1,0 +1,168 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py
+new file mode 100644
+index 0000000..e4209e1
+--- /dev/null
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py
+@@ -0,0 +1,78 @@
++"""Optional throughput-oriented admission boundary for the native HTTP engine.
++
++Already admitted requests keep their normal scheduler and state ownership.
++After the first decode step, new HTTP requests wait for that finite cohort to
++finish. No timer, benchmark concurrency, prompt identity or response is used.
++This trades admission latency for fewer mid-decode prefill interruptions; NPU
++performance and output validity require separate validation.
++"""
++
++
++class NativeAdmissionCohort:
++    def __init__(self, enabled=False):
++        self.enabled = bool(enabled)
++        self.decoding = False
++        self.cohort_ids = frozenset()
++        self.counts = {'cohorts_started': 0, 'cohorts_finished': 0,
++                       'admission_withheld_steps': 0, 'max_waiting_http_requests': 0,
++                       'admitted_requests': 0, 'queue_wait_ns_sum': 0,
++                       'queue_wait_ns_max': 0, 'events_dropped': 0}
++        self.events = []
++
++    def _record(self, value):
++        if len(self.events) < 4096:
++            self.events.append(value)
++        else:
++            self.counts['events_dropped'] += 1
++
++    def allow_admission(self, active_ids, waiting_count, now_ns):
++        if not self.enabled:
++            return True
++        active = frozenset(active_ids)
++        if self.decoding:
++            if not active.issubset(self.cohort_ids):
++                raise RuntimeError('new request entered an already decoding cohort')
++            if active:
++                if waiting_count:
++                    self.counts['admission_withheld_steps'] += 1
++                    self.counts['max_waiting_http_requests'] = max(
++                        self.counts['max_waiting_http_requests'], waiting_count)
++                return False
++            self._record({'kind': 'cohort_finished', 'monotonic_ns': now_ns})
++            self.counts['cohorts_finished'] += 1
++            self.decoding = False
++            self.cohort_ids = frozenset()
++        return True
++
++    def admitted(self, request_id, queued_ns, now_ns):
++        if not self.enabled:
++            return
++        if self.decoding or now_ns < queued_ns:
++            raise RuntimeError('invalid admission boundary or queue timestamp')
++        wait = now_ns - queued_ns
++        self.counts['admitted_requests'] += 1
++        self.counts['queue_wait_ns_sum'] += wait
++        self.counts['queue_wait_ns_max'] = max(self.counts['queue_wait_ns_max'], wait)
++        self._record({'kind': 'admitted', 'request_id': request_id,
++                      'queued_monotonic_ns': queued_ns, 'monotonic_ns': now_ns})
++
++    def after_step(self, active_ids, is_decode, now_ns):
++        if not self.enabled:
++            return
++        active = frozenset(active_ids)
++        if self.decoding:
++            if not active.issubset(self.cohort_ids):
++                raise RuntimeError('cohort ownership changed while decoding')
++            return
++        if is_decode and active:
++            self.decoding = True
++            self.cohort_ids = active
++            self.counts['cohorts_started'] += 1
++            self._record({'kind': 'cohort_started', 'monotonic_ns': now_ns,
++                          'request_ids': sorted(active)})
++
++    def snapshot(self):
++        return {'enabled': self.enabled, 'decoding_cohort_active': self.decoding,
++                'counts': dict(self.counts), 'events': list(self.events),
++                'scope': 'HTTP admission only;native schedule,model,state and sampling unchanged',
++                'performance_validated': False}
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+index 984edf4..7086891 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+@@ -20,6 +20,7 @@ class Pending:
+     body: dict
+     events: queue.Queue = field(default_factory=queue.Queue)
+     disconnected: threading.Event = field(default_factory=threading.Event)
++    queued_monotonic_ns: int = field(default_factory=time.monotonic_ns)
+ 
+ 
+ def serve_sdk_batch_engine(llm, worker, args, out):
+@@ -28,6 +29,9 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+     from deepinfer._C import engine
+     from deepinfer.sampling_params import SamplingParams
+     from deepinfer.model_executor.models.glm5_next.scheduler_eos import configure_scheduler_eos
++    from .native_admission_cohort import NativeAdmissionCohort
++
++    admission = NativeAdmissionCohort(getattr(args, 'native_admission_cohort', False))
+ 
+     tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True)
+     generation = json.loads((Path(args.model) / 'generation_config.json').read_text())
+@@ -136,7 +140,8 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+         'host': args.host, 'port': args.port, 'model': model_name,
+         'engine': 'DeepInfer LLMEngine + native scheduler/Worker',
+         'max_active_requests': args.max_sequences, 'http_pending_limit': 64,
+-        'continuous_batching': True, 'world_size': args.world_size}) + '\n')
++        'continuous_batching': not admission.enabled,
++        'native_admission_cohort': admission.enabled, 'world_size': args.world_size}) + '\n')
+     active = {}
+     completed = 0
+     completed_ids = set()
+@@ -167,6 +172,7 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+         seq = llm.add_request('http', rid, params, np.asarray(prompt_ids, dtype=np.int32))
+         if seq is None:
+             raise RuntimeError('native scheduler rejected admitted HTTP request')
++        admission.admitted(rid, request.queued_monotonic_ns, time.monotonic_ns())
+         active[rid] = {'rid': rid, 'request': request, 'created': int(time.time()),
+             'ids': [], 'decoded': '', 'input_count': len(prompt_ids),
+             'started': time.perf_counter_ns(), 'steps': 0}
+@@ -176,7 +182,8 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+             while not stopped.is_set():
+                 # Only the rank-zero engine thread admits/steps requests.
+                 # HTTP threads own transport and never call model methods.
+-                while (len(active) < args.max_sequences
++                admission_allowed = admission.allow_admission(active, waiting.qsize(), time.monotonic_ns())
++                while (admission_allowed and len(active) < args.max_sequences
+                         and llm.get_num_unfinished_requests() < args.max_sequences
+                         and (not args.serve_max_requests
+                              or completed + len(active) < args.serve_max_requests)):
+@@ -254,6 +261,10 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+                     del active[rid]
+                     completed_ids.add(rid)
+                     completed += 1
++                admission.after_step(active, bool(llm.scheduler.decode_step), time.monotonic_ns())
++            admission.allow_admission(active, waiting.qsize(), time.monotonic_ns())
++            if admission.enabled:
++                (out / 'native-admission-cohort.json').write_text(json.dumps(admission.snapshot())+'\n')
+             (out / 'result.json').write_text(json.dumps({'status': 'executed',
+                 'scope': 'native SDK batch HTTP;quality/performance separately measured',
+                 'completed_requests': completed,
+diff --git a/DeepInfer/examples/glm5_full_model_offline.py b/DeepInfer/examples/glm5_full_model_offline.py
+index 4c89402..2858ccb 100644
+--- a/DeepInfer/examples/glm5_full_model_offline.py
++++ b/DeepInfer/examples/glm5_full_model_offline.py
+@@ -71,6 +71,8 @@ def main():
+                    help='pin real SDK cache hits before native scheduler token-budget admission')
+     p.add_argument('--native-prefill-state', action='store_true',
+                    help='reuse target-prefill state/activations within the existing cache budget')
++    p.add_argument('--native-admission-cohort', action='store_true',
++                   help='experimental throughput mode: defer new admissions while a native cohort decodes;may increase TTFT')
+     p.add_argument('--prefill-mc2', action='store_true',
+                    help='enable the shared Ascend SDK prefill MC2 communication path')
+     a = p.parse_args()
+@@ -98,6 +100,9 @@ def main():
+     if a.native_prefill_state and not (a.native_prefix_admission and a.mtp_tokens == 5
+                                        and a.mtp_draft_graph and a.dsa_context_parallel):
+         p.error('native prefill state requires the retained hybrid MTP5 recipe')
++    if a.native_admission_cohort and not (a.serve and a.compute_backend == 'sdk-batch'
++                                         and a.async_scheduling and a.native_prefill_state):
++        p.error('native admission cohort requires HTTP serving and the retained async hybrid-state recipe')
+     if a.native_mtp_logprob_gather and not a.mtp_tokens:
+         p.error('native MTP logprob gather requires MTP')
+     if a.super_kernel and not a.static_kernel:
