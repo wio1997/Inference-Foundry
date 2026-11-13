@@ -4,15 +4,13 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：135已完成，同一版本双档越过历史参考30%数值门槛；新的匹配参考与机制归因仍未完成，默认114不变。**
+**当前状态（2026-11-13）：135候选完成，137新参考因正式测试含延迟编译而失效；136在占卡前阻塞，双档独有30%尚未完成。**
 
-135源码 `d070ce791642167a058ed58089c444a29629fc92` 的C4/C8为 **310.046 / 638.953 token/s**，对旧117为 **+35.64% / +53.74%**，对默认114为 **+1.01% / +27.48%**。72请求、8rank退出0并释放。旧117缺少新增共同编译准备，以上比值不能作为最终公平30%验收。
+135源码 `d070ce791642167a058ed58089c444a29629fc92` 的C4/C8为 **310.046 / 638.953 token/s**。137原始计时为 **250.022 / 482.064 token/s**，但共有预编译遗漏 `index_stride=1` 签名，新增编译落在两档正式请求内。直接比值+24.01%/+32.55%仅为诊断，不能作公平验收；不改用更慢的历史参考宣布达标。
 
-队列修正实际触发：C8有3次延后冻结，形成4个八请求组；平均准入等待由132的1.126秒降到0.144秒。C4/C8 TTFT中位数901.33/549.63ms、TPOT9.261/10.332ms；完整文本对旧参考30/32、27/32一致。通用质量及稳定性仍未验收。
+137请求完成、实际服务器退出0并释放，管理器失败记录保留。136同源码状态关闭控制在认领前因原卡组不可用而退出，**0容器、0模型加载、0新AIS请求**。当前本任务无存活NPU作业。共有预编译最小修正已形成草稿和4项元数据回归，未部署、未NPU验证；默认源码仍保留114。
 
-[本轮反思、机制边界与固定三臂计划](docs/strategy-review-and-next-goal-20261113.md) · [实际命令、环境与计时](validation/shared-features-20261111/native135-reproduction.json) · [结果与机制计数](validation/shared-features-20261111/native135-decision.json) · [实际准入事件](validation/shared-features-20261111/native135-admission-events.json) · [源码修正与补丁](docs/native135-queue-boundary-fix-20261113.md)
-
-当前GLM路径关闭原有ZOS，原生接入不代表所有专有调度特性均已验证。下一步只完成137新强参考和136同源码状态关闭控制；最多这两个控制，不追加候选。合并部署在本机启动SSH前因参数过长失败，已拆分并通过本机exec检查，**对照尚未部署或运行**，远端修正尚未验证。
+[最新失败定位、剩余工作与停止条件](docs/reference137-and-control136-status-20261113.md) · [本次反思与三臂计划](docs/strategy-review-and-next-goal-20261113.md) · [135复现清单](validation/shared-features-20261111/native135-reproduction.json) · [137失败批次复现清单](validation/shared-features-20261111/reference137-failure-reproduction.json) · [失败裁决](validation/shared-features-20261111/reference137-failure-adjudication.json)
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 

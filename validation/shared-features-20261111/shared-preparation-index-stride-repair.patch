@@ -1,0 +1,43 @@
+--- shared_kernel_preparation.py.before
++++ shared_kernel_preparation.py
+@@ -73,8 +73,15 @@
+     request_powers(max_requests)
+     if not isinstance(seed['WRITE_BACK'], bool):
+         raise ValueError('convolution-state copy direction must be explicit')
+-    for requests in range(1, max_requests + 1):
+-        yield dict(seed, REQUESTS=requests)
++    # SDK graph warmup and live requests use different index layouts. The
++    # live contiguous case has index_stride == 1, which Triton specializes as
++    # a constant even though this argument is not declared tl.constexpr.
++    # Preserve the captured layout and add this observed serving signature.
++    # This is compile-only preparation; it does not run kernels or prompts.
++    strides = (seed['index_stride'],) if seed['index_stride'] == 1 else (seed['index_stride'], 1)
++    for stride in strides:
++        for requests in range(1, max_requests + 1):
++            yield dict(seed, REQUESTS=requests, index_stride=stride)
+ 
+ 
+ def _save(path, receipt):
+@@ -212,6 +219,7 @@
+                 receipt['prepared'].append({'kernel': conv_kernel.__name__,
+                     'requests': variant['REQUESTS'], 'write_back': variant['WRITE_BACK'],
+                     'state_len': variant['STATE_LEN'], 'dim': variant['DIM'],
++                    'index_stride': variant['index_stride'],
+                     'hash': compiled.hash})
+         receipt.update(status='prepared', preparation_ms=(time.monotonic_ns() - started) / 1e6)
+         _save(path, receipt)
+@@ -223,11 +231,14 @@
+             original_compile = fn.compile
+             def compile_late(src, *a, **kw):
+                 begin = time.monotonic_ns()
++                begin_wall = time.time_ns()
+                 try:
+                     return original_compile(src, *a, **kw)
+                 finally:
+                     receipt['late_compile_events'].append({'kernel': fn.__name__,
+                         'elapsed_ms': (time.monotonic_ns() - begin) / 1e6,
++                        'started_monotonic_ns': begin, 'started_wall_time_ns': begin_wall,
++                        'finished_wall_time_ns': time.time_ns(),
+                         'constants': {str(k): v for k, v in src.constants.items()}})
+                     _save(path, receipt)
+             fn.compile = compile_late
