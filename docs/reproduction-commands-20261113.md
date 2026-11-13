@@ -42,3 +42,7 @@ python3 -u /task/main-session/batch-g139-shared-stride/overlay/postscore_profile
 - [数据/配置哈希、客户端版本和六份结果输入核对](../validation/performance-attribution-20261113/reproduction-inputs-manifest.json)
 
 权重、tokenizer、已编译NPU扩展和SDK不随合成数据分发，身份按固定清单核对。三臂请求均使用temperature0、top_p1、seed0与ignore_eos，C8沿用C4状态。
+
+## 新增复现边界：流式响应粒度不同
+
+相同stream=True及256输出token不代表SSE分帧一致。正式原始时间点记录数为参考每请求46–48个、原生每请求259个；原生sdk_http按原生token回调输出可解码文本增量。时间点不能当成token或模型forward次数；吞吐使用实际输出token数8192及整批客户端起止时间。新增[客户端时间审计](../validation/performance-attribution-20261113/client-cadence-audit.json)完整披露此差异与阈值口径，未用帧数冒充计算量。

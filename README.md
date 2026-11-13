@@ -6,7 +6,7 @@
 
 **最新工作：性能机制与复现审计进行中。** 已补齐实际启动命令、环境、冻结输入、配置、192条正式时间戳和8rank计数对账。C8状态复用有单项对照；C4新增发现实际图/普通执行路径不同，但尚缺单cohort因果实验，不能宣布全部24.13%已归因。
 
-C4单变量归因的观测与解析源码已准备：10项主机检查通过，历史192条时间戳解码一致；新增同源时钟及请求身份匹配，排除延迟预热和跨阶段混批。真实SDK/NPU未验证。两臂仅切cohort，均关闭状态复用并保留相同预算，先只测C4。当前缺现有中央池签发的整组资源许可，0部署/0新模型加载。[设计、源码与验收条件](docs/c4-cohort-causal-experiment-20261113.md)。
+新增根因依据：固定源码确认DeepInfer C++调度与实际适配器要求每步prefill/decode同型，vLLM core允许RUNNING与WAITING共用一步预算；HTTP请求组只是其上的准入层。C4客户端超过200毫秒的全流无记录间隔47→16次，均与待首响应区间重叠，常见大于1毫秒的记录间隔中位数约47毫秒。时间点不是token/设备事件，尚缺主批处理策略干预，不能宣布全部24.13%已归因。原cohort-only方案降为附加准入诊断，当前未放行加载。[详细证据与修正设计](docs/performance-mechanism-audit-20261113.md)。
 
 [完整流程/算子机制报告](docs/performance-mechanism-audit-20261113.md) · [实际命令与原始输入配置](docs/reproduction-commands-20261113.md) · [可离线复算的原始时间戳与计数](validation/performance-attribution-20261113/recompute_evidence.py)
 

@@ -1,0 +1,108 @@
+{
+  "audited_at": "2026-11-13T08:16:13.091315+00:00",
+  "model_source_commit": "76bb59edf66caef19e81a13bf91b698aba09659b",
+  "actual_binary_sha256": "fe6e265ccd8b1c85f4de1b61602dbb6e0c4647153e156c54c0c59b466641da61",
+  "shared_image_id": "sha256:ce42d65b2403992ad2e2b06c61f4f048babb57e455cfe307b018345e36c5e98b",
+  "native_sources": [
+    {
+      "module": "DeepInfer/csrc/engine/scheduler.hpp",
+      "sha256": "7084e187af3a5a6388128e5c7547a379ebddfd75371e2983e6398a4a409b1174",
+      "matches_actual139_source_manifest": true
+    },
+    {
+      "module": "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_async_dispatch.py",
+      "sha256": "b78d37e52da17775cf586464b558cccf493c4e422b31cb2b047c9a074b407f00",
+      "matches_actual139_source_manifest": true
+    },
+    {
+      "module": "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_async_mtp_dispatch.py",
+      "sha256": "f94791a4d861dcac5678d6a27f949c2acf6fa63849a6ae2e8088c4b6927d181a",
+      "matches_actual139_source_manifest": true
+    },
+    {
+      "module": "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_mtp_schedule.py",
+      "sha256": "c18e7ddfbb11628a54bb46d2dd08c00b5b3e3b45d34e6427d79b60255c8f6d1b",
+      "matches_actual139_source_manifest": true
+    },
+    {
+      "module": "DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py",
+      "sha256": "8d51781e3104d6ef6838449bc75b6fdbfdd93df834ad6bd5cc3eb6e3f6527e74",
+      "matches_actual139_source_manifest": true
+    }
+  ],
+  "fixed_sdk_sources": [
+    {
+      "source_module": "vllm/v1/core/sched/scheduler.py",
+      "sha256": "c1db45f3bbad3a875dd8638331b8870c4380ac1ab4734265ba5c863833a82884",
+      "source_changed_from_image": false
+    },
+    {
+      "source_module": "vllm/v1/core/sched/async_scheduler.py",
+      "sha256": "e586a0ef3c6778be56a93e7f9bb712d4de9de6e7d7fe7e3e1d51dae83ecfc508",
+      "source_changed_from_image": false,
+      "collected_module": "async_scheduler.py"
+    },
+    {
+      "source_module": "vllm/config/scheduler.py",
+      "sha256": "822179da62be4bca0619c8590082ae09123f5c4415f9cc2037be673748239edb",
+      "source_changed_from_image": false,
+      "collected_module": "scheduler_config.py"
+    }
+  ],
+  "sdk_config_matches_actual_runtime_pin": true,
+  "source_collection": "read stopped own139container;docker diff confirms SDK files unchanged from shared image;no container or NPU started",
+  "verified_source_facts": {
+    "native_cpp_chooses_one_prompt_or_decode_phase_per_step": true,
+    "native_actual_async_adapter_rejects_mixed_is_prompt_metadata": true,
+    "http_cohort_only_gates_new_admission_between_steps": true,
+    "cohort_off_disables_intrinsic_phase_separation": false,
+    "vllm_async_inherits_core_schedule_without_override": true,
+    "vllm_core_running_and_waiting_share_schedule_budget_and_output": true,
+    "disable_chunked_prefill_with1792_budget_and2048_context_is_rejected": true,
+    "disable_chunked_prefill_alone_is_not_a_phase_separation_guarantee": true
+  },
+  "corrected_experiment_decision": "Hold cohort-only as secondary admission intervention;it cannot alone isolate native same-step phase separation. Primary causal contrast must change the batching policy before allocation/position mutation while preserving fixed model/SDK/math/parallel/cache/budgets.",
+  "actual_reference_mixed_batch_count": null,
+  "C4_seconds_attributable_to_phase_separation": null,
+  "not_proved": [
+    "all65 reference spec Python traversal equivalents are mixed",
+    "a particular kernel is24percent faster",
+    "complete C4 causal attribution"
+  ],
+  "new_npu_runs": 0,
+  "goal_complete": false,
+  "engineering_SSE_framing_example": {
+    "138": {
+      "nonempty_text_records": 2,
+      "characters_per_record": [
+        8,
+        4
+      ],
+      "joined_text_sha256": "8a3fcc7997939fc47f920f4c9364017d08c5e0a4c727c13ace0c12baf9312ba4",
+      "raw_sse_sha256": "258c4242b7300fee4b6be067f8c862edf04fa5cf37106c35220a32b014c4e822"
+    },
+    "139": {
+      "nonempty_text_records": 4,
+      "characters_per_record": [
+        8,
+        1,
+        2,
+        1
+      ],
+      "joined_text_sha256": "8a3fcc7997939fc47f920f4c9364017d08c5e0a4c727c13ace0c12baf9312ba4",
+      "raw_sse_sha256": "3a4d48c7d7f0e6840b7e67537d90d1262331214aea35f3462d0425b7f1eab3d6"
+    },
+    "140": {
+      "nonempty_text_records": 4,
+      "characters_per_record": [
+        8,
+        1,
+        2,
+        1
+      ],
+      "joined_text_sha256": "8a3fcc7997939fc47f920f4c9364017d08c5e0a4c727c13ace0c12baf9312ba4",
+      "raw_sse_sha256": "2ca111ac113e640df18ad790e3817df2cbde0cff69b17a6d3ff71c0513250acf"
+    }
+  },
+  "framing_example_scope": "existing guard0 engineering response,not formal32requests;joined text identical,framing differs"
+}
