@@ -18,6 +18,8 @@
 
 历史：[128](docs/native128-result-20261113.md) · [127](docs/native127-result-20261113.md) · [125缩行](docs/native125-result-20261113.md) · [124 metadata图](docs/native124-decision-and-stage-review-20261113.md)。
 
+[129之后的时间线复核与下一决策](docs/after129-timeline-and-next-decision-20261113.md)：同样的C4计算token被拆成25→35次纯prefill调用，首token前折算少2.010秒、首token后多4.598秒；下一步仅查接纳与分批契约。本轮0模型加载，无新性能成绩；具体因果尚未证明，未放行新NPU阶段。
+
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
 ## 目录导航
