@@ -1,0 +1,398 @@
+diff --git a/DeepInfer/deepinfer/engine/llm_engine.py b/DeepInfer/deepinfer/engine/llm_engine.py
+index d888472..a061f66 100644
+--- a/DeepInfer/deepinfer/engine/llm_engine.py
++++ b/DeepInfer/deepinfer/engine/llm_engine.py
+@@ -1067,9 +1067,20 @@ class LLMEngine:
+             seq_metadata_list: list[SequenceMetadata]
+             scheduler_outputs: SchedulerOutputs
+             with cpu_timer.record("schedule:cpp"):
+-                seq_metadata_list, scheduler_outputs = self.scheduler.schedule(
+-                    self.sequence_metadata_pool
+-                )  # Will also free the finished sequence groups.
++                terminal_prefill = None
++                if self._bounded_glm_engine:
++                    runtime = getattr(self.driver_worker, '_glm_worker_runtime', None)
++                    terminal_prefill = getattr(runtime, 'native_terminal_prefill', None)
++                if terminal_prefill is None:
++                    seq_metadata_list, scheduler_outputs = self.scheduler.schedule(
++                        self.sequence_metadata_pool
++                    )  # Will also free the finished sequence groups.
++                else:
++                    seq_metadata_list, scheduler_outputs = terminal_prefill.schedule(
++                        self.scheduler, self.sequence_metadata_pool,
++                        token_budget=self.scheduler_config.max_num_batched_tokens,
++                        cp_size=self.parallel_config.context_parallel_size,
++                        waiting_status=SequenceStatus.WAITING)
+             # NOTE 开启 yoco 截断时，允许抢占导致的结果变化
+             with cpu_timer.record("schedule:clone"):
+                 clone_states, clone_blocks, zero_states = (
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_terminal_prefill.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_terminal_prefill.py
+new file mode 100644
+index 0000000..648a514
+--- /dev/null
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_terminal_prefill.py
+@@ -0,0 +1,131 @@
++"""Keep a cached terminal-prefill batch free of a partial trailing request.
++
++The existing native scheduler still owns token budgets, physical allocations,
++metadata and request progress. A single-call fence uses its existing writable
++Sequence.schedulable binding. Only the rank-zero engine thread may call this
++adapter. No flag survives the C++ schedule call, including an exception.
++
++Eligibility is an advisory rank-zero cache lookup, never permission to skip a
++forward: NativePrefillState retains its full all-rank/state-ownership checks.
++"""
++from collections import Counter
++import threading
++import time
++
++
++class NativeTerminalPrefill:
++    def __init__(self, controller, memo):
++        if controller is None or memo is None:
++            raise ValueError('terminal-prefill batching needs driver controller and state owner')
++        self.controller = controller
++        self.memo = memo
++        self.owner_thread = threading.get_ident()
++        self.active = False
++        self.counts = Counter()
++        self.events = []
++
++    def _eligible_span(self, seq, waiting_status):
++        if (seq.status != waiting_status or not seq.schedulable
++                or seq.multi_modal_data is not None
++                or getattr(seq.sampling_params, 'so_args', None) is not None
++                or seq.branch_id.startswith('_')):
++            return None
++        registered = self.controller.requests.get(seq.request_id)
++        if registered is None or (registered.seq_id is not None and registered.seq_id != seq.seq_id):
++            return None
++        request = registered.request
++        prompt = request.prompt_token_ids
++        start, stop = int(seq.num_cached_tokens), len(prompt)
++        if (request.output_token_ids or seq.get_len() != stop or seq.get_prompt_len() != stop
++                or not 0 < start < stop
++                or any(start < int(pos) < stop for pos in seq.chunk_checkpoints)):
++            return None
++        entry = self.memo.entries.get(tuple(prompt))
++        if entry is None or start < entry['start']:
++            return None
++        return start, stop
++
++    def schedule(self, scheduler, metadata_pool, *, token_budget, cp_size, waiting_status):
++        if threading.get_ident() != self.owner_thread or self.active:
++            raise RuntimeError('terminal-prefill fence requires its sole engine-thread owner')
++        if (type(token_budget) is not int or token_budget != self.controller.max_batch_tokens
++                or token_budget < 1 or type(cp_size) is not int or cp_size < 1):
++            raise ValueError('native and compute token budgets and CP alignment must agree')
++        self.counts['schedule_calls'] += 1
++        if self.memo.closed or self.memo.descriptor is not None:
++            raise RuntimeError('terminal-prefill state owner is closed or executing')
++        # Match Scheduler::cp_align; this is the native scheduler CP group,
++        # not an independently selected SDK tensor-parallel group.
++        align = cp_size * 2 if cp_size > 1 else 1
++        selected = {}
++        padded_tokens = 0
++        fence = None
++        reason = None
++        for seq in scheduler.waiting:
++            if not seq.schedulable or seq.status != waiting_status:
++                # Never mask terminal cleanup or somebody else's readiness.
++                break
++            span = self._eligible_span(seq, waiting_status)
++            cost = ((span[1]-span[0]+align-1)//align*align) if span else 0
++            if span is None or padded_tokens + cost > token_budget:
++                if selected and seq.multi_modal_data is None and getattr(seq.sampling_params, 'so_args', None) is None:
++                    fence = seq
++                    reason = 'non_reusable_follower' if span is None else 'terminal_tail_exceeds_remaining_budget'
++                break
++            selected[seq.request_id] = span
++            padded_tokens += cost
++        if fence is None:
++            self.counts['ordinary_schedule_calls'] += 1
++            return scheduler.schedule(metadata_pool)
++
++        # Positive eligible prefix only: an oversized/cold head always runs
++        # ordinary scheduling. This prevents an empty-batch retry loop.
++        assert selected and fence.schedulable
++        started = time.monotonic_ns()
++        self.active = True
++        self.counts['fenced_calls'] += 1
++        self.counts[reason] += 1
++        try:
++            fence.schedulable = False
++            result = scheduler.schedule(metadata_pool)
++        except BaseException:
++            self.counts['schedule_failures'] += 1
++            raise
++        finally:
++            # The text-only rank-zero engine is the sole readiness writer.
++            # Do not hold the fence across model execution or async output.
++            fence.schedulable = True
++            self.active = False
++            self.counts['fences_restored'] += 1
++
++        metadata, outputs = result
++        actual_tokens = 0
++        if outputs.prompt_run:
++            for seq, meta in zip(outputs.scheduled_seqs, metadata, strict=True):
++                expected = selected.get(seq.request_id)
++                if (expected is None or meta.request_id != seq.request_id
++                        or int(meta.seqlen_q) != expected[1]-expected[0]
++                        or int(meta.seqlen_k) != expected[1]):
++                    self.counts['contract_failures'] += 1
++                    raise RuntimeError('native scheduler did not preserve the selected terminal spans')
++                actual_tokens += int(meta.seqlen_q)
++            self.counts['verified_terminal_batches'] += bool(metadata)
++            self.counts['verified_terminal_requests'] += len(metadata)
++            self.counts['verified_terminal_tokens'] += actual_tokens
++        else:
++            self.counts['native_decode_selected'] += 1
++        if len(self.events) < 128:
++            self.events.append({'started_monotonic_ns': started,
++                'returned_monotonic_ns': time.monotonic_ns(), 'reason': reason,
++                'planned_requests': len(selected), 'planned_padded_tokens': padded_tokens,
++                'scheduled_requests': len(metadata), 'scheduled_terminal_tokens': actual_tokens,
++                'prompt_run': bool(outputs.prompt_run)})
++        else:
++            self.counts['events_dropped'] += 1
++        return result
++
++    def snapshot(self):
++        return {'enabled': True, 'active_fence': self.active,
++                'counts': dict(self.counts), 'events': list(self.events),
++                'scope': 'one native schedule call;cached terminal queue prefix only;no state/progress mutation',
++                'NPU_validated': False}
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+index ec59726..51af33c 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_runtime.py
+@@ -97,6 +97,10 @@ class SDKComputeRuntime:
+             self.native_prefill_state.close()
+             self.native_prefill_state_stats_path.write_text(
+                 json.dumps(self.native_prefill_state.snapshot()) + '\n')
++        if getattr(self, 'native_terminal_prefill', None) is not None:
++            import json
++            self.native_terminal_prefill_stats_path.write_text(
++                json.dumps(self.native_terminal_prefill.snapshot()) + '\n')
+         if getattr(self, 'native_mtp_logprob', None) is not None:
+             import json
+             self.native_mtp_logprob.close()
+diff --git a/DeepInfer/examples/glm5_full_model_offline.py b/DeepInfer/examples/glm5_full_model_offline.py
+index 2858ccb..70c5467 100644
+--- a/DeepInfer/examples/glm5_full_model_offline.py
++++ b/DeepInfer/examples/glm5_full_model_offline.py
+@@ -73,6 +73,8 @@ def main():
+                    help='reuse target-prefill state/activations within the existing cache budget')
+     p.add_argument('--native-admission-cohort', action='store_true',
+                    help='experimental throughput mode: defer new admissions while a native cohort decodes;may increase TTFT')
++    p.add_argument('--native-terminal-prefill', action='store_true',
++                   help='experimental native batching: preserve cached complete tails within the unchanged step budget')
+     p.add_argument('--prefill-mc2', action='store_true',
+                    help='enable the shared Ascend SDK prefill MC2 communication path')
+     a = p.parse_args()
+@@ -103,6 +105,8 @@ def main():
+     if a.native_admission_cohort and not (a.serve and a.compute_backend == 'sdk-batch'
+                                          and a.async_scheduling and a.native_prefill_state):
+         p.error('native admission cohort requires HTTP serving and the retained async hybrid-state recipe')
++    if a.native_terminal_prefill and not (a.native_prefill_state and a.compute_backend == 'sdk-batch'):
++        p.error('native terminal prefill requires the retained hybrid-state SDK compute recipe')
+     if a.native_mtp_logprob_gather and not a.mtp_tokens:
+         p.error('native MTP logprob gather requires MTP')
+     if a.super_kernel and not a.static_kernel:
+@@ -202,6 +206,12 @@ def main():
+                 runtime.native_mtp_logprob_stats_path = out / 'native-mtp-logprob.json'
+                 runtime.native_mtp_logprob.stats_path = runtime.native_mtp_logprob_stats_path
+             runtime.install(self)
++            runtime.shared_profile['native_terminal_prefill'] = a.native_terminal_prefill
++            if a.native_terminal_prefill and self.is_driver_worker:
++                from deepinfer.model_executor.models.glm5_next.full_model.native_terminal_prefill import NativeTerminalPrefill
++                runtime.native_terminal_prefill = NativeTerminalPrefill(
++                    runtime.adapter.controller, runtime.native_prefill_state)
++                runtime.native_terminal_prefill_stats_path = out / 'native-terminal-prefill.json'
+             model = runtime.compute_worker.get_model()
+             (out / 'loaded.json').write_text(json.dumps({'rank': a.rank,
+                 'backend': 'SDK compute worker under native scheduler;no SDK engine/scheduler',
+diff --git a/DeepInfer/tests/test_native_terminal_prefill.py b/DeepInfer/tests/test_native_terminal_prefill.py
+new file mode 100644
+index 0000000..8130cf0
+--- /dev/null
++++ b/DeepInfer/tests/test_native_terminal_prefill.py
+@@ -0,0 +1,177 @@
++"""Queue/ownership contracts only; no model execution or numerical simulation."""
++import importlib.util
++from pathlib import Path
++from types import SimpleNamespace as NS
++import threading
++import unittest
++
++SOURCE = Path(__file__).parents[1] / 'deepinfer/model_executor/models/glm5_next/full_model/native_terminal_prefill.py'
++spec = importlib.util.spec_from_file_location('terminal_prefill_under_test', SOURCE)
++mod = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(mod)
++
++
++class Contracts(unittest.TestCase):
++    def make(self, n=8, *, start=640, length=1024, budget=1792):
++        seqs, registered, entries = [], {}, {}
++        for i in range(n):
++            rid = str(i)
++            prompt = [i] * length
++            seqs.append(NS(request_id=rid, seq_id=i, num_cached_tokens=start,
++                status='waiting', schedulable=True, multi_modal_data=None,
++                sampling_params=NS(so_args=None), branch_id='', chunk_checkpoints=[],
++                get_len=lambda: length, get_prompt_len=lambda: length))
++            registered[rid] = NS(seq_id=None, request=NS(prompt_token_ids=prompt, output_token_ids=[]))
++            entries[tuple(prompt)] = {'start': start}
++        memo = NS(entries=entries, closed=False, descriptor=None)
++        controller = NS(requests=registered, max_batch_tokens=budget)
++        policy = mod.NativeTerminalPrefill(controller, memo)
++        return policy, seqs
++
++    def result(self, seqs, *, q=384, stop=1024, prompt=True):
++        return ([NS(request_id=s.request_id, seqlen_q=q, seqlen_k=stop) for s in seqs],
++                NS(prompt_run=prompt, scheduled_seqs=seqs))
++
++    def run_policy(self, policy, seqs, call, *, cp=8, budget=1792):
++        return policy.schedule(NS(waiting=seqs, schedule=call), object(),
++            token_budget=budget, cp_size=cp, waiting_status='waiting')
++
++    def test_observed_1792_boundary_fences_fifth_and_restores_without_progress_change(self):
++        policy, seqs = self.make()
++        before = [s.num_cached_tokens for s in seqs]
++        expected = self.result(seqs[:4])
++        def native(_):
++            self.assertEqual([s.schedulable for s in seqs], [True]*4+[False]+[True]*3)
++            return expected
++        self.assertIs(self.run_policy(policy, seqs, native), expected)
++        self.assertTrue(all(s.schedulable for s in seqs))
++        self.assertEqual([s.num_cached_tokens for s in seqs], before)
++        self.assertEqual(policy.counts['verified_terminal_tokens'], 1536)
++        self.assertFalse(policy.active)
++
++    def test_cold_head_and_oversized_head_never_fence(self):
++        for case in ('cold', 'oversized'):
++            with self.subTest(case=case):
++                p, seqs = self.make()
++                if case == 'cold':
++                    p.memo.entries.clear()
++                else:
++                    p.controller.max_batch_tokens = 256
++                def native(_):
++                    self.assertTrue(all(s.schedulable for s in seqs))
++                    return 'ordinary'
++                self.assertEqual(self.run_policy(p, seqs, native, budget=p.controller.max_batch_tokens), 'ordinary')
++                self.assertEqual(p.counts['fenced_calls'], 0)
++
++    def test_cold_follower_does_not_poison_eligible_prefix(self):
++        p, seqs = self.make(3)
++        p.memo.entries.pop(tuple(p.controller.requests['1'].request.prompt_token_ids))
++        def native(_):
++            self.assertEqual([s.schedulable for s in seqs], [True,False,True])
++            return self.result(seqs[:1])
++        self.run_policy(p, seqs, native)
++        self.assertEqual(p.counts['non_reusable_follower'], 1)
++        self.assertTrue(all(s.schedulable for s in seqs))
++
++    def test_exception_restores_readiness_and_next_call_can_run(self):
++        p, seqs = self.make()
++        def failed(_):
++            self.assertFalse(seqs[4].schedulable)
++            raise RuntimeError('native allocation failed')
++        with self.assertRaisesRegex(RuntimeError, 'allocation failed'):
++            self.run_policy(p, seqs, failed)
++        self.assertTrue(seqs[4].schedulable)
++        self.assertFalse(p.active)
++        self.run_policy(p, seqs, lambda _: self.result(seqs[:4]))
++        self.assertEqual(p.counts['fences_restored'], 2)
++
++    def test_partial_native_result_fails_before_model_and_after_restoring_fence(self):
++        p, seqs = self.make()
++        with self.assertRaisesRegex(RuntimeError, 'preserve the selected terminal spans'):
++            self.run_policy(p, seqs, lambda _: self.result(seqs[:4], q=256, stop=896))
++        self.assertTrue(all(s.schedulable for s in seqs))
++        self.assertFalse(p.active)
++
++    def test_decode_selection_keeps_native_step_choice(self):
++        p, seqs = self.make()
++        expected = self.result(seqs[:2], q=6, stop=1100, prompt=False)
++        self.assertIs(self.run_policy(p, seqs, lambda _: expected), expected)
++        self.assertEqual(p.counts['native_decode_selected'], 1)
++        self.assertEqual(p.counts['verified_terminal_batches'], 0)
++
++    def test_cp_padding_budget_is_used(self):
++        p, seqs = self.make(3, start=640, length=1025, budget=768)
++        def native(_):
++            self.assertEqual([s.schedulable for s in seqs], [True,False,True])
++            return self.result(seqs[:1], q=385, stop=1025)
++        self.run_policy(p, seqs, native, budget=768)
++        self.assertEqual(p.events[0]['planned_padded_tokens'], 400)
++
++    def test_nonterminal_checkpoint_or_missing_coverage_cannot_be_advertised(self):
++        for case in ('checkpoint', 'missing_coverage', 'already_decoding', 'wrong_sequence'):
++            with self.subTest(case=case):
++                p, seqs = self.make()
++                registered = p.controller.requests['0']
++                if case == 'checkpoint':
++                    seqs[0].chunk_checkpoints = [896]
++                elif case == 'missing_coverage':
++                    p.memo.entries[tuple(registered.request.prompt_token_ids)]['start'] = 896
++                elif case == 'already_decoding':
++                    registered.request.output_token_ids = [10]
++                else:
++                    registered.seq_id = 999
++                self.assertEqual(self.run_policy(p, seqs, lambda _: 'ordinary'), 'ordinary')
++                self.assertEqual(p.counts['fenced_calls'], 0)
++
++    def test_terminal_cleanup_and_external_not_ready_flag_are_untouched(self):
++        for case in ('aborted', 'not_ready'):
++            with self.subTest(case=case):
++                p, seqs = self.make()
++                if case == 'aborted':
++                    seqs[1].status = 'aborted'
++                else:
++                    seqs[1].schedulable = False
++                before = [(s.status,s.schedulable) for s in seqs]
++                self.assertEqual(self.run_policy(p, seqs, lambda _: 'cleanup'), 'cleanup')
++                self.assertEqual([(s.status,s.schedulable) for s in seqs], before)
++                self.assertEqual(p.counts['fenced_calls'], 0)
++
++    def test_multimodal_or_structured_readiness_writer_is_never_fenced(self):
++        for case in ('multimodal','structured'):
++            with self.subTest(case=case):
++                p, seqs = self.make()
++                if case == 'multimodal':
++                    seqs[1].multi_modal_data = object()
++                else:
++                    seqs[1].sampling_params.so_args = object()
++                self.assertEqual(self.run_policy(p, seqs, lambda _: 'ordinary'), 'ordinary')
++                self.assertEqual(p.counts['fenced_calls'], 0)
++
++    def test_thread_ownership_reentry_and_closed_owner_fail(self):
++        p, seqs = self.make()
++        errors = []
++        def other_thread():
++            try:
++                self.run_policy(p, seqs, lambda _: self.fail('must not schedule'))
++            except RuntimeError as error:
++                errors.append(str(error))
++        thread = threading.Thread(target=other_thread)
++        thread.start(); thread.join()
++        self.assertEqual(len(errors), 1)
++        p.active = True
++        with self.assertRaisesRegex(RuntimeError, 'sole engine-thread owner'):
++            self.run_policy(p, seqs, lambda _: None)
++        p.active = False
++        p.memo.closed = True
++        with self.assertRaisesRegex(RuntimeError, 'closed or executing'):
++            self.run_policy(p, seqs, lambda _: None)
++        self.assertTrue(all(s.schedulable for s in seqs))
++
++    def test_mismatched_budget_fails_without_native_call(self):
++        p, seqs = self.make()
++        with self.assertRaisesRegex(ValueError, 'budgets and CP alignment'):
++            self.run_policy(p, seqs, lambda _: self.fail('must not schedule'), budget=1536)
++
++
++if __name__ == '__main__':
++    unittest.main()
