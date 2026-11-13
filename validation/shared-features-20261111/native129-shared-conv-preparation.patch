@@ -1,0 +1,121 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/shared_kernel_preparation.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/shared_kernel_preparation.py
+index 591ced6..4a75f58 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/shared_kernel_preparation.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/shared_kernel_preparation.py
+@@ -19,6 +19,7 @@ import time
+ PINS = {
+     'compute_slot_mapping': 'f349fdd683bc36ef3f13b78b91c0e84b930d4850f172220e2627e5ea98de996b',
+     'glm5_next_lightning_indexer': '001db81395feab10e83c1dd593d6f9716d47f8d9f191b935c744ed1774a86ba0',
++    'kda_conv_state': '923c26197eef620a7c5bf744b5c4c84a5341124af714115d13bf1e27c45acb54',
+     'triton_jit': 'ae77892fa64fedb5209101beba757adaa3f3c46329a1131346f1fb454799e0b8',
+ }
+ 
+@@ -62,6 +63,20 @@ def indexer_variants(seed, max_requests, max_tokens, max_context, constants):
+                 yield item
+ 
+ 
++def conv_state_variants(seed, max_requests):
++    """REQUESTS is exact, not a power-of-two bucket in the pinned kernel.
++
++    Retain the actual cache layout, pointer dtypes, strides and copy direction.
++    This enumerates the declared serving capacity without consuming prompts or
++    executing the kernel. In particular, metadata-only seeds hold no tensors.
++    """
++    request_powers(max_requests)
++    if not isinstance(seed['WRITE_BACK'], bool):
++        raise ValueError('convolution-state copy direction must be explicit')
++    for requests in range(1, max_requests + 1):
++        yield dict(seed, REQUESTS=requests)
++
++
+ def _save(path, receipt):
+     path.parent.mkdir(parents=True, exist_ok=True)
+     temp = path.with_suffix('.tmp')
+@@ -82,10 +97,12 @@ def install_shared_kernel_preparation(stats_dir):
+         jit = importlib.import_module('triton.runtime.jit')
+         from vllm_ascend.ops.triton import compute_slot_mapping as slots
+         from vllm_ascend.ops.triton import glm5_next_lightning_indexer as indexer
++        from vllm_ascend.ops.triton.kda import conv_state
+         from vllm.v1.attention.backends.utils import PAD_SLOT_ID
+ 
+         for name, module in [('compute_slot_mapping', slots),
+-                             ('glm5_next_lightning_indexer', indexer), ('triton_jit', jit)]:
++                             ('glm5_next_lightning_indexer', indexer),
++                             ('kda_conv_state', conv_state), ('triton_jit', jit)]:
+             if hashlib.sha256(Path(inspect.getfile(module)).read_bytes()).hexdigest() != PINS[name]:
+                 raise RuntimeError('shared preparation source drift: ' + name)
+         config = worker.vllm_config
+@@ -95,7 +112,9 @@ def install_shared_kernel_preparation(stats_dir):
+         tiles = slot_tiles(max_requests, max_tokens)
+         request_powers(max_requests)
+         kernel = indexer._glm5_next_lightning_indexer_score_kernel
++        conv_kernel = conv_state._copy_conv_state_kernel
+         seeds = {}
++        conv_seeds = {}
+ 
+         def capture(*values, **named):
+             bound = dict(zip(kernel.arg_names, values))
+@@ -114,13 +133,30 @@ def install_shared_kernel_preparation(stats_dir):
+             if len(seeds) > 4:
+                 raise RuntimeError('unbounded indexer template families')
+ 
++        def capture_conv(*values, **named):
++            bound = dict(zip(conv_kernel.arg_names, values))
++            bound.update({k: v for k, v in named.items() if k in conv_kernel.arg_names})
++            if set(bound) != set(conv_kernel.arg_names):
++                raise RuntimeError('incomplete actual convolution-state signature')
++            if bound['cache'].dtype != torch.bfloat16:
++                raise RuntimeError('convolution-state preparation requires BF16 cache')
++            bound = {k: v.dtype if isinstance(v, torch.Tensor) else v for k, v in bound.items()}
++            key = tuple((name, str(bound[name])) for name in conv_kernel.arg_names if name != 'REQUESTS')
++            conv_seeds.setdefault(key, bound)
++            if len(conv_seeds) > 4:
++                raise RuntimeError('unbounded convolution-state template families')
++
+         kernel.add_pre_run_hook(capture)
++        conv_kernel.add_pre_run_hook(capture_conv)
+         try:
+             result = original(worker, *args, **kwargs)
+         finally:
+             kernel.pre_run_hooks.remove(capture)
++            conv_kernel.pre_run_hooks.remove(capture_conv)
+         if not seeds:
+             raise RuntimeError('SDK warmup did not expose an indexer signature')
++        if not conv_seeds or {s['WRITE_BACK'] for s in conv_seeds.values()} != {False, True}:
++            raise RuntimeError('SDK warmup did not expose both convolution-state copy directions')
+ 
+         started = time.monotonic_ns()
+         path = Path(stats_dir) / f'rank{worker.rank}-kernel-preparation.json'
+@@ -159,6 +195,24 @@ def install_shared_kernel_preparation(stats_dir):
+                 compiled = kernel.warmup(*values, grid=(1,))
+                 receipt['prepared'].append({'kernel': kernel.__name__, 'request_power': variant['REQ_POW2'],
+                     'packed': variant['PACKED_CACHE'], 'outer_pool': variant['OUTER_POOL'], 'hash': compiled.hash})
++        conv_seen = set()
++        for seed in conv_seeds.values():
++            for variant in conv_state_variants(seed, max_requests):
++                values = [variant[name] for name in conv_kernel.arg_names]
++                key = tuple(map(str, values))
++                if key in conv_seen:
++                    continue
++                conv_seen.add(key)
++                if len(conv_seen) > 32:
++                    raise RuntimeError('convolution-state preparation exceeded bounded family budget')
++                channel_tiles = (variant['DIM'] + variant['BLOCK'] - 1) // variant['BLOCK']
++                grid = (min(variant['REQUESTS'] * variant['STATE_LEN'] * channel_tiles,
++                            conv_state._CONV_STATE_COPY_MAX_PROGRAMS),)
++                compiled = conv_kernel.warmup(*values, grid=grid)
++                receipt['prepared'].append({'kernel': conv_kernel.__name__,
++                    'requests': variant['REQUESTS'], 'write_back': variant['WRITE_BACK'],
++                    'state_len': variant['STATE_LEN'], 'dim': variant['DIM'],
++                    'hash': compiled.hash})
+         receipt.update(status='prepared', preparation_ms=(time.monotonic_ns() - started) / 1e6)
+         _save(path, receipt)
+ 
+@@ -179,6 +233,7 @@ def install_shared_kernel_preparation(stats_dir):
+             fn.compile = compile_late
+         observe_late(slot_kernel)
+         observe_late(kernel)
++        observe_late(conv_kernel)
+         return result
+ 
+     NPUWorker.compile_or_warm_up_model = prepare
