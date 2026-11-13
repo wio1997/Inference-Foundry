@@ -15,5 +15,20 @@ def main():
     for x in a['metrics']:
         assert x['successful_requests']==32 and x['output_tokens']==1024 and x['configured_concurrency']==16
         assert abs(32*1024/x['duration_s']-x['aggregate_output_tokens_per_s'])<1e-4
+    g=json.loads((ROOT/'evidence/g37/sglang_G37_all4_acceptance.json').read_text())
+    v=json.loads((ROOT/'evidence/g37/native_vllm_baseline_acceptance.json').read_text())
+    assert g['all4_SGLang_comparison_complete'] and not g['outperformance_goal_achieved']
+    assert [x['input_tokens'] for x in g['profiles']]==[32768,65536,131072,262144]
+    for sg,native in zip(g['profiles'],v['metrics']):
+        x=sg['metrics'];assert x['input_tokens']==native['input_tokens']
+        assert x['successful_requests']==32 and x['output_tokens']==1024 and x['configured_concurrency']==16
+        assert sg['SQLite_timestamp_contract']['observed_peak_concurrency']==16
+        assert abs(32*1024/x['duration_s']-x['aggregate_output_tokens_per_s'])<1e-4
+        assert x['aggregate_output_tokens_per_s']<native['aggregate_output_tokens_per_s']
+    manifest=json.loads((ROOT/'evidence/data-archive-manifest.json').read_text())
+    assert sum(x.get('rows',0) for x in manifest['results'])==816
+    provenance=json.loads((ROOT/'evidence/g37/publication-provenance.json').read_text())
+    for ent in provenance['files']:
+        assert hashlib.sha256((ROOT/ent['path']).read_bytes()).hexdigest()==ent['published_sha256'],ent['path']
     print('Archive integrity, source syntax, exact raw reconstruction, and metric arithmetic passed. This is not a new hardware or quality test.')
 if __name__=='__main__':main()

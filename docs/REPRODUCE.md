@@ -1,5 +1,7 @@
 # 启动与复现
 
+**本页下方保留G30历史复现说明；当前使用请先读[G37入口](002-g37-markov/README.md)。** 默认启动器已改为G37；G37执行时还必须提供legacy设备锁目录及实际租约策略文件。下方G30命令均显式指定历史版本，不代表推荐该版本。
+
 原实测的代码、参数和数据已经核验；本次归档新增的便携构建/启动脚本只做了离线检查，**没有再次启动模型或重跑压测**。归档检查通过不代表在另一台机器重建通过。历史守护脚本包含当时的探针和状态前置条件，保留用于审计，不作为新机器的直接启动入口。
 
 ## 1. 依赖和数据
@@ -22,13 +24,14 @@ python3 scripts/unpack_data.py --with-results
 模型路径由调用者给出，读取本地 SSD。先看命令：
 
 ```bash
-python3 scripts/launch.py --model-path /path/to/local-ssd/model
+python3 scripts/launch.py --generation g30 --model-path /path/to/local-ssd/model
 ```
 
 实际运行需指定本集群已有、所有会话共用的设备锁和端口锁目录。启动脚本保留全部 16 个逻辑设备与端口锁，检查 NPU 空闲、每个 die 至少 53GiB 空闲 HBM、80 个目标 Q/KV 投影均为 FLOAT，以及依赖 payload 哈希。它不能代替集群已有 lease/预约规则；必须先完成相应资源协调。
 
 ```bash
 python3 scripts/launch.py \
+  --generation g30 \
   --model-path /path/to/local-ssd/model \
   --device-lock-dir /path/to/existing/shared-device-locks \
   --port-lock-dir /path/to/existing/shared-port-locks \

@@ -1,0 +1,33 @@
+{
+  "at": "2026-11-13T10:57:33.938957+00:00",
+  "scope": "Source/config audit only; no CP hardware or performance test",
+  "native_actual_enable_dsa_cp": true,
+  "current_SG_actual": {
+    "enable_prefill_cp": false,
+    "attn_cp_size": 1,
+    "attn_dp_size": 4,
+    "tp_size": 16,
+    "moe_a2a_backend": "ascend_ops"
+  },
+  "source_facts": [
+    "Native DSV41 constructor uses all attention sink heads and ReplicatedLinear WQ_B when enable_dsa_cp is true.",
+    "Pinned SG DSV4 CP validation admits NPU CP with attentionDP and lists ascend_ops as an allowed backend.",
+    "Pinned shared MoeRowTransport CP branch asserts backend is deepep/megamoe/mori, omitting ascend_ops; source eligibility alone does not prove actual CP transport compatibility."
+  ],
+  "remaining_checks": [
+    "Whether active NPU CP strategy reaches that shared transport branch",
+    "A3 private sparse/indexer metadata and head geometry under CP",
+    "Checkpoint query-weight sharding/replication and HBM capacity with full requested KV",
+    "Exact numerical/state and all4 integration proof before any supported-CP performance claim"
+  ],
+  "optimization_parity_claimed": false,
+  "source_SHA256": {
+    "../baai167_sglang_vllm_alignment_20261113/inspection/ascend/vllm_ascend/models/deepseek_v41/model.py": "101f96b38e9fc47e7be147ddfe56976aee896867c73a33a7d95c3e3c833a6e91",
+    "../baai167_dsv41_sglang_aisbench_20261112/docs/native_sglang/srt/arg_groups/deepseek_v4_hook.py": "3d1970e11d8061e8cdcb04720f7091d85243f484b54f99a1bb33d6b54fea3f9c",
+    "../baai167_dsv41_sglang_aisbench_20261112/docs/native_sglang/srt/models/deepseek_common/moe_transport.py": "5b8154e7f1518568edeb1386cc88fc7f830ec1899f308483017a468639d4142d"
+  },
+  "config_evidence": {
+    "vllm_v2/final_records/server_info_final.json": "6266a567c50f8ca68a8340eaa245bc30d38d3af31aeeb179197d7bb3504dbb6a",
+    "sglang_ascops37/readiness/server_info.json": "0315077621f58a8c7fbfcca4e583f946d70ffadb214efd17d515be86ec3ed438"
+  }
+}

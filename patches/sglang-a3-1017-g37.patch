@@ -1,0 +1,458 @@
+--- a/python/sglang/kernels/ops/layernorm/mhc.py
++++ b/python/sglang/kernels/ops/layernorm/mhc.py
+@@ -442,9 +442,9 @@
+             mixes.new_empty(b, s, hc_mult),
+             mixes.new_empty(b, s, hc_mult, hc_mult),
+         )
+-    if is_gfx1250_supported():
+-        # TileLang's CK-backed addressing doesn't compile on gfx1250; use the
+-        # Triton port.
++    if mixes.device.type == "npu" or is_gfx1250_supported():
++        # NPU uses the existing device-independent Triton implementation;
++        # the TileLang implementation targets CUDA/HIP. Numerics unchanged.
+         return _hc_split_sinkhorn_triton(
+             mixes, hc_scale, hc_base, hc_mult, sinkhorn_iters, eps
+         )
+--- a/python/sglang/srt/hardware_backend/npu/attention/ascend_dsv4_backend.py
++++ b/python/sglang/srt/hardware_backend/npu/attention/ascend_dsv4_backend.py
+@@ -44,6 +44,12 @@
+ 
+ def _sparse_attn_ops():
+     """(metadata op, attention op) for the DSV4 shared-KV sparse attention."""
++    import os
++
++    if os.environ.get("SGLANG_NPU_V41_A3_COMPAT") == "1":
++        from native_sparse_bridge_g4 import native_sparse_ops
++
++        return native_sparse_ops()
+     if is_npu_arch35():
+         return (
+             npu_attention_ops.mixed_quant_sparse_flash_mla_metadata,
+@@ -1288,11 +1294,19 @@
+ 
+         # Allocation uses the kernel-owned ABI; do not execute metadata kernels
+         # on temporary synthetic inputs merely to discover their output shapes.
+-        attention_metadata_size = (
+-            npu_attention_ops.get_mixed_quant_sparse_flash_mla_metadata_size()
+-            if is_npu_arch35()
+-            else npu_attention_ops.get_sparse_flash_mla_metadata_size()
+-        )
++        import os
++
++        if os.environ.get("SGLANG_NPU_V41_A3_COMPAT") == "1":
++            # Same provider gate as _sparse_attn_ops, including DSpark draft.
++            from native_sparse_bridge_g4 import native_sparse_metadata_size
++
++            attention_metadata_size = native_sparse_metadata_size()
++        else:
++            attention_metadata_size = (
++                npu_attention_ops.get_mixed_quant_sparse_flash_mla_metadata_size()
++                if is_npu_arch35()
++                else npu_attention_ops.get_sparse_flash_mla_metadata_size()
++            )
+         metadata_sizes = {"kernel_metadata_c1a": attention_metadata_size}
+         if self._dsv4_has_c4:
+             metadata_sizes["kernel_metadata_c4a"] = attention_metadata_size
+--- a/python/sglang/srt/layers/attention/attention_registry.py
++++ b/python/sglang/srt/layers/attention/attention_registry.py
+@@ -218,6 +218,20 @@
+             DeepseekV4AscendAttnBackend,
+         )
+ 
++        import os
++
++        hf_config = runner.model_config.hf_config
++        if (
++            getattr(hf_config, "model_type", None) == "deepseek_v41"
++            and os.environ.get("SGLANG_NPU_V41_A3_COMPAT") == "1"
++        ):
++            from a3_backend_candidate import make_backend_class
++            from a3_donor_bindings_g4 import make_bindings
++
++            from a3_deepep_startup import initialize_before_private_metadata
++
++            initialize_before_private_metadata(runner)
++            return make_backend_class(make_bindings())(runner)
+         return DeepseekV4AscendAttnBackend(runner)
+     elif _is_hip:
+         from sglang.srt.layers.attention.deepseek_v4_backend_hip_radix import (
+--- a/python/sglang/srt/layers/engram.py
++++ b/python/sglang/srt/layers/engram.py
+@@ -1523,6 +1523,12 @@
+         image_token_id: Optional[int] = None,
+     ):
+         super().__init__()
++        # Explicit Eco-Tech INT8/E8M0 A3 compatibility path, installed only
++        # after this worker's device and distributed initialization.
++        if os.environ.get("SGLANG_NPU_ENGRAM_INT8_E8M0") == "1":
++            from engram_npu_uva import install
++
++            install(rotation_path=os.environ.get("SGLANG_NPU_ENGRAM_ROTATION"))
+         self.layer_hash_index = layout.layer_ids.index(layer_id)
+         self.image_token_id = image_token_id
+         self.eps = config.rms_norm_eps
+@@ -1535,6 +1541,14 @@
+             column_bounds=layout.column_bounds(self.layer_hash_index),
+             mxfp4=_engram_table_is_mxfp4(config),
+         )
++        if os.environ.get("SGLANG_NPU_ENGRAM_INT8_E8M0") == "1":
++            logger.info(
++                "NPU_ENGRAM_DRAM layer=%d impl=%s weight_device=%s scale_device=%s "
++                "weight_dtype=%s scale_dtype=%s table_bytes=%d",
++                layer_id, type(self.embed).__name__, self.embed.weight.device,
++                self.embed.scale.device, self.embed.weight.dtype, self.embed.scale.dtype,
++                self.embed.host_table.nbytes,
++            )
+         n_hash_cols = (layout.max_ngram_size - 1) * layout.n_heads
+         self.wkv = ReplicatedLinear(
+             n_hash_cols * layout.head_dim,
+--- a/python/sglang/srt/layers/quantization/modelslim/modelslim.py
++++ b/python/sglang/srt/layers/quantization/modelslim/modelslim.py
+@@ -125,7 +125,12 @@
+             if rest in ("head.weight", "lm_head.weight"):
+                 return "lm_head.weight"
+         return None
+-    if rest.startswith(("markov_head.", "confidence_head.")):
++    if rest.startswith("markov_head."):
++        # Use the same checkpoint aliases as the model-owned generic loader.
++        rest = rest.replace("markov_head.embed.", "markov_head.markov_w1.", 1)
++        rest = rest.replace("markov_head.head.", "markov_head.markov_w2.", 1)
++        return rest
++    if rest.startswith("confidence_head."):
+         return rest
+ 
+     mapped_rest = rest
+@@ -160,7 +165,13 @@
+         super().__init__()
+         self.requested_kv_cache_dtype = "auto"
+         keys = [k for k in quant_config if isinstance(k, str)]
+-        is_dsv4 = any(k.startswith("hc_head_") for k in keys)
++        # V4.1 has no hc_head_* collapse parameters. Its raw ModelSlim
++        # checkpoint is identified by Engram plus raw FFN expert names, then
++        # normalized through the same model-owned mapping as DeepSeek V4.
++        is_dsv41_raw = any(
++            k.startswith("layers.") and ".engram." in k for k in keys
++        ) and any(k.startswith("layers.") and ".ffn.experts." in k for k in keys)
++        is_dsv4 = any(k.startswith("hc_head_") for k in keys) or is_dsv41_raw
+         if is_dsv4:
+             from sglang.srt.models.deepseek_v4 import DeepseekV4ForCausalLM
+ 
+--- a/python/sglang/srt/mem_cache/kv_cache_configurator.py
++++ b/python/sglang/srt/mem_cache/kv_cache_configurator.py
+@@ -2043,7 +2043,9 @@
+                 DSV4NPUTokenToKVPool,
+             )
+ 
+-            pool_cls = DSV4NPUTokenToKVPool
++            from a3_v41_cache_binding import select_a3_v41_pool
++
++            pool_cls = select_a3_v41_pool(self, DSV4NPUTokenToKVPool)
+             kv_layout_kwargs = {}
+         else:
+             pool_cls = DeepSeekV4TokenToKVPool
+@@ -2831,7 +2833,11 @@
+                             DSV4NPUTokenToKVPoolAllocator,
+                         )
+ 
+-                        swa_allocator_cls = DSV4NPUTokenToKVPoolAllocator
++                        from a3_v41_cache_binding import select_a3_v41_allocator
++
++                        swa_allocator_cls = select_a3_v41_allocator(
++                            self, DSV4NPUTokenToKVPoolAllocator
++                        )
+                     else:
+                         swa_allocator_cls = SWATokenToKVPoolAllocator
+                     token_to_kv_pool_allocator = swa_allocator_cls(
+--- a/python/sglang/srt/mem_cache/registry.py
++++ b/python/sglang/srt/mem_cache/registry.py
+@@ -193,7 +193,12 @@
+     )
+     tree_slots = list(storage.tree_slots())
+ 
+-    if hasattr(params.req_to_token_pool, "req_to_c128_sidecar"):
++    # Register the independent C128 component only when its owning pool
++    # actually exists. V4.1 {0,1,2} keeps the NPU request-pool interface but
++    # has no C128 allocator; ordinary Full/SWA radix components still apply.
++    if hasattr(params.req_to_token_pool, "req_to_c128_sidecar") and hasattr(
++        allocator, "c128_attn_allocator"
++    ):
+         from sglang.srt.hardware_backend.npu.dsv4.c128_sidecar_component import (
+             C128SidecarComponent,
+         )
+--- a/python/sglang/srt/model_executor/pool_configurator.py
++++ b/python/sglang/srt/model_executor/pool_configurator.py
+@@ -1895,6 +1895,11 @@
+             )
+ 
+             return Ernie5_5PoolConfigurator(kvc)
++        from a3_v41_cache_binding import create_a3_v41_budget
++
++        a3_v41_budget = create_a3_v41_budget(kvc)
++        if a3_v41_budget is not None:
++            return a3_v41_budget
+         return DSV4PoolConfigurator(kvc)
+     if kvc.is_hybrid_swa:
+         if SWARequestCapPoolConfigurator.is_applicable(kvc):
+--- a/python/sglang/srt/model_loader/weight_utils.py
++++ b/python/sglang/srt/model_loader/weight_utils.py
+@@ -280,6 +280,13 @@
+         return quant_cls.from_config({})
+ 
+     checkpoint_quant_spec = resolve_checkpoint_quant_spec(model_config.hf_config)
++    # ModelSlim config.json declares only its method; per-layer descriptions
++    # live in the dedicated file, also preferred by ModelConfig verification.
++    # Keep the normal inline path when no local ModelSlim description exists.
++    if model_config.quantization == "modelslim" and os.path.isfile(
++        os.path.join(model_config.model_path, "quant_model_description.json")
++    ):
++        checkpoint_quant_spec = None
+     if checkpoint_quant_spec is not None:
+         hf_quant_config = checkpoint_quant_spec.config
+         # For modelopt_mixed, config.json's quantization_config may not
+--- a/python/sglang/srt/models/deepseek_v4.py
++++ b/python/sglang/srt/models/deepseek_v4.py
+@@ -3,6 +3,7 @@
+ import concurrent.futures
+ import functools
+ import logging
++import os
+ import time
+ from array import array
+ from contextlib import contextmanager, nullcontext
+@@ -1223,6 +1224,13 @@
+         )
+ 
+     def _kernel_num_heads(self, num_tokens: int) -> int:
++        if _is_npu and os.environ.get("SGLANG_V41_A3_EXACT_HEADS") == "1":
++            # The pinned A3 BF16 provider was checked at16/64 heads, including
++            # graph replay. Its metadata describes the actual local width.
++            if self.n_local_heads not in (16, 64):
++                raise ValueError("A3 exact-head profile is validated only at16/64 heads")
++            return self.n_local_heads
++
+         if self.attn_tp_size == 1:
+             return self.n_local_heads
+ 
+@@ -2110,7 +2118,8 @@
+             stream_q.wait_event(q_lora_ready)
+             q, _ = self.wq_b(q_lora)
+             q = q.view(-1, self.n_local_heads, self.head_dim)
+-            q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
++            if self.q_head_norm:
++                q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
+             cos4_q, sin4_q = self._get_npu_rope_position_cache(
+                 forward_batch, positions, q.dtype, inverse=False
+             )
+@@ -2125,21 +2134,31 @@
+                 q_out.copy_(q)
+             q.record_stream(stream_q)
+ 
+-        # Indexer + compressor: serial on current.
+-        if self.indexer is not None:
+-            self.indexer(
+-                x=x,
+-                q_lora=q_lora,
+-                forward_batch=forward_batch,
+-                attn_backend=attn_backend,
+-            )
+-        if self.compressor is not None:
+-            attn_backend.forward_core_compressor(
+-                x,
+-                forward_batch,
+-                self.layer_id,
+-                self.compressor,
+-            )
++        # Source/index work remains on current; Q/KV side streams are joined below.
++        if self.compress_ratio in (1, 2):
++            if self.compressor is not None or self.indexer is not None:
++                attn_backend.forward_low_ratio_sources(
++                    layer=self,
++                    x=x,
++                    q_lora=q_lora,
++                    positions=positions,
++                    forward_batch=forward_batch,
++                )
++        else:
++            if self.indexer is not None:
++                self.indexer(
++                    x=x,
++                    q_lora=q_lora,
++                    forward_batch=forward_batch,
++                    attn_backend=attn_backend,
++                )
++            if self.compressor is not None:
++                attn_backend.forward_core_compressor(
++                    x,
++                    forward_batch,
++                    self.layer_id,
++                    self.compressor,
++                )
+ 
+         # Join stream_kv + stream_q before downstream attention.
+         current_stream.wait_stream(stream_kv)
+@@ -2478,7 +2497,8 @@
+             q_lora = self.q_norm(q_lora)
+             q, _ = self.wq_b(q_lora)
+             q = q.view(-1, self.n_local_heads, self.head_dim)
+-            q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
++            if self.q_head_norm:
++                q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
+ 
+             if qkv_a is not None:
+                 kv = qkv_a[..., self.q_lora_rank :]
+@@ -4377,13 +4397,17 @@
+                             capture_dspark=capture_dspark,
+                         )
+                         continue
+-                    state = self.layers[i].forward_hc_pre_from_prev(
+-                        positions=positions,
+-                        state=state,
+-                        input_ids=input_ids,
+-                        forward_batch=forward_batch,
+-                        input_ids_global=input_ids_global,
+-                    )
++                    try:
++                        state = self.layers[i].forward_hc_pre_from_prev(
++                            positions=positions,
++                            state=state,
++                            input_ids=input_ids,
++                            forward_batch=forward_batch,
++                            input_ids_global=input_ids_global,
++                        )
++                    except torch.OutOfMemoryError:
++                        logger.error("A3_V41_LAYER_OOM layer=%s mode=%s allocated=%s reserved=%s", i, forward_batch.forward_mode, torch.npu.memory_allocated(), torch.npu.memory_reserved())
++                        raise
+         if _is_cuda:
+             state = residual_batch.read_output(
+                 hidden_states, forward_batch, hc_boundary.FinalRead(), None
+--- a/python/sglang/srt/models/deepseek_v4_dspark.py
++++ b/python/sglang/srt/models/deepseek_v4_dspark.py
+@@ -2,6 +2,7 @@
+ 
+ import copy
+ import logging
++import os
+ from contextlib import nullcontext
+ from typing import Iterable, List, Optional, Tuple
+ 
+@@ -205,8 +206,19 @@
+                     positions=positions,
+                 )
+             else:
+-                apply_rotary_emb(
+-                    q[..., -self.rope_head_dim :], self.freqs_cis[positions]
++                # The NPU index operator cannot gather complex64. Reuse
++                # the existing real-table NPU RoPE path without head norm.
++                # Keep float32 cos/sin, matching this branch's original
++                # float32 complex multiplication before rounding back to q.
++                from sglang.srt.hardware_backend.npu.dsv4.dsv4_rope import Dsv4NpuRoPE
++
++                cos4, sin4 = Dsv4NpuRoPE.for_freqs(self.freqs_cis).get_cos_sin(
++                    positions, torch.float32, view_4d=True, inverse=False,
++                    allow_build=True, cache_dtype=torch.float32,
++                )
++                Dsv4NpuRoPE.apply_rotary_mul_inplace(
++                    q, None, cos4, sin4,
++                    qk_nope_dim=q.shape[-1] - self.rope_head_dim,
+                 )
+             if q_out is None:
+                 return q
+@@ -267,6 +279,9 @@
+             and hidden_states.shape[0] <= self._multi_stream_bs_limit
+         )
+ 
++        exact_npu_heads = _is_npu and os.environ.get("SGLANG_V41_A3_EXACT_HEADS") == "1"
++        if exact_npu_heads and self.n_local_heads not in (16, 64):
++            raise ValueError("A3 exact-head draft profile is validated only at16/64 heads")
+         q_padded: Optional[torch.Tensor] = None
+         q_out: Optional[torch.Tensor] = None
+         if (
+@@ -279,7 +294,7 @@
+                 dtype=torch.float8_e4m3fn,
+                 device=hidden_states.device,
+             )
+-        elif self.n_local_heads < _PAD_NUM_HEADS:
++        elif self.n_local_heads < _PAD_NUM_HEADS and not exact_npu_heads:
+             q_padded = hidden_states.new_empty(
+                 hidden_states.shape[0], _PAD_NUM_HEADS, self.head_dim
+             )
+@@ -313,7 +328,7 @@
+ 
+         if q_padded is not None:
+             q = q_padded
+-        attn_sink = self._local_attn_sink()
++        attn_sink = self._local_attn_sink(self.n_local_heads if exact_npu_heads else None)
+ 
+         o = attn_backend.forward(
+             q=q,
+@@ -1091,6 +1106,9 @@
+                     weight_loader(param, loaded_weight)
+                     loaded_params.add(mapped)
+ 
++        self._assert_markov_head_loaded(
++            params_dict=params_dict, loaded_params=loaded_params
++        )
+         self._assert_confidence_head_loaded(
+             params_dict=params_dict, loaded_params=loaded_params
+         )
+@@ -1099,6 +1117,15 @@
+     def post_load_weights(self, is_nextn=False, weight_names=None):
+         for stage in self.stages:
+             stage.refresh_mhc_norm_weight_cache()
++
++    def _assert_markov_head_loaded(self, *, params_dict: dict, loaded_params: set) -> None:
++        required = {name for name in params_dict if name.startswith("markov_head.")}
++        if not required:
++            raise ValueError("DSpark Markov head has no registered parameters")
++        missing = required - loaded_params
++        if missing:
++            raise ValueError(f"DSpark Markov checkpoint weights were not loaded: {sorted(missing)}")
++        logger.info("V41_A3_DSPARK_MARKOV_WEIGHTS_LOADED names=%s", sorted(required))
+ 
+     def _assert_confidence_head_loaded(
+         self, *, params_dict: dict, loaded_params: set
+--- a/python/sglang/srt/models/deepseek_v4_mhc.py
++++ b/python/sglang/srt/models/deepseek_v4_mhc.py
+@@ -22,6 +22,7 @@
+ 
+ from __future__ import annotations
+ 
++import os
+ from functools import partial
+ from typing import Any, Callable, NamedTuple, Optional, Tuple, TypeAlias, Union
+ 
+@@ -62,6 +63,13 @@
+ _is_npu = is_npu()
+ _is_xpu = is_xpu()
+ 
++# Opt-in NPU prefill workspace bound. Every leaf uses the unchanged FP32 path.
++_NPU_MHC_STATS_CHUNK_ROWS = int(os.environ.get("SGLANG_NPU_MHC_STATS_CHUNK_ROWS", "0"))
++if _NPU_MHC_STATS_CHUNK_ROWS < 0:
++    raise ValueError("SGLANG_NPU_MHC_STATS_CHUNK_ROWS must be nonnegative")
++_NPU_MHC_STATS_CHUNK_LOGGED = False
++
++
+ 
+ # The fused all-reduce epilogues have world-size-templated kernels for TP2 and TP4.
+ _FUSED_MHC_TP_SIZES = (2, 4)
+@@ -359,6 +367,20 @@
+ 
+ 
+ def _mix_stats_impl(hc: HcSubLayer, x: torch.Tensor) -> HcTriplet:
++    if _is_npu and _NPU_MHC_STATS_CHUNK_ROWS and x.shape[0] > _NPU_MHC_STATS_CHUNK_ROWS:
++        global _NPU_MHC_STATS_CHUNK_LOGGED
++        if not _NPU_MHC_STATS_CHUNK_LOGGED:
++            print(
++                f"V41_A3_MHC_STATS_ROW_CHUNK rows={x.shape[0]} "
++                f"chunk={_NPU_MHC_STATS_CHUNK_ROWS} unchanged_fp32_leaf=True",
++                flush=True,
++            )
++            _NPU_MHC_STATS_CHUNK_LOGGED = True
++        triplets = [
++            _mix_stats_impl(hc, x[start : start + _NPU_MHC_STATS_CHUNK_ROWS])
++            for start in range(0, x.shape[0], _NPU_MHC_STATS_CHUNK_ROWS)
++        ]
++        return tuple(torch.cat([triplet[i] for triplet in triplets], dim=0) for i in range(3))
+     from sglang.kernels.ops.layernorm.mhc import (
+         hc_mix_stats,
+         hc_mix_stats_sinkhorn,
