@@ -4,27 +4,17 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：132请求组准入候选已启动并核实8个模型worker，性能待回收；默认114，双档30%仍未完成。**
+**当前状态（2026-11-13）：132完成但C8性能筛选失败；本阶段关闭，默认114，同版本双档领先强参考30%未完成。**
 
-[本轮反思、突破口和停止条件](docs/current-bottleneck-and-bounded-plan-20261113.md)：停止毫秒级复制微优化；只验证一个调度候选。真实排队时间计入成绩，披露TTFT代价；双档历史筛选通过才运行匹配新参考及状态关闭控制。既有累计截止14:53（北京时间）不延长。
+最新[132实测与裁决](docs/native132-result-20261113.md)：C4/C8为 **298.035 / 467.843 token/s**，相对默认114为 **−2.90% / −6.66%**。72请求完成、8rank退出0、占用释放。133/134未触发，1次候选、0次控制。
 
-以下129与132源码检查是先前阶段的证据，不能替代当前132硬件结果。
+C4形成8个四请求组，单分段prefill由129的17次降至2次；C8却形成1/3请求的小组。冻结这两个组时已有7/5请求在HTTP队列，被阻挡约2.095/2.303秒。C8平均准入等待1.126秒、最大3.310秒，真实排队时间全部计入成绩。该策略不作为默认。
 
-最新[129实测](docs/native129-result-20261113.md)：C4/C8为 **260.915 / 630.825 token/s**。72请求完成、8rank退出0且占用释放；相对128为 **−8.71% / +5.51%**。共有编译准备确实消除了受监测的服务期编译，但C4仍失败，不能按该假设继续追加候选。
+相对旧117的+30.39%/+12.57%仅是历史筛选，共同编译准备不匹配；不能当最终公平收益。与旧参考完整文本29/32及27/32一致，通用质量未验收。
 
-相对旧参考117的 **+14.15% / +51.78%** 仅为历史筛选：旧参考没有新增共同编译准备，不能作为最终公平收益。新参考130和同源码关闭复用131的条件未触发，均未运行。本阶段1次候选、0次控制后关闭。
+[实际参数、环境及原始计时](validation/shared-features-20261111/native132-reproduction.json) · [结果与机制计数](validation/shared-features-20261111/native132-decision.json) · [C8组边界时间线](validation/shared-features-20261111/native132-c8-cohort-timeline.json) · [原始接纳事件](validation/shared-features-20261111/native132-admission-events.json) · [本阶段计划与结果更新](docs/current-bottleneck-and-bounded-plan-20261113.md)
 
-完整混合状态复用仍在正式C4/C8分别命中2/16请求，跳过768/5120个目标prefill token；C8包含先前请求留下的状态，不能外推任意流量。C4的prefill调用25→35、原模型调用/等待区间8.302→9.929秒，具体因果仍未证明。
-
-129与旧参考完整文本两档各25/32一致，自身跨档20/32，**通用质量未验收**。不将输出长度正确或生命周期通过冒充质量通过。
-
-[实际启动参数、环境、原始时间戳](validation/shared-features-20261111/native129-reproduction.json) · [裁决与机制计数](validation/shared-features-20261111/native129-decision.json) · [候选源码补丁](docs/native129-source-candidate-20261113.md) · [反思及计划执行结果](docs/after128-reflection-and-plan-20261113.md)
-
-历史：[128](docs/native128-result-20261113.md) · [127](docs/native127-result-20261113.md) · [125缩行](docs/native125-result-20261113.md) · [124 metadata图](docs/native124-decision-and-stage-review-20261113.md)。
-
-[129之后的时间线复核与下一决策](docs/after129-timeline-and-next-decision-20261113.md)：同样的C4计算token被拆成25→35次纯prefill调用，首token前折算少2.010秒、首token后多4.598秒；下一步仅查接纳与分批契约。本轮0模型加载，无新性能成绩；具体因果尚未证明，未放行新NPU阶段。
-
-[132源码候选：请求组准入](docs/native132-source-candidate-20261113.md)：审查确认14/17次单分段调用当时仅1个请求等待首token。8e22eb5提供默认关闭的组边界准入原型，8项主机契约检查通过；可能增加TTFT。**NPU未放行、无新性能成绩，默认114不变。**
+源码补丁保留在[132源码候选](docs/native132-source-candidate-20261113.md)。历史：[129](docs/native129-result-20261113.md) · [128](docs/native128-result-20261113.md)。下一步只审查已排队请求被忽略的冻结契约；本次未放行新候选、不扫参数、不延长累计截止。
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
