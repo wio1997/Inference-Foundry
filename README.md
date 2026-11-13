@@ -4,13 +4,13 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：有效强参考138完成；固定原生139实际运行，140关闭控制待运行。双档30%尚未证实。**
+**当前状态（2026-11-13）：139有效配对为C4 +24.13%、C8 +12.34%，双档30%未通过；140同源码关闭控制实际运行。**
 
-138的正式C4/C8输出吞吐为 **243.76156 / 547.05506 token/s**，每档32条成功，原始计时重算与官方汇总一致，8rank受监测迟编译为0。对应原生30%门槛为 **316.89003 / 711.17158 token/s**。这是有效参考结果，不是原生收益。
+同一8die、相同输入和共有优化下，DeepInfer139的C4/C8为 **302.58856 / 614.54459 token/s**，vLLM138为 **243.76156 / 547.05506 token/s**。139完成72请求、8rank退出0并释放，原始计时独立复算通过，双方受监测迟编译为0。达到30%还须分别缩短 **1.22183 / 1.81118秒**，不能用旧较慢参考替代。
 
-共有编译准备修正76bb59e相对135不改模型数学、调度或采样，138/139/140使用相同helper。139已启动且8个模型Worker存活，尚无正式成绩；140只在139有效结束后运行同源码状态复用关闭控制。默认源码仍保留114，通用质量和自然波动未验收。新增阶段已用2/3次加载，旧新累计5/6次，原14:53北京时间截止不延长。
+140同源码、同调度、同3+1GiB预算，只关闭状态保存/恢复，已启动且8个模型Worker存活。其首次启动前端口检查失败产生0模型加载；端口已清空且失败归档后，才接续原控制。新阶段3/3次加载已全部使用，不新增优化变体。默认114不变，通用质量与自然波动仍未验收。
 
-[复盘与执行更新](docs/strategy-review-and-next-goal-20261113.md) · [138完整参数、环境和原始计时端点](validation/shared-features-20261111/reference138-reproduction.json) · [新门槛与范围](validation/shared-features-20261111/reference138-decision.json) · [共有修正补丁](validation/shared-features-20261111/shared-conv-stride1-committed.patch)
+[最新复盘与执行结果](docs/strategy-review-and-next-goal-20261113.md) · [139完整复现参数与原始端点](validation/shared-features-20261111/native139-reproduction.json) · [138有效参考复现](validation/shared-features-20261111/reference138-reproduction.json) · [配对结果](validation/shared-features-20261111/shared-mc2-139-138-comparison.json) · [139裁决与机制统计](validation/shared-features-20261111/native139-decision.json)
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
