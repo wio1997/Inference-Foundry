@@ -4,19 +4,15 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：132完成但C8性能筛选失败；本阶段关闭，默认114，同版本双档领先强参考30%未完成。**
+**当前状态（2026-11-13）：135已完成，同一版本双档越过历史参考30%数值门槛；新的匹配参考与机制归因仍未完成，默认114不变。**
 
-最新[132实测与裁决](docs/native132-result-20261113.md)：C4/C8为 **298.035 / 467.843 token/s**，相对默认114为 **−2.90% / −6.66%**。72请求完成、8rank退出0、占用释放。133/134未触发，1次候选、0次控制。
+135源码 `d070ce791642167a058ed58089c444a29629fc92` 的C4/C8为 **310.046 / 638.953 token/s**，对旧117为 **+35.64% / +53.74%**，对默认114为 **+1.01% / +27.48%**。72请求、8rank退出0并释放。旧117缺少新增共同编译准备，以上比值不能作为最终公平30%验收。
 
-C4形成8个四请求组，单分段prefill由129的17次降至2次；C8却形成1/3请求的小组。冻结前另有7/5请求对象已创建，直到约2.095/2.303秒的组结束后才被接纳；132未直接采样冻结点队列长度。C8平均准入等待1.126秒、最大3.310秒，真实排队时间全部计入成绩。该策略不作为默认。
+队列修正实际触发：C8有3次延后冻结，形成4个八请求组；平均准入等待由132的1.126秒降到0.144秒。C4/C8 TTFT中位数901.33/549.63ms、TPOT9.261/10.332ms；完整文本对旧参考30/32、27/32一致。通用质量及稳定性仍未验收。
 
-相对旧117的+30.39%/+12.57%仅是历史筛选，共同编译准备不匹配；不能当最终公平收益。与旧参考完整文本29/32及27/32一致，通用质量未验收。
+[本轮反思、机制边界与固定三臂计划](docs/strategy-review-and-next-goal-20261113.md) · [实际命令、环境与计时](validation/shared-features-20261111/native135-reproduction.json) · [结果与机制计数](validation/shared-features-20261111/native135-decision.json) · [实际准入事件](validation/shared-features-20261111/native135-admission-events.json) · [源码修正与补丁](docs/native135-queue-boundary-fix-20261113.md)
 
-[实际参数、环境及原始计时](validation/shared-features-20261111/native132-reproduction.json) · [结果与机制计数](validation/shared-features-20261111/native132-decision.json) · [C8组边界时间线](validation/shared-features-20261111/native132-c8-cohort-timeline.json) · [原始接纳事件](validation/shared-features-20261111/native132-admission-events.json) · [本阶段计划与结果更新](docs/current-bottleneck-and-bounded-plan-20261113.md)
-
-源码补丁保留在[132源码候选](docs/native132-source-candidate-20261113.md)。历史：[129](docs/native129-result-20261113.md) · [128](docs/native128-result-20261113.md)。下一步只审查已排队请求被忽略的冻结契约；本次未放行新候选、不扫参数、不延长累计截止。
-
-[135源码修正](docs/native135-queue-boundary-fix-20261113.md)：冻结前若有已排队请求和HTTP准入额度，先让原有准入循环再执行；保留原生容量检查。d070ce7只改2个Python文件，13项主机契约检查通过，无新增计时参数。**0模型加载，NPU尚未放行，性能未验证。** 新增冻结决策队列快照，修正132的时间戳证据口径。
+当前GLM路径关闭原有ZOS，原生接入不代表所有专有调度特性均已验证。下一步只完成137新强参考和136同源码状态关闭控制；最多这两个控制，不追加候选。合并部署在本机启动SSH前因参数过长失败，已拆分并通过本机exec检查，**对照尚未部署或运行**，远端修正尚未验证。
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
