@@ -20,6 +20,9 @@
 
 实际命令、环境及原始计时端点：[参考138](validation/shared-features-20261111/reference138-reproduction.json)、[开启139](validation/shared-features-20261111/native139-reproduction.json)、[关闭140](validation/shared-features-20261111/native140-reproduction.json)。原生入口包装：[139](validation/shared-features-20261111/native139-entry.py)、[140关闭控制](validation/shared-features-20261111/native140-entry.py)。通用质量与自然波动未验收。
 
+
+后续只读审查已完成：[完整尾段混批边界与下一阶段建议](docs/next-breakthrough-decision-20261113.md)。8rank确认C8全部4次回退都混入非末尾片段；这不是已证明足够达30%的收益。0新增模型加载，下一阶段预算尚未分配。
+
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
 ## 目录导航
