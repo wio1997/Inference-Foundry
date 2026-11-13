@@ -47,7 +47,7 @@ G37实际参数为attention TP4/DP4、普通TP16/EP16、context270336、完整KV
 python3 scripts/launch.py --generation g37 --model-path /path/to/local-ssd/model
 ```
 
-便携启动器默认G37，只完成离线语法和命令检查，尚未在另一台机器重建验收。实际执行需明确现有公共锁及租约规则；不自动抢占设备：
+G37需显式使用`--generation g37`（当前默认G42）；便携启动器只完成离线语法和命令检查，尚未在另一台机器重建验收。实际执行需明确现有公共锁及租约规则；不自动抢占设备：
 
 ```bash
 python3 scripts/launch.py --generation g37 --model-path /path/to/local-ssd/model \
@@ -76,4 +76,4 @@ python3 scripts/unpack_data.py --with-results
 python3 scripts/validate_archive.py
 ```
 
-仓库共816条原始请求记录可逐字恢复并按原始SHA核验。文本部署证据中的内部路径与地址已脱敏；原始字节与公开副本SHA分开保存，历史manifest中的原始SHA不应拿来校验脱敏副本。权重、镜像及第三方算子二进制未入库；公开分支不声明当前有在线服务。
+该历史归档阶段共816条原始请求记录可逐字恢复并按原始SHA核验。文本部署证据中的内部路径与地址已脱敏；原始字节与公开副本SHA分开保存，历史manifest中的原始SHA不应拿来校验脱敏副本。权重、镜像及第三方算子二进制未入库；公开分支不声明当前有在线服务。

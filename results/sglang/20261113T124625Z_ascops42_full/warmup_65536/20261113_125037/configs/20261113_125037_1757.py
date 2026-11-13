@@ -1,0 +1,151 @@
+cli_args=dict(
+    {'agent': None,
+    'agent_api_key': None,
+    'agent_dataset_path': None,
+    'agent_deps': None,
+    'agent_env': None,
+    'agent_import_path': None,
+    'agent_kwarg': None,
+    'api_base': None,
+    'api_key': None,
+    'batch_size': None,
+    'cfg_time_str': '20261113_125037',
+    'config': '/task/configs/aisbench_sglang_warmup_65536.py',
+    'config_dir': 'configs',
+    'custom_dataset_data_type': None,
+    'custom_dataset_infer_method': None,
+    'custom_dataset_meta_path': None,
+    'custom_dataset_path': None,
+    'dataset': None,
+    'datasets': None,
+    'debug': False,
+    'delete/__no_delete': None,
+    'dir_time_str': '20261113_125037',
+    'disable_verification': None,
+    'dry_run': False,
+    'dump_eval_details': False,
+    'dump_extract_rate': False,
+    'env_file': None,
+    'environment': None,
+    'exclude_task_name': None,
+    'extra_docker_compose': None,
+    'force_build/__no_force_build': None,
+    'generation_kwargs': None,
+    'host_ip': None,
+    'host_network': None,
+    'host_port': None,
+    'include_task_name': None,
+    'max_num_workers': 1,
+    'max_out_len': None,
+    'max_retries': None,
+    'max_workers_per_gpu': 1,
+    'merge_ds': False,
+    'mode': 'perf',
+    'model': None,
+    'model_name': None,
+    'models': None,
+    'monitor_port': 0,
+    'n_attempts': None,
+    'n_concurrent': None,
+    'n_tasks': None,
+    'num_prompts': 16,
+    'num_warmups': 0,
+    'path': None,
+    'pressure': False,
+    'pressure_time': 15,
+    'purge_exception_cases': False,
+    'quiet': None,
+    'request_rate': None,
+    'response_anomaly': False,
+    'response_anomaly_payload_retention': None,
+    'retry': None,
+    'reuse': None,
+    'search': False,
+    'spec_decode': False,
+    'summarizer': None,
+    'timeout_multiplier': None,
+    'trust_remote_code': None,
+    'url': None,
+    'work_dir': '/task/results/sglang/20261113T124625Z_ascops42_full/warmup_65536',
+    'yes': None})
+datasets=[
+    dict(abbr='warmup_input_65536_output1024',
+        eval_cfg=dict(
+            evaluator=dict(
+                type='ais_bench.benchmark.openicl.icl_evaluator.icl_hf_evaluator.AccEvaluator'),
+            pred_role='BOT'),
+        infer_cfg=dict(
+            inferencer=dict(
+                type='ais_bench.benchmark.openicl.icl_inferencer.icl_gen_inferencer.GenInferencer'),
+            prompt_template=dict(
+                template='{question}',
+                type='ais_bench.benchmark.openicl.icl_prompt_template.icl_prompt_template.PromptTemplate'),
+            retriever=dict(
+                prompt_template=dict(
+                    template='{question}',
+                    type='ais_bench.benchmark.openicl.icl_prompt_template.icl_prompt_template.PromptTemplate'),
+                type='ais_bench.benchmark.openicl.icl_retriever.icl_zero_retriever.ZeroRetriever')),
+        meta_path='',
+        path='/task/datasets/warmup_input_65536.jsonl',
+        reader_cfg=dict(
+            input_columns=[
+                'question',
+                'max_out_len',
+                ],
+            output_column='answer',
+            test_range='[:16]'),
+        type='ais_bench.benchmark.datasets.custom.CustomDataset'),
+    ]
+infer=dict(
+    partitioner=dict(
+        out_dir='/task/results/sglang/20261113T124625Z_ascops42_full/warmup_65536/20261113_125037/predictions/',
+        type='ais_bench.benchmark.partitioners.naive.NaivePartitioner'),
+    runner=dict(
+        debug=False,
+        max_num_workers=1,
+        max_workers_per_gpu=1,
+        task=dict(
+            type='ais_bench.benchmark.tasks.openicl_api_infer.OpenICLApiInferTask'),
+        type='ais_bench.benchmark.runners.local.LocalRunner'))
+models=[
+    dict(abbr='sglang-a3-dsv41-1017-w8a8-engram-dram',
+        attr='service',
+        batch_size=16,
+        generation_kwargs=dict(
+            ignore_eos=True,
+            min_tokens=1024,
+            temperature=0.0),
+        host_ip='127.0.0.1',
+        host_port=18167,
+        max_out_len=1024,
+        model='Eco-Tech/DeepSeek-V4.1-Flash-1017-w8a8',
+        path='/task/tokenizer',
+        request_rate=0,
+        retry=1,
+        stream=True,
+        trust_remote_code=True,
+        type='ais_bench.benchmark.models.api_models.vllm_custom_api.VLLMCustomAPI'),
+    ]
+response_anomaly=dict(
+    enabled=False,
+    msprobe_config_path=None,
+    payload_retention='anomalies',
+    payload_storage=dict(
+        compression='zstd',
+        compression_level=3,
+        format='jsonl',
+        rows_per_shard=2000))
+summarizer=dict(
+    calculator=dict(
+        stats_list=[
+            'Average',
+            'Min',
+            'Max',
+            'Median',
+            'P75',
+            'P90',
+            'P99',
+            ],
+        type='ais_bench.benchmark.calculators.default_perf_metric_calculator.DefaultPerfMetricCalculator'),
+    type='ais_bench.benchmark.summarizers.default_perf.DefaultPerfSummarizer')
+work_dir='/task/results/sglang/20261113T124625Z_ascops42_full/warmup_65536/20261113_125037'

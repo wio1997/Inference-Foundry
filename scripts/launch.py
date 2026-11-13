@@ -5,8 +5,8 @@ ROOT=Path(__file__).resolve().parents[1]
 BRANCH='sglang-dsv4.1flash1017-910c'
 IID='sha256:08367522c4f9803fb876808c2cd4afe459e7e2b0adaab5a0daf36061edf8e517'
 PORTS=[18167,18280,14699,*range(18400,18407)]
-def command(model,name,generation='g37'):
-    argv=json.loads((ROOT/('deployment/g37/docker_command.json' if generation=='g37' else 'deployment/docker_command.json')).read_text())
+def command(model,name,generation='g42'):
+    argv=json.loads((ROOT/(f'deployment/{generation}/docker_command.json' if generation!='g30' else 'deployment/docker_command.json')).read_text())
     for i,v in enumerate(argv):
         if i and argv[i-1]=='--name':argv[i]=name
         elif i and argv[i-1]=='--label':argv[i]='archive.branch='+BRANCH
@@ -19,7 +19,7 @@ def command(model,name,generation='g37'):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--model-path',type=Path,required=True)
     p.add_argument('--name',default='sglang-dsv41-910c');p.add_argument('--execute',action='store_true')
-    p.add_argument('--generation',choices=['g30','g37'],default='g37')
+    p.add_argument('--generation',choices=['g30','g37','g42','g43'],default='g42')
     p.add_argument('--device-lock-dir',type=Path);p.add_argument('--port-lock-dir',type=Path)
     p.add_argument('--legacy-device-lock-dir',type=Path);p.add_argument('--pool-policy',type=Path)
     p.add_argument('--lifetime-seconds',type=int,default=21600)
@@ -29,10 +29,10 @@ def main():
     assert 0<a.lifetime_seconds<=21600
     locks=[];groups=[(a.device_lock_dir,range(16),'{}'),(a.port_lock_dir,PORTS,'sglang-port-{}.lock')]
     def policy():
-        if a.generation=='g37':
+        if a.generation!='g30':
             assert a.pool_policy and a.pool_policy.is_file(),'Specify the existing authoritative pool policy'
             assert not json.loads(a.pool_policy.read_text()).get('leases'),'Existing leases; do not take over'
-    if a.generation=='g37':
+    if a.generation!='g30':
         assert a.legacy_device_lock_dir,'Also hold the existing legacy device locks'
         groups.append((a.legacy_device_lock_dir,range(16),'device-{}.lock'))
     policy()
@@ -49,9 +49,9 @@ def main():
     vendor=ROOT/'compat/vendor_strict_host_g2';vm=json.loads((vendor/'strict_host_manifest.json').read_text())
     assert vm['payload_count']==20 and vm['preserved_payloads_exact']==17
     import hashlib
-    if a.generation=='g37':
-        provenance=json.loads((ROOT/'evidence/g37/publication-provenance.json').read_text())
-        for item in provenance['files']:
+    if a.generation!='g30':
+        provenance=[json.loads((ROOT/f'evidence/{g}/publication-provenance.json').read_text()) for g in (['g37'] if a.generation=='g37' else ['g37','g43'])]
+        for item in [item for doc in provenance for item in doc['files']]:
             if item['path'].startswith('compat/runtime/'):
                 assert hashlib.sha256((ROOT/item['path']).read_bytes()).hexdigest()==item['published_sha256'],item['path']
     for item in vm['payloads']:assert hashlib.sha256((vendor/item['path']).read_bytes()).hexdigest()==item['sha256']
@@ -72,6 +72,11 @@ def main():
         if i and argv[i-1]=='-v' and v.endswith(':ro'):
             assert Path(v.split(':',1)[0]).exists(),'Missing bind source: '+v
     for path in ['serve_g30/home','serve_g30/tmp','serve_g30/logs','serve_g30/cache','serve_ascops37/home','serve_ascops37/tmp','serve_ascops37/logs','serve_ascops37/cache','compat/probe_g5/home/.cache/torch_extensions/py312_cpu']:(ROOT/path).mkdir(parents=True,exist_ok=True)
+    for i,v in enumerate(argv):
+        if i and argv[i-1]=='-e' and '=' in v:
+            key,value=v.split('=',1)
+            if key in {'HOME','TMPDIR','ASCEND_PROCESS_LOG_PATH','ASCEND_WORK_PATH'} and value.startswith('/task/'):
+                (ROOT/value.removeprefix('/task/')).mkdir(parents=True,exist_ok=True)
     state=ROOT/'.work';state.mkdir(exist_ok=True)
     stop=False
     def on_signal(*_):nonlocal stop;stop=True

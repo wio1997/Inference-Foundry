@@ -8,7 +8,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--model-path',type=Path,required=True)
     p.add_argument('--server-container',default='sglang-dsv41-910c');p.add_argument('--execute',action='store_true')
     p.add_argument('--benchmark-lock',type=Path)
-    p.add_argument('--generation',choices=['g30','g37'],default='g37')
+    p.add_argument('--generation',choices=['g30','g37','g42','g43'],default='g42')
     a=p.parse_args();run=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     plan=[{'input':n,'output':1024,'concurrency':16,'warmup':16,'formal':32} for n in [32768,65536,131072,262144]]
     if not a.execute:print(json.dumps({'plan':plan,'client':CLIENT,'server':a.server_container},indent=2));return
@@ -52,7 +52,7 @@ def main():
                 ownership(f'{n}_{phase}_before')
                 flushed=api('/flush_cache?timeout=60','POST');assert b'Cache flushed' in flushed
                 (out/f'{n}_{phase}_flush.txt').write_bytes(flushed)
-                config=f'/task/configs/g37/aisbench_sglang_{phase}_{n}.py' if a.generation=='g37' else f'/task/configs/aisbench_{phase}_{n}.py'
+                config=f'/task/configs/g37/aisbench_sglang_{phase}_{n}.py' if a.generation!='g30' else f'/task/configs/aisbench_{phase}_{n}.py'
                 cmd=['docker','exec',name,'timeout','--signal=TERM','--kill-after=30','7200','ais_bench',
                      config,'--mode','perf','--num-warmups','0',
                      '--num-prompts',str(count),'--max-num-workers','1','--work-dir',f'/task/results/{run}/{phase}_{n}']

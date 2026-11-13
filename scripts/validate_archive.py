@@ -26,9 +26,21 @@ def main():
         assert abs(32*1024/x['duration_s']-x['aggregate_output_tokens_per_s'])<1e-4
         assert x['aggregate_output_tokens_per_s']<native['aggregate_output_tokens_per_s']
     manifest=json.loads((ROOT/'evidence/data-archive-manifest.json').read_text())
-    assert sum(x.get('rows',0) for x in manifest['results'])==816
+    assert sum(x.get('rows',0) for x in manifest['results'])==1056
     provenance=json.loads((ROOT/'evidence/g37/publication-provenance.json').read_text())
     for ent in provenance['files']:
+        assert hashlib.sha256((ROOT/ent['path']).read_bytes()).hexdigest()==ent['published_sha256'],ent['path']
+    g42=json.loads((ROOT/'evidence/g42/sglang_G42_all4_acceptance.json').read_text())
+    assert g42['all4_SGLang_comparison_complete'] and not g42['outperformance_goal_achieved']
+    for entry in g42['profiles']:
+        x=entry['metrics']
+        assert x['successful_requests']==32 and x['output_tokens']==1024 and x['configured_concurrency']==16
+        assert entry['SQLite_timestamp_contract']['observed_peak_concurrency']==16
+        assert abs(32768/x['duration_s']-x['aggregate_output_tokens_per_s'])<1e-4
+    g43=json.loads((ROOT/'evidence/g43/sglang_G43_retry2_screen_acceptance.json').read_text())
+    assert not g43['all4_SGLang_comparison_complete'] and not g43['screen_repeatability_verified']
+    assert g43['metrics']['successful_requests']==32 and g43['SQLite_timestamp_contract']['observed_peak_concurrency']==16
+    for ent in json.loads((ROOT/'evidence/g43/publication-provenance.json').read_text())['files']:
         assert hashlib.sha256((ROOT/ent['path']).read_bytes()).hexdigest()==ent['published_sha256'],ent['path']
     print('Archive integrity, source syntax, exact raw reconstruction, and metric arithmetic passed. This is not a new hardware or quality test.')
 if __name__=='__main__':main()
