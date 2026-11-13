@@ -25,23 +25,45 @@
 
 1. 真实调度跨度、prefill/decode/spec请求数、uniform标记、实际target图模式。
 2. 图wrapper确有可回放entry时的target/draft实际回放次数；不会将“配置FULL”当作“发生回放”。
-3. 每rank最多2048条target和2048条图调用主机时间记录。满额只丢观测，不改变推理，但该轮不得宣称完整时间线。
+3. 同时记录该调用实际请求ID的SHA256，与服务完成记录关联；请求正文和原始ID不进入观测日志。每rank最多2048条target和2048条图调用主机时间记录。满额只丢观测，不改变推理，但该轮不得宣称完整时间线。
 4. 原有`/health`响应中的累计快照；正式阶段不增加健康查询，由原有阶段边界查询保存。
 5. 结束后写出`execution-route-observer.json`。保存发生于drain，不逐步写文件。
 
-没有NPU张量读取、设备计时事件、设备同步、额外模型调用或新提示词。host起止时间包含提交/等待，不是设备kernel耗时。记录使用目标机单调时钟；后续应与同机AISBench数据库中的正式请求时间窗口对齐，按窗口解析，而不把预热/工程计数混入C4正式阶段。
+没有NPU张量读取、设备计时事件、设备同步、额外模型调用或新提示词。host起止时间包含提交/等待，不是设备kernel耗时。记录使用目标机单调时钟；后续与同机AISBench数据库中的正式请求时间窗口及请求身份共同对齐。仅时间重叠不足以区分异步预热，不能据此直接标记正式工作。
 
 观测器先恢复共享MTP observer的graph hook，再进入原来的drain/close，避免破坏已有严格的hook归属检查。代码没有实现新调度器或模型算法。
 
 ## 4. 已验证与未验证
 
-已通过5项主机契约检查：原参数/结果透传、target/draft区分与hook恢复、非主机标量拒绝转换、混批host跨度记录、原异常透传与事件有界。另完成Python AST检查，核对两臂命令列表仅cohort参数不同。
+已通过10项主机检查：5项观测器契约覆盖原参数/结果透传、target/draft区分与hook恢复、非主机标量拒绝转换、混批host跨度、原异常与事件有界；5项解析器契约覆盖时间窗口分区、时钟不一致、预热/边界排除、不完整日志拒绝，以及落入正式时间窗口的延迟预热和跨阶段混批排除。另完成Python AST检查，核对两臂命令列表仅cohort参数不同。新解析器的时间戳解码与192条已发布原始blob一致。
 
 这些检查没有执行模型数学、NPU代码或实际SDK类。真实SDK字段、所有rank关闭、实际图模式与观测开销都未硬件验收。当前0新增模型加载、0部署，NPU阶段预算尚未分配。
 
 运行前需把同一[入口包装](../validation/performance-attribution-20261113/entry_state_off_route_observed.py)放入执行包的`overlay/postscore_profile_entry.py`，将[观测helper](../validation/performance-attribution-20261113/execution_route_observer.py)放在同一overlay目录；旁边的`DeepInfer/`必须是固定源码。文件不是可以脱离执行包直接启动的服务脚本。
 
 ## 5. 运行有效性与采用/否决
+
+### 时钟记录与正式窗口解析
+
+新增只读主机时钟身份：boot-id哈希、time-namespace偏移哈希、monotonic/perf_counter的实际实现。客户端与模型进程必须对应同一单调时钟；不能用本机控制台的UTC时间替代目标机事件时间。
+
+在负载生成容器内、正式AISBench之前，用标准库模式记录客户端时钟；这不会导入torch或初始化NPU：
+
+```bash
+python3 -B -S /task/<stage>/overlay/execution_route_observer.py --clock-output /task/<stage>/native-run/aisbench-c4-client-clock.json
+```
+
+应在正式请求前将其与原有health响应里的`execution_route.clock`核对。38请求的C4-only服务会在最后请求结束后关闭，因此不依赖结束后的HTTP查询；等待原有drain写出各rank的完整关闭日志，不增加保活请求。
+
+收集后运行：
+
+```bash
+python3 analyze_cohort_c4.py --run-root <collected-run> --client-clock <client-clock.json> --output <analysis.json>
+```
+
+解析器只读原SQLite/NumPy时间戳，核对32条正式请求、官方汇总、38条总请求、8rank退出释放、实际cohort状态、状态复用关闭及缓存预算。它按正式客户端第一开始/最后结束时间分为窗口内、窗口外、跨起点、跨终点和跨两端，保留边界调用。再将每个请求的首次target调用时间与38条服务完成记录关联：必须恰好32个请求首次进入target时处于正式客户端窗口，且满足1024/256长度；否则拒绝分析。不依赖请求完成顺序。窗口内仅含正式请求的调用才进入正式计数，预热或跨阶段混批单列；即使预热后续调用延迟到正式窗口，也不会混入正式计数。host时长始终不是设备耗时。
+
+客户端/服务器时钟来源不同、helper身份不同、日志缺失/丢弃时拒绝形成该归因分析。实际SDK日志尚未生成，当前通过的是解析契约和历史时间戳兼容性，不是新NPU实验。单臂输出状态明确为`one_C4_arm_analyzed_not_causal_verdict`，必须与另一臂结合后才能讨论因果贡献。
 
 先完成一臂工程门槛，再运行32条正式请求。任何一项不满足都保留失败记录，不能补写通过：
 
@@ -64,9 +86,9 @@
 
 ## 6. 当前外部前提
 
-已只读查明：所需8die中的7个在现有CANN池策略中有其它任务租约，没有DeepInfer租约。现场入口的`permission()`要求中央池签发的有效key/lease/device身份，主机策略有效期上限60秒，需由中央池持续续发，不能靠改本地登记或一瞬间没有NPU进程取得长期窗口。
+已只读查明：所需8die全部在现有CANN池策略中有其它任务租约，没有DeepInfer租约；三次独立只读复核均未取得该许可。现场入口的`permission()`要求中央池签发的有效key/lease/device身份，主机策略有效期上限60秒，需由中央池持续续发，不能靠改本地登记或一瞬间没有NPU进程取得长期窗口。
 
-已向用户请求该池的预约命令/API或管理会话位置。在取得协调入口前，不改池策略、转移其它租约或抢占其设备锁。此处是实际资源协议缺口，不是模型正确性失败，也不是本地5项检查证明了可上机。
+已向用户请求该池的预约命令/API或管理会话位置。在取得协调入口前，不改池策略、转移其它租约或抢占其设备锁。此处是实际资源协议缺口，不是模型正确性失败，也不是本地主机契约检查证明了可上机。
 
 ## 7. 材料
 
@@ -74,5 +96,7 @@
 - [观测helper](../validation/performance-attribution-20261113/execution_route_observer.py)
 - [同一状态关闭入口](../validation/performance-attribution-20261113/entry_state_off_route_observed.py)
 - [5项主机契约检查](../validation/performance-attribution-20261113/test_observer_host_contract.py)
+- [正式窗口解析器](../validation/performance-attribution-20261113/analyze_cohort_c4.py)
+- [5项解析器契约检查](../validation/performance-attribution-20261113/test_phase_parser_host_contract.py)
 
 上述清单中的命令是计划值，尚未执行；实际启动后还必须保存真实argv、有效配置和运行回执。

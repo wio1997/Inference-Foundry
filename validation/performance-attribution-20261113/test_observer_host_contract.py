@@ -1,5 +1,6 @@
 """Host metadata/delegation checks only; no model arithmetic or device code."""
 from types import SimpleNamespace as NS
+import hashlib
 import unittest
 from execution_route_observer import ExecutionRouteObserver,describe_batch,host_int
 
@@ -29,6 +30,9 @@ class Contracts(unittest.TestCase):
         self.assertIs(calls[0][0][0],arg);self.assertIs(calls[0][1]['named'],arg)
         assert r.drafter._runnable(arg) is marker
         q=obs.snapshot()['counts'];self.assertEqual(q['target_actual_replays'],1);self.assertEqual(q['draft_actual_replays'],1)
+        identity=[hashlib.sha256(b'a').hexdigest()]
+        self.assertEqual(obs.snapshot()['target_events'][0]['request_id_sha256'],identity)
+        self.assertTrue(all(e['request_id_sha256']==identity for e in obs.snapshot()['graph_events']))
         obs.close();self.assertIs(r._model_forward,original_forward);self.assertIs(Graph.__call__,original_graph)
         obs.close();self.assertTrue(obs.snapshot()['closed'])
 
@@ -65,7 +69,7 @@ class Contracts(unittest.TestCase):
             self.assertEqual(obs.snapshot()['counts']['target_failures'],1)
         finally:obs.close()
 
-    def test_representative_events_bounded_counts_complete(self):
+    def test_journals_bounded_counts_complete(self):
         runtime,context,Graph,_,_=fixture();r=runtime.compute_worker.model_runner;d=runtime.native_prefill_state.descriptor
         obs=ExecutionRouteObserver(runtime,lambda:context,Graph,cohort_enabled=True,event_limit=2)
         try:

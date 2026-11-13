@@ -4,12 +4,27 @@ No tensor reads, device events, synchronizations, requests, or model arithmetic.
 Runtime imports are deferred so host ownership contracts can be checked alone.
 """
 from collections import Counter
+from functools import lru_cache
 from numbers import Integral
 from pathlib import Path
 from types import MethodType
 import json
+import hashlib
 import threading
 import time
+
+
+def clock_identity():
+    """Read host clock provenance once; never initialize any device runtime."""
+    boot=Path('/proc/sys/kernel/random/boot_id').read_bytes()
+    offsets=Path('/proc/self/timens_offsets').read_bytes()
+    monotonic=time.get_clock_info('monotonic');perf=time.get_clock_info('perf_counter')
+    return {'boot_id_sha256':hashlib.sha256(boot).hexdigest(),
+            'timens_offsets_sha256':hashlib.sha256(offsets).hexdigest(),
+            'monotonic_implementation':monotonic.implementation,
+            'perf_counter_implementation':perf.implementation,
+            'monotonic_resolution_seconds':monotonic.resolution,
+            'recorded_monotonic_ns':time.monotonic_ns()}
 
 
 def host_int(value):
@@ -17,6 +32,22 @@ def host_int(value):
     if isinstance(value, bool) or not isinstance(value, Integral):
         raise TypeError('expected a host integer')
     return int(value)
+
+
+@lru_cache(maxsize=64)
+def request_identity(rid):
+    if not isinstance(rid,str) or not rid or len(rid)>256:
+        raise TypeError('expected a bounded host request ID')
+    return hashlib.sha256(rid.encode()).hexdigest()
+
+
+def request_identities(runtime):
+    ids=runtime.compute_worker.model_runner.input_batch.req_ids
+    if not ids or len(ids)>8:
+        raise ValueError('expected the fixed experiment batch of 1..8 requests')
+    result=[request_identity(rid) for rid in ids]
+    if len(set(result))!=len(result):raise ValueError('duplicate request identity')
+    return result
 
 
 def describe_batch(runtime, context):
@@ -51,13 +82,15 @@ def describe_batch(runtime, context):
     return {'mode':mode,'kind':kind,'requests':len(spans),
             'scheduled_tokens':host_int(descriptor.total_num_scheduled_tokens),
             'prefill_requests':prefill,'decode_requests':decode,'spec_requests':spec_reqs,
-            'uniform':uniform,'spans':spans}
+            'uniform':uniform,'spans':spans,'request_id_sha256':request_identities(runtime)}
 
 
 class ExecutionRouteObserver:
     def __init__(self,runtime,get_context,graph_class,*,cohort_enabled,event_limit=2048):
         self.runtime=runtime;self.runner=runtime.compute_worker.model_runner
         self.get_context=get_context;self.graph_class=graph_class
+        self.clock=clock_identity()
+        self.source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
         self.cohort_enabled=bool(cohort_enabled)
         self.counts=Counter();self.histogram=Counter();self.events=[];self.graph_events=[];self.errors=[]
         if type(event_limit) is not int or not 1<=event_limit<=4096:
@@ -103,14 +136,15 @@ class ExecutionRouteObserver:
             draft=wrapper is getattr(getattr(owner.runner,'drafter',None),'_runnable',None)
             target=bool(getattr(owner.local,'target_depth',0))
             scope='draft' if draft else 'target' if target else None
-            replay=False
+            replay=False;request_ids=[]
             if scope:
                 try:
+                    request_ids=request_identities(owner.runtime)
                     context=owner.get_context()
                     entry=wrapper.concrete_aclgraph_entries.get(context.batch_descriptor)
                     replay=(context.cudagraph_runtime_mode==wrapper.runtime_mode
                             and entry is not None and entry.aclgraph is not None)
-                except (AttributeError,TypeError,KeyError) as exc:
+                except (AttributeError,TypeError,ValueError,KeyError) as exc:
                     with owner.lock:
                         owner.counts['graph_metadata_errors']+=1
                         if len(owner.errors)<8:owner.errors.append(type(exc).__name__+': '+str(exc))
@@ -123,6 +157,7 @@ class ExecutionRouteObserver:
                     owner.counts[scope+'_actual_replays' if replay else scope+'_non_replay_calls']+=1
                     if len(owner.graph_events)<owner.event_limit:
                         owner.graph_events.append({'scope':scope,'actual_replay':replay,
+                            'request_id_sha256':request_ids,
                             'started_monotonic_ns':started,'host_return_monotonic_ns':returned})
                     else:owner.counts['graph_events_dropped']+=1
             return result
@@ -135,6 +170,7 @@ class ExecutionRouteObserver:
     def snapshot(self):
         with self.lock:
             return {'closed':self.closed,'cohort_enabled':self.cohort_enabled,
+                    'clock':dict(self.clock),'observer_source_sha256':self.source_sha256,
                     'snapshot_monotonic_ns':time.monotonic_ns(),'counts':dict(self.counts),
                     'histogram':dict(self.histogram),'target_events':list(self.events),
                     'graph_events':list(self.graph_events),
@@ -190,3 +226,12 @@ def install_runtime_hooks(cohort_enabled):
     sdk_runtime.SDKComputeRuntime.install=install
     sdk_runtime.SDKComputeRuntime.drain=drain
     sdk_http.ThreadingHTTPServer=server
+
+
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser(description='Record clock identity without importing an NPU runtime')
+    parser.add_argument('--clock-output',type=Path,required=True)
+    args=parser.parse_args()
+    temp=args.clock_output.with_suffix('.tmp')
+    temp.write_text(json.dumps(clock_identity())+'\n');temp.replace(args.clock_output)
