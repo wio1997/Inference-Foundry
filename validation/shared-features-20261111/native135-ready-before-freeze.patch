@@ -1,0 +1,81 @@
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py
+index e4209e1..620cb5f 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/native_admission_cohort.py
+@@ -1,8 +1,10 @@
+ """Optional throughput-oriented admission boundary for the native HTTP engine.
+ 
+ Already admitted requests keep their normal scheduler and state ownership.
+-After the first decode step, new HTTP requests wait for that finite cohort to
+-finish. No timer, benchmark concurrency, prompt identity or response is used.
++Before freezing the first decoding cohort, give already queued requests an
++admission pass while HTTP capacity remains. Once frozen, new HTTP requests wait
++for that finite cohort to finish. No timer, benchmark concurrency, prompt
++identity or response is used.
+ This trades admission latency for fewer mid-decode prefill interruptions; NPU
+ performance and output validity require separate validation.
+ """
+@@ -14,6 +16,7 @@ class NativeAdmissionCohort:
+         self.decoding = False
+         self.cohort_ids = frozenset()
+         self.counts = {'cohorts_started': 0, 'cohorts_finished': 0,
++                       'freeze_deferred_for_waiting_steps': 0,
+                        'admission_withheld_steps': 0, 'max_waiting_http_requests': 0,
+                        'admitted_requests': 0, 'queue_wait_ns_sum': 0,
+                        'queue_wait_ns_max': 0, 'events_dropped': 0}
+@@ -56,7 +59,8 @@ class NativeAdmissionCohort:
+         self._record({'kind': 'admitted', 'request_id': request_id,
+                       'queued_monotonic_ns': queued_ns, 'monotonic_ns': now_ns})
+ 
+-    def after_step(self, active_ids, is_decode, now_ns):
++    def after_step(self, active_ids, is_decode, now_ns, *,
++                   waiting_count=0, http_admission_slots=0):
+         if not self.enabled:
+             return
+         active = frozenset(active_ids)
+@@ -65,11 +69,24 @@ class NativeAdmissionCohort:
+                 raise RuntimeError('cohort ownership changed while decoding')
+             return
+         if is_decode and active:
++            # An HTTP producer may enqueue while the engine is inside step().
++            # Let the normal admission loop consume that ready work before
++            # sealing a small group. Its native-engine capacity checks remain
++            # authoritative; a pending terminal reap must not seal the group.
++            if waiting_count > 0 and http_admission_slots > 0:
++                self.counts['freeze_deferred_for_waiting_steps'] += 1
++                self._record({'kind': 'cohort_freeze_deferred', 'monotonic_ns': now_ns,
++                              'request_ids': sorted(active),
++                              'waiting_count_at_boundary': waiting_count,
++                              'http_admission_slots': http_admission_slots})
++                return
+             self.decoding = True
+             self.cohort_ids = active
+             self.counts['cohorts_started'] += 1
+             self._record({'kind': 'cohort_started', 'monotonic_ns': now_ns,
+-                          'request_ids': sorted(active)})
++                          'request_ids': sorted(active),
++                          'waiting_count_at_boundary': waiting_count,
++                          'http_admission_slots': http_admission_slots})
+ 
+     def snapshot(self):
+         return {'enabled': self.enabled, 'decoding_cohort_active': self.decoding,
+diff --git a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+index 7086891..1caf20e 100644
+--- a/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
++++ b/DeepInfer/deepinfer/model_executor/models/glm5_next/full_model/sdk_http.py
+@@ -261,7 +261,14 @@ def serve_sdk_batch_engine(llm, worker, args, out):
+                     del active[rid]
+                     completed_ids.add(rid)
+                     completed += 1
+-                admission.after_step(active, bool(llm.scheduler.decode_step), time.monotonic_ns())
++                if admission.enabled:
++                    http_slots = max(0, args.max_sequences - len(active))
++                    if args.serve_max_requests:
++                        http_slots = min(http_slots,
++                            max(0, args.serve_max_requests - completed - len(active)))
++                    waiting_at_boundary = waiting.qsize()
++                    admission.after_step(active, bool(llm.scheduler.decode_step), time.monotonic_ns(),
++                        waiting_count=waiting_at_boundary, http_admission_slots=http_slots)
+             admission.allow_admission(active, waiting.qsize(), time.monotonic_ns())
+             if admission.enabled:
+                 (out / 'native-admission-cohort.json').write_text(json.dumps(admission.snapshot())+'\n')
