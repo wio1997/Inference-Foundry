@@ -4,13 +4,21 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：139有效配对为C4 +24.13%、C8 +12.34%，双档30%未通过；140同源码关闭控制实际运行。**
+**当前状态（2026-11-13）：固定三臂完成，当前候选未达双档30%；状态复用在本批温缓存C8有收益，C4收益未证实。**
 
-同一8die、相同输入和共有优化下，DeepInfer139的C4/C8为 **302.58856 / 614.54459 token/s**，vLLM138为 **243.76156 / 547.05506 token/s**。139完成72请求、8rank退出0并释放，原始计时独立复算通过，双方受监测迟编译为0。达到30%还须分别缩短 **1.22183 / 1.81118秒**，不能用旧较慢参考替代。
+| 输出吞吐，token/s | C4 | C8 |
+|---|---:|---:|
+| 有效vLLM138参考 | 243.76156 | 547.05506 |
+| DeepInfer139，状态复用开启 | 302.58856 | 614.54459 |
+| DeepInfer140，同源码关闭 | 301.60478 | 532.09297 |
+| 开启相对参考 | **+24.13%** | **+12.34%** |
+| 开启相对关闭 | **+0.33%** | **+15.50%** |
 
-140同源码、同调度、同3+1GiB预算，只关闭状态保存/恢复，已启动且8个模型Worker存活。其首次启动前端口检查失败产生0模型加载；端口已清空且失败归档后，才接续原控制。新阶段3/3次加载已全部使用，不新增优化变体。默认114不变，通用质量与自然波动仍未验收。
+三臂同卡组、相同输入和共有优化，均完成运行、原始计时复算及退出释放；140实际保存/恢复/复制计数为0。0.33%不能当成稳定改善；15.50%限单批温缓存C8，不能外推冷请求或任意业务。候选达到双档30%仍需净省1.22183/1.81118秒。本阶段3次加载已用完，无运行中的本阶段NPU作业，不追加变体，默认114不变，完整Goal未完成。
 
-[最新复盘与执行结果](docs/strategy-review-and-next-goal-20261113.md) · [139完整复现参数与原始端点](validation/shared-features-20261111/native139-reproduction.json) · [138有效参考复现](validation/shared-features-20261111/reference138-reproduction.json) · [配对结果](validation/shared-features-20261111/shared-mc2-139-138-comparison.json) · [139裁决与机制统计](validation/shared-features-20261111/native139-decision.json)
+[三臂最终裁决](docs/three-arm-verdict-20261113.md) · [原反思与历史](docs/strategy-review-and-next-goal-20261113.md) · [三臂数据](validation/shared-features-20261111/native139-three-arm-result.json) · [完整候选补丁，从默认114应用](validation/shared-features-20261111/native139-complete-from-default114.patch) · [补丁基线与哈希](validation/shared-features-20261111/native139-complete-patch-manifest.json)
+
+实际命令、环境及原始计时端点：[参考138](validation/shared-features-20261111/reference138-reproduction.json)、[开启139](validation/shared-features-20261111/native139-reproduction.json)、[关闭140](validation/shared-features-20261111/native140-reproduction.json)。原生入口包装：[139](validation/shared-features-20261111/native139-entry.py)、[140关闭控制](validation/shared-features-20261111/native140-entry.py)。通用质量与自然波动未验收。
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
