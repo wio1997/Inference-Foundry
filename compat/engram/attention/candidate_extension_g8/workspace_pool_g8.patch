@@ -1,0 +1,62 @@
+--- g5/op_api_common_213.h
++++ g8/op_api_common_213.h
+@@ -25,6 +25,11 @@
+ #include <functional>
+ #include <type_traits>
+ #include <vector>
++#include <unordered_map>
++#include <cstdint>
++#include <cstdio>
++#include <limits>
++#include <acl/acl.h>
+ 
+ #include <torch_npu/csrc/framework/utils/CalcuOpUtil.h>
+ #include <torch_npu/csrc/framework/utils/OpAdapter.h>
+@@ -694,6 +699,34 @@
+ typedef void (*UnInitHugeMemThreadLocal)(void *, bool);
+ typedef void (*ReleaseHugeMem)(void *, bool);
+ 
++// One workspace per frontend thread, device and actual ACL stream.
++// Operators on one stream execute in order; concurrent streams never alias.
++// Old growing buffers remain owned by existing g5 launch callbacks, so graph
++// addresses and deferred launches remain valid. Geometric growth bounds the
++// sum of all retained generations below twice the largest capacity per key.
++inline at::Tensor SglangV41StreamWorkspace(uint64_t bytes, aclrtStream stream) {
++  int32_t device = -1;
++  TORCH_CHECK(aclrtGetDevice(&device) == 0, "workspace current device query failed");
++  TORCH_CHECK(bytes > 0 && bytes <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()),
++              "invalid custom-op workspace size");
++  thread_local std::unordered_map<int32_t, std::unordered_map<uintptr_t, at::Tensor>> pools;
++  auto &buffer = pools[device][reinterpret_cast<uintptr_t>(stream)];
++  if (!buffer.defined() || static_cast<uint64_t>(buffer.numel()) < bytes) {
++    uint64_t capacity = 1;
++    while (capacity < bytes) {
++      TORCH_CHECK(capacity <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) / 2,
++                  "custom-op workspace capacity overflow");
++      capacity *= 2;
++    }
++    buffer = at::empty({static_cast<int64_t>(capacity)},
++        at::TensorOptions(torch_npu::utils::get_npu_device_type()).dtype(at::kByte));
++    std::fprintf(stderr, "A3_V41_WORKSPACE_POOL device=%d stream=%p requested=%llu capacity=%llu\n",
++        device, reinterpret_cast<void *>(stream),
++        static_cast<unsigned long long>(bytes), static_cast<unsigned long long>(capacity));
++  }
++  return buffer;
++}
++
+ #define EXEC_NPU_CMD(aclnn_api, ...)                                          \
+   do {                                                                        \
+     static const auto getWorkspaceSizeFuncAddr =                              \
+@@ -730,10 +763,8 @@
+     at::Tensor workspace_tensor; /* owner outlives the if block */             \
+     void *workspace_addr = nullptr;                                           \
+     if (workspace_size != 0) {                                                \
+-      at::TensorOptions options =                                             \
+-          at::TensorOptions(torch_npu::utils::get_npu_device_type());         \
+-      workspace_tensor =                                                      \
+-          at::empty({workspace_size}, options.dtype(kByte));                  \
++      workspace_tensor =                                                     \
++          SglangV41StreamWorkspace(workspace_size, acl_stream);                \
+       workspace_addr = const_cast<void *>(workspace_tensor.storage().data()); \
+     }                                                                         \
+     /* Owning capture survives deferred OpCommand custom-handler launch. */   \

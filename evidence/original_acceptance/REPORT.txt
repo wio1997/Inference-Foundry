@@ -1,0 +1,44 @@
+BAAI167 / DeepSeek-V4.1-Flash-1017-w8a8 / Ascend SGLang A3
+更新UTC：2026-11-12T14:44:13.210417+00:00
+状态权威位置checkpoint.json；指标权威位置各run/verified_results_<L>.json及原始details/json/csv。
+
+当前G30配置已独立核验正式结果4/4档；四档性能及最终部署状态已完成独立核验。
+G30 guard1993646，容器yxy-dsv41-sglang-167-g30，AISBench parent2286332，run20261112T134338Z。
+主模型40层×16rank共640个Q/KV融合模块实际初始化；FUSE_WQA_WKV=1，专家W8A8量化保持。
+16target+16draft图bs1/2、health200、两条128token初始答案4/Beijing、Engram共享DRAM188.83GiB已核验。
+
+最终配置已核验结果（每档warm16/formal32，实际输入长度相符，实际输出1024，最大并发16）
+输入token | 输出吞吐token/s | TTFT平均/P99秒 | TPOT平均/P99毫秒 | E2EL平均/P99秒
+32768 | 139.6191 | 16.3022/22.5677 | 89.0/177.7 | 107.3334/203.6924
+65536 | 78.2387 | 32.6176/46.1618 | 156.5/327.8 | 192.7156/378.5558
+131072 | 49.4048 | 68.3230/94.3979 | 240.4/498.7 | 314.2437/602.7281
+262144 | 32.1642 | 154.1187/204.0010 | 341.2/751.1 | 503.1966/944.5204
+待验收输入：[]
+当前阶段：{"phase": "completed_all_four_parent_raw_verified", "run_id": "20261112T134338Z", "parent_pid": 2286332, "actual_cmdline": "gone", "CPU_client": "stopped_after_completion"}
+原始结果results/20261112T134338Z/formal_<L>/；配置/命令/flush/占用采样accepted_<L>_evidence/；导出validated_profile_metrics.csv。
+单次固定32请求实测，未证明重复性、最佳性能、跨框架优势或整模型质量；不以单次小幅差异认定融合收益。
+
+版本与部署证据
+镜像quay.io/ascend/sglang:cann9.2.0-a3-20261111；复查support_audit/latest_a3_during_G30_benchmark.json仍为最新A3日期标签。
+ImageID08367522c4f9803fb876808c2cd4afe459e7e2b0adaab5a0daf36061edf8e517；实际sourcegit d0e354bb7a0a75f2bd72f3724431198abcd9304b。
+CANN9.2innerB237，Torch/TorchNPU2.13，DeepEP1.0.0+d5107fb6.cann.9.2.0.b237；运行时compat/runtime/g30/manifest.json。
+AISBench客户端镜像ghcr.io/aisbench/aisbench_benchmark:v3.1-20261013-master-openeuler22.03-py310-aarch64，ImageID05358d58d23f2679c71e48d93797d5d2a28d72eedc7fb4900479c89955465d76；通过OpenAI兼容协议请求SGLang。
+单机8物理910C/16逻辑die，aarch64；模型/data/models/Eco-Tech-DeepSeek-V4.1-Flash-1017-w8a8只读挂入/model。
+/data为55.9TiB NVMe LVM/XFS、ROTAfalse。142indexed文件781343665008B，143safetensors header/tensor映射及6控制SHA已核验，未重算全部payload SHA。
+Engram两个共享memfd的Rss合计198005896KiB，CANN MAPPED|PINNED注册；LinuxLocked0，不能声称mlock。
+当前为固定镜像加任务私有运行时适配；不代表原镜像开箱原生支持1017。
+
+适用优化与限制
+TP16/EP16/attnDP16、DeepEPauto/INT8、DSPARK5/verify6、target/draft NPU图、radix、overlap、多流/planstream、CPU亲和、ZBAL图/VMM均开启。
+BF16KV cap600000、context270336、global prefill chunk16384（每DP1024）、HCCL512MiB；当前QKV融合仅target，draft保持框架hardcodedFalse/独立loader。
+原生不支持或不适用：prefill图解析禁用，draftmetadata无host-free capture，chunkedprefixcache解析禁用，DSpark+ModelSlim共享专家融合不支持；CUDA DeepGEMM/TileLang/hashTopK和FP8专用路径不适用。
+NPU_BF16_WO_A快路要求localgroups1，当前8/attnTP1得到8，故不适用。
+服务守护6小时上限，自13:37:29UTC开始；服务存活期间保留设备/端口锁，不标记空闲。
+
+历史与参考
+G29未启用QKV融合的四档固定配置结果全部有效，正式128/128、warm64/64成功；results/20261112T124145Z/verified_results_all.json及baseline_four_profile_evidence/完整保留。
+G29输出吞吐按32K/64K/128K/256K为138.4110/90.4393/56.4702/30.0752 token/s；G29于13:35:30UTC主动退役，非模型失败。
+同事分享已读，metadata1024、INT8索引/F16scale、ratio1/2、Engram block32语义已核查采用；support_audit/colleague_share/review.txt。未开发950/B300融合或套用其性能数值。
+此前无效/失败run原始输出保留在远端results：120519Z retry0零HTTP；121023Z normal HCCL容量不足；123128Z Engram临时张量OOM；均未计入正式结果。
+G29/G30相同64条长随机输入的完整预测文本仅1条完全一致（32K 0/32、64K 1/32）；数值原因未验证，不能据此作为精度等价或融合收益验收。results/G29_G30_output_comparison.json。
+DSpark RoPE单元素BF16末位差异及CPU实数展开对照有记录；组件与功能验证不等于全模型质量验收。

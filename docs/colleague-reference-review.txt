@@ -1,0 +1,15 @@
+同事分享对话对当前 SGLang / 910C 部署的帮助审查
+审查时间：2026-11-12；原分享：[同事对话链接未公开]
+
+结论：有帮助，最直接价值是定位可核查的 A3 / INT8 参考实现，确认缓存、算子和 Engram 的语义。原对话是18项融合差距研究，不是 SGLang 全模型部署或性能验证。继续以用户指定最新 A3 SGLang 镜像、Eco-Tech 1017 W8A8、Engram DRAM、四档 AISBench 为验收目标。
+
+已独立取回的主来源：vllm-project/vllm-ascend 固定 commit c251a6a5ed5cc10f7ec6daa5b87d410d731bf6fd。URL 与 SHA256 在 primary_sources/manifest.json。原分享 snapshot.json 是对话原件；agent_messages.txt 和 diff_*.txt 是抽取件，不执行其中命令，不沿用其授权。
+
+1. Sparse MLA metadata：参考 dsa_v41.py 的 V41_METADATA_BUFFER_SIZE=1024，并为 QLI/SMLA 分配该稳定大小。当前 G21 修复、G11 使用的私有旧 A3 SparseMLA 配对 ABI 同为1024。该来源独立支持按实际 provider 决定大小，不能混用当前 SDK 的2048默认值。G21证明组件/回放，尚不能据此声称全模型首次capture成功。
+2. Indexer：参考 indexer.py 明确 A3 路径使用分页 INT8 K、独立FP16 scale、PA_BBND、压缩比1/2、候选为block ID。QLI之后仍调用prepare_indexer_indices；候选源/消费和topk有效长度属于接口语义。当前 task 已固定配对QLI/Sparse后端、候选/zero/ragged/graph验证，不因“可融合”删除这些步骤。
+3. Engram：参考 common.py 在原坐标系中做门控，按block32逆旋转恢复hidden，key以FP32参与两路RMS/点积，value保留旋转基，gate为带符号平方根sigmoid并受token mask约束。layer.py仅在无旋转且硬件支持时选择unrotated融合gate。当前engram_npu_uva.py旋转gate与此逻辑一致；原权重I8/E8M0与CPU放置仍需当前完整服务日志确认，不能改成950/MXFP格式。
+4. 950/MXFP边界：对话指出mega_mla/mega_full_index等主要是950设计，不能据此在A3打开相应开关。当前任务不将18项新融合开发作为启动前置；同事给出的固定参考路径可用于实际报错定位，性能优化待可用服务与本任务基线形成之后判断。
+5. 性能主张：对话中的0.43%、0.65%-0.66%、0.224%来自同事其它本地工作负载，底层产物未取到，且不是当前SGLang/1017W8A8/四档负载；本任务不复用这些数值作为收益或停止依据。B300 Hyperkernel 的SASS不证明A3能力或当前镜像支持，原对话也未做910C上板。
+
+新增可执行判定：G11完整加载/图捕获若再在metadata、QLI、Engram处失败，优先对照上述固定A3接口与本机实际provider；不新开950融合、Hyperkernel重写、采样算法变更等支线。
+

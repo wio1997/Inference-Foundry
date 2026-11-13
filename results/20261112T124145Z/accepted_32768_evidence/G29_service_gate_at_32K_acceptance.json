@@ -1,0 +1,55 @@
+{
+  "at": "2026-11-12T12:41:45.871312+00:00",
+  "container": "yxy-dsv41-sglang-167-g29",
+  "container_id": "a6f7d57b63706df9507597938e2cd351c4cfc0c808d515eaa90a9f7ff94e2711",
+  "image_id": "sha256:08367522c4f9803fb876808c2cd4afe459e7e2b0adaab5a0daf36061edf8e517",
+  "source_commit": "d0e354bb7a0a75f2bd72f3724431198abcd9304b",
+  "runtime_manifest_sha256": "e8fd186806a3e83f595b6c8f68f5a1bc7e50f9b6bf2990f30a46d947831ae54d",
+  "engram_placement": "cpu",
+  "native_ready_verified": true,
+  "required_optimizations_reviewed": true,
+  "actual_optimization_fields": {
+    "device": "npu",
+    "tp_size": 16,
+    "ep_size": 16,
+    "attn_dp_size": 16,
+    "quantization": "modelslim",
+    "kv_cache_dtype": "bfloat16",
+    "context_length": 270336,
+    "chunked_prefill_size": 1024,
+    "moe_a2a_backend": "deepep",
+    "deepep_mode": "auto",
+    "speculative_algorithm": "DSPARK",
+    "speculative_dspark_block_size": 5,
+    "speculative_num_draft_tokens": 6,
+    "disable_overlap_schedule": false,
+    "disable_radix_cache": false
+  },
+  "actual_optimization_env": {
+    "SGLANG_NPU_USE_MULTI_STREAM": "1",
+    "SGLANG_ENABLE_OVERLAP_PLAN_STREAM": "1",
+    "SGLANG_SET_CPU_AFFINITY": "1",
+    "STREAMS_PER_DEVICE": "32",
+    "HCCL_BUFFSIZE": "512",
+    "SGLANG_DEEPEP_NUM_MAX_DISPATCH_TOKENS_PER_RANK": "16",
+    "DEEP_NORMAL_MODE_USE_INT8_QUANT": "1",
+    "DEEPEP_HYBRID_DEPLOYMENT": "1",
+    "ZBAL_ENABLE_GRAPH": "1",
+    "SGLANG_NPU_ENGRAM_INT8_E8M0": "1"
+  },
+  "functional_scope": "Parent reviewed two actual128token raw completions: initial answers4 andBeijing, nonzero DSpark acceptance; no full model quality/accuracy acceptance claimed",
+  "evidence": [
+    "serve_g29/functional_smoke/",
+    "serve_g29/readiness_evidence_v2/",
+    "serve_g29/server.log",
+    "compat/runtime/g29/manifest.json"
+  ],
+  "native_exclusions": [
+    "prefill graph resolved disabled by current framework",
+    "draft metadata glue lacks host-free graph capture",
+    "chunked prefix cache resolved disabled by framework",
+    "DSpark ModelSlim shared-expert fusion explicitly unsupported",
+    "CUDA/A5-specific flags not applicable"
+  ],
+  "kernel_numeric_note": "DSpark native NPU RoPE preserves F32 tables; one BF16 lastbit vs CPUcomplex reference also occurs in CPUexpanded F32 expression; G44/G45/CPU47 complete difference sets recorded"
+}

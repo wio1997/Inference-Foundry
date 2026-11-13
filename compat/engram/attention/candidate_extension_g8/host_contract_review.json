@@ -1,0 +1,70 @@
+{
+  "task_id": "167-four-op-workspace-lifetime-g5",
+  "review_type": "Actualinstalledheader contract, notimplementation/runtimeproof",
+  "sources": {
+    "compat/reference/current_host_contract/include/torch_npu/csrc/framework/OpCommand.h": "6916a8ae3b4cf5917bf390c0389c41334b8ae0db3de28b9e798d94778db59af6",
+    "compat/reference/current_host_contract/include/torch_npu/csrc/core/npu/NPUCachingAllocator.h": "84c7d3df0cf7848d7f7d40e1ea9e762eaaa6f1bb6a9a10ec9eb07b72a16bcfce",
+    "compat/reference/current_host_contract/include/torch_npu/csrc/core/npu/NPUStream.h": "574b7e4ec1ca449c3a2aaa9170b723dcb465b26e9740a65a7edba71e16b736c7"
+  },
+  "established": [
+    {
+      "path": "compat/reference/current_host_contract/include/torch_npu/csrc/framework/OpCommand.h",
+      "lines": [
+        40,
+        129,
+        131,
+        133,
+        135,
+        136,
+        139,
+        182
+      ],
+      "finding": "SetCustomHandler takesPROC_FUNC byvalue; Run/Sync aredeclarationsonly; RunOpApi defaults sync=false; classstoragecommentexplicitlyrequiresTensorlifetimewhenRuniscalled. ThisheaderdoesnotprovideRun/Sync/queueimplementation."
+    },
+    {
+      "path": "compat/reference/current_host_contract/include/torch_npu/csrc/core/npu/NPUCachingAllocator.h",
+      "lines": [
+        120,
+        121,
+        122,
+        123,
+        202,
+        212,
+        269,
+        270,
+        271,
+        272,
+        273
+      ],
+      "finding": "Allocatorinterfacehasraw_alloc_with_streamandrecordStream; tracecommentdistinguishesFREE_REQUESTED/FREE_COMPLETEDbecauseotherstreamusecanrequiredeferredfree. Capturenotificationandprivatepoolroutingareexplicitlydistinct."
+    },
+    {
+      "path": "compat/reference/current_host_contract/include/torch_npu/csrc/core/npu/NPUStream.h",
+      "lines": [
+        74,
+        77,
+        105,
+        134,
+        136
+      ],
+      "finding": "Streaminterfacehasstream(false),synchronize,enCurrentNPUStream,anddefault/currentstreamAPI. HeaderdoesnotestablishAPIlaunchdevicecompletion."
+    }
+  ],
+  "g5_effect": {
+    "certain": "WorkspaceTensorwasdestroyedbeforehandlerconstructioning4. Nowouterownerpersistsuntilmacroscopeendandlambdaowningcopypersistswithcallback. EightAPI/math/streamunchanged.",
+    "does_not_claim": "Noarbitrarycrossstreamcompletionorgraphpoolguarantee. NoOpCommand.cpp/allocatorimplementationisavailablehere,soqueuedhandlercopytimingandactualfree/eventlogicremainunverified.",
+    "allocator_connection": "AllocationandexplicitACLNNlaunchremainonsamecapturedcurrentstream; nostreamswitchisintroduced. Standardstreamawareallocatorisstillrequiredforasynchronousdeviceuseafterhostreturn.",
+    "sync_policy": "NoSync/synchronize/eventadded; preservationofforwardasynchronyintentional."
+  },
+  "missing": [
+    "CurrentOpCommandRun/Sync/SetCustomHandlerimplementation",
+    "PROC_FUNCdefinition/queuepayloadownershipimplementation",
+    "CurrentNPUCachingAllocatorfree/event/graphpoolimplementation"
+  ],
+  "target_regression_required": [
+    "CPUbuild/load/schemaowner",
+    "ExistingdonorQLI/SparseMLAmetadata+kernelgraphs",
+    "Fulleager/graphforwardwithnativeasyncqueueconfiguration"
+  ],
+  "hardware_validation": "Notrunbythisagent"
+}
