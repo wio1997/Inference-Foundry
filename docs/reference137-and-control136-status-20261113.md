@@ -1,3 +1,5 @@
+> 更新：136已回收，HTTP就绪前HCCL allgather AICPU异常，0正式AIS结果，容器已停止且占用释放；原生Goal已恢复active但目标未完成。本文以下保留此前阶段记录，最新事实与下一轮计划统一见 [最新复盘](strategy-review-and-next-goal-20261113.md) 和 [136终态裁决](../validation/shared-features-20261111/native136-terminal-adjudication.json)。
+
 # DeepInfer：新参考失效原因、机制对照状态与下一步
 
 日期：2026-11-13。本文是[本次反思与计划](strategy-review-and-next-goal-20261113.md)的最新执行结论。

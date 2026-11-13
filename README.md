@@ -4,13 +4,15 @@
 
 源码基于 [DeepInfer 上游](https://github.com/deepseek-ai/DeepInfer) 的 `553741557a57df44a46fb3ab72b6aafeaf945337`，叠加本次适配。上游 Apache-2.0 许可证保留在 [DeepInfer/LICENSE](DeepInfer/LICENSE)。本分支未包含模型权重、第三方子模块实体及六个上游图片资源。
 
-**当前状态（2026-11-13）：136控制已恢复提交，但连续三轮SSH握手超时，原生Goal已blocked；30%目标未完成。**
+**当前状态（2026-11-13）：135完成；137公平参考失效；136已回收、通信运行时失败且无正式结果。双档独有30%未证实。**
 
-135候选完成；137新参考因共有预编译漏掉真实请求签名而失效。136此前的占卡前失败已保留，原卡组恢复后提交了同源码状态关闭控制。连接随后中断，当前不能核实136运行或结束状态，未终止、未重启远端作业。连接恢复并恢复原Goal后，先检查原作业，不重新加载候选。
+135的C4/C8为 **310.046 / 638.953 token/s**，相对保留基线114观测为 **+1.01% / +27.48%**；后一个比值不是对vLLM的公平30%结论。137计分中发生遗漏签名的编译，不能使用其分数验收。136在HTTP就绪前出现HCCL allgather AICPU异常，0正式AIS结果；容器已停止、占用已释放，底层触发原因尚未查明。
 
-[失败原因、原始计时和运行状态](docs/reference137-and-control136-status-20261113.md) · [反思与固定三臂计划](docs/strategy-review-and-next-goal-20261113.md) · [135复现](validation/shared-features-20261111/native135-reproduction.json) · [137失败批次复现](validation/shared-features-20261111/reference137-failure-reproduction.json)
+原生Goal已恢复active但未完成；最后回收记录无本任务存活NPU作业，不能以active声称正在跑卡。当前GLM路径绕过原有ZOS，不能把原生接入当作全部框架特色已经验收。
 
-默认源码保留114。共有预编译修正仅完成本地草稿及元数据检查，未部署、未NPU验证。原生Goal的blocked状态不代表远端作业被停止，也不代表任务完成。
+下一轮保持135源码，只补齐共有准备修正后的有效参考、135开启和同源码关闭控制；不增加优化候选。旧3次加载保留，新阶段最多3次、累计最多6次，尚未启动；原14:53北京时间截止不延长。若收益不足，只按可验证关键路径成本决定是否值得继续研发，不以更名阶段无限续跑。默认代码仍保留114。
+
+[最新反思、突破口及下一轮目标](docs/strategy-review-and-next-goal-20261113.md) · [136终态证据](validation/shared-features-20261111/native136-terminal-adjudication.json) · [135复现](validation/shared-features-20261111/native135-reproduction.json) · [137失败批次复现](validation/shared-features-20261111/reference137-failure-reproduction.json)
 
 最新开发状态与未通过项目见 [当前开发快照与验收状态](STATUS.zh-CN.md)。本次源码包含尚未验收的原生框架接入开发，历史验证不覆盖全部新增代码。
 
