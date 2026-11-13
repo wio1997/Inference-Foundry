@@ -8,6 +8,8 @@
 
 新增根因依据：固定源码确认DeepInfer C++调度与实际适配器要求每步prefill/decode同型，vLLM core允许RUNNING与WAITING共用一步预算；HTTP请求组只是其上的准入层。C4客户端超过200毫秒的全流无记录间隔47→16次，均与待首响应区间重叠，常见大于1毫秒的记录间隔中位数约47毫秒。时间点不是token/设备事件，尚缺主批处理策略干预，不能宣布全部24.13%已归因。原cohort-only方案降为附加准入诊断，当前未放行加载。[详细证据与修正设计](docs/performance-mechanism-audit-20261113.md)。
 
+主归因干预源码已形成：在固定vLLM的分配前，让prefill、普通decode、推测decode分别成步；两个臂共用同一AsyncScheduler子类，仅策略布尔值不同。去除新增节点后原方法AST一致，prefix/placeholder主机契约检查通过；实际SDK、状态生命周期、图模式及NPU未验证，0部署/0新加载。[代码、变量与工程门槛](docs/batching-policy-intervention-20261113.md)。
+
 [完整流程/算子机制报告](docs/performance-mechanism-audit-20261113.md) · [实际命令与原始输入配置](docs/reproduction-commands-20261113.md) · [可离线复算的原始时间戳与计数](validation/performance-attribution-20261113/recompute_evidence.py)
 
 **当前状态（2026-11-13）：固定三臂完成，当前候选未达双档30%；状态复用在本批温缓存C8有收益，其C4收益未证实；C4总体优势的完整根因尚未验收。**

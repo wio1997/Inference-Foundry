@@ -1,10 +1,10 @@
-## 2026-11-13：定位C4长间隔，纠正步内同型与HTTP准入的因果混淆
+## 2026-11-13：主批处理策略干预源码完成，真实SDK/NPU未验证
 
-同一192条客户端记录新增分析：C4全流超过200毫秒的无记录间隔47→16次，长间隔全部与至少一个请求待首响应的时段重叠；该时段并集18.88048→10.13203秒，其余时段增加2.21491秒，净差6.53355秒。仅是客户端墙钟分布，非NPU停顿归因。SSE分帧不同已披露，不能以时间点数推算token或forward次数。
+主对照改在固定vLLM内进行。两个臂共用同一个AsyncScheduler子类和相同观测，仅ATTRIBUTION_PHASE_POLICY=0/1不同；开启时将prefill、普通decode、推测decode分别成步。在RUNNING和WAITING的分配之前选择，记录校验位于原placeholder/进度更新之前，不事后删除SchedulerOutput。
 
-固定139源码与实际C++扩展身份核对，确认每步prefill/decode同型；固定镜像core/async/config三个SDK文件只读回收，config匹配runtime pin。HTTPcohort开关不取消步内同型，原仅切cohort的方案不能独自隔离主要架构差异，已降为次要诊断。没有运行主干预补丁，0新增模型加载；已有成绩及默认模型树不变。
+静态检查证明去除新增私有节点后原方法AST完全一致；主机元数据检查覆盖prefix命中、异步placeholder、补宽spec、关闭臂混合保留及开启臂异型输出拒绝。没有执行完整SDK scheduler或模型；实际KV/async/关闭及图覆盖仍需工程验证。0部署、0新NPU加载，默认模型树和既有六组成绩不变。
 
-[客户端数据、源码与算子机制](docs/performance-mechanism-audit-20261113.md)。下一步先审查分配/进度推进前的批处理策略干预，再取得中央池完整租约并限定硬件预算。不能后删SchedulerOutput，也不能用关闭chunked-prefill替代同型策略。整体根因尚未验收。
+[源码、SHA256、变量和停止条件](docs/batching-policy-intervention-20261113.md)。中央池仍未签发完整本任务租约，尚未分配新NPU预算；不能用源码检查宣称已证明24.13%的全部根因。
 
 ---
 
