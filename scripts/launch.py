@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 BRANCH='sglang-dsv4.1flash1017-910c'
 IID='sha256:08367522c4f9803fb876808c2cd4afe459e7e2b0adaab5a0daf36061edf8e517'
 PORTS=[18167,18280,14699,*range(18400,18407)]
-def command(model,name,generation='g42'):
+def command(model,name,generation='g42',sampling_contract_fix=False):
     argv=json.loads((ROOT/(f'deployment/{generation}/docker_command.json' if generation!='g30' else 'deployment/docker_command.json')).read_text())
     for i,v in enumerate(argv):
         if i and argv[i-1]=='--name':argv[i]=name
@@ -15,15 +15,26 @@ def command(model,name,generation='g42'):
             if host.startswith('/data/sglang-dsv41'):host=str(ROOT)+host[len('/data/sglang-dsv41'):]
             elif host.startswith('/data/models/'):host=str(model)
             argv[i]=host+':'+rest
+    if sampling_contract_fix:
+        import hashlib
+        manifest=json.loads((ROOT/'patches/g130-contract-manifest.json').read_text())
+        options=[]
+        for item in manifest['changes'].values():
+            source=ROOT/item['overlay']
+            assert hashlib.sha256(source.read_bytes()).hexdigest()==item['candidate_sha256'],item['overlay']
+            target='/sgl-workspace/sglang/'+item['target']
+            options+=['-v',str(source)+':'+target+':ro']
+        argv[argv.index('--entrypoint'):argv.index('--entrypoint')]=options
     return argv
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--model-path',type=Path,required=True)
     p.add_argument('--name',default='sglang-dsv41-910c');p.add_argument('--execute',action='store_true')
     p.add_argument('--generation',choices=['g30','g37','g42','g43'],default='g42')
+    p.add_argument('--sampling-contract-fix',action='store_true',help='挂载已验证字段修复；不代表该历史generation加补丁已做NPU验收')
     p.add_argument('--device-lock-dir',type=Path);p.add_argument('--port-lock-dir',type=Path)
     p.add_argument('--legacy-device-lock-dir',type=Path);p.add_argument('--pool-policy',type=Path)
     p.add_argument('--lifetime-seconds',type=int,default=21600)
-    a=p.parse_args();argv=command(a.model_path.absolute(),a.name,a.generation)
+    a=p.parse_args();argv=command(a.model_path.absolute(),a.name,a.generation,a.sampling_contract_fix)
     if not a.execute:print(json.dumps(argv,ensure_ascii=False,indent=2));return
     assert a.device_lock_dir and a.port_lock_dir,'Use fleet-wide existing shared device/port lock directories'
     assert 0<a.lifetime_seconds<=21600
