@@ -15,3 +15,5 @@
 [G43 完整模型融合 profile](docs/005-fused-model-profile.md)
 
 [vLLM G4 32K 未计分预热](docs/006-vllm-G4-warming.md)
+
+[vLLM G4 首轮32K正式冷热](docs/007-vllm-G4-first-32K.md)
