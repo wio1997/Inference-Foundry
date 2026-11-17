@@ -32,3 +32,16 @@ G70把入口副作用放入main函数，仅在__name__为__main__时执行。实
 - [G69 D端清理凭证](../evidence/full_model_G69/2204/state.json)
 - [G70带主进程保护的启动入口](../code/full_model_candidates/sg_pd_g70/launch_pd.py)
 - [G70 spawn导入回归](../evidence/full_model_G70/spawn_import_regression.json)
+
+G70已进入八卡scheduler初始化，随后native ModelConfig给嵌入式草稿读取HF的ascend quant_method，报Unknown quantization method。该检查点的ModelSlim描述中，mtp.0/1/2共1226项均为FLOAT，和索引中的1226个mtp键集合一致；主模型专家仍为W4A8_DYNAMIC。草稿FLOAT是原检查点定义，不是把用户指定W4A8主模型降为非量化。
+
+G72在父进程安装了只针对这个固定草稿的HF量化标签处理，但spawn worker在aux-hidden配置解析前尚未导入该包，仍报同一错误，没有嵌入式草稿凭证。两轮失败日志、源码和全部8卡清理凭证均保留。G75将适配显式放入worker的__mp_main__导入入口，在scheduler构造前安装，并逐PID记录。对隐式继承的target ModelSlim选择，草稿按检查点FLOAT恢复原生unquantized路径；实际分片头须全部为非打包浮点/整数表类型，否则失败，不修改检查点文件。
+
+另外，固定ModelSlim用hc_head_前缀检测DSV4命名，而此描述缺少该前缀。原生模型需要model.layers.*.self_attn/mlp名称，检查点描述为layers.*.attn/ffn。用镜像原生remapper对46637项目标权重描述做静态映射，得到46637项且无格式冲突。G75仅添加原生名称alias、保留原项与格式，不改变W4A8/FLOAT数值语义；真实模型加载仍待验收。
+
+- [G70 D端量化错误](../evidence/full_model_G70/2204/server.log)
+- [G72 D端相同错误与worker缺少适配的记录](../evidence/full_model_G72/2204/server.log)
+- [G75 worker适配安装入口](../code/full_model_candidates/sg_pd_g75/launch_pd.py)
+- [G75草稿分片类型与量化范围检查](../code/full_model_candidates/sg_pd_g75/draft_quant_bridge.py)
+- [G75原生量化名称alias](../code/full_model_candidates/sg_pd_g75/target_quant_alias_bridge.py)
+- [原生名称静态契约结果](../evidence/target_quant_name_contract_G74.json)
