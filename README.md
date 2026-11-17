@@ -20,3 +20,5 @@
 [普通 HCCL 与 MoE 缓冲分离的八卡组件观测](docs/004-HCCL-buffer-split.md)
 
 [固定镜像 DSPARK 原生图路径与参数口径](docs/005-native-DSPARK-graphs.md)
+
+[SGLang INT8 Engram 原生接口接入与图执行验证](docs/006-SGLang-INT8-Engram-integration.md)

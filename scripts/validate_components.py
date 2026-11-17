@@ -92,6 +92,42 @@ def main():
                 assert (path.parent/link.split('#',1)[0]).is_file(),(path,link)
                 links+=1
     assert (total_cases,total_graphs,total_replays)==(160,32,96)
+    adapter_root=ROOT/'evidence/components/sg_engram_int8_g61'
+    if adapter_root.is_dir():
+        state=json.loads((adapter_root/'state.json').read_text())
+        assert state['phase']=='stopped_released' and state['failure'] is None
+        assert state['cleanup']['all8_process_lists_clear']
+        assert not state['cleanup']['container_state']['OOMKilled']
+        reference=None;adapter_cases=adapter_graphs=adapter_replays=0
+        for rank in range(8):
+            report=json.loads((adapter_root/f'evidence/rank{rank}.json').read_text())
+            assert report['rank']==rank and report['phase']=='passed'
+            assert report['device_name']=='Ascend910B1'
+            for key in ['native_lookup_method_identity_preserved','native_forward_method_identity_preserved',
+                        'native_Engram_forward_hidden5120','rotation_identity_negative_control_rejected',
+                        'codes_and_scale_load_callbacks_both_orders','host_buffer_aliases_released']:
+                assert report[key],key
+            assert report['gate_tolerance']=={'rtol':.008,'atol':.008}
+            assert len(report['lookups'])==2
+            hashes=[]
+            for row in report['lookups']:
+                assert row['callbacks']==2 and row['all_bitwise_bf16']
+                assert row['load']['codes_host'] and row['load']['scales_host']
+                assert row['load']['weight_dtype']=='torch.int8' and row['load']['scale_dtype']=='torch.float32'
+                assert [x['tokens'] for x in row['lookup_cases']]==[0,1,16,80]
+                assert all(x['bitwise_bf16_match'] for x in row['lookup_cases'])
+                assert len(row['graph_changed_inputs'])==len(set(row['graph_changed_inputs']))==3
+                hashes.append([x['hash'] for x in row['lookup_cases']]+row['graph_changed_inputs'])
+                adapter_cases+=4;adapter_graphs+=1;adapter_replays+=3
+            if reference is None:reference=hashes
+            else:assert hashes==reference,'Native TP reduction must give identical rows on all ranks'
+            assert len(report['native_forward_changed_input_graph_hashes'])==len(set(report['native_forward_changed_input_graph_hashes']))==3
+            adapter_graphs+=1;adapter_replays+=3
+        assert (adapter_cases,adapter_graphs,adapter_replays)==(64,24,72)
+        failed_root=adapter_root.parent/'sg_engram_int8_g60'
+        for rank in range(8):
+            failed=json.loads((failed_root/f'evidence/rank{rank}.json').read_text())
+            assert failed['phase']=='failed' and 'copysign' in failed['traceback']
     contract_path=ROOT/'evidence/native_graph_contract.json'
     if contract_path.exists():
         contract=json.loads(contract_path.read_text())
@@ -105,6 +141,8 @@ def main():
             assert hashlib.sha256((ROOT/source['artifact']).read_bytes()).hexdigest()==source['sha256']
     print(json.dumps(dict(provenance_files=len(index),cases=total_cases,graph_captures=total_graphs,
                          changed_input_replays=total_replays,all16_devices_passed=True,
+                         native_SG_adapter_fixture=(dict(lookup_cases=adapter_cases,device_graph_captures=adapter_graphs,
+                                                        changed_input_replays=adapter_replays) if adapter_root.is_dir() else None),
                          cross_framework_output_hashes_equal=True,initial_import_failure_preserved=True,
                          relative_links=links,privacy_scan=True,full_model_or_performance_acceptance=False)))
 
