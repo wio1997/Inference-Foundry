@@ -1,0 +1,164 @@
+metadata:
+  config_id: deepseek_v4_1_flash_w4a8_ascend_cfg
+  score: 0.0
+  label:
+    w_bit: 4
+    a_bit: 8
+    is_sparse: false
+    kv_cache: false
+  verified_model_types:
+  - DeepSeek-V4.1-Flash
+  verified_tags:
+    DeepSeek-V4.1-Flash:
+    - - vLLM-Ascend
+      - Atlas_A2_Inference
+    - - vLLM-Ascend
+      - Atlas_A3_Inference
+apiversion: modelslim_v1
+spec:
+  runner: auto
+  prior: []
+  process:
+  - type: quarot
+    online: false
+    block_size: 32
+    down_proj_online_layers: []
+    max_tp_size: 4
+    export_extra_info: true
+  - type: flex_awq_ssz
+    alpha: null
+    beta: null
+    enable_subgraph_type:
+    - up-down
+    include:
+    - '*'
+    exclude:
+    - '*.ffn.shared_experts.*'
+    - mtp*
+    - '*engram*'
+    - '*vision*'
+    - '*aligner*'
+    qconfig:
+      act:
+        dtype: int8
+        scope: per_token
+        symmetric: true
+        method: minmax
+      weight:
+        dtype: int4
+        scope: per_channel
+        symmetric: true
+        method: ssz
+        ext:
+          step: 10
+  - type: flex_smooth_quant
+    alpha: null
+    beta: null
+    enable_subgraph_type:
+    - norm-linear
+    include:
+    - '*'
+    exclude:
+    - '*ffn_norm*'
+    - mtp*
+    - '*engram*'
+    - '*vision*'
+    - '*aligner*'
+  - type: linear_quant
+    qconfig:
+      act:
+        dtype: int8
+        scope: per_token
+        symmetric: true
+        method: minmax
+      weight:
+        dtype: int8
+        scope: per_channel
+        symmetric: true
+        method: minmax
+    include:
+    - '*attn*'
+    exclude:
+    - '*attn.wq_a'
+    - '*attn.wkv'
+    - '*wo_a'
+    - '*wo_b'
+    - '*compressor.wgate'
+    - '*compressor.wkv'
+    - '*indexer.weights_proj'
+    - '*indexer.wk'
+    - '*indexer.wq_a'
+    - mtp*
+    - '*engram*'
+    - '*vision*'
+    - '*aligner*'
+  - type: linear_quant
+    qconfig:
+      act:
+        dtype: int8
+        scope: per_token
+        symmetric: true
+        method: minmax
+      weight:
+        dtype: int4
+        scope: per_channel
+        symmetric: true
+        method: ssz
+    include:
+    - '*ffn*'
+    exclude:
+    - '*gate'
+    - '*shared_experts*'
+    - mtp*
+    - '*engram*'
+    - '*vision*'
+    - '*aligner*'
+  - type: linear_quant
+    qconfig:
+      act:
+        dtype: int8
+        scope: per_token
+        symmetric: true
+        method: minmax
+      weight:
+        dtype: int8
+        scope: per_channel
+        symmetric: true
+        method: minmax
+    include:
+    - '*ffn.shared_experts*'
+    exclude:
+    - mtp*
+    - '*engram*'
+    - '*vision*'
+    - '*aligner*'
+  save:
+  - type: ascendv1_saver
+    part_file_size: 4
+  dataset: mix_calib.jsonl
+  model_adapter:
+    engram_quant_type: int8_sym
+    dspark: true
+    export_embedding_storage: true
+default_w4a8_dynamic:
+  act:
+    scope: per_token
+    dtype: int8
+    symmetric: true
+    method: minmax
+  weight:
+    scope: per_channel
+    dtype: int4
+    symmetric: true
+    method: ssz
+default_w8a8_dynamic:
+  act:
+    scope: per_token
+    dtype: int8
+    symmetric: true
+    method: minmax
+  weight:
+    scope: per_channel
+    dtype: int8
+    symmetric: true
+    method: minmax
