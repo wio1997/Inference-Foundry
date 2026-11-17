@@ -1,0 +1,13 @@
+{
+  "old_guard_released": true,
+  "new_guard": {
+    "phase": "claimed",
+    "pid": 1860169,
+    "at": "2026-11-17T21:58:22.262600+00:00",
+    "bound_s": 72000,
+    "task": "sg_matched_workload_guard_g177"
+  },
+  "source": "from pathlib import Path\nimport fcntl,os,json,time,datetime\nR=Path(__file__).resolve().parent;f=Path('<COORD_ROOT>/vllm_pd_workload.lock').open('a');fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)\nt=time.monotonic()\ndef save(phase):\n p=R/'state.json';q=p.with_suffix('.tmp');q.write_text(json.dumps({'phase':phase,'pid':os.getpid(),'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'bound_s':72000,'task':'sg_matched_workload_guard_g177'}));q.replace(p)\nsave('claimed')\nwhile time.monotonic()-t<72000:\n if (R/'release.request').exists():save('released_by_root');break\n time.sleep(2)\nelse:save('expired')\n",
+  "actual_cmdline": "python3 -u <TASK_ROOT>/sg_matched_workload_guard_g177/guard.py ",
+  "resource": "Same canonical GLM workload flock on host3; no NPU workload"
+}
