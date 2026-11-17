@@ -85,6 +85,21 @@ def main():
             assert json.loads((current_profile/f'control/{role}_stop.json').read_text())['status']==200
         control=json.loads((current_profile/'control/state.json').read_text())
         assert control['phase']=='terminal' and control['workload_rc']==0 and not control['stop_errors'] and not control['error']
+    repaired_profile=ROOT/'evidence/G4_profile_G138'
+    if repaired_profile.exists():
+        acceptance=json.loads((repaired_profile/'acceptance.json').read_text())
+        assert acceptance['same_capture_epoch']=='G138' and acceptance['analysis_epoch']=='G148'
+        assert acceptance['all16_actual_model_device_events']
+        for role in ['p','d']:
+            base=repaired_profile/f'CPU_{role}/review'
+            report=json.loads((base/'role.json').read_text())
+            assert report['role_complete'] and len(report['reports'])==8 and not report['failures']
+            for rank in range(8):
+                item=json.loads((base/f'rank_{rank}.json').read_text())
+                assert item['rank']==rank and item['role']==role and item['device_activity_verified']
+                assert item['explicit_positive_model_device_events'] and item['analysis']['hardware_X_events']>0
+                identity=item['identity']['worker_mapping']
+                assert {w['physical_npu'] for w in identity}==set(range(8))
     for name,expected in component['source_sha256'].items():assert digest(ROOT/'code/sinkhorn'/name)==expected,name
     model=json.loads((ROOT/'evidence/model_PD_acceptance.json').read_text());assert model['seven_PD_semantic_length_cases_passed'] and model['PD_registration_all16_return0']
     for p in ROOT.rglob('*'):

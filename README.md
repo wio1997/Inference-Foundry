@@ -25,3 +25,5 @@
 [同一vLLM G4运行时四档首轮冷热完整基线](docs/010-vllm-G4-four-shape-first-cold-hot.md)
 
 [G4 profiling真实设备窗口验收与D触发修正](docs/011-vllm-G4-profiler-device-gate.md)
+
+[G4 同一采集批次十六 rank 真实模型设备窗口](docs/012-vllm-G4-all16-model-profile.md)
