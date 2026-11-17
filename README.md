@@ -13,3 +13,5 @@
 [环境与合同](environment/contract.json) · [离线验档](scripts/validate_archive.py) · [原始数据与脱敏](docs/003-evidence.md)
 
 [G43 完整模型融合 profile](docs/005-fused-model-profile.md)
+
+[vLLM G4 32K 未计分预热](docs/006-vllm-G4-warming.md)
