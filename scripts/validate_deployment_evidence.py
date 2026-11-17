@@ -278,6 +278,29 @@ def main():
                 assert case['graph_captures']==1 and case['changed_input_replays']==3 and len(set(case['hashes']))==3
         state=json.loads((index_pool/'state.json').read_text())
         assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
+    pool_base=ROOT/'evidence/native_lowratio_pool_G226'
+    native_pool=json.loads((pool_base/'acceptance.json').read_text())
+    assert native_pool['cases']==16 and native_pool['graph_captures']==16 and native_pool['changed_replays']==48
+    assert native_pool['all8_controller_cleanup_verified'] and native_pool['all8_native_source_SHA_verified']
+    for generation, expected_state in [(222,'failed_released'),(226,'stopped_released')]:
+        base=ROOT/f'evidence/native_lowratio_pool_G{generation}'
+        state=json.loads((base/'state.json').read_text())
+        assert state['phase']==expected_state and state['cleanup']['all8_process_lists_clear']
+        rows=sorted((base/'evidence').glob('rank*.json'));assert len(rows)==8
+        for path in rows:
+            row=json.loads(path.read_text())
+            if generation==222:
+                assert row['phase']=='failed' and "KeyError('compress_ratios')" in row['error']
+                continue
+            assert row['phase']=='passed' and len(row['native_source_sha256_verified'])==2
+            topology=row['topology']
+            assert topology['main_regions']==8 and topology['item_bytes']==[131072,8704,65536,65536,65536,4352,4352,4352]
+            assert topology['pair_state_buffers']==3 and topology['draft_layers']==3 and topology['C2_request_ring_size']==8
+            assert topology['native_source_mapping'] and topology['no_INT8_side_indexer_buffers']
+            assert [case['ratio'] for case in row['cases']]==[1,2]
+            for case in row['cases']:
+                assert case['phase']=='passed' and case['bitwise_CPU_FP4_readback']
+                assert case['graph_captures']==1 and case['changed_input_replays']==3 and case['wire_pages_checked']==[1,2,3]
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,

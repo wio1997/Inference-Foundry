@@ -34,3 +34,5 @@
 [原生 C1/C2 压缩器、RoPE 与 FP4 路径验证](docs/011-native-C1-C2-FP4-math.md)
 
 [原生 FP4 Indexer 池写入、读回和完整图验证](docs/012-native-FP4-index-pool.md)
+
+[910B 原生低压缩比 target/draft 池组合与逻辑页字节](docs/013-native-lowratio-target-draft-pool.md)
