@@ -23,3 +23,5 @@
 [vLLM G4 首轮128K正式冷热](docs/009-vllm-G4-first-128K.md)
 
 [同一vLLM G4运行时四档首轮冷热完整基线](docs/010-vllm-G4-four-shape-first-cold-hot.md)
+
+[G4 profiling真实设备窗口验收与D触发修正](docs/011-vllm-G4-profiler-device-gate.md)

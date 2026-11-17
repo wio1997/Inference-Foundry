@@ -68,6 +68,23 @@ def main():
         rows_total+=len(rows);phases+=1;scored+=bool(m['record'].get('scored'))
     component=json.loads((ROOT/'evidence/sinkhorn_component_results.json').read_text())
     assert component['passed'] and len(component['cases'])==27 and len(component['graph'])==4 and len(component['adapter_cases'])==5
+    current_profile=ROOT/'evidence/G4_profile_G118'
+    if current_profile.exists():
+        p=json.loads((current_profile/'CPU_p/review/role.json').read_text())
+        d=json.loads((current_profile/'CPU_d/review/role.json').read_text())
+        assert p['role_complete'] and len(p['reports'])==8 and not p['failures']
+        assert not d['role_complete'] and not d['reports'] and len(d['failures'])==8
+        for rank in range(8):
+            report=json.loads((current_profile/f'CPU_p/review/rank_{rank}.json').read_text())
+            assert report['device_activity_verified'] and report['explicit_positive_model_device_events']
+            assert report['analysis']['hardware_X_events']>0
+        audit=json.loads((current_profile/'CPU_d/D_trace_scope_audit.json').read_text())
+        assert len(audit)==8 and {x['rank'] for x in audit}==set(range(8))
+        assert all(x['positive_model_events']==0 for x in audit)
+        for role in ['p','d']:
+            assert json.loads((current_profile/f'control/{role}_stop.json').read_text())['status']==200
+        control=json.loads((current_profile/'control/state.json').read_text())
+        assert control['phase']=='terminal' and control['workload_rc']==0 and not control['stop_errors'] and not control['error']
     for name,expected in component['source_sha256'].items():assert digest(ROOT/'code/sinkhorn'/name)==expected,name
     model=json.loads((ROOT/'evidence/model_PD_acceptance.json').read_text());assert model['seven_PD_semantic_length_cases_passed'] and model['PD_registration_all16_return0']
     for p in ROOT.rglob('*'):
