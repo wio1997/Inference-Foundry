@@ -278,6 +278,16 @@ def main():
                 assert case['graph_captures']==1 and case['changed_input_replays']==3 and len(set(case['hashes']))==3
         state=json.loads((index_pool/'state.json').read_text())
         assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
+    replay=json.loads((ROOT/'evidence/native_lowratio_pool_G226/selected_geometry_CPU_replay.json').read_text())
+    assert replay['all8_actual_region_geometry_equal'] and not replay['live_deployed']
+    assert replay['selected_bytes_per_lowratio_row']=={'KV_BF16':1024,'native_FP4_index':68}
+    assert replay['lowratio_bytes_per_FULL_token_before_native_spec_inflation']==2730.0
+    assert replay['8192_full_tokens_lowratio_padding_total']==563456
+    assert len(replay['reports'])==8
+    for row in replay['reports']:
+        assert row['actual_region_bytes']==row['integer_prediction_bytes']
+        original=json.loads((ROOT/f"evidence/native_lowratio_pool_G226/evidence/rank{row['rank']}.json").read_text())
+        assert row['actual_region_bytes']==original['topology']['region_bytes']
     pool_base=ROOT/'evidence/native_lowratio_pool_G226'
     native_pool=json.loads((pool_base/'acceptance.json').read_text())
     assert native_pool['cases']==16 and native_pool['graph_captures']==16 and native_pool['changed_replays']==48

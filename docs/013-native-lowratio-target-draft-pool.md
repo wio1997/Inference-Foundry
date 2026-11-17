@@ -16,3 +16,12 @@ C1/C2的KV继续以BF16 PA_ND存储，逻辑行1024bytes。C2物理页为128行�
 G222在从原始配置外层直接读取compress_ratios时失败，尚未分配池；G226改为读取text_config，并在使用前核对实际固定镜像的两个native pool源码SHA。原始失败与清理证据保留。
 
 本次full_size=8192只用于池的地址/页契约验证，不是完整263296上下文容量验收或性能测量。选定工厂的低压缩比Indexer为68bytes/slot，因此旧G94把未使用的INT8侧缓冲计入198bytes/slot的候选不得直接部署；完整预算还需加入实际BF16存储和保留页。完整服务的C1/C2 source/compressor/indexer候选语义、attention后端、DSPARK接收回滚、跨机PD所有状态、实际目标/草稿完整图和四档性能仍未验收。
+
+## 选定工厂的预算重放
+
+随后按G226实际选定的BF16 PA_ND与原生FP4池重放原生计价方法，并对八卡原始分配的8个区域逐项核对整数预测，全部一致。保留页开销使用实际物理128行KV页和64slot Indexer页计算，不能按裸行系数省略，也不能继续计入没有分配的旧INT8侧缓冲。这里是现有硬件分配证据上的CPU算术核验，不是把客户端CPU结果当成NPU性能。
+
+- [逐卡实际字节与整数预测、系数和padding](../evidence/native_lowratio_pool_G226/selected_geometry_CPU_replay.json)
+- [尚未部署的限定范围原生预算overlay](../code/native_lowratio_pool_G226/kv_geometry_g254.py)
+
+该overlay尚未安装到完整服务。完整SWA/request-state/draft预算和263296上下文的实际模型池分配仍须在完整引擎核对，不能由此次小池地址契约测试推定可用容量。
