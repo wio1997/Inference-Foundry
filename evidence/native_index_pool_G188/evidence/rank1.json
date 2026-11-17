@@ -1,0 +1,26 @@
+{
+  "rank": 1,
+  "pid": 107,
+  "phase": "failed",
+  "cases": [
+    {
+      "rows": 16,
+      "phase": "running"
+    }
+  ],
+  "scope": "Native generic FP4 index pool allocation and readback with NPU RNE writer; not entire NPU model pool, candidate scoring, PD transfer or model performance",
+  "bytes_per_token": 68,
+  "buffer_shapes": [
+    [
+      1025,
+      4352
+    ],
+    [
+      1025,
+      4352
+    ]
+  ],
+  "native_pool_class": "DeepSeekV4IndexerPool",
+  "error": "RuntimeError('__rshift__:../third_party/op-plugin/op_plugin/ops/opapi/__Rshift__KernelNpuOpApi.cpp:27 NPU function error: call aclnnRightShift failed, error code is 161002\\n[ERROR] 2026-11-17-22:11:25 (PID:107, Device:1, RankID:1) ERR00100 PTA call acl api failed.\\n[PID: 107] 2026-11-17-22:11:25.364.130 AclNN_Parameter_Error(EZ1001): Shape of out should be [16, 4], but current is [16, 1].\\n')",
+  "traceback": "Traceback (most recent call last):\n  File \"/task/sg_fp4_index_pool_g188/probe.py\", line 26, in <module>\n    y=call();torch.npu.synchronize();assert torch.equal(y.cpu(),fake_quant_fp4(x_cpu))\n      ^^^^^^\n  File \"/task/sg_fp4_index_pool_g188/probe.py\", line 25, in call\n    return pool.get_index_k_dequant(0,slots)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/task/sg_fp4_index_pool_g188/fp4_index_pool.py\", line 40, in get_index_k_dequant\n    exponents=(packed_scale.unsqueeze(-1)>>(torch.arange(4,device=self.device)*8))&255\n               ~~~~~~~~~~~~~~~~~~~~~~~~~~^^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nRuntimeError: __rshift__:../third_party/op-plugin/op_plugin/ops/opapi/__Rshift__KernelNpuOpApi.cpp:27 NPU function error: call aclnnRightShift failed, error code is 161002\n[ERROR] 2026-11-17-22:11:25 (PID:107, Device:1, RankID:1) ERR00100 PTA call acl api failed.\n[PID: 107] 2026-11-17-22:11:25.364.130 AclNN_Parameter_Error(EZ1001): Shape of out should be [16, 4], but current is [16, 1].\n\n"
+}

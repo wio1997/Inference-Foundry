@@ -263,6 +263,21 @@ def main():
         assert prior_pass==80 and prior_fail==24
         state=json.loads((native_math/'state.json').read_text())
         assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
+    index_pool=ROOT/'evidence/native_index_pool_G196'
+    if index_pool.exists():
+        for rank in range(8):
+            for failed_gen in [184,188,192]:
+                prior=json.loads((ROOT/f'evidence/native_index_pool_G{failed_gen}/evidence/rank{rank}.json').read_text())
+                assert prior['phase']=='failed'
+            item=json.loads((index_pool/f'evidence/rank{rank}.json').read_text())
+            assert item['phase']=='passed' and item['bytes_per_token']==68 and item['native_pool_class']=='DeepSeekV4IndexerPool'
+            assert len(item['cases'])==3 and {c['rows'] for c in item['cases']}=={16,96,8192}
+            for case in item['cases']:
+                assert case['phase']=='passed' and case['all_BF16_outputs_bitwise_equal_CPU_native']
+                assert case['other_layer_unchanged'] and case['null_slot_unchanged']
+                assert case['graph_captures']==1 and case['changed_input_replays']==3 and len(set(case['hashes']))==3
+        state=json.loads((index_pool/'state.json').read_text())
+        assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,
