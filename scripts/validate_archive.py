@@ -1,6 +1,9 @@
 """离线核验归档；不启动模型、容器、NPU或新性能测试。"""
 from pathlib import Path
 import ast,csv,hashlib,ipaddress,json,lzma,math,re
+import sys
+sys.dont_write_bytecode=True
+from timing_witness import phase_witness
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -29,7 +32,7 @@ def main():
             if link.startswith(('https://','http://','mailto:','#')):continue
             name=link.split('#',1)[0];assert (p.parent/name).is_file(),(p.relative_to(ROOT),link);links+=1
     runs=json.loads((ROOT/'records/runs.json').read_text());ids=[x['id'] for x in runs];assert len(ids)==len(set(ids))
-    rows_total=0;phases=0;scored=0;db_refs=0
+    rows_total=0;phases=0;scored=0;db_refs=0;latency_values=0
     for entry in runs:
         m=json.loads((ROOT/entry['path']).read_text());e=m.get('raw_evidence')
         if not e:continue
@@ -53,17 +56,22 @@ def main():
             got=value(common[name]['total']);assert math.isclose(got,tokens/duration,rel_tol=1e-5,abs_tol=.01)
             assert math.isclose(got,a[metric],rel_tol=1e-9,abs_tol=.0001)
         with (ROOT/e['statistics']).open(newline='') as f:table=list(csv.DictReader(f))
+        request_witness,latency_stats=phase_witness(ROOT,m)
+        assert len(request_witness)==len(rows)
         for label in ['TTFT','TPOT','E2EL']:
             row=next(r for r in table if r['Performance Parameters']==label and r['Stage']=='total')
             mean=next(k for k in row if k.lower() in ['average','mean'])
             assert math.isclose(value(row[mean]),a[label.lower()+'_mean_ms'],abs_tol=1e-8)
+            for stat,computed in latency_stats[label].items():
+                assert math.isclose(value(row[stat]),computed,abs_tol=.051),(entry['id'],label,stat,value(row[stat]),computed)
+                latency_values+=1
         rows_total+=len(rows);phases+=1;scored+=bool(m['record'].get('scored'))
     component=json.loads((ROOT/'evidence/sinkhorn_component_results.json').read_text())
     assert component['passed'] and len(component['cases'])==27 and len(component['graph'])==4 and len(component['adapter_cases'])==5
     for name,expected in component['source_sha256'].items():assert digest(ROOT/'code/sinkhorn'/name)==expected,name
     model=json.loads((ROOT/'evidence/model_PD_acceptance.json').read_text());assert model['seven_PD_semantic_length_cases_passed'] and model['PD_registration_all16_return0']
     for p in ROOT.rglob('*'):
-        if not p.is_file() or '.git' in p.parts or p.suffix=='.xz':continue
+        if not p.is_file() or '.git' in p.parts or p.suffix in ['.xz','.db','.pyc']:continue
         text=p.read_text(errors='replace')
         # Build byte fragments so the scanner's own source does not contain a match.
         forbidden=['/home/'+'fn-ubuntu','bms-'+'lifang-', 'lifang'+'@','Hzzgkj'+'@','/data1/'+'tiankuan','/data/'+'tiankuan']
@@ -72,7 +80,7 @@ def main():
             try:ip=ipaddress.ip_address(addr)
             except ValueError:continue
             assert not ip.is_private or addr in ['0.0.0.0','127.0.0.1'],(p.relative_to(ROOT),addr)
-    print(json.dumps(dict(archive_integrity=True,source_syntax=True,relative_links=links,request_rows=rows_total,validated_phases=phases,scored_phases=scored,raw_count_and_throughput_arithmetic=True,CSV_latency_values_match_original_audits=True,component_record_consistency=True,private_connection_scan=True,limitations=['离线验档不是新的硬件/质量/优化收益验收',f'{db_refs}条请求使用SQLite时序引用，原SQLite未纳入首批归档，不能仅凭此分支独立重建逐请求时序与延迟分位数']),ensure_ascii=False))
+    print(json.dumps(dict(archive_integrity=True,source_syntax=True,relative_links=links,request_rows=rows_total,validated_phases=phases,scored_phases=scored,raw_count_and_throughput_arithmetic=True,CSV_latency_values_match_original_audits=True,per_request_latencies_rebuilt_from_original_SQLite=True,latency_statistics_checked=latency_values,component_record_consistency=True,private_connection_scan=True,limitations=['离线验档不是新的硬件/质量/优化收益验收','保留AISBench原始采样时钟与流式批量事件口径；事件数不等于生成token数']),ensure_ascii=False))
 
 
 if __name__=='__main__':main()
