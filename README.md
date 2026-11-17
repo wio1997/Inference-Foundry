@@ -35,3 +35,5 @@
 [同机 SGLang 首遍完整32K/C16/1024未计分预热](docs/015-matched-SG-first-full-warmup.md)
 
 [同机 SGLang 七轮独立预热与编译门槛](docs/016-matched-SG-seven-warmups.md)
+
+[同机 SGLang 32K 首轮正式cold/hot及待定位差异](docs/017-matched-SG-first-32K-cold-hot.md)
