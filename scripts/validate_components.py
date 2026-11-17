@@ -56,6 +56,28 @@ def main():
         assert vl['native_flags']==268435458
         assert sg['cases']==vl['cases']
         assert sg['graphs']==vl['graphs']
+    hccl=ROOT/'evidence/components/G54b_HCCL_split'
+    if hccl.is_dir():
+        state=json.loads((hccl/'state.json').read_text())
+        assert state['phase']=='stopped_released' and state['failure'] is None
+        assert state['cleanup']['all8_process_lists_clear']
+        values={}
+        for variant in ['full','split']:
+            values[variant]=[]
+            for rank in range(8):
+                report=json.loads((hccl/f'evidence/{variant}/rank{rank}.json').read_text())
+                assert report['rank']==rank and report['phase']=='passed'
+                assert report['HCCL_BUFFSIZE']==('1152' if variant=='full' else '200')
+                assert report['DEEPEP_HCCL_BUFFSIZE']=='1152'
+                assert report['large_TP_8192x5120_BF16_graph_three_changed_replays']
+                assert report['replays']==3 and report['max_abs_errors']==[0.,0.,0.]
+                assert [g['name'] for g in report['groups']]==['DEFAULT','world','tp','moe_ep']
+                values[variant].append(report['memory_after_LL'])
+        result=json.loads((hccl/'evidence/results.json').read_text())
+        differences=[b-a for a,b in zip(values['full'],values['split'])]
+        assert result['all8_both_variants_passed']
+        assert result['free_memory_delta_bytes_split_minus_full']==differences
+        assert min(differences)>3.9e9
     links=0
     for path in ROOT.rglob('*'):
         if not path.is_file() or '.git' in path.parts or '__pycache__' in path.parts:continue
@@ -70,6 +92,17 @@ def main():
                 assert (path.parent/link.split('#',1)[0]).is_file(),(path,link)
                 links+=1
     assert (total_cases,total_graphs,total_replays)==(160,32,96)
+    contract_path=ROOT/'evidence/native_graph_contract.json'
+    if contract_path.exists():
+        contract=json.loads(contract_path.read_text())
+        config=json.loads((ROOT/'metadata/config.json').read_text())['text_config']
+        assert config['dspark_block_size']==contract['draft_predictions_per_round']==5
+        assert config['num_nextn_predict_layers']==contract['checkpoint_MTP_layers']==3
+        assert contract['vllm_v2_num_speculative_tokens']==5
+        assert contract['sglang_speculative_num_draft_tokens_including_anchor']==6
+        assert not contract['actual_full_model_target_and_draft_graph_replay_verified']
+        for source in contract['sources'].values():
+            assert hashlib.sha256((ROOT/source['artifact']).read_bytes()).hexdigest()==source['sha256']
     print(json.dumps(dict(provenance_files=len(index),cases=total_cases,graph_captures=total_graphs,
                          changed_input_replays=total_replays,all16_devices_passed=True,
                          cross_framework_output_hashes_equal=True,initial_import_failure_preserved=True,

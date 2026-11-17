@@ -16,3 +16,7 @@
 [Engram 原生 API 和接入路径](docs/002-engram-native-path.md)
 
 [双框架八卡 Host UVA 与图重放组件证据](docs/003-host-uva-components.md)
+
+[普通 HCCL 与 MoE 缓冲分离的八卡组件观测](docs/004-HCCL-buffer-split.md)
+
+[固定镜像 DSPARK 原生图路径与参数口径](docs/005-native-DSPARK-graphs.md)
