@@ -12,6 +12,6 @@
 
 补充：原SQLite时序现已按JSONL的 `db_name` 和 `__db_ref__` 逐一补齐。`scripts/timing_witness.py` 用标准库解析原始浮点数组，复算逐请求TTFT、TPOT、E2EL及均值、极值、中位数、P75/P90/P99，再与原CSV核对。流式事件可能一次返回多个token，事件数量不能代替服务器输出token计数。
 
-原AISBench公式与数据库读写源码：[default_perf.py](../code/aisbench/default_perf.py)、[db_utils.py](../code/aisbench/db_utils.py)。核验覆盖640条请求、30个阶段的630个延迟统计量。它验证原始测量的可回溯性，不代表已完成最终性能对齐。
+原AISBench公式与数据库读写源码：[default_perf.py](../code/aisbench/default_perf.py)、[db_utils.py](../code/aisbench/db_utils.py)。核验覆盖736条请求、34个阶段的714个延迟统计量。它验证原始测量的可回溯性，不代表已完成最终性能对齐。
 
 后续状态：[实际分配长度的60种编译预热](../evidence/allocator_compile_only_g40.json)已完成，但仍需真实完整负载证实没有新编译。[vLLM G4单条P/D协议诊断](../evidence/vllm_G4_PD_protocol_diagnostic.json)返回实际32768输入/32输出；它不计入AISBench性能。

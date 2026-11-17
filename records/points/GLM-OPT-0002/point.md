@@ -25,3 +25,5 @@
 [组件证据](../../../evidence/sinkhorn_component_results.json)、[P/D证据](../../../evidence/model_PD_acceptance.json)、[预热门槛失败](../../../evidence/failed_warmup_stability.json)。Run索引见 [records/runs.json](../../runs.json)。代码来自实际测量文件的相同SHA副本；完整先前适配运行时尚未在此增量分支重建验收。后续为补足预热后首轮冷测/热重放，再检查融合命中与其余三档。
 
 补充诊断：30种逻辑MTP长度的编译预热未覆盖实际分配长度256/512。G37的两轮时长129.6500/124.2774秒，原5%三指标门槛通过，但第八轮仍编译一个分配核，因此没有提交正式数据。以原生缓存hash恢复实际特化参数，记录见[键恢复证据](../../../evidence/allocator_key_recovery_g39.json)，不将“编译脚本完成”当作服务充分预热。
+
+最新：G41 32K首次正式冷热输出为148.9474/149.4161 token/s，相对旧SG观测高16.01%/18.25%；P/D编译审计与64条实际长度均通过。一次冷热并非同臂重复，独立融合归因和四档最终对齐仍未验证，裁决继续INCONCLUSIVE。见[完整首次端到端记录](../../../docs/004-first-end-to-end.md)。
