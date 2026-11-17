@@ -12,3 +12,5 @@
 - [接入缺口](docs/001-adaptation-contract.md)
 
 原始权重、连接信息和大型原始 trace 不进入公共仓库。源码文件按固定镜像原样保存并保留原许可证头。历史 DeepSeek V4/DSpark7/C12 的仓库结论不代表此次 V4.1/PD/C16 测试。
+
+[Engram 原生 API 和接入路径](docs/002-engram-native-path.md)
