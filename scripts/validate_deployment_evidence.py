@@ -121,6 +121,44 @@ def main():
     cpu=json.loads((ROOT/'evidence/CPU_client_G83/create_receipt.json').read_text())
     assert cpu['NPU_devices']==[] and cpu['cpuset']=='184-187' and cpu['cpus']==4
     assert cpu['memory_bytes']==34359738368
+    for port in [2203,2204]:
+        base=ROOT/f'evidence/full_model_G82/{port}'
+        state=json.loads((base/'state.json').read_text())
+        assert state['phase']=='failed_released' and state['cleanup']['all8_process_lists_clear']
+        assert not state['cleanup']['container_state']['Running']
+        for stage,count in [('target',1384),('draft',73)]:
+            ledgers=list((base/'weight_ledgers').glob(stage+'.*.json'))
+            assert len(ledgers)==8
+            for p in ledgers:
+                value=json.loads(p.read_text())
+                assert value['status']=='passed' and value['parameter_count']==count and not value['missing']
+        log=(base/'server.log').read_text()
+        assert '1670.75' in log and 'out of memory' in log.lower()
+    pricing=json.loads((ROOT/'evidence/KV_accounting_G94/native_pricing_replay.json').read_text())
+    assert pricing['bytes_per_full_token_before']==1670.75
+    assert pricing['bytes_per_full_token_after_accounting']==3131.375
+    assert [x['actual_single_C2_tensor_bytes_from_native_shape'] for x in pricing['actual_OOM_shape_replay']]==[3088711680,3148349440]
+    source=ROOT/'code/native_KV/G86_native_planner_sources/sglang/srt/model_executor/pool_configurator.py'
+    assert hashlib.sha256(source.read_bytes()).hexdigest()==pricing['native_source_sha256']
+    manifest=json.loads((ROOT/'evidence/CPU_client_G83/dataset_manifest.json').read_text())
+    profiles=manifest['profiles'];assert len(profiles)==24
+    assert manifest['output_tokens']==1024 and manifest['client_concurrency']==16
+    assert not manifest['server_usage_validated']
+    assert {(p['phase'],p['input_tokens']) for p in profiles}=={(phase,n) for phase in ['formal','warmup1','warmup2','warmup3','warmup4','warmup5'] for n in [32768,65536,131072,262144]}
+    for p in profiles:
+        assert p['min_actual']==p['max_actual']==p['input_tokens']
+        assert p['requests']==(32 if p['phase']=='formal' else 16)
+    audit=json.loads((ROOT/'evidence/CPU_client_G83/cold_prefix_audit.json').read_text())
+    assert audit['verified'] and audit['prefix_count']==sum(p['requests'] for p in profiles)==448
+    assert audit['all_phases_lengths_request_prefixes_unique'] and audit['no_service_request_submitted']
+    base=ROOT/'evidence/SFA_operator_G92'
+    state=json.loads((base/'state.json').read_text())
+    assert state['phase']=='failed_released' and state['cleanup']['all8_process_lists_clear']
+    ranks=list((base/'evidence').glob('rank*.json'));assert len(ranks)==8
+    for p in ranks:
+        value=json.loads(p.read_text())
+        assert value['phase']=='failed' and 'sinks is required' in value['error']
+        assert value['cases']==[{'ratio':128,'phase':'execute'}]
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,

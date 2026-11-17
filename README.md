@@ -2,7 +2,7 @@
 
 独立分支记录固定 SGLang A2 daily 与 vLLM-Ascend 0.30.0rc2 的适配、测试和差异证据。用户当前合同为四档 32K/64K/128K/256K、C16、输出 1024，预热后首轮 cold32 和 hot32。每个 P/D 角色使用完整八卡，两个框架分时使用同一对机器。
 
-两个节点的95文件权重均已校验，已进入完整模型的目标分片加载和PD适配；两套固定镜像的八卡 Host UVA/图重放组件验证已通过，尚未启动 DeepSeek 完整模型推理，没有正式性能或质量结论。已有服务器上的 FP8/FP4 模型不作为这次 W4A8 权重。
+两个节点的95文件权重均已校验，已通过两端全部 target/draft rank 的原生权重加载覆盖，当前在 KV 分配和 C1/C2 attention/PD 接入阶段；两套固定镜像的八卡 Host UVA/图重放组件验证已通过，尚未启动 DeepSeek 完整模型推理，没有正式性能或质量结论。已有服务器上的 FP8/FP4 模型不作为这次 W4A8 权重。
 
 - [权重来源和固定文件](metadata/pinned_files.json)
 - [配置](metadata/config.json)
@@ -24,3 +24,5 @@
 [SGLang INT8 Engram 原生接口接入与图执行验证](docs/006-SGLang-INT8-Engram-integration.md)
 
 [完整权重、首次PD启动失败与接入候选](docs/007-full-model-PD-readiness.md)
+
+[全部权重覆盖、KV 字节预算根因与 C1/C2 接入边界](docs/008-KV-byte-budget-and-C1-C2-contract.md)
