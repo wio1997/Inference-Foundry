@@ -159,6 +159,42 @@ def main():
         value=json.loads(p.read_text())
         assert value['phase']=='failed' and 'sinks is required' in value['error']
         assert value['cases']==[{'ratio':128,'phase':'execute'}]
+    base=ROOT/'evidence/SFA_operator_G104'
+    state=json.loads((base/'state.json').read_text())
+    assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
+    ranks=list((base/'evidence').glob('rank*.json'));assert len(ranks)==8
+    for p in ranks:
+        value=json.loads(p.read_text());assert value['phase']=='contracts_measured'
+        cases={(c['API'],c['ratio']):c for c in value['cases']}
+        assert set(cases)=={(api,ratio) for api in ['target_custom_device','draft_builtin_host'] for ratio in [128,4,1,2]}
+        for ratio in [128,4,1,2]:
+            c=cases['target_custom_device',ratio]
+            assert c['phase']=='metadata_rejected' and 'not in libopapi.so' in c['error']
+        for ratio in [1,2]:
+            c=cases['draft_builtin_host',ratio]
+            assert c['phase']=='metadata_rejected' and c['cmp_topk']==512
+        for ratio in [4,128]:
+            c=cases['draft_builtin_host',ratio]
+            assert c['phase']=='passed' and c['graph_captures']==1 and c['changed_input_replays']==3
+    base=ROOT/'evidence/SFA_operator_G120'
+    state=json.loads((base/'state.json').read_text())
+    assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
+    ranks=list((base/'evidence').glob('rank*.json'));assert len(ranks)==8
+    reference=None;max_error=0.
+    for p in sorted(ranks):
+        value=json.loads(p.read_text());assert value['phase']=='passed' and value['device']=='Ascend910B1'
+        assert {(c['ratio'],c['mode']) for c in value['cases']}=={(ratio,mode) for ratio in [1,2] for mode in ['decode','verify','prefill']}
+        hashes=[]
+        for c in value['cases']:
+            assert c['phase']=='passed' and c['graph_captures']==1 and c['changed_input_replays']==3
+            assert c['rows']=={'decode':2,'verify':12,'prefill':20}[c['mode']]
+            assert len(c['replay_errors'])==len(set(c['hashes']))==3
+            for e in [c['eager'],*c['replay_errors']]:
+                assert e['all_finite'];max_error=max(max_error,e['max_abs_error'])
+            hashes.append(c['hashes'])
+        if reference is None:reference=hashes
+        else:assert hashes==reference
+    assert max_error==0.00031238794326782227
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,

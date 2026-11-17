@@ -26,3 +26,5 @@
 [完整权重、首次PD启动失败与接入候选](docs/007-full-model-PD-readiness.md)
 
 [全部权重覆盖、KV 字节预算根因与 C1/C2 接入边界](docs/008-KV-byte-budget-and-C1-C2-contract.md)
+
+[C1/C2 sparse attention八卡FP64数值与图组件](docs/009-C1-C2-sparse-attention-component.md)

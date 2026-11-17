@@ -46,3 +46,13 @@ G89 在 custom API 未注册处退出，没有执行压缩比 case，不能据�
 - [G96 最终清理](../evidence/SFA_operator_G96/state.json)
 - [原生模型 head padding 与 sink 实现](../code/native_KV/native_model/deepseek_v4.py)
 - [G100 与模型一致的探针](../code/SFA_operator_G100/probe.py)
+
+## G104 实际固定二进制契约矩阵
+
+在8张独立物理910B1上，按原生模型64-head padding、FP32 sinks、PA_ND BF16、C1/C2/C4 top-k512索引契约分别执行 target custom device metadata 与 draft builtin host metadata。target四种ratio均因libopapi缺少aclnnSparseAttnSharedkvMetadata符号失败。builtin的C128和C4各在全部8卡上通过常量数值、1次capture和3次changed-input replay，合计16个capture/48个replay；C1/C2均在metadata scheduling报invalid params。controller正常结束并全部8卡进程清空。这里的constant fixture不证明mask或任意Q/KV数值正确，注册成功也不等于相应CANN符号存在。
+
+- [G104 rank0 完整8种契约结果](../evidence/SFA_operator_G104/evidence/rank0.json)
+- [G104 终态与清理](../evidence/SFA_operator_G104/state.json)
+- [正确top-k与两条原生API的探针](../code/SFA_operator_G104/probe.py)
+
+下一步验证固定原生算子能否分别计算SWA与显式索引compressed partition并使用返回的log-sum-exp合并，保留同一检查点的C1/C2 latent与合法候选。任何坐标映射都必须证明不会删去合法key、纳入future key或重复sink。未完成任意Q、causal mask、prefill、verify、decode和graph变化验证前，不接入完整模型或宣称等价。
