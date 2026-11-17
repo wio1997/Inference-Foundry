@@ -2,7 +2,7 @@
 
 独立分支记录固定 SGLang A2 daily 与 vLLM-Ascend 0.30.0rc2 的适配、测试和差异证据。用户当前合同为四档 32K/64K/128K/256K、C16、输出 1024，预热后首轮 cold32 和 hot32。每个 P/D 角色使用完整八卡，两个框架分时使用同一对机器。
 
-当前处于权重下载与源码契约核对阶段，尚未启动 DeepSeek NPU 推理，没有正式性能或质量结论。已有服务器上的 FP8/FP4 模型不作为这次 W4A8 权重。
+当前正在下载权重并做适配；两套固定镜像的八卡 Host UVA/图重放组件验证已通过，尚未启动 DeepSeek 完整模型推理，没有正式性能或质量结论。已有服务器上的 FP8/FP4 模型不作为这次 W4A8 权重。
 
 - [权重来源和固定文件](metadata/pinned_files.json)
 - [配置](metadata/config.json)
@@ -14,3 +14,5 @@
 原始权重、连接信息和大型原始 trace 不进入公共仓库。源码文件按固定镜像原样保存并保留原许可证头。历史 DeepSeek V4/DSpark7/C12 的仓库结论不代表此次 V4.1/PD/C16 测试。
 
 [Engram 原生 API 和接入路径](docs/002-engram-native-path.md)
+
+[双框架八卡 Host UVA 与图重放组件证据](docs/003-host-uva-components.md)
