@@ -33,3 +33,5 @@
 [同机 SGLang 实际加载、完整图与 PD 功能门槛](docs/014-matched-SG-real-PD-readiness.md)
 
 [同机 SGLang 首遍完整32K/C16/1024未计分预热](docs/015-matched-SG-first-full-warmup.md)
+
+[同机 SGLang 七轮独立预热与编译门槛](docs/016-matched-SG-seven-warmups.md)
