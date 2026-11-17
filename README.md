@@ -21,3 +21,5 @@
 [vLLM G4 首轮64K正式冷热](docs/008-vllm-G4-first-64K.md)
 
 [vLLM G4 首轮128K正式冷热](docs/009-vllm-G4-first-128K.md)
+
+[同一vLLM G4运行时四档首轮冷热完整基线](docs/010-vllm-G4-four-shape-first-cold-hot.md)
