@@ -17,3 +17,5 @@
 [vLLM G4 32K 未计分预热](docs/006-vllm-G4-warming.md)
 
 [vLLM G4 首轮32K正式冷热](docs/007-vllm-G4-first-32K.md)
+
+[vLLM G4 首轮64K正式冷热](docs/008-vllm-G4-first-64K.md)
