@@ -100,6 +100,38 @@ def main():
                 assert item['explicit_positive_model_device_events'] and item['analysis']['hardware_X_events']>0
                 identity=item['identity']['worker_mapping']
                 assert {w['physical_npu'] for w in identity}==set(range(8))
+    matched=ROOT/'evidence/matched_SG_G181'
+    if matched.exists():
+        for role in ['p','d']:
+            base=matched/role;ready=json.loads((base/'readiness.json').read_text())
+            assert ready['native_dispatch_ledger_count']==16 and ready['PD_registration_count']==8
+            assert ready['container']['State']['Running']
+            summaries=list(base.glob('final_*/weight_ledgers/*.summary.json'));assert len(summaries)==16
+            for p in summaries:
+                item=json.loads(p.read_text());assert item['status']=='dispatch_coverage_complete'
+                assert item['missing_parameter_count']==item['unexpected_count']==0
+            registrations=list(base.glob('final_*/weight_ledgers/PD_registration_g26.pid*.json'));assert len(registrations)==8
+            for p in registrations:
+                item=json.loads(p.read_text());assert item['returncode']==0 and item['registered_entries']>0
+            args=ready['API']['/server_info']['body'];args=args.get('server_args',args)
+            assert args['tp_size']==args['ep_size']==8 and args['pp_size']==1 and args['context_length']==263296
+            assert args['max_running_requests']==16 and not args['disable_overlap_schedule'] and not args['disable_radix_cache']
+            assert args['speculative_num_steps']==3 and args['speculative_num_draft_tokens']==4
+            if role=='d':
+                assert args['cuda_graph_config']['decode']['backend']=='full'
+                assert len([l for l in ready['graph_log_evidence'] if 'Capture target verify NPU graph end.' in l])==8
+                assert any('Capture draft decode CUDA graph end.' in l for l in ready['graph_log_evidence'])
+                assert any('Capture draft extend CUDA graph end.' in l for l in ready['graph_log_evidence'])
+        result=json.loads((matched/'p/functional_PD_g204/result.json').read_text())
+        assert result['passed'] and result['original_G182_failed'] and len(result['original_seven'])==7
+        assert result['original_failure']['error']['code']=='server_selection_failed'
+        for item in result['original_seven']:
+            assert item['audit']['passed']
+            name='evidence/matched_SG_G181/p/functional_PD_g182/'+Path(item['path']).name
+            assert provenance[name]['original_sha256']==item['original_sha256']
+        usage=result['remaining_new_prefix']['usage']
+        assert usage['prompt_tokens']==32768 and usage['completion_tokens']==32 and usage['num_retractions']==0
+        assert usage['spec_verify_ct']>0 and usage['spec_accept_length']>=1
     for name,expected in component['source_sha256'].items():assert digest(ROOT/'code/sinkhorn'/name)==expected,name
     model=json.loads((ROOT/'evidence/model_PD_acceptance.json').read_text());assert model['seven_PD_semantic_length_cases_passed'] and model['PD_registration_all16_return0']
     for p in ROOT.rglob('*'):

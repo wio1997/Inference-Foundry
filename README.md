@@ -29,3 +29,5 @@
 [G4 同一采集批次十六 rank 真实模型设备窗口](docs/012-vllm-G4-all16-model-profile.md)
 
 [同机 SGLang 迁移、控制器目录失败及修正](docs/013-matched-host-SG-migration.md)
+
+[同机 SGLang 实际加载、完整图与 PD 功能门槛](docs/014-matched-SG-real-PD-readiness.md)
