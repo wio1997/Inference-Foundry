@@ -11,3 +11,5 @@
 正式与预热分账；未通过稳定门槛的预热不改写为正式结果。权威数据在 [metrics.json](records/metrics.json)；[逐Run索引](records/runs.json) 保留种类与裁决。
 
 [环境与合同](environment/contract.json) · [离线验档](scripts/validate_archive.py) · [原始数据与脱敏](docs/003-evidence.md)
+
+[G43 完整模型融合 profile](docs/005-fused-model-profile.md)
