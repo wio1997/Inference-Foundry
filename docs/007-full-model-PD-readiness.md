@@ -57,3 +57,8 @@ G75在两端各8个worker中完成真实分片header核对：1226项草稿张量
 - [G78量化描述来源修正](../code/full_model_candidates/sg_pd_g78/target_quant_alias_bridge.py)
 
 可在CPU执行 `python3 scripts/reproduce_native_quant_precedence.py` 重放原函数的字典元数据选择分支；[复现脚本](../scripts/reproduce_native_quant_precedence.py)使用原生metadata解析器、原生resolver和记录型配置类，不启动模型或访问NPU。
+
+G78在19:09 UTC的实际两端观察中，全部16个worker均完成量化描述恢复、原生参数名alias与嵌入式草稿类型核验。每个target ModelSlim输入原为3项HF元数据，恢复187081项描述、添加185582项名称alias。两端开始multi-thread加载85个目标分片，观察时控制器存活；这是完整模型初始化进展，尚未完成strict加载、图、PD状态/字节或推理/性能验收。
+
+- [P端实际加载观察、全部rank凭证](../evidence/full_model_G78/2203/loading_observation.json)
+- [D端实际加载观察、全部rank凭证](../evidence/full_model_G78/2204/loading_observation.json)

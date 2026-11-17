@@ -89,6 +89,18 @@ def main():
     probe=json.loads((ROOT/'evidence/native_quant_precedence_probe_G78.json').read_text())
     assert probe['actual_resolver_returned_key_names']==['hf_config','packed_modules_mapping','quant_method']
     assert probe['actual_ModelSlim_file_descriptors_read'] is False
+    for port in [2203,2204]:
+        base=ROOT/f'evidence/full_model_G78/{port}'
+        observation=json.loads((base/'loading_observation.json').read_text())
+        assert observation['actual_controller_live'] and observation['state']['phase']=='model_starting'
+        for field in ['embedded_draft_quant','target_quant_input','target_quant_aliases']:
+            assert len(observation[field])==8
+        for value in observation['target_quant_input'].values():
+            assert value['input_keys']==['quant_method','packed_modules_mapping','hf_config']
+            assert value['resolved_descriptor_count']==187081
+        for value in observation['target_quant_aliases'].values():
+            assert value['added_aliases']==185582 and value['only_parameter_names_mapped']
+        assert 'Multi-thread loading shards:' in observation['log_tail']
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,
