@@ -24,6 +24,19 @@ def main():
         assert p.is_file() and digest(p)==expected,name
     for p in ROOT.rglob('*.py'):
         if '.git' not in p.parts:ast.parse(p.read_text(),filename=str(p))
+    sg_profile=ROOT/'evidence/matched_SG_G181/profile_G240'
+    acceptance=json.loads((sg_profile/'G258_matched_SG_16rank_profile_acceptance.json').read_text())
+    assert acceptance['profile_dataset_SHA256']=='6e1da60b597d8fb978cc9c7549c720a9de2a8f0b9af956fc73bd9e110f4eaae8'
+    for role in ['p','d']:
+        base=sg_profile/f'CPU_{role}'/'review_g252'
+        row=json.loads((base/'role.json').read_text())
+        assert row['role_complete'] and row['raw_unchanged_after_analysis'] and len(row['reports'])==8
+        stable=json.loads((base/'raw_stability.json').read_text())
+        assert stable['two_SHA_scans_equal'] and len(stable['files'])>1000
+        for rank in range(8):
+            report=json.loads((base/f'rank_{rank}.json').read_text())
+            assert report['physical_npu']==rank and report['device_activity_verified']
+            assert report['hardware_X_events']>0 and report['explicit_model_X_events']>0 and report['cpu_X_events']>0
     provenance={x['artifact']:x for x in json.loads((ROOT/'provenance/artifacts.json').read_text())}
     for name,e in provenance.items():assert digest(ROOT/name)==e['published_sha256'],name
     links=0

@@ -37,3 +37,5 @@
 [同机 SGLang 七轮独立预热与编译门槛](docs/016-matched-SG-seven-warmups.md)
 
 [同机 SGLang 32K 首轮正式cold/hot及待定位差异](docs/017-matched-SG-first-32K-cold-hot.md)
+
+[同机 SGLang 与G4匹配输入的十六rank模型profile](docs/018-matched-SG-all16-model-profile.md)
