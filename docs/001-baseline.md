@@ -12,3 +12,5 @@
 TTFT、TPOT、输入/输出/总吞吐以及逐请求原件均由 [metrics](../records/metrics.json) 和各Run的 `raw` 目录提供。新P33D33的三轮预热为176.1806 / 128.7327 / 119.4804秒；最后两轮时长变化7.19%、TPOT变化17.67%，未通过事先设置的5%门槛，未发送正式轮。
 
 波动噪声：没有完整同臂重复和跨批次噪声标定。框架固定CANN版本不同，原vLLM各档两轮预热与原SG32K三轮预热也不同。以上数据可复核，但不能当作最终优化收益或全场景精度结论。
+
+追加四轮预热全部有效但未计分；总计112条候选预热请求。第五、第七轮都发现原生`alloc_extend_kernel`新编译；第六轮未出现新增编译。G35最后两轮主时长相差2.65%、TTFT相差0.009%、TPOT相差7.42%。实际调用用 `next_power_of_2(extend_num_tokens)`、batch上界及free-page指针对齐生成特化键；不同键的中间代码可能逐字相同。详见 [编译证据](../evidence/allocator_compilation_warmup.json)、[后续预热合同](../records/readiness_contract_g37.json)。

@@ -8,8 +8,8 @@
 
 失败同样保留：G32缺少CANN缓存目录；首次AISBench的宿主绝对软链接不能在容器访问；三轮预热未达到稳定门槛。它们分别属于启动/客户端无效轮和未计分诊断，不能作为优化收益。
 
-原始JSONL中的 `time_points` 使用数据库引用；本次首批归档尚未包含原SQLite时序数据库。当前可复算请求数与批次吞吐，逐请求时序和延迟分位数尚不能仅凭本分支独立重建，需补归档时序证据。
+首批提交中的JSONL使用SQLite引用，曾缺少对应数据库；后续提交已补齐原件并完成独立复算。首批提交中的缺口说明仍保留在Git历史中。
 
 补充：原SQLite时序现已按JSONL的 `db_name` 和 `__db_ref__` 逐一补齐。`scripts/timing_witness.py` 用标准库解析原始浮点数组，复算逐请求TTFT、TPOT、E2EL及均值、极值、中位数、P75/P90/P99，再与原CSV核对。流式事件可能一次返回多个token，事件数量不能代替服务器输出token计数。
 
-原AISBench公式与数据库读写源码：[default_perf.py](../code/aisbench/default_perf.py)、[db_utils.py](../code/aisbench/db_utils.py)。核验覆盖544条请求、24个阶段的504个延迟统计量。它验证原始测量的可回溯性，不代表已完成最终性能对齐。
+原AISBench公式与数据库读写源码：[default_perf.py](../code/aisbench/default_perf.py)、[db_utils.py](../code/aisbench/db_utils.py)。核验覆盖608条请求、28个阶段的588个延迟统计量。它验证原始测量的可回溯性，不代表已完成最终性能对齐。
