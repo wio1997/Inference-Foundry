@@ -101,6 +101,26 @@ def main():
         for value in observation['target_quant_aliases'].values():
             assert value['added_aliases']==185582 and value['only_parameter_names_mapped']
         assert 'Multi-thread loading shards:' in observation['log_tail']
+    for port in [2203,2204]:
+        base=ROOT/f'evidence/full_model_G78_terminal/{port}'
+        state=json.loads((base/'state.json').read_text())
+        assert state['phase']=='failed_released' and state['cleanup']['all8_process_lists_clear']
+        targets=list((base/'weight_ledgers').glob('target.*.json'))
+        assert len(targets)==8
+        for p in targets:
+            record=json.loads(p.read_text())
+            assert record['status']=='passed' and record['parameter_count']==1384 and not record['missing']
+        drafts=list((base/'weight_ledgers').glob('draft.*.json'))
+        assert drafts
+        for p in drafts:
+            record=json.loads(p.read_text())
+            assert record['status']=='failed'
+            assert set(record['missing'])=={'markov_head.markov_w1.weight','markov_head.markov_w2.weight'}
+    probe=json.loads((ROOT/'evidence/native_Markov_remap_probe_G82.json').read_text())
+    assert {v['native_generic'] for v in probe['results'].values()}=={'markov_head.markov_w1.weight','markov_head.markov_w2.weight'}
+    cpu=json.loads((ROOT/'evidence/CPU_client_G83/create_receipt.json').read_text())
+    assert cpu['NPU_devices']==[] and cpu['cpuset']=='184-187' and cpu['cpus']==4
+    assert cpu['memory_bytes']==34359738368
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,

@@ -62,3 +62,14 @@ G78在19:09 UTC的实际两端观察中，全部16个worker均完成量化描述
 
 - [P端实际加载观察、全部rank凭证](../evidence/full_model_G78/2203/loading_observation.json)
 - [D端实际加载观察、全部rank凭证](../evidence/full_model_G78/2204/loading_observation.json)
+
+G78随后在全部16个target rank完成原生加载覆盖，每rank1384个参数，missing为空。草稿严格闸门捕获Markov两个未加载参数：markov_head.markov_w1.weight、markov_head.markov_w2.weight。检查点分别命名为mtp.2.markov_head.embed.weight和.head.weight。native NPU mapper保留embed/head名称；同一固定镜像的通用DSpark mapper已经映射为markov_w1/markov_w2。两端最终退出并确认全部8卡进程清空。
+
+G82仅对这两个固定检查点名称调用原生通用mapper，所有其它NPU映射和严格加载闸门保留。CPU执行两段实际原生映射函数，复现名称差异；这不是Markov数学、图、PD或推理质量验收。完整模型两端重新复验，同时在独立CPU核184–187、4CPU/32GiB、无NPU设备的同一固定AISBench镜像中准备32K/64K/128K/256K数据。两框架将复用相同字节，每档formal32及独立warmup1–5各16请求，C16/1024；首128token前缀全局唯一，服务端usage仍须实测，不提前发送正式输入。
+
+- [G78 P端target加载及Markov缺失凭证目录中的原始日志](../evidence/full_model_G78_terminal/2203/server.log)
+- [G78 D端最终退出清理](../evidence/full_model_G78_terminal/2204/state.json)
+- [两段原生mapper实际CPU结果](../evidence/native_Markov_remap_probe_G82.json)
+- [G82复用原生Markov映射](../code/full_model_candidates/sg_pd_g82/markov_name_bridge.py)
+- [CPU数据准备源码](../code/prepare_ds41_assets_G83.py)
+- [CPU客户端创建凭证](../evidence/CPU_client_G83/create_receipt.json)
