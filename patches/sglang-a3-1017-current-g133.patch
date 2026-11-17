@@ -1,0 +1,1258 @@
+--- a/python/sglang/kernels/ops/layernorm/mhc.py
++++ b/python/sglang/kernels/ops/layernorm/mhc.py
+@@ -442,9 +442,9 @@
+             mixes.new_empty(b, s, hc_mult),
+             mixes.new_empty(b, s, hc_mult, hc_mult),
+         )
+-    if is_gfx1250_supported():
+-        # TileLang's CK-backed addressing doesn't compile on gfx1250; use the
+-        # Triton port.
++    if mixes.device.type == "npu" or is_gfx1250_supported():
++        # NPU uses the existing device-independent Triton implementation;
++        # the TileLang implementation targets CUDA/HIP. Numerics unchanged.
+         return _hc_split_sinkhorn_triton(
+             mixes, hc_scale, hc_base, hc_mult, sinkhorn_iters, eps
+         )
+--- a/python/sglang/srt/hardware_backend/npu/attention/ascend_dsv4_backend.py
++++ b/python/sglang/srt/hardware_backend/npu/attention/ascend_dsv4_backend.py
+@@ -44,6 +44,12 @@
+ 
+ def _sparse_attn_ops():
+     """(metadata op, attention op) for the DSV4 shared-KV sparse attention."""
++    import os
++
++    if os.environ.get("SGLANG_NPU_V41_A3_COMPAT") == "1":
++        from native_sparse_bridge_g4 import native_sparse_ops
++
++        return native_sparse_ops()
+     if is_npu_arch35():
+         return (
+             npu_attention_ops.mixed_quant_sparse_flash_mla_metadata,
+@@ -1288,11 +1294,19 @@
+ 
+         # Allocation uses the kernel-owned ABI; do not execute metadata kernels
+         # on temporary synthetic inputs merely to discover their output shapes.
+-        attention_metadata_size = (
+-            npu_attention_ops.get_mixed_quant_sparse_flash_mla_metadata_size()
+-            if is_npu_arch35()
+-            else npu_attention_ops.get_sparse_flash_mla_metadata_size()
+-        )
++        import os
++
++        if os.environ.get("SGLANG_NPU_V41_A3_COMPAT") == "1":
++            # Same provider gate as _sparse_attn_ops, including DSpark draft.
++            from native_sparse_bridge_g4 import native_sparse_metadata_size
++
++            attention_metadata_size = native_sparse_metadata_size()
++        else:
++            attention_metadata_size = (
++                npu_attention_ops.get_mixed_quant_sparse_flash_mla_metadata_size()
++                if is_npu_arch35()
++                else npu_attention_ops.get_sparse_flash_mla_metadata_size()
++            )
+         metadata_sizes = {"kernel_metadata_c1a": attention_metadata_size}
+         if self._dsv4_has_c4:
+             metadata_sizes["kernel_metadata_c4a"] = attention_metadata_size
+--- a/python/sglang/srt/layers/attention/attention_registry.py
++++ b/python/sglang/srt/layers/attention/attention_registry.py
+@@ -218,6 +218,23 @@
+             DeepseekV4AscendAttnBackend,
+         )
+ 
++        import os
++
++        hf_config = runner.model_config.hf_config
++        if (
++            getattr(hf_config, "model_type", None) == "deepseek_v41"
++            and os.environ.get("SGLANG_NPU_V41_A3_COMPAT") == "1"
++        ):
++            from a3_backend_candidate import make_backend_class
++            from a3_donor_bindings_g4 import make_bindings
++
++            if os.environ.get("SGLANG_DSV41_FUSED_MOE_ENABLE") == "1":
++                from a3_fuseep_startup import initialize_before_private_metadata
++            else:
++                from a3_deepep_startup import initialize_before_private_metadata
++
++            initialize_before_private_metadata(runner)
++            return make_backend_class(make_bindings())(runner)
+         return DeepseekV4AscendAttnBackend(runner)
+     elif _is_hip:
+         from sglang.srt.layers.attention.deepseek_v4_backend_hip_radix import (
+--- a/python/sglang/srt/mem_cache/kv_cache_configurator.py
++++ b/python/sglang/srt/mem_cache/kv_cache_configurator.py
+@@ -2043,7 +2043,9 @@
+                 DSV4NPUTokenToKVPool,
+             )
+ 
+-            pool_cls = DSV4NPUTokenToKVPool
++            from a3_v41_cache_binding import select_a3_v41_pool
++
++            pool_cls = select_a3_v41_pool(self, DSV4NPUTokenToKVPool)
+             kv_layout_kwargs = {}
+         else:
+             pool_cls = DeepSeekV4TokenToKVPool
+@@ -2831,7 +2833,11 @@
+                             DSV4NPUTokenToKVPoolAllocator,
+                         )
+ 
+-                        swa_allocator_cls = DSV4NPUTokenToKVPoolAllocator
++                        from a3_v41_cache_binding import select_a3_v41_allocator
++
++                        swa_allocator_cls = select_a3_v41_allocator(
++                            self, DSV4NPUTokenToKVPoolAllocator
++                        )
+                     else:
+                         swa_allocator_cls = SWATokenToKVPoolAllocator
+                     token_to_kv_pool_allocator = swa_allocator_cls(
+--- a/python/sglang/srt/mem_cache/registry.py
++++ b/python/sglang/srt/mem_cache/registry.py
+@@ -193,7 +193,12 @@
+     )
+     tree_slots = list(storage.tree_slots())
+ 
+-    if hasattr(params.req_to_token_pool, "req_to_c128_sidecar"):
++    # Register the independent C128 component only when its owning pool
++    # actually exists. V4.1 {0,1,2} keeps the NPU request-pool interface but
++    # has no C128 allocator; ordinary Full/SWA radix components still apply.
++    if hasattr(params.req_to_token_pool, "req_to_c128_sidecar") and hasattr(
++        allocator, "c128_attn_allocator"
++    ):
+         from sglang.srt.hardware_backend.npu.dsv4.c128_sidecar_component import (
+             C128SidecarComponent,
+         )
+--- a/python/sglang/srt/model_executor/pool_configurator.py
++++ b/python/sglang/srt/model_executor/pool_configurator.py
+@@ -1895,6 +1895,11 @@
+             )
+ 
+             return Ernie5_5PoolConfigurator(kvc)
++        from a3_v41_cache_binding import create_a3_v41_budget
++
++        a3_v41_budget = create_a3_v41_budget(kvc)
++        if a3_v41_budget is not None:
++            return a3_v41_budget
+         return DSV4PoolConfigurator(kvc)
+     if kvc.is_hybrid_swa:
+         if SWARequestCapPoolConfigurator.is_applicable(kvc):
+--- a/python/sglang/srt/models/deepseek_v4.py
++++ b/python/sglang/srt/models/deepseek_v4.py
+@@ -3,6 +3,7 @@
+ import concurrent.futures
+ import functools
+ import logging
++import os
+ import time
+ from array import array
+ from contextlib import contextmanager, nullcontext
+@@ -226,6 +227,10 @@
+ )
+ from sglang.srt.utils.custom_op import register_custom_op
+ 
++import runtime_mapping_audit as _g94_mapping_audit
++_g94_mapping_audit.install()
++
++
+ # NPU-only: bind torch_npu here so _compute_q_b / _forward_prepare can call
+ # torch_npu.npu_rms_norm directly (imports elsewhere aren't visible in this module).
+ if _is_npu:
+@@ -1223,6 +1228,13 @@
+         )
+ 
+     def _kernel_num_heads(self, num_tokens: int) -> int:
++        if _is_npu and os.environ.get("SGLANG_V41_A3_EXACT_HEADS") == "1":
++            # The pinned A3 BF16 provider was checked at16/64 heads, including
++            # graph replay. Its metadata describes the actual local width.
++            if self.n_local_heads not in (16, 64):
++                raise ValueError("A3 exact-head profile is validated only at16/64 heads")
++            return self.n_local_heads
++
+         if self.attn_tp_size == 1:
+             return self.n_local_heads
+ 
+@@ -2110,7 +2122,8 @@
+             stream_q.wait_event(q_lora_ready)
+             q, _ = self.wq_b(q_lora)
+             q = q.view(-1, self.n_local_heads, self.head_dim)
+-            q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
++            if self.q_head_norm:
++                q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
+             cos4_q, sin4_q = self._get_npu_rope_position_cache(
+                 forward_batch, positions, q.dtype, inverse=False
+             )
+@@ -2125,21 +2138,31 @@
+                 q_out.copy_(q)
+             q.record_stream(stream_q)
+ 
+-        # Indexer + compressor: serial on current.
+-        if self.indexer is not None:
+-            self.indexer(
+-                x=x,
+-                q_lora=q_lora,
+-                forward_batch=forward_batch,
+-                attn_backend=attn_backend,
+-            )
+-        if self.compressor is not None:
+-            attn_backend.forward_core_compressor(
+-                x,
+-                forward_batch,
+-                self.layer_id,
+-                self.compressor,
+-            )
++        # Source/index work remains on current; Q/KV side streams are joined below.
++        if self.compress_ratio in (1, 2):
++            if self.compressor is not None or self.indexer is not None:
++                attn_backend.forward_low_ratio_sources(
++                    layer=self,
++                    x=x,
++                    q_lora=q_lora,
++                    positions=positions,
++                    forward_batch=forward_batch,
++                )
++        else:
++            if self.indexer is not None:
++                self.indexer(
++                    x=x,
++                    q_lora=q_lora,
++                    forward_batch=forward_batch,
++                    attn_backend=attn_backend,
++                )
++            if self.compressor is not None:
++                attn_backend.forward_core_compressor(
++                    x,
++                    forward_batch,
++                    self.layer_id,
++                    self.compressor,
++                )
+ 
+         # Join stream_kv + stream_q before downstream attention.
+         current_stream.wait_stream(stream_kv)
+@@ -2478,7 +2501,8 @@
+             q_lora = self.q_norm(q_lora)
+             q, _ = self.wq_b(q_lora)
+             q = q.view(-1, self.n_local_heads, self.head_dim)
+-            q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
++            if self.q_head_norm:
++                q = torch_npu.npu_rms_norm(q, self.q_rms_norm_ones, self.eps)[0]
+ 
+             if qkv_a is not None:
+                 kv = qkv_a[..., self.q_lora_rank :]
+@@ -2976,6 +3000,11 @@
+                     save_kv_cache=save_kv_cache,
+                     # HIP only, for the same reason as rope_kwargs above
+                     **({} if inv_rope is None else {"inv_rope": inv_rope}),
++                    **({"g48_full_attn_sink": self.attn_sink}
++                       if (_is_npu and os.environ.get('SGLANG_NPU_SMLA_QUERY_ROW_SHARD', '0') == '1'
++                           and getattr(attn_backend, '_v41_enabled', False)
++                           and forward_batch.forward_mode.is_extend_without_speculative())
++                       else {}),
+                 )
+             o = o[:, tp_slice, :]
+         o = self._project_wo_a(
+@@ -4198,6 +4227,15 @@
+         # mHC assumes full token rows per rank; LayerNorm SP needs its own path.
+         assert not get_forward().sp_active
+         state = mhc.HcState(hidden_states)
++        hc_rows = None
++        if _is_npu:
++            from hc_row_shard import ENABLED as hc_row_shard_enabled
++            if hc_row_shard_enabled:
++                from hc_row_shard import prepare as prepare_hc_rows
++                hc_rows = prepare_hc_rows(self, forward_batch, hidden_states.shape[0])
++                assert not tail_in_graph and not use_tail_graph
++                state = hc_rows.shard_state(state)
++                hidden_states = None
+         if _is_cuda:
+             residual_batch.start(forward_batch)
+             hidden_states = residual_batch.set_written(state, forward_batch)
+@@ -4225,6 +4263,8 @@
+                         hidden_states, forward_batch, next=next_boundary
+                     )
+             if tail is not None and i == self.late_layer_start:
++                if hc_rows is not None:
++                    state = hc_rows.gather_state(state)
+                 if self.tail_writes_source_kv:
+                     source = self.layers[i]
+                     if _is_hip and source.hc_boundary_fused:
+@@ -4287,6 +4327,9 @@
+                 ):
+                     input_ids_global = tail.rows(input_ids_global)
+                 positions = tail.positions
++                if hc_rows is not None:
++                    hc_rows = hc_rows.resized(positions.shape[0])
++                    state = hc_rows.shard_state(state)
+                 if hash_ids is not None:
+                     hash_ids = tail.rows(hash_ids)
+                 if use_tail_graph:
+@@ -4332,20 +4375,23 @@
+                 # No local name holds the pre-Engram residual: it would stay alive
+                 # until the next Engram layer.
+                 hidden_states = engram(
+-                    state.residual,
++                    (state.residual if hc_rows is None else hc_rows.gather(state.residual)),
+                     hash_ids[:, engram.layer_hash_index],
+                     forward_batch,
+                     input_ids=input_ids,
+                     cp_all_tokens=cp_extend,
+                 )
+-                state = state.with_residual(hidden_states)
++                state = state.with_residual(
++                    hidden_states if hc_rows is None else hc_rows.shard(hidden_states))
++                if hc_rows is not None:
++                    hidden_states = None
+                 if _is_cuda:
+                     hidden_states = residual_batch.set_written(state, forward_batch)
+             if capture_dspark and i in self.dspark_layers_to_capture:
+                 from sglang.kernels.ops.layernorm.mhc import mhc_stream_mean
+ 
+                 # The draft head reads the attention input of its target layers.
+-                aux = state.residual
++                aux = state.residual if hc_rows is None else hc_rows.gather(state.residual)
+                 if tail is not None and i < self.late_layer_start:
+                     aux = tail.rows(aux)
+                 mhc_stream_mean(aux, out=dspark_aux_hidden_states.slot(aux[:, 0]))
+@@ -4377,19 +4423,32 @@
+                             capture_dspark=capture_dspark,
+                         )
+                         continue
+-                    state = self.layers[i].forward_hc_pre_from_prev(
+-                        positions=positions,
+-                        state=state,
+-                        input_ids=input_ids,
+-                        forward_batch=forward_batch,
+-                        input_ids_global=input_ids_global,
+-                    )
++                    try:
++                        if hc_rows is not None:
++                            from hc_row_shard import forward_layer as forward_hc_rows
++                            state = forward_hc_rows(
++                                self.layers[i], positions=positions, state=state,
++                                input_ids=input_ids, forward_batch=forward_batch,
++                                input_ids_global=input_ids_global, layout=hc_rows)
++                            continue
++                        state = self.layers[i].forward_hc_pre_from_prev(
++                            positions=positions,
++                            state=state,
++                            input_ids=input_ids,
++                            forward_batch=forward_batch,
++                            input_ids_global=input_ids_global,
++                        )
++                    except torch.OutOfMemoryError:
++                        logger.error("A3_V41_LAYER_OOM layer=%s mode=%s allocated=%s reserved=%s", i, forward_batch.forward_mode, torch.npu.memory_allocated(), torch.npu.memory_reserved())
++                        raise
+         if _is_cuda:
+             state = residual_batch.read_output(
+                 hidden_states, forward_batch, hc_boundary.FinalRead(), None
+             )
+             residual_batch.clear(forward_batch)
+         state = state.materialized(self.layers[self.end_layer - 1].hc_cfg)
++        if hc_rows is not None:
++            state = hc_rows.gather_state(state)
+         if saved_dp is not None:
+             exit_late_layer_dp(forward_batch, saved_dp)
+         if saved_full is not None:
+@@ -5834,6 +5893,9 @@
+                 f"Some weights are not initialized from checkpoints: {unloaded_params}"
+             )
+ 
++        if not is_nextn:
++            _g94_mapping_audit.finalize_target()
++
+         self.post_load_weights(is_nextn=is_nextn, weight_names=weight_names)
+ 
+         if not is_nextn:
+--- a/python/sglang/srt/models/deepseek_v4_dspark.py
++++ b/python/sglang/srt/models/deepseek_v4_dspark.py
+@@ -2,6 +2,7 @@
+ 
+ import copy
+ import logging
++import os
+ from contextlib import nullcontext
+ from typing import Iterable, List, Optional, Tuple
+ 
+@@ -205,8 +206,19 @@
+                     positions=positions,
+                 )
+             else:
+-                apply_rotary_emb(
+-                    q[..., -self.rope_head_dim :], self.freqs_cis[positions]
++                # The NPU index operator cannot gather complex64. Reuse
++                # the existing real-table NPU RoPE path without head norm.
++                # Keep float32 cos/sin, matching this branch's original
++                # float32 complex multiplication before rounding back to q.
++                from sglang.srt.hardware_backend.npu.dsv4.dsv4_rope import Dsv4NpuRoPE
++
++                cos4, sin4 = Dsv4NpuRoPE.for_freqs(self.freqs_cis).get_cos_sin(
++                    positions, torch.float32, view_4d=True, inverse=False,
++                    allow_build=True, cache_dtype=torch.float32,
++                )
++                Dsv4NpuRoPE.apply_rotary_mul_inplace(
++                    q, None, cos4, sin4,
++                    qk_nope_dim=q.shape[-1] - self.rope_head_dim,
+                 )
+             if q_out is None:
+                 return q
+@@ -267,6 +279,9 @@
+             and hidden_states.shape[0] <= self._multi_stream_bs_limit
+         )
+ 
++        exact_npu_heads = _is_npu and os.environ.get("SGLANG_V41_A3_EXACT_HEADS") == "1"
++        if exact_npu_heads and self.n_local_heads not in (16, 64):
++            raise ValueError("A3 exact-head draft profile is validated only at16/64 heads")
+         q_padded: Optional[torch.Tensor] = None
+         q_out: Optional[torch.Tensor] = None
+         if (
+@@ -279,7 +294,7 @@
+                 dtype=torch.float8_e4m3fn,
+                 device=hidden_states.device,
+             )
+-        elif self.n_local_heads < _PAD_NUM_HEADS:
++        elif self.n_local_heads < _PAD_NUM_HEADS and not exact_npu_heads:
+             q_padded = hidden_states.new_empty(
+                 hidden_states.shape[0], _PAD_NUM_HEADS, self.head_dim
+             )
+@@ -313,7 +328,7 @@
+ 
+         if q_padded is not None:
+             q = q_padded
+-        attn_sink = self._local_attn_sink()
++        attn_sink = self._local_attn_sink(self.n_local_heads if exact_npu_heads else None)
+ 
+         o = attn_backend.forward(
+             q=q,
+@@ -1091,14 +1106,28 @@
+                     weight_loader(param, loaded_weight)
+                     loaded_params.add(mapped)
+ 
++        self._assert_markov_head_loaded(
++            params_dict=params_dict, loaded_params=loaded_params
++        )
+         self._assert_confidence_head_loaded(
+             params_dict=params_dict, loaded_params=loaded_params
+         )
++        import runtime_mapping_audit as _g94_mapping_audit
++        _g94_mapping_audit.finalize_draft()
+         self.post_load_weights()
+ 
+     def post_load_weights(self, is_nextn=False, weight_names=None):
+         for stage in self.stages:
+             stage.refresh_mhc_norm_weight_cache()
++
++    def _assert_markov_head_loaded(self, *, params_dict: dict, loaded_params: set) -> None:
++        required = {name for name in params_dict if name.startswith("markov_head.")}
++        if not required:
++            raise ValueError("DSpark Markov head has no registered parameters")
++        missing = required - loaded_params
++        if missing:
++            raise ValueError(f"DSpark Markov checkpoint weights were not loaded: {sorted(missing)}")
++        logger.info("V41_A3_DSPARK_MARKOV_WEIGHTS_LOADED names=%s", sorted(required))
+ 
+     def _assert_confidence_head_loaded(
+         self, *, params_dict: dict, loaded_params: set
+--- a/python/sglang/srt/layers/quantization/modelslim/modelslim.py
++++ b/python/sglang/srt/layers/quantization/modelslim/modelslim.py
+@@ -125,7 +125,12 @@
+             if rest in ("head.weight", "lm_head.weight"):
+                 return "lm_head.weight"
+         return None
+-    if rest.startswith(("markov_head.", "confidence_head.")):
++    if rest.startswith("markov_head."):
++        # Use the same checkpoint aliases as the model-owned generic loader.
++        rest = rest.replace("markov_head.embed.", "markov_head.markov_w1.", 1)
++        rest = rest.replace("markov_head.head.", "markov_head.markov_w2.", 1)
++        return rest
++    if rest.startswith("confidence_head."):
+         return rest
+ 
+     mapped_rest = rest
+@@ -160,7 +165,13 @@
+         super().__init__()
+         self.requested_kv_cache_dtype = "auto"
+         keys = [k for k in quant_config if isinstance(k, str)]
+-        is_dsv4 = any(k.startswith("hc_head_") for k in keys)
++        # V4.1 has no hc_head_* collapse parameters. Its raw ModelSlim
++        # checkpoint is identified by Engram plus raw FFN expert names, then
++        # normalized through the same model-owned mapping as DeepSeek V4.
++        is_dsv41_raw = any(
++            k.startswith("layers.") and ".engram." in k for k in keys
++        ) and any(k.startswith("layers.") and ".ffn.experts." in k for k in keys)
++        is_dsv4 = any(k.startswith("hc_head_") for k in keys) or is_dsv41_raw
+         if is_dsv4:
+             from sglang.srt.models.deepseek_v4 import DeepseekV4ForCausalLM
+ 
+--- a/python/sglang/srt/layers/engram.py
++++ b/python/sglang/srt/layers/engram.py
+@@ -1523,6 +1523,12 @@
+         image_token_id: Optional[int] = None,
+     ):
+         super().__init__()
++        # Explicit Eco-Tech INT8/E8M0 A3 compatibility path, installed only
++        # after this worker's device and distributed initialization.
++        if os.environ.get("SGLANG_NPU_ENGRAM_INT8_E8M0") == "1":
++            from engram_npu_uva import install
++
++            install(rotation_path=os.environ.get("SGLANG_NPU_ENGRAM_ROTATION"))
+         self.layer_hash_index = layout.layer_ids.index(layer_id)
+         self.image_token_id = image_token_id
+         self.eps = config.rms_norm_eps
+@@ -1535,6 +1541,14 @@
+             column_bounds=layout.column_bounds(self.layer_hash_index),
+             mxfp4=_engram_table_is_mxfp4(config),
+         )
++        if os.environ.get("SGLANG_NPU_ENGRAM_INT8_E8M0") == "1":
++            logger.info(
++                "NPU_ENGRAM_DRAM layer=%d impl=%s weight_device=%s scale_device=%s "
++                "weight_dtype=%s scale_dtype=%s table_bytes=%d",
++                layer_id, type(self.embed).__name__, self.embed.weight.device,
++                self.embed.scale.device, self.embed.weight.dtype, self.embed.scale.dtype,
++                self.embed.host_table.nbytes,
++            )
+         n_hash_cols = (layout.max_ngram_size - 1) * layout.n_heads
+         self.wkv = ReplicatedLinear(
+             n_hash_cols * layout.head_dim,
+--- a/python/sglang/srt/model_loader/weight_utils.py
++++ b/python/sglang/srt/model_loader/weight_utils.py
+@@ -280,6 +280,13 @@
+         return quant_cls.from_config({})
+ 
+     checkpoint_quant_spec = resolve_checkpoint_quant_spec(model_config.hf_config)
++    # ModelSlim config.json declares only its method; per-layer descriptions
++    # live in the dedicated file, also preferred by ModelConfig verification.
++    # Keep the normal inline path when no local ModelSlim description exists.
++    if model_config.quantization == "modelslim" and os.path.isfile(
++        os.path.join(model_config.model_path, "quant_model_description.json")
++    ):
++        checkpoint_quant_spec = None
+     if checkpoint_quant_spec is not None:
+         hf_quant_config = checkpoint_quant_spec.config
+         # For modelopt_mixed, config.json's quantization_config may not
+--- a/python/sglang/srt/models/deepseek_v4_mhc.py
++++ b/python/sglang/srt/models/deepseek_v4_mhc.py
+@@ -22,6 +22,7 @@
+ 
+ from __future__ import annotations
+ 
++import os
+ from functools import partial
+ from typing import Any, Callable, NamedTuple, Optional, Tuple, TypeAlias, Union
+ 
+@@ -62,6 +63,17 @@
+ _is_npu = is_npu()
+ _is_xpu = is_xpu()
+ 
++# Opt-in NPU prefill workspace bound. Every leaf uses the unchanged FP32 path.
++_NPU_MHC_STATS_CHUNK_ROWS = int(os.environ.get("SGLANG_NPU_MHC_STATS_CHUNK_ROWS", "0"))
++if _NPU_MHC_STATS_CHUNK_ROWS < 0:
++    raise ValueError("SGLANG_NPU_MHC_STATS_CHUNK_ROWS must be nonnegative")
++_NPU_MHC_STATS_CHUNK_LOGGED = False
++
++# Opt-in: retain FP32 projection/Sinkhorn and reuse only the fused inverse RMS.
++_NPU_MHC_FUSED_RMS = os.environ.get("SGLANG_NPU_MHC_FUSED_RMS", "0") == "1"
++_NPU_MHC_RMS_GAMMA = {}
++
++
+ 
+ # The fused all-reduce epilogues have world-size-templated kernels for TP2 and TP4.
+ _FUSED_MHC_TP_SIZES = (2, 4)
+@@ -359,6 +371,20 @@
+ 
+ 
+ def _mix_stats_impl(hc: HcSubLayer, x: torch.Tensor) -> HcTriplet:
++    if _is_npu and _NPU_MHC_STATS_CHUNK_ROWS and x.shape[0] > _NPU_MHC_STATS_CHUNK_ROWS:
++        global _NPU_MHC_STATS_CHUNK_LOGGED
++        if not _NPU_MHC_STATS_CHUNK_LOGGED:
++            print(
++                f"V41_A3_MHC_STATS_ROW_CHUNK rows={x.shape[0]} "
++                f"chunk={_NPU_MHC_STATS_CHUNK_ROWS} fp32_projection=True fused_rms={_NPU_MHC_FUSED_RMS}",
++                flush=True,
++            )
++            _NPU_MHC_STATS_CHUNK_LOGGED = True
++        triplets = [
++            _mix_stats_impl(hc, x[start : start + _NPU_MHC_STATS_CHUNK_ROWS])
++            for start in range(0, x.shape[0], _NPU_MHC_STATS_CHUNK_ROWS)
++        ]
++        return tuple(torch.cat([triplet[i] for triplet in triplets], dim=0) for i in range(3))
+     from sglang.kernels.ops.layernorm.mhc import (
+         hc_mix_stats,
+         hc_mix_stats_sinkhorn,
+@@ -368,6 +394,12 @@
+     cfg = hc.cfg
+ 
+     x_flat = x.flatten(1)
++    if (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous()
++            and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] in (5,6,10,12,15,18,20,24)
++            and cfg.mult == 4 and cfg.sinkhorn_iters == 20):
++        from sglang_mhc_small122 import run_for_layer
++        return run_for_layer(hc,x_flat,cfg,lambda flat: _g119_original_mix_stats_impl(hc,flat.view(-1,4,5120)))
++
+ 
+     from sglang.srt.batch_invariant_ops import (
+         is_batch_invariant_mode_enabled,
+@@ -445,25 +477,55 @@
+         # cuBLAS/torch reductions can change order with num_tokens; this kernel
+         # keeps the mixing and RMS reductions batch-invariant.
+         mixes = hc_mix_stats(x_flat, hc.fn, cfg.rms_eps).unsqueeze(1)
++    elif (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous() and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] >= 2048 and cfg.mult == 4):
++        from sglang_mhc_projection119 import project_for_layer
++        mixes = project_for_layer(x_flat, hc.fn, cfg.rms_eps).unsqueeze(1)
+     else:
+-        x_flat = x_flat.float()
+-        rsqrt = torch.rsqrt(x_flat.square().mean(-1, keepdim=True) + cfg.rms_eps)
+-        mixes = (F.linear(x_flat, hc.fn) * rsqrt).unsqueeze(1)
++        if _is_npu and _NPU_MHC_FUSED_RMS and x_flat.shape[0] > 0:
++            import torch_npu
++            key = (x_flat.device, x_flat.dtype, x_flat.shape[-1])
++            gamma = _NPU_MHC_RMS_GAMMA.get(key)
++            if gamma is None:
++                gamma = torch.ones(x_flat.shape[-1], device=x_flat.device, dtype=x_flat.dtype)
++                _NPU_MHC_RMS_GAMMA[key] = gamma
++            unused_normalized, rsqrt = torch_npu.npu_rms_norm(x_flat, gamma, cfg.rms_eps)
++            del unused_normalized
++            assert rsqrt.dtype == torch.float32
++            rsqrt = rsqrt.reshape(x_flat.shape[0], 1)
++            # The BF16 normalized activation is deliberately discarded.
++            mixes = (F.linear(x_flat.float(), hc.fn) * rsqrt).unsqueeze(1)
++        else:
++            x_flat = x_flat.float()
++            rsqrt = torch.rsqrt(x_flat.square().mean(-1, keepdim=True) + cfg.rms_eps)
++            mixes = (F.linear(x_flat, hc.fn) * rsqrt).unsqueeze(1)
+     if _is_xpu:
+         from sglang.srt.models.deepseek_v4 import get_mhc_ops
+ 
+         split_sinkhorn = get_mhc_ops().hc_split_sinkhorn
+     else:
+         split_sinkhorn = hc_split_sinkhorn
+-    pre, post, comb = split_sinkhorn(
+-        mixes,
+-        hc.scale,
+-        hc.base,
+-        cfg.mult,
+-        cfg.sinkhorn_iters,
+-        cfg.eps,
+-    )
+-    return pre.squeeze(1), post.squeeze(1), comb.squeeze(1)
++    if (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous()
++            and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] >= 2048
++            and cfg.mult == 4 and cfg.sinkhorn_iters == 20):
++        from sglang_mhc_vendor112 import split as vendor_split
++        pre, post, comb = vendor_split(
++            mixes, hc.scale, hc.base, cfg.mult, cfg.sinkhorn_iters, cfg.eps,
++            residual=x, fallback=split_sinkhorn,
++        )
++    else:
++        pre, post, comb = split_sinkhorn(
++            mixes,
++            hc.scale,
++            hc.base,
++            cfg.mult,
++            cfg.sinkhorn_iters,
++            cfg.eps,
++        )
++    outputs = (pre.squeeze(1), post.squeeze(1), comb.squeeze(1))
++    if (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous() and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] >= 2048 and cfg.mult == 4):
++        from sglang_mhc_projection119 import verify_once
++        verify_once(hc, x, outputs, lambda: _g112_original_mix_stats_impl(hc, x))
++    return outputs
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -940,3 +1002,300 @@
+             out += pieces.shared
+     coefficients = _compute_triplet(hc, residual, stats_stream, precomputed)
+     return _post_fusion(hc, out, residual, coefficients, next)
++
++
++def _g112_original_mix_stats_impl(hc: HcSubLayer, x: torch.Tensor) -> HcTriplet:
++    if _is_npu and _NPU_MHC_STATS_CHUNK_ROWS and x.shape[0] > _NPU_MHC_STATS_CHUNK_ROWS:
++        global _NPU_MHC_STATS_CHUNK_LOGGED
++        if not _NPU_MHC_STATS_CHUNK_LOGGED:
++            print(
++                f"V41_A3_MHC_STATS_ROW_CHUNK rows={x.shape[0]} "
++                f"chunk={_NPU_MHC_STATS_CHUNK_ROWS} fp32_projection=True fused_rms={_NPU_MHC_FUSED_RMS}",
++                flush=True,
++            )
++            _NPU_MHC_STATS_CHUNK_LOGGED = True
++        triplets = [
++            _g112_original_mix_stats_impl(hc, x[start : start + _NPU_MHC_STATS_CHUNK_ROWS])
++            for start in range(0, x.shape[0], _NPU_MHC_STATS_CHUNK_ROWS)
++        ]
++        return tuple(torch.cat([triplet[i] for triplet in triplets], dim=0) for i in range(3))
++    from sglang.kernels.ops.layernorm.mhc import (
++        hc_mix_stats,
++        hc_mix_stats_sinkhorn,
++        hc_split_sinkhorn,
++    )
++
++    cfg = hc.cfg
++
++    x_flat = x.flatten(1)
++
++    from sglang.srt.batch_invariant_ops import (
++        is_batch_invariant_mode_enabled,
++    )
++
++    parts = bf16_parts = None
++    hopper_medium = get_platform().is_sm90 and 32 <= x_flat.shape[0] < 4096
++    if (
++        x.is_cuda
++        and x_flat.shape[0] >= 32
++        and x_flat.is_contiguous()
++        and (
++            get_platform().is_sm100 or get_platform().is_sm90 or get_platform().is_sm120
++        )
++        and envs.SGLANG_OPT_DEEPGEMM_HC_PRENORM.get()
++        and not is_batch_invariant_mode_enabled()
++    ):
++        parts, bf16_parts = hc.tf32_parts, hc.bf16_parts
++
++    use_bf16_projection = bf16_parts is not None and (
++        hopper_medium or 4096 <= x_flat.shape[0] <= 65536
++    )
++    hopper_fused_stats = get_platform().is_sm90 and (
++        x.shape[0] == 1 or (bf16_parts is not None and 32 <= x.shape[0] <= 65536)
++    )
++    # gfx950 uses the fused Triton port at every row count (MI350X).
++    use_fused_stats = _is_gfx95_supported or (
++        torch.version.cuda is not None
++        and (get_platform().is_blackwell or hopper_fused_stats)
++    )
++    if x.is_cuda and use_fused_stats and x.dtype == torch.bfloat16:
++        # The default split-K/Sinkhorn fusion preserves batch invariance;
++        # compensated projections above are disabled in batch-invariant mode.
++        if use_bf16_projection:
++            from sglang.kernels.ops.layernorm.mhc import (
++                hc_mix_stats_sinkhorn_bf16x3,
++            )
++
++            pre, post, comb = hc_mix_stats_sinkhorn_bf16x3(
++                x_flat,
++                bf16_parts,
++                hc.scale,
++                hc.base,
++                cfg.sinkhorn_iters,
++                cfg.rms_eps,
++                cfg.eps,
++            )
++        elif parts is not None:
++            from sglang.kernels.ops.layernorm.mhc import (
++                hc_mix_stats_sinkhorn_deepgemm,
++            )
++
++            pre, post, comb = hc_mix_stats_sinkhorn_deepgemm(
++                x_flat,
++                parts,
++                hc.scale,
++                hc.base,
++                cfg.sinkhorn_iters,
++                cfg.rms_eps,
++                cfg.eps,
++            )
++        else:
++            pre, post, comb = hc_mix_stats_sinkhorn(
++                x_flat,
++                hc.fn,
++                hc.scale,
++                hc.base,
++                cfg.mult,
++                cfg.sinkhorn_iters,
++                cfg.rms_eps,
++                cfg.eps,
++            )
++        return pre, post, comb
++    if x.is_cuda and torch.version.cuda is not None:
++        # cuBLAS/torch reductions can change order with num_tokens; this kernel
++        # keeps the mixing and RMS reductions batch-invariant.
++        mixes = hc_mix_stats(x_flat, hc.fn, cfg.rms_eps).unsqueeze(1)
++    else:
++        if _is_npu and _NPU_MHC_FUSED_RMS and x_flat.shape[0] > 0:
++            import torch_npu
++            key = (x_flat.device, x_flat.dtype, x_flat.shape[-1])
++            gamma = _NPU_MHC_RMS_GAMMA.get(key)
++            if gamma is None:
++                gamma = torch.ones(x_flat.shape[-1], device=x_flat.device, dtype=x_flat.dtype)
++                _NPU_MHC_RMS_GAMMA[key] = gamma
++            unused_normalized, rsqrt = torch_npu.npu_rms_norm(x_flat, gamma, cfg.rms_eps)
++            del unused_normalized
++            assert rsqrt.dtype == torch.float32
++            rsqrt = rsqrt.reshape(x_flat.shape[0], 1)
++            # The BF16 normalized activation is deliberately discarded.
++            mixes = (F.linear(x_flat.float(), hc.fn) * rsqrt).unsqueeze(1)
++        else:
++            x_flat = x_flat.float()
++            rsqrt = torch.rsqrt(x_flat.square().mean(-1, keepdim=True) + cfg.rms_eps)
++            mixes = (F.linear(x_flat, hc.fn) * rsqrt).unsqueeze(1)
++    if _is_xpu:
++        from sglang.srt.models.deepseek_v4 import get_mhc_ops
++
++        split_sinkhorn = get_mhc_ops().hc_split_sinkhorn
++    else:
++        split_sinkhorn = hc_split_sinkhorn
++    if (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous()
++            and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] >= 2048
++            and cfg.mult == 4 and cfg.sinkhorn_iters == 20):
++        from sglang_mhc_vendor112 import split as vendor_split
++        pre, post, comb = vendor_split(
++            mixes, hc.scale, hc.base, cfg.mult, cfg.sinkhorn_iters, cfg.eps,
++            residual=x, fallback=split_sinkhorn,
++        )
++    else:
++        pre, post, comb = split_sinkhorn(
++            mixes,
++            hc.scale,
++            hc.base,
++            cfg.mult,
++            cfg.sinkhorn_iters,
++            cfg.eps,
++        )
++    return pre.squeeze(1), post.squeeze(1), comb.squeeze(1)
++
++
++def _g119_original_mix_stats_impl(hc: HcSubLayer, x: torch.Tensor) -> HcTriplet:
++    if _is_npu and _NPU_MHC_STATS_CHUNK_ROWS and x.shape[0] > _NPU_MHC_STATS_CHUNK_ROWS:
++        global _NPU_MHC_STATS_CHUNK_LOGGED
++        if not _NPU_MHC_STATS_CHUNK_LOGGED:
++            print(
++                f"V41_A3_MHC_STATS_ROW_CHUNK rows={x.shape[0]} "
++                f"chunk={_NPU_MHC_STATS_CHUNK_ROWS} fp32_projection=True fused_rms={_NPU_MHC_FUSED_RMS}",
++                flush=True,
++            )
++            _NPU_MHC_STATS_CHUNK_LOGGED = True
++        triplets = [
++            _mix_stats_impl(hc, x[start : start + _NPU_MHC_STATS_CHUNK_ROWS])
++            for start in range(0, x.shape[0], _NPU_MHC_STATS_CHUNK_ROWS)
++        ]
++        return tuple(torch.cat([triplet[i] for triplet in triplets], dim=0) for i in range(3))
++    from sglang.kernels.ops.layernorm.mhc import (
++        hc_mix_stats,
++        hc_mix_stats_sinkhorn,
++        hc_split_sinkhorn,
++    )
++
++    cfg = hc.cfg
++
++    x_flat = x.flatten(1)
++
++    from sglang.srt.batch_invariant_ops import (
++        is_batch_invariant_mode_enabled,
++    )
++
++    parts = bf16_parts = None
++    hopper_medium = get_platform().is_sm90 and 32 <= x_flat.shape[0] < 4096
++    if (
++        x.is_cuda
++        and x_flat.shape[0] >= 32
++        and x_flat.is_contiguous()
++        and (
++            get_platform().is_sm100 or get_platform().is_sm90 or get_platform().is_sm120
++        )
++        and envs.SGLANG_OPT_DEEPGEMM_HC_PRENORM.get()
++        and not is_batch_invariant_mode_enabled()
++    ):
++        parts, bf16_parts = hc.tf32_parts, hc.bf16_parts
++
++    use_bf16_projection = bf16_parts is not None and (
++        hopper_medium or 4096 <= x_flat.shape[0] <= 65536
++    )
++    hopper_fused_stats = get_platform().is_sm90 and (
++        x.shape[0] == 1 or (bf16_parts is not None and 32 <= x.shape[0] <= 65536)
++    )
++    # gfx950 uses the fused Triton port at every row count (MI350X).
++    use_fused_stats = _is_gfx95_supported or (
++        torch.version.cuda is not None
++        and (get_platform().is_blackwell or hopper_fused_stats)
++    )
++    if x.is_cuda and use_fused_stats and x.dtype == torch.bfloat16:
++        # The default split-K/Sinkhorn fusion preserves batch invariance;
++        # compensated projections above are disabled in batch-invariant mode.
++        if use_bf16_projection:
++            from sglang.kernels.ops.layernorm.mhc import (
++                hc_mix_stats_sinkhorn_bf16x3,
++            )
++
++            pre, post, comb = hc_mix_stats_sinkhorn_bf16x3(
++                x_flat,
++                bf16_parts,
++                hc.scale,
++                hc.base,
++                cfg.sinkhorn_iters,
++                cfg.rms_eps,
++                cfg.eps,
++            )
++        elif parts is not None:
++            from sglang.kernels.ops.layernorm.mhc import (
++                hc_mix_stats_sinkhorn_deepgemm,
++            )
++
++            pre, post, comb = hc_mix_stats_sinkhorn_deepgemm(
++                x_flat,
++                parts,
++                hc.scale,
++                hc.base,
++                cfg.sinkhorn_iters,
++                cfg.rms_eps,
++                cfg.eps,
++            )
++        else:
++            pre, post, comb = hc_mix_stats_sinkhorn(
++                x_flat,
++                hc.fn,
++                hc.scale,
++                hc.base,
++                cfg.mult,
++                cfg.sinkhorn_iters,
++                cfg.rms_eps,
++                cfg.eps,
++            )
++        return pre, post, comb
++    if x.is_cuda and torch.version.cuda is not None:
++        # cuBLAS/torch reductions can change order with num_tokens; this kernel
++        # keeps the mixing and RMS reductions batch-invariant.
++        mixes = hc_mix_stats(x_flat, hc.fn, cfg.rms_eps).unsqueeze(1)
++    elif (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous() and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] >= 2048 and cfg.mult == 4):
++        from sglang_mhc_projection119 import project_for_layer
++        mixes = project_for_layer(x_flat, hc.fn, cfg.rms_eps).unsqueeze(1)
++    else:
++        if _is_npu and _NPU_MHC_FUSED_RMS and x_flat.shape[0] > 0:
++            import torch_npu
++            key = (x_flat.device, x_flat.dtype, x_flat.shape[-1])
++            gamma = _NPU_MHC_RMS_GAMMA.get(key)
++            if gamma is None:
++                gamma = torch.ones(x_flat.shape[-1], device=x_flat.device, dtype=x_flat.dtype)
++                _NPU_MHC_RMS_GAMMA[key] = gamma
++            unused_normalized, rsqrt = torch_npu.npu_rms_norm(x_flat, gamma, cfg.rms_eps)
++            del unused_normalized
++            assert rsqrt.dtype == torch.float32
++            rsqrt = rsqrt.reshape(x_flat.shape[0], 1)
++            # The BF16 normalized activation is deliberately discarded.
++            mixes = (F.linear(x_flat.float(), hc.fn) * rsqrt).unsqueeze(1)
++        else:
++            x_flat = x_flat.float()
++            rsqrt = torch.rsqrt(x_flat.square().mean(-1, keepdim=True) + cfg.rms_eps)
++            mixes = (F.linear(x_flat, hc.fn) * rsqrt).unsqueeze(1)
++    if _is_xpu:
++        from sglang.srt.models.deepseek_v4 import get_mhc_ops
++
++        split_sinkhorn = get_mhc_ops().hc_split_sinkhorn
++    else:
++        split_sinkhorn = hc_split_sinkhorn
++    if (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous()
++            and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] >= 2048
++            and cfg.mult == 4 and cfg.sinkhorn_iters == 20):
++        from sglang_mhc_vendor112 import split as vendor_split
++        pre, post, comb = vendor_split(
++            mixes, hc.scale, hc.base, cfg.mult, cfg.sinkhorn_iters, cfg.eps,
++            residual=x, fallback=split_sinkhorn,
++        )
++    else:
++        pre, post, comb = split_sinkhorn(
++            mixes,
++            hc.scale,
++            hc.base,
++            cfg.mult,
++            cfg.sinkhorn_iters,
++            cfg.eps,
++        )
++    outputs = (pre.squeeze(1), post.squeeze(1), comb.squeeze(1))
++    if (_is_npu and x.dtype == torch.bfloat16 and x.is_contiguous() and tuple(x.shape[1:]) == (4, 5120) and x.shape[0] >= 2048 and cfg.mult == 4):
++        from sglang_mhc_projection119 import verify_once
++        verify_once(hc, x, outputs, lambda: _g112_original_mix_stats_impl(hc, x))
++    return outputs
+--- a/python/sglang/srt/layers/moe/moe_runner/ascend.py
++++ b/python/sglang/srt/layers/moe/moe_runner/ascend.py
+@@ -198,6 +198,12 @@
+                     need_quant=is_quant_kernel,
+                     alpha=config.gemm1_alpha,
+                     limit=config.gemm1_clamp_limit,
++                    # Keep the DeepSeek pre-SiLU limit separate from OAI's limit.
++                    swiglu_limit=(
++                        config.swiglu_limit
++                        if isinstance(kernel, NPUW8A8Int8MoEMethod)
++                        else None
++                    ),
+                 )
+         else:
+             # Non-DeepEP, no-A2A routing path
+--- a/python/sglang/srt/hardware_backend/npu/moe/activation.py
++++ b/python/sglang/srt/hardware_backend/npu/moe/activation.py
+@@ -80,14 +80,22 @@
+     """DeepEP grouped SwiGLU for the Ascend MoE runner; picks ``swiglu_quant`` vs the MiniMax
+     SwiGLU-OAI variant (``swiglu_oai_quant``: ``gate*sigmoid(gate*alpha)*(up+1)`` w/ clamping)
+     based on whether ``alpha``/``limit`` are given. The runner must forward
+-    ``gemm1_alpha``/``gemm1_clamp_limit`` here or experts fall back to wrong SwiGLU."""
++    ``gemm1_alpha``/``gemm1_clamp_limit`` here or experts fall back to wrong SwiGLU.
++    ``swiglu_limit`` independently selects DeepSeek's raw gate/up pre-SiLU clamp;
++    combining it with OAI parameters is ambiguous and rejected."""
+ 
+     def __init__(
+         self,
+         need_quant: bool = True,
+         alpha: Optional[float] = None,
+         limit: Optional[float] = None,
+-    ):
++        swiglu_limit: Optional[float] = None,
++    ):
++        self.swiglu_limit = (
++            swiglu_limit if swiglu_limit is not None and swiglu_limit > 0 else None
++        )
++        if self.swiglu_limit is not None and (alpha is not None or limit is not None):
++            raise ValueError("swiglu_limit cannot be combined with OAI alpha/limit")
+         self.need_quant = need_quant
+         self.alpha = alpha
+         self.limit = limit
+@@ -120,7 +128,11 @@
+             )
+         else:
+             hidden_states, per_token_scale = self._kernel(
+-                hidden_states, group_list, group_list_type, need_quant=self.need_quant
++                hidden_states,
++                group_list,
++                group_list_type,
++                need_quant=self.need_quant,
++                swiglu_limit=self.swiglu_limit,
+             )
+         if self.need_quant:
+             return hidden_states, per_token_scale
+--- /dev/null
++++ b/python/sglang/srt/hardware_backend/npu/moe/fuseep_dsv41.py
+@@ -0,0 +1,154 @@
++"""1017/W8A8 mode2 physical400 candidate; consumes SGLang's trained routing."""
++from pathlib import Path
++import hashlib
++import os
++
++import torch
++from sglang.srt.runtime_context import get_exec, get_parallel
++
++_G95_CAPTURE_DIR=os.environ.get('SGLANG_G95_ROUTE_CAPTURE_DIR','')
++if _G95_CAPTURE_DIR:
++    import route_histogram_observer as _g94_observer
++    print('G95_ROUTE_OBSERVER_LOADED pid=%d observer_sha256=%s' % (os.getpid(),hashlib.sha256(Path(_g94_observer.__file__).read_bytes()).hexdigest()),flush=True)
++
++if os.environ.get('SGLANG_G95_MAPPING_AUDIT_PLAN'):
++    print('G95_FUSEEP_LOADED pid=%d adapter_sha256=%s source=%s' % (os.getpid(), hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), __file__), flush=True)
++
++_loaded = False
++_group_names = {}
++_PROVIDER_SHA256 = '5e7735b6b84626596a5eb7ac6e4b2a028fa227ee8f267f435ca6cd5f4928fbea'
++
++
++def _load_binding():
++    global _loaded
++    if _loaded:
++        return
++    provider = Path(os.environ['SGLANG_DSV41_FUSED_MOE_OPAPI']).resolve()
++    library = Path(os.environ['SGLANG_DSV41_FUSED_MOE_LIBRARY']).resolve()
++    if hashlib.sha256(provider.read_bytes()).hexdigest() != _PROVIDER_SHA256:
++        raise RuntimeError('Fused MoE provider differs from the pinned INT8 ABI')
++    torch.ops.load_library(str(library))
++    if Path(torch.ops.sglang_dsv41_fused.provider_path()).resolve() != provider:
++        raise RuntimeError('Fused MoE resolved a different operator provider')
++    _loaded = True
++
++
++def received_capacity(global_limit, source_rows, topk, world_size, global_num_tokens):
++    """Bound all incoming routes using SG's current DP-wide CPU metadata.
++
++    DP counts cover full unsharded rows; each EP rank owns at most that DP's
++    rows. max(DP rows)*EP*topk therefore remains safe for uneven DP lengths.
++    Before a ForwardBatch exists, retain the original configured ceiling.
++    """
++    if global_limit <= 0 or source_rows < 0 or topk <= 0 or world_size != 16:
++        raise ValueError('Invalid explicit capacity contract')
++    if global_num_tokens is None:
++        return global_limit
++    if len(global_num_tokens) != 4 or any(not isinstance(n, int) or n < 0 for n in global_num_tokens):
++        raise ValueError('Expected current four-DP CPU token counts')
++    max_dp_rows = max(global_num_tokens)
++    if max_dp_rows == 0:
++        return global_limit
++    if source_rows > max_dp_rows:
++        raise ValueError(f'Source rows {source_rows} exceed DP metadata ceiling {max_dp_rows}')
++    return min(global_limit, max_dp_rows * world_size * topk)
++
++
++def exact_prefill_enabled(global_num_tokens, is_extend_in_batch, geometry):
++    # The decision uses DP-global CPU metadata, never local source length.
++    # Target/draft graphs use small global buckets and bypass this collective.
++    return (geometry == (400, 6) and is_extend_in_batch
++            and global_num_tokens is not None and max(global_num_tokens) > 128)
++
++
++_histogram_groups = {}
++
++
++def histogram_group(group):
++    """A bounded scratch communicator for the 1600-byte physical-expert histogram."""
++    import torch.distributed as dist
++    import torch_npu
++    key = id(group)
++    if key not in _histogram_groups:
++        ranks = dist.get_process_group_ranks(group)
++        options = torch_npu._C._distributed_c10d.ProcessGroupHCCL.Options()
++        options.hccl_config = {"hccl_buffer_size": 16,
++                               "group_name": "sglang_prefill_route_histogram"}
++        small = dist.new_group(ranks=ranks, backend="hccl", pg_options=options)
++        _histogram_groups[key] = small
++    return _histogram_groups[key]
++
++
++def exact_received_capacity(ids, active, group, total_experts, global_limit, layer_id=None, global_tokens=None):
++    """Count all active expert routes; return the largest exact owner total.
++
++    One tiny EP histogram reduction plus one CPU scalar read is intentional
++    for eager large-prefill only. No route/token truncation or approximation.
++    """
++    import torch.distributed as dist
++    if total_experts % group.size() or ids.ndim != 2 or active.shape != ids.shape[:1]:
++        raise ValueError('Invalid expert owner/count geometry')
++    hist = torch.zeros(total_experts, dtype=torch.int32, device=ids.device)
++    votes = active.unsqueeze(-1).expand_as(ids).reshape(-1).to(torch.int32)
++    hist.scatter_add_(0, ids.reshape(-1).long(), votes)
++    dist.all_reduce(hist, op=dist.ReduceOp.SUM, group=histogram_group(group))
++    incoming = hist.reshape(group.size(), -1).sum(dim=1)
++    capacity = max(1, int(incoming.max().item()))
++    if capacity > global_limit:
++        raise ValueError(f'Actual incoming routes {capacity} exceed configured ceiling {global_limit}')
++    if _G95_CAPTURE_DIR:
++        _g94_observer.observe(hist,capacity,layer_id,global_tokens,group)
++    return capacity
++
++
++def forward_fuseep_dsv41(layer, hidden_states, topk_output):
++    """Return unscaled routed output at the existing FuseEP boundary.
++
++    SGLang retains shared-expert execution, output scaling and model merge.
++    Existing mode2 checkpoint postprocessing owns NZ weights and INT64 scales.
++    """
++    if layer.moe_runner_config.swiglu_limit != 10.0:
++        raise ValueError('This isolated candidate requires the 1017 raw clamp10')
++    if get_exec().moe.fuseep_mode != 2:
++        raise ValueError("The 1017 candidate requires FuseEP mode2")
++    routing_contract = (layer.num_experts, layer.top_k)
++    if (hidden_states.shape[0] > 2048
++            or routing_contract not in {(400, 6), (128, 3)}
++            or topk_output.topk_ids.shape[-1] != layer.top_k):
++        raise ValueError(
++            f"Unexpected 1017 target/draft routing: E/K={routing_contract}, "
++            f"rows={hidden_states.shape[0]}, observedK={topk_output.topk_ids.shape[-1]}")
++    _load_binding()
++    group = get_parallel().moe_ep_group.device_group
++    group_key = (id(group), hidden_states.device.index)
++    if group_key not in _group_names:
++        backend = group._get_backend(torch.device('npu'))
++        _group_names[group_key] = backend.get_hccl_comm_name(group.rank())
++    capacity = int(os.environ['SGLANG_DSV41_FUSED_MOE_MAX_RECV_TOKENS'])
++    if capacity <= 0:
++        raise ValueError('An explicit positive received-row capacity is required')
++    from sglang.srt.layers.dp_attention import get_dp_global_num_tokens
++    capacity = received_capacity(capacity, hidden_states.shape[0], layer.top_k,
++                                 group.size(), get_dp_global_num_tokens())
++    ids = topk_output.topk_ids.to(torch.int32)
++    probs = topk_output.topk_weights.to(torch.float32)
++    # Standard NPU top-k represents padded rows by zero routing weights.
++    # An entirely zero-weight row contributes exactly zero routed output.
++    active = probs.ne(0).any(dim=-1)
++    ids = torch.where(active.unsqueeze(-1), ids, 0)
++    from sglang.srt.layers.dp_attention import get_is_extend_in_batch
++    global_tokens = get_dp_global_num_tokens()
++    if global_tokens is not None and max(global_tokens) > 128:
++        if exact_prefill_enabled(global_tokens, get_is_extend_in_batch(), routing_contract):
++            capacity = exact_received_capacity(ids, active, group, layer.num_experts, capacity,
++                                               layer_id=layer.layer_id, global_tokens=global_tokens)
++    out = torch.zeros_like(hidden_states)
++    counts = torch.empty((layer.w13_weight.shape[0],),
++                         dtype=torch.int32, device=hidden_states.device)
++    torch.ops.sglang_dsv41_fused.dispatch(
++        hidden_states, [layer.w13_weight], [layer.w2_weight], ids,
++        [layer.w13_weight_scale], [layer.w2_weight_scale], probs,
++        _group_names[group_key], capacity, 10.0, group.size(), active,
++        out, counts,
++    )
++    return out
+--- a/python/sglang/srt/hardware_backend/npu/moe/fuseep.py
++++ b/python/sglang/srt/hardware_backend/npu/moe/fuseep.py
+@@ -9,6 +9,7 @@
+ from __future__ import annotations
+ 
+ from typing import TYPE_CHECKING
++import os
+ 
+ import torch
+ 
+@@ -43,6 +44,9 @@
+     hidden_states: torch.Tensor,
+     topk_output: TopKOutput,
+ ) -> torch.Tensor:
++    if os.environ.get("SGLANG_DSV41_FUSED_MOE_ENABLE") == "1":
++        from .fuseep_dsv41 import forward_fuseep_dsv41
++        return forward_fuseep_dsv41(layer, hidden_states, topk_output)
+     buf = _get_fuseep_buffer(layer)
+     hidden_states, _ = buf.fused_deep_moe(
+         hidden_states,
+--- a/python/sglang/srt/speculative/dspark_components/dspark_verify.py
++++ b/python/sglang/srt/speculative/dspark_components/dspark_verify.py
+@@ -93,7 +93,7 @@
+         return True
+     if sampling_info.has_custom_logit_processor:
+         return False
+-    if getattr(sampling_info, "acc_linear_penalties", None) is not None:
++    if getattr(sampling_info, "acc_additive_penalties", None) is not None:
+         return False
+     penalizer = getattr(sampling_info, "penalizer_orchestrator", None)
+     if penalizer is not None and penalizer.is_required:
+--- a/python/sglang/srt/speculative/dflash_utils.py
++++ b/python/sglang/srt/speculative/dflash_utils.py
+@@ -221,7 +221,7 @@
+     """Apply sampling-time logit adjustments for DFlash verify in place.
+ 
+     This keeps v1 and v2 verify semantics aligned while letting overlap scheduling
+-    use the cheaper precomputed `acc_linear_penalties` path instead of allocating a
++    use the cheaper precomputed `acc_additive_penalties` path instead of allocating a
+     repeated `[bs * draft_token_num, vocab]` penalty tensor every step.
+     """
+     if sampling_info is None:
+@@ -247,7 +247,7 @@
+             num_tokens_in_batch=draft_token_num,
+         )
+ 
+-    acc_linear_penalties = getattr(sampling_info, "acc_linear_penalties", None)
++    acc_additive_penalties = getattr(sampling_info, "acc_additive_penalties", None)
+     penalizer = getattr(sampling_info, "penalizer_orchestrator", None)
+     grammar_mask = getattr(sampling_info, "grammar_mask", None)
+     logit_bias = getattr(sampling_info, "logit_bias", None)
+@@ -261,10 +261,10 @@
+         return logits_3d
+ 
+     # Dense fallback only when we need live penalizer application or a vocab mask.
+-    # In overlap scheduling the common path is `acc_linear_penalties`, which can be
++    # In overlap scheduling the common path is `acc_additive_penalties`, which can be
+     # broadcast over the verify block without materializing a repeated buffer.
+     if (
+-        penalizer is not None and penalizer.is_required and acc_linear_penalties is None
++        penalizer is not None and penalizer.is_required and acc_additive_penalties is None
+     ) or grammar_mask is not None:
+         linear_penalty = torch.zeros(
+             (bs, next_token_logits.shape[1]),
+@@ -277,16 +277,16 @@
+         )
+         return
+ 
+-    if acc_linear_penalties is not None:
++    if acc_additive_penalties is not None:
+         if (
+-            acc_linear_penalties.device != next_token_logits.device
+-            or acc_linear_penalties.dtype != next_token_logits.dtype
++            acc_additive_penalties.device != next_token_logits.device
++            or acc_additive_penalties.dtype != next_token_logits.dtype
+         ):
+-            acc_linear_penalties = acc_linear_penalties.to(
++            acc_additive_penalties = acc_additive_penalties.to(
+                 device=next_token_logits.device,
+                 dtype=next_token_logits.dtype,
+             )
+-        get_logits_3d().add_(acc_linear_penalties[:, None, :])
++        get_logits_3d().add_(acc_additive_penalties[:, None, :])
+ 
+     if logit_bias is not None:
+         if (

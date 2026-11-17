@@ -1,0 +1,106 @@
+--- a/inplace_partial_rotary_mul.py
++++ b/inplace_partial_rotary_mul.py
+@@ -29,7 +29,7 @@
+         raise RuntimeError(
+             f"This implementation requires CANN 9.2.x, got {cann_version}"
+         )
+-    from ..._third_party.sgl_ops_transformer_dsv4 import ops
++    import dsv41_rope_core5_g3 as ops
+ 
+     ops.inplace_partial_rotary_mul(x, cos, sin, **kwargs)
+     return x
+--- a/mhc_post_dpskv4.py
++++ b/mhc_post_dpskv4.py
+@@ -30,7 +30,7 @@
+         raise RuntimeError(
+             f"This implementation requires CANN 9.2.x, got {cann_version}"
+         )
+-    from ..._third_party.sgl_ops_transformer_dsv4 import ops
++    from cann_ops_transformer import ops
+ 
+     return ops.mhc_post(residual, comb, x, post)
+ 
+--- a/moe_gating_top_k.py
++++ b/moe_gating_top_k.py
+@@ -64,6 +64,17 @@
+         raise RuntimeError(
+             f"This implementation requires CANN 9.2.x, got {cann_version}"
+         )
++    if norm_type == 2:
++        import os
++        if os.environ.get("SGLANG_NPU_V41_A3_COMPAT") == "1":
++            from router_bridge import moe_gating_top_k_norm2
++            return moe_gating_top_k_norm2(
++                x, k, bias=bias, input_ids=input_ids, tid2eid=tid2eid,
++                k_group=k_group, group_count=group_count,
++                group_select_mode=group_select_mode, renorm=renorm,
++                norm_type=norm_type, out_flag=out_flag,
++                routed_scaling_factor=routed_scaling_factor, eps=eps,
++            )
+     op = getattr(torch.ops.npu, "npu_moe_gating_top_k", None)
+     if op is None:
+         raise RuntimeError(
+--- a/activation/swiglu_quant.py
++++ b/activation/swiglu_quant.py
+@@ -22,6 +22,8 @@
+     SCALE: tl.constexpr,
+     DO_LIMIT: tl.constexpr,
+     LIMIT: tl.constexpr,
++    PRE_SILU_LIMIT: tl.constexpr,
++    SWIGLU_LIMIT: tl.constexpr,
+ ):
+     # calc real total_rows
+     if GROUP_LIST_TYPE == 0:  # cusum
+@@ -48,8 +50,17 @@
+             cur_x, offsets=(HALF_COLS,), sizes=(HALF_COLS,), strides=(1,)
+         )
+ 
+-        # clamp
+-        if DO_LIMIT:
++        # DeepSeek clamps raw input-dtype gate/up before FP32 SiLU.
++        # Round the threshold in the input dtype, as the reference does.
++        if PRE_SILU_LIMIT:
++            input_limit = tl.full((), SWIGLU_LIMIT, tl.float32).to(
++                x_ptr.dtype.element_ty
++            ).to(tl.float32)
++            gate = tl.minimum(x1, input_limit)
++            up = tl.maximum(tl.minimum(x2, input_limit), -input_limit)
++            out = gate * tl.sigmoid(gate) * up
++        # Preserve the existing post-SiLU clamp for legacy callers.
++        elif DO_LIMIT:
+             gate = x1 * tl.sigmoid(x1)
+             gate = tl.minimum(gate, LIMIT)
+             up = tl.maximum(tl.minimum(x2, LIMIT), -LIMIT)
+@@ -85,8 +96,23 @@
+ 
+ 
+ def swiglu_quant(
+-    x, group_list, group_list_type, need_quant=True, do_limit=False, limit=7.0
++    x,
++    group_list,
++    group_list_type,
++    need_quant=True,
++    do_limit=False,
++    limit=7.0,
++    *,
++    swiglu_limit=None,
+ ):
++    """Grouped SwiGLU with optional independent raw gate/up pre-SiLU clamp.
++
++    ``do_limit`` keeps its legacy post-SiLU meaning. A positive ``swiglu_limit``
++    selects the pre-SiLU mode; combining both modes is rejected.
++    """
++    pre_silu_limit = swiglu_limit is not None and swiglu_limit > 0
++    if pre_silu_limit and do_limit:
++        raise ValueError("swiglu_limit cannot be combined with post-SiLU do_limit")
+     # group_list_type must be 0 cusum or 1 count
+     if group_list_type not in [0, 1]:
+         raise ValueError(f"group_list_type must be 0 or 1, but got {group_list_type}")
+@@ -123,5 +149,7 @@
+         multibuffer=True,
+         DO_LIMIT=do_limit,
+         LIMIT=limit,
++        PRE_SILU_LIMIT=pre_silu_limit,
++        SWIGLU_LIMIT=swiglu_limit if pre_silu_limit else 0.0,
+     )
+     return out, scale
