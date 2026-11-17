@@ -45,3 +45,15 @@ G72在父进程安装了只针对这个固定草稿的HF量化标签处理，但
 - [G75草稿分片类型与量化范围检查](../code/full_model_candidates/sg_pd_g75/draft_quant_bridge.py)
 - [G75原生量化名称alias](../code/full_model_candidates/sg_pd_g75/target_quant_alias_bridge.py)
 - [原生名称静态契约结果](../evidence/target_quant_name_contract_G74.json)
+
+G75在两端各8个worker中完成真实分片header核对：1226项草稿张量为1204项BF16与22项FP32，逻辑权重32428105992 bytes，三个MTP block全部覆盖；子进程安装入口确实执行。随后模型构造在MoE量化描述缺失处退出，全部8卡进程清理完成，尚未形成完整模型服务。
+
+新取回的固定镜像get_quant_config显示：即使ModelConfig已选择modelslim，HF的ascend标签仍优先返回，构造器只收到quant_method、packed_modules_mapping、hf_config，没有真正的逐层描述。使用这段原生函数和记录型配置类在CPU执行，复现其在文件解析前返回的路径。该probe不执行模型或NPU。G78在同一固定模型范围内恢复已校验的ModelSlim描述文件，保留原生packed mapping，再做原生参数名alias；主模型W4A8/草稿BF16、完整拓扑、图和PD要求不变。真实完整模型仍待验收。
+
+- [G75 D端模型构造失败](../evidence/full_model_G75/2204/server.log)
+- [G75 P端草稿dtype凭证示例](../evidence/full_model_G75/2203/embedded_draft_quant.pid134.json)
+- [原生loader HF优先路径](../code/fixed_native_loader/weight_utils.py)
+- [CPU复现原函数的配置选择](../evidence/native_quant_precedence_probe_G78.json)
+- [G78量化描述来源修正](../code/full_model_candidates/sg_pd_g78/target_quant_alias_bridge.py)
+
+可在CPU执行 `python3 scripts/reproduce_native_quant_precedence.py` 重放原函数的字典元数据选择分支；[复现脚本](../scripts/reproduce_native_quant_precedence.py)使用原生metadata解析器、原生resolver和记录型配置类，不启动模型或访问NPU。

@@ -73,6 +73,22 @@ def main():
     assert mapping['known_required_native_names_resolve_after_native_remap']['model.layers.0.mlp.experts.0.gate_proj.weight']=='W4A8_DYNAMIC'
     launch=ast.parse((ROOT/'code/full_model_candidates/sg_pd_g75/launch_pd.py').read_text())
     assert any(isinstance(n,ast.If) and ast.unparse(n.test)=="__name__ == '__mp_main__'" for n in launch.body)
+    for port in [2203,2204]: # G75
+        base=ROOT/f'evidence/full_model_G75/{port}'
+        state=json.loads((base/'state.json').read_text())
+        assert state['phase']=='failed_released' and state['cleanup']['all8_process_lists_clear']
+        assert 'Missing ModelSlim MoE quantization description' in (base/'server.log').read_text()
+        receipts=list(base.glob('embedded_draft_quant.pid*.json'))
+        assert len(receipts)==8
+        for p in receipts:
+            v=json.loads(p.read_text())
+            assert v['entries']==1226 and v['dtype_counts']=={'BF16':1204,'F32':22}
+            assert v['logical_checkpoint_bytes']==32428105992 and v['stages']==[0,1,2]
+            assert v['effective_draft_quantization'] is None and v['target_modelslim_unchanged']
+        assert len(list(base.glob('spawn_bootstrap.pid*.json')))==9
+    probe=json.loads((ROOT/'evidence/native_quant_precedence_probe_G78.json').read_text())
+    assert probe['actual_resolver_returned_key_names']==['hf_config','packed_modules_mapping','quant_method']
+    assert probe['actual_ModelSlim_file_descriptors_read'] is False
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,
