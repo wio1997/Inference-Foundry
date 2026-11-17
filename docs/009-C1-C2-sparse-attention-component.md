@@ -27,3 +27,25 @@
 +
 +该内核只接收已经选好的合法候选。原生C1/C2 compressor、INT8/FP4 indexer计算与选取、page physical ID映射、KV owner复用、奇偶pair pending state、DSPARK rollback/accept、PD完整buffer注册/传输及runtime graph metadata更新都还需要接入、单独数值和完整模型验收。固定KV字节预算候选仍未部署到完整模型。没有DeepSeek正式AISBench性能、准确率或最终框架对齐结论。
 +
+## G124 fullshape 阶段未通过
+
+原生同一tile的 C16 decode16、verify96 已在全部8卡通过所选FP64与graph检查；C1 prefill8192的完整输出finite且32行FP64参考检查通过，随后到达内层450秒总测试上限，整批未通过，C2 fullshape没有执行。8192行两次预热调用合计198.61–223.65秒，包含首调用编译/初始化可能成本，不能据此声称单次纯kernel latency或端到端收益。完整服务形状不能采用这个速度的实现。controller最终failed_released，全部8卡进程清空。
+
+- [G124 逐case与时间记录](../evidence/SFA_operator_G124/evidence/rank0.json)
+- [G124 到期和清理凭证](../evidence/SFA_operator_G124/state.json)
+
+G134候选每个query/head用纯Vector执行FP32在线softmax，不再按4个输出feature tile重算score，也不调用Cube matmul，KV仍BF16。它的正确性和实际耗时必须重新在C16 decode16/verify96及prefill8192上实测，probe将首调用和第二次已预热调用分别计时；结果尚待归档，不提前宣称改善。
+
+- [G134向量候选](../code/SFA_operator_G134/lowratio_sparse_attention.py)
+- [G134 完整形状/独立FP64/graph和分开计时探针](../code/SFA_operator_G134/probe.py)
+
+## G134 fullshape 向量候选通过的组件范围
+
+全部8卡通过C1/C2 × decode16/verify96/prefill8192，合计48 cases、48 captures、144 changed-input replays，controller正常结束且全部8卡进程清空。FP64范围为decode16和verify96全部行、prefill8192的32个分散采样行；所有完整输出均检查finite，图重放修改Q、两路KV、sink与compressed IDs，8卡完整输出SHA相同。最大绝对误差见唯一[组件汇总](../evidence/SFA_operator_G134/component_summary.json)。
+
+第二次已预热调用以CPU perf_counter加NPU synchronize计时，各卡C1/C2：decode16约1.6–2.1ms，verify96约7.9–12.1ms，prefill8192约0.39–0.80秒。属于固定fixture下单次组件观测，未测完整模型，不是对vLLM收益或端到端吞吐结论；两代firstcall/compile成本口径不同，不把G124的两次调用总耗时直接除以G134的单次耗时作为严格加速比。
+
+- [G134 rank0完整形状、FP64范围及改输入图](../evidence/SFA_operator_G134/evidence/rank0.json)
+- [G134原始退出清理](../evidence/SFA_operator_G134/state.json)
+
+完整模型仍需原生source compressor/indexer、KV大容量physical ID地址运算、pair状态、PD传输和runtime graph元数据接入；该组件通过不等于这些条件已满足。

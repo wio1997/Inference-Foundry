@@ -195,6 +195,32 @@ def main():
         if reference is None:reference=hashes
         else:assert hashes==reference
     assert max_error==0.00031238794326782227
+    base=ROOT/'evidence/SFA_operator_G134'
+    state=json.loads((base/'state.json').read_text())
+    assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
+    ranks=list((base/'evidence').glob('rank*.json'));assert len(ranks)==8
+    reference=None;max_error=0.;timings={}
+    for p in sorted(ranks):
+        value=json.loads(p.read_text());assert value['phase']=='passed'
+        assert {(c['ratio'],c['mode']) for c in value['cases']}=={(ratio,mode) for ratio in [1,2] for mode in ['decode','verify','prefill']}
+        hashes=[]
+        for c in value['cases']:
+            assert c['phase']=='passed' and c['rows']=={'decode':16,'verify':96,'prefill':8192}[c['mode']]
+            assert len(c['FP64_checked_rows'])==(32 if c['mode']=='prefill' else c['rows'])
+            assert len(set(c['FP64_checked_rows']))==len(c['FP64_checked_rows'])
+            assert c['graph_captures']==1 and c['changed_input_replays']==3 and len(set(c['hashes']))==3
+            assert 0<c['second_warmed_call_s']<c['two_warmup_calls_elapsed_s']
+            timings.setdefault(f"C{c['ratio']}_{c['mode']}",[]).append(c['second_warmed_call_s'])
+            for e in [c['eager'],*c['replay_errors']]:
+                assert e['all_finite'];max_error=max(max_error,e['max_abs_error'])
+            hashes.append(c['hashes'])
+        if reference is None:reference=hashes
+        else:assert hashes==reference
+    summary=json.loads((base/'component_summary.json').read_text())
+    assert summary['all8_passed'] and not summary['full_model_or_E2E_accepted']
+    assert summary['cases']==summary['graph_captures']==48 and summary['changed_input_replays']==144
+    assert summary['max_abs_error']==max_error==0.00024413317441940308
+    assert summary['warm_component_elapsed_s_ranges']=={name:[min(values),max(values)] for name,values in timings.items()}
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,
