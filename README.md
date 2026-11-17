@@ -28,3 +28,7 @@
 [全部权重覆盖、KV 字节预算根因与 C1/C2 接入边界](docs/008-KV-byte-budget-and-C1-C2-contract.md)
 
 [C1/C2 sparse attention八卡FP64数值与图组件](docs/009-C1-C2-sparse-attention-component.md)
+
+[大地址与混合 bank 的八卡数值及图验证](docs/010-large-address-sparse-attention.md)
+
+[原生 C1/C2 压缩器、RoPE 与 FP4 路径验证](docs/011-native-C1-C2-FP4-math.md)

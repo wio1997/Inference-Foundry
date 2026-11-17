@@ -221,6 +221,48 @@ def main():
     assert summary['cases']==summary['graph_captures']==48 and summary['changed_input_replays']==144
     assert summary['max_abs_error']==max_error==0.00024413317441940308
     assert summary['warm_component_elapsed_s_ranges']=={name:[min(values),max(values)] for name,values in timings.items()}
+    large=ROOT/'evidence/SFA_operator_G160'
+    if large.exists():
+        summary=json.loads((large/'summary.json').read_text())
+        state=json.loads((large/'state.json').read_text())
+        assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
+        actual_cases=[]
+        for rank in range(8):
+            item=json.loads((large/f'evidence/rank{rank}.json').read_text())
+            assert item['rank']==rank and item['phase']=='passed'
+            assert item['pool_bytes_each']==4312007680 and item['physical_row_offset']==4194561
+            assert item['initialization_synchronized_before_attention'] and item['pointer_tables_prepared_before_graph']
+            assert len(item['cases'])==6
+            for case in item['cases']:
+                assert case['phase']=='passed' and case['graph_captures']==1 and case['changed_input_replays']==3
+                assert len(set(case['hashes']))==3 and case['full_shape_finiteness_checked']
+                assert len(case['FP64_checked_rows'])==(32 if case['mode']=='prefill' else case['rows'])
+                actual_cases.append(case)
+        assert len(actual_cases)==summary['cases']==summary['graphs']==48
+        assert summary['changed_input_replays']==144
+        assert max(e['max_abs_error'] for c in actual_cases for e in [c['eager'],*c['replay_errors']])==summary['max_abs_error']
+        failed=ROOT/'evidence/SFA_operator_G152'
+        for rank in range(8):assert json.loads((failed/f'evidence/rank{rank}.json').read_text())['phase']=='failed'
+    native_math=ROOT/'evidence/native_math_G174'
+    if native_math.exists():
+        prior_pass=0;prior_fail=0
+        for rank in range(8):
+            original=json.loads((ROOT/f'evidence/native_math_G166/evidence/rank{rank}.json').read_text())
+            assert len(original['cases'])==13
+            prior_pass+=sum(c['phase']=='passed' for c in original['cases'])
+            prior_fail+=sum(c['phase']=='failed' for c in original['cases'])
+            failed=json.loads((ROOT/f'evidence/native_math_G170/evidence/rank{rank}.json').read_text())
+            assert failed['phase']=='failed' and not failed['cases']
+            fixed=json.loads((native_math/f'evidence/rank{rank}.json').read_text())
+            assert fixed['phase']=='passed' and fixed['scale_boundary_cases']==509
+            assert fixed['all_scale_boundaries_bitwise_equal'] and fixed['scale_mismatch_count']==0
+            assert len(fixed['cases'])==3 and {c['rows'] for c in fixed['cases']}=={16,96,8192}
+            for case in fixed['cases']:
+                assert case['phase']=='passed' and case['all_BF16_outputs_bitwise_equal']
+                assert case['graph_captures']==1 and case['changed_input_replays']==3 and len(set(case['hashes']))==3
+        assert prior_pass==80 and prior_fail==24
+        state=json.loads((native_math/'state.json').read_text())
+        assert state['phase']=='stopped_released' and state['cleanup']['all8_process_lists_clear']
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,
