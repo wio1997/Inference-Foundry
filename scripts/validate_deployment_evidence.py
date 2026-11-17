@@ -45,6 +45,20 @@ def main():
         assert c['environment']['ASCEND_MF_TRANSFER_PROTOCOL']=='device_rdma'
         if role=='d':assert json.loads(value('--cuda-graph-config'))['decode']['backend']=='full'
     for path in (ROOT/'code/full_model_candidates').rglob('*.py'):ast.parse(path.read_text(),filename=str(path))
+    for port in [2203,2204]:
+        base=ROOT/f'evidence/full_model_G69/{port}'
+        state=json.loads((base/'state.json').read_text())
+        assert state['phase']=='failed_released' and state['cleanup']['all8_process_lists_clear']
+        assert not state['cleanup']['container_state']['Running']
+        log=(base/'server.log').read_text()
+        assert 'FileExistsError' in log and 'multiprocessing/spawn.py' in log and 'server_help.txt' in log
+    entry=ast.parse((ROOT/'code/full_model_candidates/sg_pd_g70/launch_pd.py').read_text())
+    assert isinstance(entry.body[-1],ast.If)
+    assert ast.unparse(entry.body[-1].test)=="__name__ == '__main__'"
+    assert all(isinstance(x,(ast.Import,ast.ImportFrom,ast.FunctionDef,ast.If)) for x in entry.body)
+    regression=json.loads((ROOT/'evidence/full_model_G70/spawn_import_regression.json').read_text())
+    assert regression['actual_runpy_spawn_import_name']=='__mp_main__'
+    assert regression['entry_imported_without_candidate_file'] and regression['no_file_writes']
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,

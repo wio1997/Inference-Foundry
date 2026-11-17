@@ -23,3 +23,12 @@ G68首次复验在新增检查中出现UnboundLocalError：cfg局部视图尚未
 
 - [G68实际失败观察](../evidence/full_model_G68/2204/failure_observation.json)
 - [G69检查顺序修正](../code/full_model_candidates/sg_pd_g69/pd_gate_bridge.py)
+
+G69修正配置绑定后通过原来的feature gate，随后scheduler的spawn子进程在导入启动入口时，再次执行创建server_help.txt，触发FileExistsError。两个完整P/D控制器均退出并核验全部8卡进程清空；尚未进入模型权重加载。此失败是启动包装缺陷，不是模型或硬件支持结论。
+
+G70把入口副作用放入main函数，仅在__name__为__main__时执行。实际用Python spawn导入名__mp_main__在无candidate文件目录导入修正入口，验证无文件写入，main仍可调用。两端已提交同配置复验；这项CPU回归不代表完整模型、PD、图或性能通过。
+
+- [G69 P端原始失败与spawn调用栈](../evidence/full_model_G69/2203/server.log)
+- [G69 D端清理凭证](../evidence/full_model_G69/2204/state.json)
+- [G70带主进程保护的启动入口](../code/full_model_candidates/sg_pd_g70/launch_pd.py)
+- [G70 spawn导入回归](../evidence/full_model_G70/spawn_import_regression.json)
