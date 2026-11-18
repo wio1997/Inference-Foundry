@@ -16,3 +16,17 @@ G316创建新服务epoch，计算argv与G181完全相同，仍为TP8/EP8/MTP3/�
 - [D实际释放](../evidence/matched_SG_G181/128K_failed_warm/stop_2202.json)
 - [G316 P参数](../code/sg_pd_g316/candidate_p.json)
 - [G316 D参数](../code/sg_pd_g316/candidate_d.json)
+
+
+## G316 新 epoch 的实际门槛
+
+新P/D两端各16份原生dispatch ledger全部完整，无missing/unexpected；8份原生PD注册每端returncode=0。实际server_info核对TP8/EP8/PP1、上下文263296、C16、MTP3、overlap/prefix开启；D端8rank目标verify完整图完成，草稿decode和extend图完成。固定镜像与原计算argv保留。
+
+G324已实际结束，8项数学/边界/OpenAI/native PD检查通过，最长32768输入、32输出。它只验收选定语义、长度与PD路径；没有新C16/1024性能或完整质量结论。G327据此准备新的128K/C16/1024五遍预热，首遍后暂停采集P编译基线，warmup_only=true。原G291失败与G181正式32K/64K保持不变。
+
+- [P真实就绪与功能结果](../evidence/matched_SG_G316/readiness/2201/readiness.json)
+- [D完整图/配置/原生注册](../evidence/matched_SG_G316/readiness/2202/readiness.json)
+- [新epoch 32份装载ledger的逐项原始SHA与计数](../evidence/matched_SG_G316/load_ledger_index.json)
+- [实际功能任务终态](../evidence/matched_SG_G316/functional/state.json)
+- [完整功能原始结果](../evidence/matched_SG_G316/functional/result.json)
+- [新128K预热构造与门槛](../code/sg_pd_g316/prepare_G316_first128_g327.py)
