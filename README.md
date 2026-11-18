@@ -78,3 +78,5 @@
 [完整模型频率wrapper失败与D941修复](docs/036-D918-complex-frequency-wrapper-failure-and-D941.md)：D918图捕获失败并释放，D941补回原有gather后实际启动；完整模型/质量/性能仍未验收。
 
 [D941真实PD/SSE、C2分页命中与完整质量](docs/037-D941-PD-SSE-real-kernels-and-full-quality.md)：限定功能通过，但1319题尝试出现14个600秒超时后已停止；C1大位置表仍在，完整质量/四档SG性能/最终profile/收益未完成。
+
+[C1八卡原生发布/消费门槛与D974](docs/038-C1-native-allrank-gate-and-D974.md)：144组件用例/144图重放通过；完整模型质量、四档SG矩阵、最终匹配profile和收益仍未完成。

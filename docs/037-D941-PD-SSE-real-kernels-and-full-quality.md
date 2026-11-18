@@ -39,3 +39,5 @@ Python命中记录对应C2 FullTopK层2/8/14；设备kernel验证它们实际执
 [C1候选961](../code/C1_common_prepared_G961/mechanism_plan.json)仅完成本地源码/AST准备：共享NPU decode_scores保留原DecodeScores消费者分支与完整同容量分数，以req映射替代完整int64 slot表；native C1块策略与torch排序不改，write_decode只映射选中的K。保持导入别名的function identity，并在原freqs_install之后安装，避免重复遗漏既有频率适配。它未在NPU验证、未部署，不改变当前质量运行。
 
 后续必须验证actual msgspec返回契约、native块IDs/分数bits/物理slot/padding、空/奇数/ragged/真实长容量、变输入NPU图与8rank，再做新模型与端到端测量。本轮完整质量失败且未验收；SG四档32K/64K/128K/256K、C16/O1024的五轮独立warm、首次cold/replay及raw/usage/cache/compile链、最终与native相同16请求cohort的P8+D8 profile、归一化差异地图和收益判断均保留为未完成。
+
+[后续C1八卡验证与D974](038-C1-native-allrank-gate-and-D974.md)：D941现已受控退休，历史失败及其原始证据保留。
