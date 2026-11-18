@@ -17,3 +17,5 @@
 [固定镜像PD/DSPARK配对prefix源码契约](docs/003-fixed-image-PD-prefix-contract.md)
 
 [PR #12 与固定镜像的逐项源码比较](docs/004-PR12-source-comparison.md)
+
+[固定V2运行时和SDK符号检查范围](docs/005-fixed-v2-runtime-and-SDK-scope.md)

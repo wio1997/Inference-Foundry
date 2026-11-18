@@ -24,6 +24,10 @@ def main():
   for e in a['selected_native_sources']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['sha256']
   q=json.loads((R/'evidence/PR12_quant_contract_G372.json').read_text());assert q['passed'] and len(q['cases'])==8
   for label,rel in [('fixed0.30','fixed'),('PR12','reference')]:assert hashlib.sha256((R/'code/pr12_quant_contract'/rel/'patch_dspark.py').read_bytes()).hexdigest()==q['source_sha256'][label]
+ runtime=R/'evidence/fixed_v2_runtime_source_G430.json'
+ if runtime.is_file():
+  for e in json.loads(runtime.read_text())['selected_files']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['original_and_published_sha256']
+  sdk=json.loads((R/'evidence/fixed_SDK_symbols_G428.json').read_text());binary=next(x for x in sdk['files'] if '/_pymmc.' in x['name']);assert binary['sha256']=='c1aace3cf08c957d70fa9938915ef2e53073ba6c389d62638602a69988c1c7df' and binary['method_name_bytes_present']['batch_write_finish']
  receipt=json.loads((R/'evidence/components/G50_vllm/receipt.json').read_text());result=receipt['results'];assert result['all8_passed'] and result['worker_exit_codes']==[0]*8
  assert {x['rank'] for x in result['reports']}==set(range(8));cases=graphs=replays=0
  for report in result['reports']:
