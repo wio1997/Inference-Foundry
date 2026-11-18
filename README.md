@@ -53,3 +53,5 @@
 [同机 SGLang 128K 首轮正式冷测与热测](docs/024-matched-SG-first-128K-cold-hot.md)
 
 [G316 D 编译缓存验收更正：128K完整协议未验证](docs/025-G316-D-compile-root-correction.md)
+
+[当前G316优化候选与独立D编译采集修正](docs/026-current-G316-candidates-and-collector.md)

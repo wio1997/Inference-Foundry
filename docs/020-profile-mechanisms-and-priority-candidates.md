@@ -37,6 +37,8 @@ Prefix hot差异、排队和PD时间仍须用原始请求/计数与模型步骤�
 
 ## G309：已找到固定镜像中的原生 EP AllGather
 
+G309旧G181候选已被[G464当前G316候选](026-current-G316-candidates-and-collector.md)替代；旧记录保留，不能部署恢复300秒超时。
+
 后续检查实际固定7da镜像的ascend_ops dispatcher、MoE utils与hook，三文件与GLM实际服务runtime快照逐字节相同。原生ascend_ops支持prefill=allgather、decode=low_latency；它先gather实际行数、处理不等长/零行，再收集hidden和top-k，按连续局部专家编号路由，以零权重屏蔽非本地专家，最后FP32加权并reduce-scatter回原行分片。TP8/EP8、288专家、每rank36专家符合构造器约束，无须关闭EP或新增通信kernel。
 
 G309准备了P main+draft改用ascend_ops的候选，D配置逐字节保持G181。原生draft resolver强制草稿也使用ascend_ops，故不能声称只改变target。CPU检查执行实际原生Config/constructor接口和draft resolver，验证TP=EP、连续分片、无fused shared-expert约束；未创建NPU张量、未部署服务、未验证语义或收益。实际MTP/GLM辅助hidden捕获、全图及PD仍须验证。待四档原始基线完成后再进入该优化，当前G316仅处理原生PD超时。

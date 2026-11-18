@@ -1,0 +1,86 @@
+{
+  "scope": "Actualfixed-image AscendOpsConfig, native constructor andnative speculative resolver control-flow executed onCPUwithgroupinterfacefixtures; no torch tensors/NPU/service/model/quality/performance verification",
+  "native_source_pins": {
+    "sglang/srt/layers/moe/token_dispatcher/ascend_ops.py": {
+      "sha256": "b76729fbdafeecb901230928e29bcf11db65c6d5e02e1a157f65480d0193793c",
+      "bytes": 23690,
+      "matches_served_GLMSnapshot": true
+    },
+    "sglang/srt/layers/moe/utils.py": {
+      "sha256": "0655e2d15a96e894d21229c3e13d4e381d4c5c348f4183a2f3a91bca01a808de",
+      "bytes": 42598,
+      "matches_served_GLMSnapshot": true
+    },
+    "sglang/srt/arg_groups/moe_hook.py": {
+      "sha256": "b323c0c8e5d1dee8cc85996b9c03780f870b6b1e7b43e384be538e5a0bc5629e",
+      "bytes": 38423,
+      "matches_served_GLMSnapshot": true
+    }
+  },
+  "config": {
+    "prefill": "allgather",
+    "decode": "low_latency",
+    "ll_dispatch_alg": "fullmesh_v1",
+    "ll_combine_alg": ""
+  },
+  "EP_constructor_cases": [
+    {
+      "case": "TP8_EP8_E288",
+      "accepted": true,
+      "expected": true
+    },
+    {
+      "case": "TP4_EP8_rejected",
+      "accepted": false,
+      "expected": false
+    },
+    {
+      "case": "replicated_experts_rejected",
+      "accepted": false,
+      "expected": false
+    },
+    {
+      "case": "fused_shared_rejected",
+      "accepted": false,
+      "expected": false
+    }
+  ],
+  "native_draft_resolution": {
+    "speculative_moe_a2a_backend": "ascend_ops"
+  },
+  "candidate_changes": {
+    "--moe-a2a-backend": {
+      "before": "deepep",
+      "after": "ascend_ops"
+    },
+    "--speculative-moe-a2a-backend": {
+      "before": "deepep",
+      "after": "ascend_ops"
+    },
+    "--moe-ascend-ops-config": {
+      "before": null,
+      "after": {
+        "prefill": "allgather",
+        "decode": "low_latency",
+        "ll_dispatch_alg": "fullmesh_v1",
+        "ll_combine_alg": ""
+      }
+    }
+  },
+  "deployment_status": "not_deployed_G316_rebased",
+  "activation_condition": "Only after current G316 first256cold/hot accepted and archived; preserve all existing first32/64/128 results. Requires isolated newP controller, no writes to retained G316 baseline ledger/cache/output; D remains current G316, never restart D unnecessarily.",
+  "required_runtime_gates": [
+    "Originalall8target+draftloadcoverage",
+    "ActualTP8EP8localexpert36/288andcontiguousplacement",
+    "GroupedINT8routes+FP32weightedReduceScatter numerical reference includinguneven/zero/nonlocalrows",
+    "ActualPtarget/draftMTP3andPDfunctionalstate",
+    "Dtarget/draftfullgraphactualcaptureandreplay",
+    "SufficientindependentfullshapewarmupbeforeE2EandmatchedprofileA/B"
+  ],
+  "baseline_P_sha256": "869494788dfbca40914ae19243cd151fc0f8f9237457201efa3cc276cdd3c9d8",
+  "candidate_P_sha256": "453ed3a9e2a09e802f348b8ea35865d67513c91a3f13427998801039e8d7eaea",
+  "Dbyte_identical_to_baseline": true,
+  "E2E_gain_accepted": false,
+  "reused_native_CPU_gate": "G309 unchanged sourcepins/config/native constructor/speculative resolver; no newNPU/E2Eacceptance",
+  "baseline_service_generation": 316
+}
