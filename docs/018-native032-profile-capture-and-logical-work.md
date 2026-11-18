@@ -32,3 +32,7 @@ epoch727已完成P/D各8rank原始采集，并从全部16rank的原始CPU记录�
 [D首次离线失败](../evidence/profile_capture_G804/offline/D_first_offline_timeout.json)明确记录4CPU/600秒解析以124超时，只有约713MB的部分CPU trace，缺op_statistic，原始数据SHA未变。尝试扩核时原解析已退出，实际没有改变线程；该失败保留。后续在新副本上启动16CPU/1800秒D rank0解析，尚未声明通过。
 
 [当前状态](../metadata/profile_epoch_G727.json)保持all-rank设备、实际D target/draft replay、完整逻辑与物理任务映射未验收。busy union包含WAIT，不能称计算利用率；重叠duration不能直接相加当墙钟收益；P/D时钟未校准，不直接相减。仍需完成所有设备窗口、SGLang同题集质量及四档矩阵、匹配profile、算子/调度/通信/长尾/无效工作地图和正确性加端到端收益验证。整个Goal尚未完成。
+
+## 后续D0与CPU解析状态
+
+完整D0的Text/Db设备和CPU覆盖现已确认；最新失败、独立CPU解析路径与尚未完成项见[019](019-native032-full-D0-and-CPU-offline-analysis.md)。本文前述D解析等待描述保留为此前阶段记录，当前状态以019及metadata/profile_epoch_G727.json为准。
