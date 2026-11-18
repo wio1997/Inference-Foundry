@@ -26,3 +26,16 @@ G274 两端在任何模型权重加载前被 attention_registry.py 的 SHA 校�
 - [G280 指纹](../code/sg_pd_g280/native_integration_sha256.json)
 
 G280 为重新接线的完整候选，不能从启动请求推定模型加载、图、PD 或性能已通过。
+
+## 完整权重加载通过后的分配器边界
+
+G280两端各8个target与8个DSPARK draft的原生load ledger全部通过、missing为空，共32份。目标/草稿权重实际加载后，选定计价已执行，bytes_per_full_token=2798.25；P日志计算full=3283072、SWA=49536，D计算full=3406208、SWA=41216。该计算与target池构造已经越过旧的低估预算OOM路径，但不能据此声称整个服务容量已通过。
+
+随后原生NPU分配器无条件为C128池创建allocator，并访问None.kernel_page_size而失败；checkpoint仅使用0/1/2压缩比，C128池本就不存在。两端完整失败与八卡释放已保留。G294限定在实际LowRatio池、DeepSeek V4.1/BF16/page128，复用原生FULL/SWA分配与请求状态清理；C1/C2物理地址继续由FULL/ratio派生，C4/C128 bundle为空，不创建假池或丢弃真实C1/C2 payload。真实C4/C128层仍走原生路径，意外非零C128 prefix会被拒绝。
+
+- [P完整加载与分配器失败日志](../evidence/full_model_G280/2203/server.log)
+- [D终态和释放](../evidence/full_model_G280/2204/state.json)
+- [实际固定镜像 allocator/SWA/storage 指纹](../evidence/G293_native_allocator_sources/manifest.json)
+- [G294限定的低压缩比分配器](../code/sg_pd_g294/lowratio_allocator.py)
+
+G294已作为新的完整P/D候选启动；此时尚未验收完整引擎分配、目标/草稿图、source/Indexer/candidates、prefix、DSPARK接受/回滚和跨机PD。接线通过或无异常日志不能替代这些实际门槛。
