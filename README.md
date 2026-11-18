@@ -38,3 +38,5 @@
 [910B 原生低压缩比 target/draft 池组合与逻辑页字节](docs/013-native-lowratio-target-draft-pool.md)
 
 [原生 V4.1 元数据与 NPU Attention 后端集成](docs/014-native-backend-metadata-attention-integration.md)
+
+[固定依赖栈 partial RoPE 缺失与原生兼容组件](docs/015-native-partial-RoPE-compatibility.md)
