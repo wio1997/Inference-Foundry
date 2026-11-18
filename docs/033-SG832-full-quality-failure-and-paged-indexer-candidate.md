@@ -25,3 +25,7 @@ D0约7秒窗口内，Index AI_CPU累计1.926秒、FP4 logits累计0.776秒、cus
 原D832在两次实际P/D队列为零且客户端仅sleep后[受控退休](../evidence/quality_failure_G893/D832_actual_retirement.json)，八卡清空、owner released，旧容器和全部raw保留，P与负载guard保留。[八卡组件门](../evidence/quality_failure_G893/paged_gate902_actual_start.json)已实际启动，覆盖ratio1/2、空/奇数/ragged长度、capacity263435、96行及变q/长度/请求表/packed K的NPU图重放，要求FP32分数逐位和512个物理slot完全相同。此刻结果待审；候选未接入模型，不宣称机制成立、质量通过或端到端收益。
 
 SG正式AISBench四档仍未提交。G878仅完成runner/真实Prometheus多标签选择器准备；D侧prefill计数为零不能冒充cache miss，日志周期批量刷新的计数也必须在正式测量前核对稳定。质量修复后仍需全1319题、四档充分独立预热和首次cold/replay、最终双方P/D匹配profile及收益验证。
+
+## 后续组件实际结果
+
+902在原生Triton finisher编译失败；912修订后仅32个小形状case通过，随后基线TopKV2在96×131073触发设备异常，两次均已释放。完整门未通过、模型未激活，详见[034](034-paged-indexer-compiler-and-stock-topk-failures.md)。
