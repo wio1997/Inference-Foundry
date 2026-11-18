@@ -1,0 +1,14 @@
+from pathlib import Path
+import json,hashlib,datetime
+r=Path('G519_256K_allwarm_current_D_evidence');d=json.loads(Path('G519_current_D_allwarm_2202_parsed.json').read_text());proof=d['current_D_proof'];h=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+before=r/'corrected_current_D/D_cache_during_256K_warm3_g483.json';after=r/'corrected_current_D/D_cache_after_256K_warm5_g496.json'
+assert h(before)==proof['baseline_sha256'] and h(after)==proof['final_sha256'];a=json.loads(before.read_text());b=json.loads(after.read_text());assert a['current_files']==b['current_files'] and len(a['current_files'])==411
+assert h(r/'run/run_manifest.json')==proof['original_manifest_sha256'];assert h(r/'run/after_warmup5_262144_server_snapshot.json')==proof['after_warm5_snapshot_sha256']
+cmd=json.loads((r/'run/warmup4_262144_command.json').read_text());assert datetime.datetime.fromisoformat(a['at'])<datetime.datetime.fromisoformat(cmd['at']);assert datetime.datetime.fromisoformat(b['at'])>datetime.datetime.fromisoformat(proof['warm5_after_at'])
+contract=json.loads(Path('G418_128K_first_formal_evidence/client_usage_contract_g45.json').read_text());sources=[]
+for e in contract['evidence']:
+ p=Path('aisbench_source_2203/benchmark/ais_bench/benchmark/models/api_models')/Path(e['path']).name;assert h(p)==e['sha256'];sources.append({'path':str(p),'sha256':h(p)})
+raw=json.loads(Path('G521_all5_256K_parent_raw_audits.json').read_text());old=json.loads(Path('G446_first256_warm_parent_acceptance.json').read_text());assert old['sha256'] in raw['1']['evidence'].values()
+p=json.loads(Path('G520_P256_allwarm_cache_2201_parsed.json').read_text());pb=json.loads(Path('G446_P256_firstwarm_cache_2201_parsed.json').read_text());assert p['files']==pb['files'] and len(p['files'])==636
+accept={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'all80_raw_counts_C16_exact262144_1024':True,'raw_JSONL_CSV_summary_SHA_and_throughput_recomputed':True,'client_stream_usage_source_pins_verified':sources,'all5_completed_warmups_not_resent':True,'original_warm1_raw_SHA_unchanged':True,'active_D_cache_interval_verified':True,'current_D_cache_files':411,'baseline_before_full_warm4_and5':True,'metadata_additions_removals_changes':0,'last_two_relative_changes':proof['timing_relative_changes'],'original_manifest_sha256':proof['original_manifest_sha256'],'independent_current_P_636_equal_after_warm1':True,'P_final_receipt':'G520_P256_allwarm_cache_2201_parsed.json','formal_submitted':False,'scope':'Parent actualraw/sourceprovenance/currentD411 interval andindependentP636 proof forwarmedreadiness only. No formalperformance orcausalgainclaim.'}
+Path('G521_parent_256K_allwarm_D_acceptance.json').write_text(json.dumps(accept,indent=2)+'\n');print('Parent verifies80rawrows/currentD411/currentP636; last2 duration0.3988%,TTFT0.6270%,TPOT1.7937%')

@@ -55,3 +55,5 @@
 [G316 D 编译缓存验收更正：128K完整协议未验证](docs/025-G316-D-compile-root-correction.md)
 
 [当前G316优化候选与独立D编译采集修正](docs/026-current-G316-candidates-and-collector.md)
+
+[256K五轮预热与当前P/D独立编译证明，首次正式正在进行](docs/027-G316-256K-five-warmups-current-cache.md)
