@@ -54,3 +54,5 @@
 [完整原生V4频率索引覆盖修正](docs/023-complete-frequency-index-coverage.md)
 
 [完整图工作区显存与D端预算候选](docs/024-full-graph-workspace-memory.md)
+
+[完整target图与草稿RoPE设备分发修正](docs/025-native-draft-rope-dispatch.md)
