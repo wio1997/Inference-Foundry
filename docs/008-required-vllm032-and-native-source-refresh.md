@@ -15,3 +15,14 @@
 - [P首次pull明确失败](../evidence/image_refresh_G612/2203/first_pull_platform_option_rejected.json)
 - [D新pull实际存活](../evidence/image_refresh_G612/2204/immutable_native_arch_pull_started.json)
 - [旧0.30无设备CLI门槛未完成](../evidence/superseded_030_CPU_preflight_G609/parse_result.json)
+
+
+后续实际取证：两台已于09:35UTC完成同一manifest的arm64拉取，实际config/image ID是`sha256:d5492ecfdb3071ff2d4bae3f849245014c54b63035d9eefb35243869461ddae1`，与manifest list digest不同，分别保留。09:38UTC在无NPU设备CPU容器逐项读取两机实际镜像：各113文件全部SHA/bytes与固定上游匹配，vLLM HEAD5df63a7、Ascend HEAD24487f4，已跟踪/未忽略状态为空。元数据为vllm0.32.0+empty、Ascend0.32.0rc1、torch_npu2.10post7、Mooncake0.3.13。这是图像文件/元数据审计，不是依赖运行或模型验收。
+
+SG当前诊断已终止并确认两角色队列/传输为空后，通过原owned controller于09:41–09:42UTC释放八卡。G630原生0.32 P/D随后实际启动，没有覆盖旧0.30源码或安装适配补丁；保留公共TP8/EP8/DP1/PCP1、chunk8192/1024、P0.88/D0.80、C16、上下文263296、DSPARK5及P eager/D完整target+draft图的配置意图。图与缓存/PD/质量需实际执行证明，启动凭证不能代替。
+
+- [P实际113文件与metadata](../evidence/image_refresh_G628/2203/actual_source_and_metadata.json)
+- [D实际113文件与metadata](../evidence/image_refresh_G628/2204/actual_source_and_metadata.json)
+- [P原生0.32实际启动](../evidence/native_full_model_G630/2203/actual_start.json)
+- [D原生0.32实际启动](../evidence/native_full_model_G630/2204/actual_start.json)
+- [完整原生参数执行入口](../code/native_PD_candidate_G630/launch_pd.py)
