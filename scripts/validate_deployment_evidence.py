@@ -340,6 +340,14 @@ def main():
         state=[v for v in row['cases'] if v['kind']=='native_C2_request_state_clear_and_positional_copy']
         assert [v['length'] for v in state]==[127,128,129,8191,8192,8193] and all(v['neighbor_unchanged'] for v in state)
     assert (radix/'lowratio_radix_compat.py').read_bytes()==(ROOT/'code/full_model_candidates/sg_pd_g501/lowratio_radix_compat.py').read_bytes()
+    client=ROOT/'evidence/CPU_client_G503'
+    cpu=json.loads((client/'parent_acceptance.json').read_text())
+    assert cpu['CPU_assets_passed'] and cpu['profiles']==24 and cpu['prefixes']==448
+    assert cpu['source_dataset_bytes_unchanged'] and not cpu['actual_server_usage_validated'] and not cpu['first_formal_submitted']
+    current=json.loads((client/'dataset_manifest.json').read_text())
+    prior=json.loads((ROOT/'evidence/CPU_client_G83/dataset_manifest.json').read_text())
+    assert {e['sha256'] for e in current['profiles']}=={e['sha256'] for e in prior['profiles']}
+    assert current['tokenizer_sha256']==prior['tokenizer_sha256']
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,
