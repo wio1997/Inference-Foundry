@@ -25,3 +25,7 @@
 设备profile必须证明真实模型运行命中paged kernel/selected-K mapper，且大型Index/位置表工作消失；安装或图构造记录不足以证明重放路径。之后仍须两端/ready、原生target/draft严格载入、图捕获与实际生成、原始1319题/同提示/T0/seed0/thinking=false/max2048/C16/严格####grader和无重试。此前20行/14个600秒超时的失败保留，不能续跑旧run或改格式判据。
 
 最终SG32K/64K/128K/256K、C16/O1024的五轮独立充分warm及首次cold/replay、raw/SQLite/usage/cache/compile链，最终双方P8+D8可匹配逻辑工作profile，以及正确性和端到端收益判断均未完成。八卡组件通过不能替代这些要求。
+
+## 后续完整模型实际失败
+
+D918在target图捕获中因新wrapper丢失既有complex64频率gather而失败，controller已实际退出并释放八卡，没有发送PD功能/质量请求。以[036失败栈、修复与D941](036-D918-complex-frequency-wrapper-failure-and-D941.md)及当前metadata为后续状态；本页组件通过不代表完整模型通过。

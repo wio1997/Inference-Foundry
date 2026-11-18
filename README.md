@@ -74,3 +74,5 @@
 [SG832完整质量失败与分页索引候选](docs/033-SG832-full-quality-failure-and-paged-indexer-candidate.md)：14条600秒传输超时，完整质量未通过；实际八rank短诊断已留证，候选严格门结果待审。
 
 [分页FP4索引器八卡严格验收与D918启动](docs/035-paged-indexer-all8-strict-gate-and-D918.md)：96个数值用例+96次变输入图重放通过；完整模型正在装载，质量/四档性能/最终匹配profile/端到端收益待验证。
+
+[完整模型频率wrapper失败与D941修复](docs/036-D918-complex-frequency-wrapper-failure-and-D941.md)：D918图捕获失败并释放，D941补回原有gather后实际启动；完整模型/质量/性能仍未验收。
