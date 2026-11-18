@@ -1,0 +1,294 @@
+{
+  "at": "2026-11-18T11:51:58.885181+00:00",
+  "container_id": "36d18369f08e7ef174ff294578f714f65dc0b4a2824fd4ff7c0778b8d2292d40",
+  "scope": "Readonly API schema and toolkit version inspection; no tokenize or generation requests",
+  "tokenize_route": {
+    "post": {
+      "summary": "Tokenize",
+      "operationId": "tokenize_tokenize_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TokenizeCompletionRequest"
+                },
+                {
+                  "$ref": "#/components/schemas/TokenizeChatRequest"
+                }
+              ],
+              "title": "Request"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "400": {
+          "description": "Bad Request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Not Found",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Internal Server Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        },
+        "501": {
+          "description": "Not Implemented",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "TokenizeChatRequest": {
+      "properties": {
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "messages": {
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatCompletionDeveloperMessageParam"
+              },
+              {
+                "$ref": "#/components/schemas/ChatCompletionSystemMessageParam"
+              },
+              {
+                "$ref": "#/components/schemas/ChatCompletionUserMessageParam"
+              },
+              {
+                "$ref": "#/components/schemas/ChatCompletionAssistantMessageParam"
+              },
+              {
+                "$ref": "#/components/schemas/ChatCompletionToolMessageParam"
+              },
+              {
+                "$ref": "#/components/schemas/ChatCompletionFunctionMessageParam"
+              },
+              {
+                "$ref": "#/components/schemas/CustomChatCompletionMessageParam"
+              },
+              {
+                "$ref": "#/components/schemas/openai_harmony__Message"
+              }
+            ]
+          },
+          "type": "array",
+          "title": "Messages"
+        },
+        "add_generation_prompt": {
+          "type": "boolean",
+          "title": "Add Generation Prompt",
+          "description": "If true, the generation prompt will be added to the chat template. This is a parameter used by chat template in tokenizer config of the model.",
+          "default": true
+        },
+        "return_token_strs": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Return Token Strs",
+          "description": "If true, also return the token strings corresponding to the token ids.",
+          "default": false
+        },
+        "continue_final_message": {
+          "type": "boolean",
+          "title": "Continue Final Message",
+          "description": "If this is set, the chat will be formatted so that the final message in the chat is open-ended, without any EOS tokens. The model will continue this message rather than starting a new one. This allows you to \"prefill\" part of the model's response for it. Cannot be used at the same time as `add_generation_prompt`.",
+          "default": false
+        },
+        "add_special_tokens": {
+          "type": "boolean",
+          "title": "Add Special Tokens",
+          "description": "If true, special tokens (e.g. BOS) will be added to the prompt on top of what is added by the chat template. For most models, the chat template takes care of adding the special tokens so this should be set to false (as is the default).",
+          "default": false
+        },
+        "chat_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Chat Template",
+          "description": "A Jinja template to use for this conversion. As of transformers v4.44, default chat template is no longer allowed, so you must provide a chat template if the tokenizer does not define one."
+        },
+        "chat_template_kwargs": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Chat Template Kwargs",
+          "description": "Additional keyword args to pass to the template renderer. Will be accessible by the chat template."
+        },
+        "media_io_kwargs": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Media Io Kwargs",
+          "description": "Additional kwargs to pass to the media IO connectors, keyed by modality. Merged with engine-level media_io_kwargs."
+        },
+        "mm_processor_kwargs": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mm Processor Kwargs",
+          "description": "Additional kwargs to pass to the HF processor."
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/components/schemas/ChatCompletionToolsParam"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tools",
+          "description": "A list of tools the model may call."
+        }
+      },
+      "additionalProperties": true,
+      "type": "object",
+      "required": [
+        "messages"
+      ],
+      "title": "TokenizeChatRequest"
+    },
+    "TokenizeCompletionRequest": {
+      "properties": {
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt"
+        },
+        "add_special_tokens": {
+          "type": "boolean",
+          "title": "Add Special Tokens",
+          "description": "If true (the default), special tokens (e.g. BOS) will be added to the prompt.",
+          "default": true
+        },
+        "return_token_strs": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Return Token Strs",
+          "description": "If true, also return the token strings corresponding to the token ids.",
+          "default": false
+        }
+      },
+      "additionalProperties": true,
+      "type": "object",
+      "required": [
+        "prompt"
+      ],
+      "title": "TokenizeCompletionRequest"
+    }
+  },
+  "version_files": {},
+  "version_files_result": {
+    "returncode": 0,
+    "stdout": "{\"/usr/local/Ascend/ascend-toolkit/latest/aarch64-linux/ascend_toolkit_install.info\": \"package_name=Ascend-cann-toolkit\\nversion=9.2.1\\ninnerversion=V100R001C12SPC002B201\\ncompatible_version=[V100R001C15],[V100R001C23],[V100R001C10],[V100R001C11],[V100R001C12]\\narch=aarch64\\nos=linux\\npath=/usr/local/Ascend/cann-9.2.1\\n\", \"/usr/local/Ascend/cann-9.2.1/aarch64-linux/ascend_toolkit_install.info\": \"package_name=Ascend-cann-toolkit\\nversion=9.2.1\\ninnerversion=V100R001C12SPC002B201\\ncompatible_version=[V100R001C15],[V100R001C23],[V100R001C10],[V100R001C11],[V100R001C12]\\narch=aarch64\\nos=linux\\npath=/usr/local/Ascend/cann-9.2.1\\n\"}\n",
+    "stderr": ""
+  }
+}

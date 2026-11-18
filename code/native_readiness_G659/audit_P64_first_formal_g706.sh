@@ -1,0 +1,10 @@
+python3 - <<'REMOTE'
+from pathlib import Path
+import base64,datetime,hashlib,io,json,socket,sys,tarfile
+assert socket.gethostname()=='<ROLE_HOSTNAME>';root=Path('/PRIVATE_TASK_ROOT');r=root/'vllm_pd_g630';o=root/'benchmark_native_g663';g=json.loads((r/'benchmark_guard_g662/state.json').read_text());assert g['phase']=='holding' and str(r/'workload_guard_g662.py').encode() in Path('/proc',str(g['pid']),'cmdline').read_bytes()
+s=json.loads((r/'state.json').read_text());assert s['generation']==630 and str(r/'node_controller.py').encode() in Path('/proc',str(s['pid']),'cmdline').read_bytes();sys.path.insert(0,str(o/'pipeline'));import run_aisbench_cold_hot as runner
+runner.D_COMPILE_TARGET={'host_run_root':str(r),'container_name':s['container'],'container_id':s['container_id']};current=runner.compile_cache();before=json.loads((o/'P_compile_L65536_after_warmup5.json').read_text())['compiler_files'];changes=[k for k in sorted(set(before)|set(current)) if before.get(k)!=current.get(k)];d={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'tag':'after_first_cold_hot64K','guard_pid':g['pid'],'actual_guard_live':True,'actual_P_container_id':s['container_id'],'compiler_files':current};p=o/'P_compile_L65536_after_first_cold_hot.json';assert not p.exists();p.write_text(json.dumps(d,indent=2)+'\n');a={'passed':not changes,'at':d['at'],'before_tag':'afterwarmup5','after_tag':'afterfirstcoldhot','before_files':len(before),'after_files':len(current),'changes':changes,'scope':'ActualPprocessenv compiler RW mappings, metadata bytes/mtime union incl deletions, excludinglockfiles; no new Pcompilerartifact acrossfirstscoredcoldhotpair. Not universalproof ofzeroinmemorycompile.'};(o/'P_L65536_first_cold_hot_compile_audit.json').write_text(json.dumps(a,indent=2)+'\n');b=io.BytesIO()
+with tarfile.open(fileobj=b,mode='w:gz') as t:
+ for p in o.glob('P_*.json'):t.add(p,arcname=p.name,recursive=False)
+raw=b.getvalue();print('G706_P64_FORMAL_COMPILE_JSON '+json.dumps({'audit':a,'archive_sha256':hashlib.sha256(raw).hexdigest(),'archive_b64':base64.b64encode(raw).decode()}),flush=True)
+REMOTE
