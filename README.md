@@ -44,3 +44,5 @@
 [本分支范围与历史归属](metadata/framework_scope.json) · [分支迁移说明](docs/016-framework-branches-and-reference.md)
 
 [mHC原生split/Sinkhorn平台缺口](docs/017-mhc-native-split-sinkhorn-gap.md)
+
+[mHC H5120 原生组件门槛、失败和完整候选范围](docs/020-mHC-native-5120-interfaces.md)

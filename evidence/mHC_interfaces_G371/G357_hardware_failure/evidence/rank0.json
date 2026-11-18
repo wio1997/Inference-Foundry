@@ -1,0 +1,33 @@
+{
+  "rank": 0,
+  "pid": 105,
+  "phase": "failed",
+  "cases": [
+    {
+      "kind": "combine",
+      "rows": 1,
+      "phase": "passed",
+      "graphs": 1,
+      "changed_replays": 3,
+      "hashes": [
+        "1e3072532ef28ac159f3ce690791eb308924acf69444f754a9f8d66dd20da95e",
+        "87eee03e3b5b89eb695659f5787144468d38d4e77bf3a9fc20cc2ccacc6d2d7c",
+        "d887a7a6b2f673732f7754c05b54a346d704dbf82a755b8b57c337e8f292fc32"
+      ],
+      "max_abs_error": 2.384185791015625e-07
+    },
+    {
+      "kind": "post",
+      "rows": 1,
+      "phase": "running"
+    }
+  ],
+  "scope": "Real native mHC mix_stats/combine/post with H=5120/HC4, fixed image, CPUFP64 oracle and changed-input graphs. No full model/checkpoint or PD/performance acceptance.",
+  "sources": {
+    "model_mhc": "04a0969b7f2cc3ab3c46999ee6b53a3bedf46e54744d50ff7a82e85bb397fcd3",
+    "kernel_mhc": "1872935dde6baa28cb2ebe8c523c700fd90d3e26285b01fadb0f829ceeef1a90"
+  },
+  "native_post_schema": "{'': custom::npu_hc_post(Tensor x, Tensor residual, Tensor post, Tensor comb) -> Tensor}",
+  "error": "RuntimeError('The d of x only support 4096 or 7168, actual 5120.')",
+  "traceback": "Traceback (most recent call last):\n  File \"/task/sg_mhc_interfaces_g357/probe.py\", line 39, in <module>\n    out=invoke();torch.npu.synchronize();check(out,(x,y,pre,post,comb));g=torch.npu.NPUGraph()\n        ^^^^^^^^\n  File \"/task/sg_mhc_interfaces_g357/probe.py\", line 31, in invoke\n    def invoke():return (native.mhc_combine(xn.flatten(1),pn,4,torch.bfloat16),) if kind=='combine' else (model.post(cfg,yn,xn,pon,cn),)\n                                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/sgl-workspace/sglang/python/sglang/srt/models/deepseek_v4_mhc.py\", line 555, in post\n    return torch.ops.custom.npu_hc_post(x, residual, post_mix, comb)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_ops.py\", line 1209, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: The d of x only support 4096 or 7168, actual 5120.\n"
+}
