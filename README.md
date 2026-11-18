@@ -2,7 +2,9 @@
 
 本分支维护固定 SGLang A2 daily 的适配、部署、压测和profile证据。vLLM 独立维护于 [vllm-deepseek-v41flash-w4a8-910b-pd](https://github.com/wio1997/Inference-Foundry/tree/vllm-deepseek-v41flash-w4a8-910b-pd)。历史跨框架组件与源码快照保留原始记录，后续各框架只更新自己的分支。用户当前合同为四档 32K/64K/128K/256K、C16、输出 1024，预热后首轮 cold32 和 hot32。每个 P/D 角色使用完整八卡，两个框架分时使用同一对机器。
 
-95文件权重及两端target/draft严格装载已有证据；完整引擎实际forward已进入，陆续暴露并保留了共享allocator、原生页几何和缺失partial RoPE的失败。原生FP32 complex RoPE组件8卡64用例/64图/192变化回放已通过；G334已实际通过RoPE并进入下一处mHC，但D在TileLang依赖处分支失败并释放全部8卡；G346正验证已有原生Triton split/Sinkhorn在NPU的兼容路径。完整目标/草稿图、跨机PD、质量和四档性能尚未验收。组件通过不能代替完整服务或性能结论。
+95文件权重和两端target/draft严格装载已有证据，保留D501取得完整target/draft图与PD注册/API记录。长prefill连续暴露mHC、Engram和原生score临时分配OOM，各次失败及资源释放均归档。G600实际八rank112例的Engram缓冲区复用逐位与内存门槛通过，G603 P-only完整模型已启动；G604采集器截至09:31UTC报告7个所选短/边界例通过、32K仍在执行，完整原始结果待父级核验。完整质量、四档首次cold/hot与双方profile/差异地图未完成，组件通过不能代替整体验收。
+
+[当前Ascend daily与1017/A2支持范围](docs/031-current-Ascend-daily-support-scope.md)：最新官方nightly只构建A3/950，现有A2日期镜像未发现可直接替代的原生V4.1构建；保留现有A2适配。vLLM已按用户更新为v0.32.0rc1，详情在其独立分支。
 
 - [权重来源和固定文件](metadata/pinned_files.json)
 - [配置](metadata/config.json)
