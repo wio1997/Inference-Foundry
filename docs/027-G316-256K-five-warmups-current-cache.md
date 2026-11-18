@@ -16,3 +16,5 @@
 - [五轮原始JSONL、SQLite与指标索引](../records/runs.json)
 - [更正后的独立采集器](../code/SG_current_D_collector_G488/run_aisbench_cold_hot.py)
 - [128K验收更正](025-G316-D-compile-root-correction.md)
+
+后续06:57:41UTC首次cold因14次路由503验收失败，hot未提交；最新结论与原始证据见[失败记录](028-G316-first256-cold-router-failure.md)。上文开始时观察保留为历史时间点。

@@ -56,4 +56,6 @@
 
 [当前G316优化候选与独立D编译采集修正](docs/026-current-G316-candidates-and-collector.md)
 
-[256K五轮预热与当前P/D独立编译证明，首次正式正在进行](docs/027-G316-256K-five-warmups-current-cache.md)
+[256K五轮预热与当前P/D独立编译证明，首次正式已失败留证](docs/027-G316-256K-five-warmups-current-cache.md)
+
+[256K首次cold32：18成功、14路由503，hot未提交](docs/028-G316-first256-cold-router-failure.md)

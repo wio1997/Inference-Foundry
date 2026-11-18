@@ -58,6 +58,18 @@ def main():
     rows_total=0;phases=0;scored=0;db_refs=0;latency_values=0
     for entry in runs:
         m=json.loads((ROOT/entry['path']).read_text());e=m.get('raw_evidence')
+        if m.get('failure_raw_evidence'):
+            failure=m['failure_raw_evidence']
+            with lzma.open(ROOT/failure['details'],'rb') as f:raw=f.read()
+            assert hashlib.sha256(raw).hexdigest()==provenance[failure['details']]['uncompressed_sha256']
+            failed_rows=[json.loads(line) for line in raw.splitlines() if line.strip()]
+            assert len(failed_rows)==32 and len({r['data_id'] for r in failed_rows})==32
+            good=[r for r in failed_rows if r['success'] is True];bad=[r for r in failed_rows if r['success'] is False]
+            assert len(good)==18 and all(r['input_tokens']==262144 and r['output_tokens']==1024 for r in good)
+            assert len(bad)==14 and all(r['error_info']=='Service Unavailable' for r in bad)
+            assert m['record']['performance_validated'] is False and m['record']['hot_submitted'] is False
+            assert m['record']['first_cold_replay'] is False and m['record']['first_formal_submission'] is True
+            assert failure['timing_databases'] and all((ROOT/name).is_file() for name in failure['timing_databases'])
         if not e:continue
         a=m['record']['metrics'];h=hashlib.sha256();rows=[]
         with lzma.open(ROOT/e['details'],'rb') as f:
