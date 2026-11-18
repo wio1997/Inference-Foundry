@@ -68,3 +68,5 @@
 [有界CPU客户端：24份同字节数据与448前缀复核](docs/029-CPU-client-readonly-dataset-revalidation.md)
 
 [实际prefill两次峰值与Engram张量存活机制](docs/030-prefill-transient-memory-and-gate-liveness.md)
+
+[2026-11-18上游A2适配范围复核](docs/031-upstream-refresh-20261118.md)：官方main/release已重新固定，现有A2镜像与适配保持。
