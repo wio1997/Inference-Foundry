@@ -1,0 +1,45 @@
+{
+  "rank": 0,
+  "pid": 105,
+  "device": "Ascend910B1",
+  "phase": "failed",
+  "cases": [
+    {
+      "rows": 0,
+      "mode": "structured",
+      "phase": "passed",
+      "graphs": 0,
+      "changed_replays": 0,
+      "max_abs_error": 0
+    },
+    {
+      "rows": 0,
+      "mode": "extreme",
+      "phase": "passed",
+      "graphs": 0,
+      "changed_replays": 0,
+      "max_abs_error": 0
+    },
+    {
+      "rows": 0,
+      "mode": "ties",
+      "phase": "passed",
+      "graphs": 0,
+      "changed_replays": 0,
+      "max_abs_error": 0
+    },
+    {
+      "rows": 1,
+      "mode": "structured",
+      "phase": "running"
+    }
+  ],
+  "scope": "Actual fixed-image native Triton fused sqrtsoftplus gate; 384 experts/top6, FP32 logits/bias, no group/sharedslots, FP64 CPU oracle, changed-input NPUgraphs. No wholemodel, checkpoint, PD orperformance acceptance.",
+  "source_SHA256": {
+    "sglang/kernels/ops/moe/moe_fused_gate.py": "9efb928f8ea0902c2a98d88f253ebb52e16482293b1632f8f70044ce1e378f83",
+    "sglang/srt/hardware_backend/npu/moe/topk.py": "4c15ba6e3b30cea82cf258d7d5f083e64fa540ed9c0c4c49c7f7a24a33733ff2",
+    "sglang/srt/layers/moe/topk.py": "b90d2f72789d2b50dab65a473bea86bab4354db80a6e043c735f3da30d374657"
+  },
+  "native_source_pins_verified": true,
+  "traceback": "Traceback (most recent call last):\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/language/core.py\", line 35, in wrapper\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/language/core.py\", line 1905, in where\n    return semantic.where(condition, x, y, _builder)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/language/semantic.py\", line 1744, in where\n    x, y = binary_op_type_checking_impl(x, y, builder, True, True)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/language/semantic.py\", line 181, in binary_op_type_checking_impl\n    rhs_sca_ty = rhs.type.scalar\n                 ^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'type'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/task/sg_route_g385/probe.py\", line 36, in <module>\n    out=invoke();torch.npu.synchronize();check(out,x,bias)\n        ^^^^^^^^\n  File \"/task/sg_route_g385/probe.py\", line 32, in invoke\n    def invoke():return moe_fused_gate(xn,bn,6,scoring_func='sqrtsoftplus',renormalize=True,routed_scaling_factor=1.5,apply_routed_scaling_factor_on_output=False,sqrtsoftplus_log1p=True)\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/sgl-workspace/sglang/python/sglang/kernels/ops/moe/moe_fused_gate.py\", line 531, in moe_fused_gate\n    _router_triton_kernel[grid](\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/jit.py\", line 333, in <lambda>\n    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/jit.py\", line 622, in run\n    kernel = self._do_compile(key, signature, device, backend, target, constants, options, configs[0], warmup)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/jit.py\", line 787, in _do_compile\n    kernel = self.compile(src, target=target, options=options.__dict__)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/compiler/compiler.py\", line 282, in compile\n    module = src.make_ir(options, codegen_fns, module_map, context)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/__init__.py\", line 39, in _patched_make_ir\n    module = _original_make_ir(self, options, codegen_fns, module_map, context)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/compiler/compiler.py\", line 102, in make_ir\n    return ast_to_ttir(self.fn, self, context=context, options=options, codegen_fns=codegen_fns,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntriton.compiler.errors.CompilationError: at 109:17:\n            scores += tl.load(\n                row_ptr + split * stride_split, mask=mask2d, other=0.0\n            ).to(tl.float32)\n\n    if SCORING_FUNC == 0:\n        # sigmoid(x) = 1 / (1 + exp(-x)); bias is for ranking only, weight is bias-free.\n        activated = tl.sigmoid(scores)\n        biased = activated + row_bias\n    elif SCORING_FUNC == 1:\n        if SQRTSOFTPLUS_LOG1P:\n            # log1p preserves small positive scores for negative logits.\n            sp = tl.where(scores > 20.0, scores, libdevice.log1p(libdevice.exp(scores)))\n                 ^\nAttributeError(\"'NoneType' object has no attribute 'type'\")\n"
+}

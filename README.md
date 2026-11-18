@@ -46,3 +46,5 @@
 [mHC原生split/Sinkhorn平台缺口](docs/017-mhc-native-split-sinkhorn-gap.md)
 
 [mHC H5120 原生组件门槛、失败和完整候选范围](docs/020-mHC-native-5120-interfaces.md)
+
+[完整 D 图 MoE 路由缺口与 Ascend 数学调用候选](docs/021-native-router-CANN-and-math-lowering.md)
