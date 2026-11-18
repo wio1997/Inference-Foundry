@@ -37,3 +37,5 @@
 [原生0.32四档首次矩阵](docs/016-native032-four-tier-first-matrix.md)；[256K原始证据与限制](docs/015-native032-first-262144-cold-replay.md)。SGLang对比、双方profile与优化仍待完成。
 
 [原生profiling实例就绪与边界](docs/017-native032-profile-epoch-readiness.md)；实际all-rank trace尚待采集验收。
+
+[原生16-rank采集与实际逻辑工作量](docs/018-native032-profile-capture-and-logical-work.md)；设备解析、SGLang对比与优化收益仍待完成。
