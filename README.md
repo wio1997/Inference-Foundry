@@ -45,3 +45,5 @@
 [匹配 profile 的机制差异与高潜力候选](docs/020-profile-mechanisms-and-priority-candidates.md)
 
 [同机 SGLang 64K 首轮正式冷测与热测](docs/021-matched-SG-first-64K-cold-hot.md)
+
+[首次128K预热失败与原生超时修复](docs/022-first-128K-warmup-failure-and-timeout-repair.md)

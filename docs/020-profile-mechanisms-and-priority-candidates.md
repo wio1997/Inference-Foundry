@@ -19,7 +19,7 @@ P采集窗口SG明确含8个bs1/tokens8192 EXTEND和draft步骤；D含bs1/query4
 
 ## 下一步的干预顺序
 
-1. **保持EP8的prefill通信路径**：先核对真实token分片、输入/输出张量所有权与原生局部expert编号，再构造EP AllGather路由候选；用逐专家/边界token参考验证后做同机单变量诊断。现有DeepEP AI CPU/SDMA事件规模与vLLM selector构成高潜力线索，不构成可宣称的收益上限。完整基线四档首轮结果采齐前不修改服务。
+1. **保持EP8的prefill通信路径**：先核对真实token分片、输入/输出张量所有权与原生局部expert编号，复用已确认存在的原生ascend_ops AllGather路由候选；用逐专家/边界token参考验证后做同机单变量诊断。现有DeepEP AI CPU/SDMA事件规模与vLLM selector构成高潜力线索，不构成可宣称的收益上限。完整基线四档首轮结果采齐前不修改服务。
 2. **W8A8 GMM1+SwiGLU+quant融合**：核对固定CANN9.1实际op的INT8权重、scale、group-list与输出契约；SG现有v2 wrapper用于block-scaled路径，不能仅换类名套入W8A8，也不从CANN9.2复制二进制。数值、形状和graph门槛通过后测端到端。
 3. **KDA与mHC融合/布局**：在同一逻辑step内核对shape、状态读写和CPU关联，按实测临界路径筛选；不能以总kernel sum比值作为端到端收益预测。
 
@@ -33,3 +33,15 @@ Prefix hot差异、排队和PD时间仍须用原始请求/计数与模型步骤�
 - [vLLM AllGatherCommImpl](../evidence/profile_mechanism_G287/vllm_ascend/ops/fused_moe/moe_comm_method.py)
 - [SG none路径EP保护](../evidence/profile_mechanism_G287/SG_source/sglang/srt/layers/moe/fused_moe_triton/layer.py)
 - [正式32K原始结果与边界](017-matched-SG-first-32K-cold-hot.md)
+
+
+## G309：已找到固定镜像中的原生 EP AllGather
+
+后续检查实际固定7da镜像的ascend_ops dispatcher、MoE utils与hook，三文件与GLM实际服务runtime快照逐字节相同。原生ascend_ops支持prefill=allgather、decode=low_latency；它先gather实际行数、处理不等长/零行，再收集hidden和top-k，按连续局部专家编号路由，以零权重屏蔽非本地专家，最后FP32加权并reduce-scatter回原行分片。TP8/EP8、288专家、每rank36专家符合构造器约束，无须关闭EP或新增通信kernel。
+
+G309准备了P main+draft改用ascend_ops的候选，D配置逐字节保持G181。原生draft resolver强制草稿也使用ascend_ops，故不能声称只改变target。CPU检查执行实际原生Config/constructor接口和draft resolver，验证TP=EP、连续分片、无fused shared-expert约束；未创建NPU张量、未部署服务、未验证语义或收益。实际MTP/GLM辅助hidden捕获、全图及PD仍须验证。待四档原始基线完成后再进入该优化，当前G316仅处理原生PD超时。
+
+- [原生代码逐字节来源清单](../evidence/native_ascend_ops_G309/manifest.json)
+- [候选及未验证范围](../code/native_allgather_candidate_G309/preflight_contract.json)
+- [P候选参数](../code/native_allgather_candidate_G309/candidate_p.json)
+- [保持原参数的D候选](../code/native_allgather_candidate_G309/candidate_d_unchanged.json)
