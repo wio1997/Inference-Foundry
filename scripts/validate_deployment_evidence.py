@@ -311,6 +311,21 @@ def main():
             for case in row['cases']:
                 assert case['phase']=='passed' and case['bitwise_CPU_FP4_readback']
                 assert case['graph_captures']==1 and case['changed_input_replays']==3 and case['wire_pages_checked']==[1,2,3]
+    backend_base=ROOT/'evidence/native_backend_G268'
+    accepted=json.loads((backend_base/'acceptance.json').read_text())
+    assert accepted['cases']==48 and accepted['graph_captures']==48 and accepted['changed_input_replays']==144
+    assert not accepted['request_window_exercised'] and not accepted['full_model_PD_or_performance_accepted']
+    assert accepted['code_byte_identical_to_actual_executed_files'] and accepted['all8_controller_cleanup_verified']
+    terminal=json.loads((backend_base/'state.json').read_text())
+    assert terminal['phase']=='stopped_released' and terminal['cleanup']['all8_process_lists_clear']
+    rows=sorted((backend_base/'evidence').glob('rank*.json'));assert len(rows)==8
+    for path in rows:
+        row=json.loads(path.read_text());assert row['phase']=='passed' and not row['request_window']
+        assert row['model_config']['context']==263296 and row['model_config']['hf_model_type']=='deepseek_v41'
+        assert [(c['ratio'],c['rows']) for c in row['cases']]==[(0,16),(1,16),(2,16),(0,96),(1,96),(2,96)]
+        for c in row['cases']:
+            assert c['phase']=='passed' and c['graph_captures']==1 and c['changed_input_replays']==3
+            assert c['metadata_positions_exact'] and c['independent_FP64_all_rows'] and c['max_abs_error']<.003
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,
