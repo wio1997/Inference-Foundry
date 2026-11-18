@@ -1,0 +1,4140 @@
+[
+  {
+    "path": "srt/entrypoints/openai/serving_chat.py",
+    "sha256": "02e63c85ca8ed730b47541a4d5111402d436552df2a6c056517ea588392cd2bb",
+    "selected_lines": [
+      {
+        "line": 19,
+        "text": "    Optional,"
+      },
+      {
+        "line": 20,
+        "text": ")"
+      },
+      {
+        "line": 21,
+        "text": ""
+      },
+      {
+        "line": 22,
+        "text": "from sglang.srt.runtime_context import get_model, get_serving"
+      },
+      {
+        "line": 23,
+        "text": ""
+      },
+      {
+        "line": 24,
+        "text": ""
+      },
+      {
+        "line": 25,
+        "text": "class ThinkingMode(str, Enum):"
+      },
+      {
+        "line": 26,
+        "text": "    \"\"\"Mode for message encoding - chat vs thinking/reasoning.\"\"\""
+      },
+      {
+        "line": 27,
+        "text": ""
+      },
+      {
+        "line": 28,
+        "text": "    CHAT = \"chat\""
+      },
+      {
+        "line": 29,
+        "text": "    THINKING = \"thinking\""
+      },
+      {
+        "line": 30,
+        "text": ""
+      },
+      {
+        "line": 31,
+        "text": ""
+      },
+      {
+        "line": 32,
+        "text": "import jinja2"
+      },
+      {
+        "line": 33,
+        "text": "import orjson"
+      },
+      {
+        "line": 34,
+        "text": "from fastapi import Request"
+      },
+      {
+        "line": 35,
+        "text": ""
+      },
+      {
+        "line": 36,
+        "text": "try:"
+      },
+      {
+        "line": 37,
+        "text": "    from mistral_common.exceptions import MistralCommonException"
+      },
+      {
+        "line": 38,
+        "text": ""
+      },
+      {
+        "line": 39,
+        "text": "    _MISTRAL_COMMON_ERRORS: tuple[type[BaseException], ...] = (MistralCommonException,)"
+      },
+      {
+        "line": 40,
+        "text": "except ImportError:"
+      },
+      {
+        "line": 267,
+        "text": ""
+      },
+      {
+        "line": 268,
+        "text": "_M3_THINKING_TYPES = (\"adaptive\", \"enabled\", \"disabled\")"
+      },
+      {
+        "line": 269,
+        "text": "_M3_REASONING_EFFORTS = (\"low\", \"medium\", \"high\", \"xhigh\", \"max\")"
+      },
+      {
+        "line": 270,
+        "text": ""
+      },
+      {
+        "line": 271,
+        "text": ""
+      },
+      {
+        "line": 272,
+        "text": "def _validate_minimax_m3_request(request: ChatCompletionRequest) -> str | None:"
+      },
+      {
+        "line": 273,
+        "text": "    \"\"\"Request rules of the M3 serving contract that the chat template cannot enforce.\"\"\""
+      },
+      {
+        "line": 274,
+        "text": "    thinking = request.thinking"
+      },
+      {
+        "line": 275,
+        "text": "    if thinking is not None:"
+      },
+      {
+        "line": 276,
+        "text": "        thinking_type = thinking.get(\"type\") if isinstance(thinking, dict) else None"
+      },
+      {
+        "line": 277,
+        "text": "        if thinking_type not in _M3_THINKING_TYPES:"
+      },
+      {
+        "line": 278,
+        "text": "            return ("
+      },
+      {
+        "line": 279,
+        "text": "                \"thinking.type must be 'adaptive', 'enabled' or 'disabled', \""
+      },
+      {
+        "line": 280,
+        "text": "                f\"got {thinking_type!r}.\""
+      },
+      {
+        "line": 281,
+        "text": "            )"
+      },
+      {
+        "line": 282,
+        "text": "    effort = request.reasoning_effort"
+      },
+      {
+        "line": 283,
+        "text": "    if effort is None:"
+      },
+      {
+        "line": 284,
+        "text": "        effort = (request.chat_template_kwargs or {}).get(\"reasoning_effort\")"
+      },
+      {
+        "line": 285,
+        "text": "    if effort is not None and effort not in _M3_REASONING_EFFORTS:"
+      },
+      {
+        "line": 286,
+        "text": "        return ("
+      },
+      {
+        "line": 287,
+        "text": "            f\"reasoning_effort must be one of {', '.join(_M3_REASONING_EFFORTS)}, \""
+      },
+      {
+        "line": 288,
+        "text": "            f\"got {effort!r}.\""
+      },
+      {
+        "line": 289,
+        "text": "        )"
+      },
+      {
+        "line": 290,
+        "text": "    root_positions = ["
+      },
+      {
+        "line": 291,
+        "text": "        position"
+      },
+      {
+        "line": 292,
+        "text": "        for position, message in enumerate(request.messages)"
+      },
+      {
+        "line": 293,
+        "text": "        if message.role == \"root\""
+      },
+      {
+        "line": 294,
+        "text": "    ]"
+      },
+      {
+        "line": 295,
+        "text": "    if root_positions not in ([], [0]):"
+      },
+      {
+        "line": 331,
+        "text": "            pending = None if unpaired_ids else set(call_ids)"
+      },
+      {
+        "line": 332,
+        "text": "    if pending and messages[-1].role == \"tool\":"
+      },
+      {
+        "line": 333,
+        "text": "        return f\"Tool calls {sorted(pending)} have no tool message answering them.\""
+      },
+      {
+        "line": 334,
+        "text": "    return None"
+      },
+      {
+        "line": 335,
+        "text": ""
+      },
+      {
+        "line": 336,
+        "text": ""
+      },
+      {
+        "line": 337,
+        "text": "def _normalize_minimax_m3_request(request: ChatCompletionRequest) -> None:"
+      },
+      {
+        "line": 338,
+        "text": "    \"\"\"Map the thinking config and effort aliases onto what the M3 template reads.\"\"\""
+      },
+      {
+        "line": 339,
+        "text": "    template_kwargs = dict(request.chat_template_kwargs or {})"
+      },
+      {
+        "line": 340,
+        "text": "    # A template-kwargs effort would override the normalized one when rendering;"
+      },
+      {
+        "line": 341,
+        "text": "    # entry points that skip the request conversion still carry it here."
+      },
+      {
+        "line": 342,
+        "text": "    kwargs_effort = template_kwargs.pop(\"reasoning_effort\", None)"
+      },
+      {
+        "line": 343,
+        "text": "    effort = ("
+      },
+      {
+        "line": 344,
+        "text": "        request.reasoning_effort"
+      },
+      {
+        "line": 345,
+        "text": "        if request.reasoning_effort is not None"
+      },
+      {
+        "line": 346,
+        "text": "        else kwargs_effort"
+      },
+      {
+        "line": 347,
+        "text": "    )"
+      },
+      {
+        "line": 348,
+        "text": "    if request.thinking is not None:"
+      },
+      {
+        "line": 349,
+        "text": "        template_kwargs.setdefault(\"thinking_mode\", request.thinking[\"type\"])"
+      },
+      {
+        "line": 350,
+        "text": "    if template_kwargs.get(\"thinking_mode\") == \"disabled\":"
+      },
+      {
+        "line": 351,
+        "text": "        # An effort means nothing once thinking is off."
+      },
+      {
+        "line": 352,
+        "text": "        effort = None"
+      },
+      {
+        "line": 353,
+        "text": "    request.reasoning_effort = effort if effort in _M3_REASONING_EFFORTS else None"
+      },
+      {
+        "line": 354,
+        "text": "    request.chat_template_kwargs = template_kwargs"
+      },
+      {
+        "line": 355,
+        "text": ""
+      },
+      {
+        "line": 356,
+        "text": ""
+      },
+      {
+        "line": 357,
+        "text": "def _extract_video_question(request: ChatCompletionRequest) -> str | None:"
+      },
+      {
+        "line": 358,
+        "text": "    \"\"\"Return text paired with a video in the last user turn.\"\"\""
+      },
+      {
+        "line": 359,
+        "text": "    for message in reversed(request.messages or []):"
+      },
+      {
+        "line": 360,
+        "text": "        if not isinstance(message, ChatCompletionMessageUserParam):"
+      },
+      {
+        "line": 361,
+        "text": "            continue"
+      },
+      {
+        "line": 362,
+        "text": "        content = message.content"
+      },
+      {
+        "line": 363,
+        "text": "        if not isinstance(content, list):"
+      },
+      {
+        "line": 364,
+        "text": "            continue"
+      },
+      {
+        "line": 365,
+        "text": "        has_video = any("
+      },
+      {
+        "line": 402,
+        "text": "        tokenizer_manager: TokenizerManager,"
+      },
+      {
+        "line": 403,
+        "text": "        template_manager: TemplateManager,"
+      },
+      {
+        "line": 404,
+        "text": "    ):"
+      },
+      {
+        "line": 405,
+        "text": "        super().__init__(tokenizer_manager)"
+      },
+      {
+        "line": 406,
+        "text": "        self.template_manager = template_manager"
+      },
+      {
+        "line": 407,
+        "text": "        self.tool_call_parser = self.tokenizer_manager.config_value(\"tool_call_parser\")"
+      },
+      {
+        "line": 408,
+        "text": "        self.reasoning_parser = self.tokenizer_manager.config_value(\"reasoning_parser\")"
+      },
+      {
+        "line": 409,
+        "text": "        self.default_chat_template_kwargs = ("
+      },
+      {
+        "line": 410,
+        "text": "            get_serving().default_chat_template_kwargs or {}"
+      },
+      {
+        "line": 411,
+        "text": "        )"
+      },
+      {
+        "line": 412,
+        "text": "        self._reasoning_detector = None"
+      },
+      {
+        "line": 413,
+        "text": "        if self.reasoning_parser:"
+      },
+      {
+        "line": 414,
+        "text": "            try:"
+      },
+      {
+        "line": 415,
+        "text": "                rp = ReasoningParser("
+      },
+      {
+        "line": 416,
+        "text": "                    model_type=self.reasoning_parser,"
+      },
+      {
+        "line": 417,
+        "text": "                    stream_reasoning=True,"
+      },
+      {
+        "line": 418,
+        "text": "                    tokenizer=self.tokenizer_manager.tokenizer,"
+      },
+      {
+        "line": 419,
+        "text": "                )"
+      },
+      {
+        "line": 420,
+        "text": "                self._reasoning_detector = rp.detector"
+      },
+      {
+        "line": 421,
+        "text": "            except ValueError as e:"
+      },
+      {
+        "line": 517,
+        "text": "            return list(via_text) != list(via_ids)"
+      },
+      {
+        "line": 518,
+        "text": "        except Exception:"
+      },
+      {
+        "line": 519,
+        "text": "            # A template that needs kwargs this probe does not supply tells us"
+      },
+      {
+        "line": 520,
+        "text": "            # nothing; keep the long-standing text path."
+      },
+      {
+        "line": 521,
+        "text": "            return False"
+      },
+      {
+        "line": 522,
+        "text": ""
+      },
+      {
+        "line": 523,
+        "text": "    def _chat_template_reads_reasoning_content(self) -> bool:"
+      },
+      {
+        "line": 524,
+        "text": "        template = self.default_chat_template_kwargs.get(\"chat_template\")"
+      },
+      {
+        "line": 525,
+        "text": "        if template is None and self.tokenizer_manager.tokenizer is not None:"
+      },
+      {
+        "line": 526,
+        "text": "            template = self.tokenizer_manager.tokenizer.chat_template"
+      },
+      {
+        "line": 527,
+        "text": "        return jinja_template_reads_reasoning_content(template)"
+      },
+      {
+        "line": 528,
+        "text": ""
+      },
+      {
+        "line": 529,
+        "text": "    def _handle_last_assistant_message("
+      },
+      {
+        "line": 530,
+        "text": "        self,"
+      },
+      {
+        "line": 531,
+        "text": "        messages: list[dict[str, Any]],"
+      },
+      {
+        "line": 532,
+        "text": "        request: ChatCompletionRequest,"
+      },
+      {
+        "line": 533,
+        "text": "    ) -> tuple[list[dict[str, Any]], str | None]:"
+      },
+      {
+        "line": 534,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 535,
+        "text": "        Handle continue_final_message feature: separate final assistant message."
+      },
+      {
+        "line": 628,
+        "text": "        return chat_encoding_adapters.build_chat_encoding_adapter("
+      },
+      {
+        "line": 629,
+        "text": "            chat_encoding_adapters.ChatEncodingAdapterContext("
+      },
+      {
+        "line": 630,
+        "text": "                chat_encoding_spec=self.chat_encoding_spec,"
+      },
+      {
+        "line": 631,
+        "text": "                tokenizer=self.tokenizer_manager.tokenizer,"
+      },
+      {
+        "line": 632,
+        "text": "                reasoning_parser=self.reasoning_parser,"
+      },
+      {
+        "line": 633,
+        "text": "                tool_call_parser=self.tool_call_parser,"
+      },
+      {
+        "line": 634,
+        "text": "                chat_hooks=chat_encoding_adapters.ChatOutputHooks("
+      },
+      {
+        "line": 635,
+        "text": "                    thinking_requested=self._thinking_requested,"
+      },
+      {
+        "line": 636,
+        "text": "                    tool_call_parsing_active=self._tool_call_parsing_active,"
+      },
+      {
+        "line": 637,
+        "text": "                    history_tool_calls_count=self._get_history_tool_calls_cnt,"
+      },
+      {
+        "line": 638,
+        "text": "                    tool_call_id=self._process_tool_call_id,"
+      },
+      {
+        "line": 639,
+        "text": "                ),"
+      },
+      {
+        "line": 640,
+        "text": "                hf_config=self.tokenizer_manager.model_config.hf_config,"
+      },
+      {
+        "line": 641,
+        "text": "                model_path=self.tokenizer_manager.model_path,"
+      },
+      {
+        "line": 642,
+        "text": "                revision=get_model().revision,"
+      },
+      {
+        "line": 643,
+        "text": "                default_chat_template_kwargs=get_serving().default_chat_template_kwargs,"
+      },
+      {
+        "line": 644,
+        "text": "            )"
+      },
+      {
+        "line": 645,
+        "text": "        )"
+      },
+      {
+        "line": 646,
+        "text": ""
+      },
+      {
+        "line": 647,
+        "text": "    def _encoding_output("
+      },
+      {
+        "line": 648,
+        "text": "        self,"
+      },
+      {
+        "line": 649,
+        "text": "    ) -> Optional[chat_encoding_adapters.ChatEncodingOutputAdapter]:"
+      },
+      {
+        "line": 650,
+        "text": "        if self._encoding_adapter is None:"
+      },
+      {
+        "line": 651,
+        "text": "            return None"
+      },
+      {
+        "line": 652,
+        "text": "        return self._encoding_adapter.output"
+      },
+      {
+        "line": 653,
+        "text": ""
+      },
+      {
+        "line": 654,
+        "text": "    def _request_id_prefix(self) -> str:"
+      },
+      {
+        "line": 739,
+        "text": "            )"
+      },
+      {
+        "line": 740,
+        "text": "        return messages, image_count, assistant_prefix"
+      },
+      {
+        "line": 741,
+        "text": ""
+      },
+      {
+        "line": 742,
+        "text": "    def _encode_messages("
+      },
+      {
+        "line": 743,
+        "text": "        self,"
+      },
+      {
+        "line": 744,
+        "text": "        messages: list[dict[str, Any]],"
+      },
+      {
+        "line": 745,
+        "text": "        request: ChatCompletionRequest,"
+      },
+      {
+        "line": 746,
+        "text": "        thinking_mode: ThinkingMode,"
+      },
+      {
+        "line": 747,
+        "text": "        tools: list[dict] | None = None,"
+      },
+      {
+        "line": 748,
+        "text": "        *,"
+      },
+      {
+        "line": 749,
+        "text": "        image_data: list,"
+      },
+      {
+        "line": 750,
+        "text": "    ) -> list[int] | None:"
+      },
+      {
+        "line": 751,
+        "text": "        \"\"\"Encode messages for custom chat_encoding_spec values."
+      },
+      {
+        "line": 752,
+        "text": ""
+      },
+      {
+        "line": 753,
+        "text": "        Returns prompt_ids if handled, None to use default encoding."
+      },
+      {
+        "line": 754,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 755,
+        "text": "        if self._encoding_adapter is not None:"
+      },
+      {
+        "line": 756,
+        "text": "            return self._encoding_adapter.encode_messages("
+      },
+      {
+        "line": 757,
+        "text": "                messages=messages,"
+      },
+      {
+        "line": 758,
+        "text": "                request=request,"
+      },
+      {
+        "line": 759,
+        "text": "                tools=tools,"
+      },
+      {
+        "line": 760,
+        "text": "                thinking=thinking_mode == ThinkingMode.THINKING,"
+      },
+      {
+        "line": 761,
+        "text": "                image_data=image_data,"
+      },
+      {
+        "line": 762,
+        "text": "            )"
+      },
+      {
+        "line": 763,
+        "text": "        if self.chat_encoding_spec == \"kimi_k3\":"
+      },
+      {
+        "line": 764,
+        "text": "            messages, image_count, assistant_prefix = self._prepare_kimi_k3_messages("
+      },
+      {
+        "line": 765,
+        "text": "                messages, request"
+      },
+      {
+        "line": 766,
+        "text": "            )"
+      },
+      {
+        "line": 767,
+        "text": "            template_kwargs = dict(request.chat_template_kwargs or {})"
+      },
+      {
+        "line": 768,
+        "text": "            template_kwargs.pop(\"tokenize\", None)"
+      },
+      {
+        "line": 769,
+        "text": "            template_kwargs.pop(\"return_dict\", None)"
+      },
+      {
+        "line": 770,
+        "text": "            template_kwargs.pop(\"image_prompts\", None)"
+      },
+      {
+        "line": 771,
+        "text": "            if image_count:"
+      },
+      {
+        "line": 772,
+        "text": "                template_kwargs[\"image_prompts\"] = [\"<|media_pad|>\"] * image_count"
+      },
+      {
+        "line": 773,
+        "text": ""
+      },
+      {
+        "line": 774,
+        "text": "            if ("
+      },
+      {
+        "line": 775,
+        "text": "                request.reasoning_effort in (\"low\", \"high\", \"max\")"
+      },
+      {
+        "line": 776,
+        "text": "                and \"thinking_effort\" not in template_kwargs"
+      },
+      {
+        "line": 777,
+        "text": "            ):"
+      },
+      {
+        "line": 778,
+        "text": "                template_kwargs[\"thinking_effort\"] = request.reasoning_effort"
+      },
+      {
+        "line": 779,
+        "text": "            elif request.reasoning_effort not in ("
+      },
+      {
+        "line": 780,
+        "text": "                None,"
+      },
+      {
+        "line": 781,
+        "text": "                \"none\","
+      },
+      {
+        "line": 782,
+        "text": "                \"low\","
+      },
+      {
+        "line": 783,
+        "text": "                \"high\","
+      },
+      {
+        "line": 784,
+        "text": "                \"max\","
+      },
+      {
+        "line": 785,
+        "text": "            ):"
+      },
+      {
+        "line": 786,
+        "text": "                logger.warning("
+      },
+      {
+        "line": 787,
+        "text": "                    \"Kimi K3 does not support reasoning_effort=%r; using the \""
+      },
+      {
+        "line": 788,
+        "text": "                    \"encoder default.\","
+      },
+      {
+        "line": 789,
+        "text": "                    request.reasoning_effort,"
+      },
+      {
+        "line": 1123,
+        "text": "        validate_max_output_tokens: bool = True,"
+      },
+      {
+        "line": 1124,
+        "text": "    ) -> str | None:"
+      },
+      {
+        "line": 1125,
+        "text": "        \"\"\"Validate that the input is valid.\"\"\""
+      },
+      {
+        "line": 1126,
+        "text": "        if not request.messages:"
+      },
+      {
+        "line": 1127,
+        "text": "            return \"Messages cannot be empty.\""
+      },
+      {
+        "line": 1128,
+        "text": ""
+      },
+      {
+        "line": 1129,
+        "text": "        if ("
+      },
+      {
+        "line": 1130,
+        "text": "            request.chat_template_kwargs"
+      },
+      {
+        "line": 1131,
+        "text": "            and \"chat_template\" in request.chat_template_kwargs"
+      },
+      {
+        "line": 1132,
+        "text": "            and not get_serving().trust_request_chat_template"
+      },
+      {
+        "line": 1133,
+        "text": "        ):"
+      },
+      {
+        "line": 1134,
+        "text": "            return ("
+      },
+      {
+        "line": 1135,
+        "text": "                \"Request-supplied chat_template is not allowed. Start the server \""
+      },
+      {
+        "line": 1136,
+        "text": "                \"with --trust-request-chat-template to permit it.\""
+      },
+      {
+        "line": 1137,
+        "text": "            )"
+      },
+      {
+        "line": 1138,
+        "text": ""
+      },
+      {
+        "line": 1139,
+        "text": "        if request.return_sampling_mask and not request.return_meta_info:"
+      },
+      {
+        "line": 1140,
+        "text": "            return \"return_sampling_mask requires return_meta_info=true.\""
+      },
+      {
+        "line": 1141,
+        "text": ""
+      },
+      {
+        "line": 1142,
+        "text": "        if self.is_minimax_m3:"
+      },
+      {
+        "line": 1311,
+        "text": "                request.return_output_ids_in_sglext = True"
+      },
+      {
+        "line": 1312,
+        "text": ""
+      },
+      {
+        "line": 1313,
+        "text": "        reasoning_effort = None"
+      },
+      {
+        "line": 1314,
+        "text": "        if not uses_hunyuan_reasoning_effort("
+      },
+      {
+        "line": 1315,
+        "text": "            self.reasoning_parser, self.template_manager.reasoning_config"
+      },
+      {
+        "line": 1316,
+        "text": "        ):"
+      },
+      {
+        "line": 1317,
+        "text": "            reasoning_effort = ("
+      },
+      {
+        "line": 1318,
+        "text": "                request.chat_template_kwargs.pop(\"reasoning_effort\", None)"
+      },
+      {
+        "line": 1319,
+        "text": "                if request.chat_template_kwargs"
+      },
+      {
+        "line": 1320,
+        "text": "                else None"
+      },
+      {
+        "line": 1321,
+        "text": "            )"
+      },
+      {
+        "line": 1322,
+        "text": ""
+      },
+      {
+        "line": 1323,
+        "text": "        if self.is_gpt_oss and reasoning_effort == \"none\":"
+      },
+      {
+        "line": 1324,
+        "text": "            raise ValueError("
+      },
+      {
+        "line": 1325,
+        "text": "                f\"Harmony does not support reasoning effort {reasoning_effort}\""
+      },
+      {
+        "line": 1326,
+        "text": "            )"
+      },
+      {
+        "line": 1327,
+        "text": ""
+      },
+      {
+        "line": 1328,
+        "text": "        if reasoning_effort is not None:"
+      },
+      {
+        "line": 1329,
+        "text": "            request.reasoning_effort = reasoning_effort"
+      },
+      {
+        "line": 1330,
+        "text": ""
+      },
+      {
+        "line": 1719,
+        "text": "        parser: FunctionCallParser,"
+      },
+      {
+        "line": 1720,
+        "text": "    ) -> ToolCallConstraint | None:"
+      },
+      {
+        "line": 1721,
+        "text": "        \"\"\"The template tool-call constraint for output that starts the"
+      },
+      {
+        "line": 1722,
+        "text": "        assistant message, which it then covers from the first token.\"\"\""
+      },
+      {
+        "line": 1723,
+        "text": "        tag = parser.detector.get_structural_tag("
+      },
+      {
+        "line": 1724,
+        "text": "            tools=parser.structural_tag_tools(),"
+      },
+      {
+        "line": 1725,
+        "text": "            tool_choice=request.tool_choice,"
+      },
+      {
+        "line": 1726,
+        "text": "            thinking_mode=result.require_reasoning,"
+      },
+      {
+        "line": 1727,
+        "text": "            parallel_tool_calls=request.parallel_tool_calls,"
+      },
+      {
+        "line": 1728,
+        "text": "            message_start=True,"
+      },
+      {
+        "line": 1729,
+        "text": "        )"
+      },
+      {
+        "line": 1730,
+        "text": "        return None if tag is None else (\"structural_tag\", tag)"
+      },
+      {
+        "line": 1731,
+        "text": ""
+      },
+      {
+        "line": 1732,
+        "text": "    def _settle_response_template_stop("
+      },
+      {
+        "line": 1733,
+        "text": "        self,"
+      },
+      {
+        "line": 1734,
+        "text": "        text: str,"
+      },
+      {
+        "line": 1735,
+        "text": "        finish_reason: dict[str, Any] | None,"
+      },
+      {
+        "line": 1736,
+        "text": "        request: ChatCompletionRequest | ResponsesRequest,"
+      },
+      {
+        "line": 1737,
+        "text": "        output: str,"
+      },
+      {
+        "line": 1817,
+        "text": "        request: ChatCompletionRequest,"
+      },
+      {
+        "line": 1818,
+        "text": "        is_multimodal: bool,"
+      },
+      {
+        "line": 1819,
+        "text": "        *,"
+      },
+      {
+        "line": 1820,
+        "text": "        output_constrained: bool = False,"
+      },
+      {
+        "line": 1821,
+        "text": "    ) -> MessageProcessingResult:"
+      },
+      {
+        "line": 1822,
+        "text": "        \"\"\"Process chat messages and apply chat template\"\"\""
+      },
+      {
+        "line": 1823,
+        "text": "        if self.is_minimax_m3:"
+      },
+      {
+        "line": 1824,
+        "text": "            # Settle the request's own thinking and effort first; server defaults"
+      },
+      {
+        "line": 1825,
+        "text": "            # only fill what it left unset."
+      },
+      {
+        "line": 1826,
+        "text": "            _normalize_minimax_m3_request(request)"
+      },
+      {
+        "line": 1827,
+        "text": "        if self.default_chat_template_kwargs:"
+      },
+      {
+        "line": 1828,
+        "text": "            ctk = dict(request.chat_template_kwargs or {})"
+      },
+      {
+        "line": 1829,
+        "text": "            for k, v in self.default_chat_template_kwargs.items():"
+      },
+      {
+        "line": 1830,
+        "text": "                ctk.setdefault(k, v)"
+      },
+      {
+        "line": 1831,
+        "text": "            request.chat_template_kwargs = ctk"
+      },
+      {
+        "line": 1832,
+        "text": "            effort = ctk.get(\"reasoning_effort\")"
+      },
+      {
+        "line": 1833,
+        "text": "            if effort is not None and request.reasoning_effort is None:"
+      },
+      {
+        "line": 1834,
+        "text": "                request.reasoning_effort = effort"
+      },
+      {
+        "line": 1835,
+        "text": ""
+      },
+      {
+        "line": 1836,
+        "text": "        if self.is_minimax_m3:"
+      },
+      {
+        "line": 1837,
+        "text": "            _normalize_minimax_m3_request(request)"
+      },
+      {
+        "line": 1838,
+        "text": ""
+      },
+      {
+        "line": 1839,
+        "text": "        normalize_hunyuan_reasoning_effort("
+      },
+      {
+        "line": 1840,
+        "text": "            request, self.reasoning_parser, self.template_manager.reasoning_config"
+      },
+      {
+        "line": 1841,
+        "text": "        )"
+      },
+      {
+        "line": 1842,
+        "text": ""
+      },
+      {
+        "line": 1843,
+        "text": "        # GptOss model needs to keep special tokens for harmony parsing"
+      },
+      {
+        "line": 1844,
+        "text": "        if self.is_gpt_oss or self.is_gemma4:"
+      },
+      {
+        "line": 1845,
+        "text": "            request.skip_special_tokens = False"
+      },
+      {
+        "line": 1846,
+        "text": ""
+      },
+      {
+        "line": 1847,
+        "text": "        self._patch_reasoning_skip_special_tokens(request)"
+      },
+      {
+        "line": 1848,
+        "text": ""
+      },
+      {
+        "line": 1849,
+        "text": "        thinking_mode = self._get_reasoning_from_request(request)"
+      },
+      {
+        "line": 1850,
+        "text": "        # SGLang's ReasonerGrammarBackend owns the reasoning prefix"
+      },
+      {
+        "line": 1851,
+        "text": "        # when --reasoning-parser is configured, so builtin xgrammar"
+      },
+      {
+        "line": 1852,
+        "text": "        # tags must describe only the post-reasoning tool-call suffix."
+      },
+      {
+        "line": 1853,
+        "text": "        xgrammar_reasoning = thinking_mode and (self.reasoning_parser is None)"
+      },
+      {
+        "line": 1854,
+        "text": "        tool_call_constraint = None"
+      },
+      {
+        "line": 1855,
+        "text": "        template_tool_parser = None"
+      },
+      {
+        "line": 1856,
+        "text": ""
+      },
+      {
+        "line": 1857,
+        "text": "        effective_tools = self._effective_tools(request)"
+      },
+      {
+        "line": 1858,
+        "text": "        # A grammar reaching its terminal state ends generation regardless of"
+      },
+      {
+        "line": 1859,
+        "text": "        # `ignore_eos`, so only install it when the request allows tool calls."
+      },
+      {
+        "line": 1860,
+        "text": "        glm_constraint = ("
+      },
+      {
+        "line": 1861,
+        "text": "            FunctionCallParser.ToolCallParserEnum.get(self.tool_call_parser)"
+      },
+      {
+        "line": 1862,
+        "text": "            is Glm47MoeDetector"
+      },
+      {
+        "line": 1863,
+        "text": "            and bool(effective_tools)"
+      },
+      {
+        "line": 1864,
+        "text": "            and request.tool_choice != \"none\""
+      },
+      {
+        "line": 1865,
+        "text": "            and not any(tool.function.strict for tool in effective_tools)"
+      },
+      {
+        "line": 1866,
+        "text": "        )"
+      },
+      {
+        "line": 1867,
+        "text": "        if glm_constraint:"
+      },
+      {
+        "line": 1868,
+        "text": "            enable_thinking = (request.chat_template_kwargs or {}).get("
+      },
+      {
+        "line": 1869,
+        "text": "                \"enable_thinking\""
+      },
+      {
+        "line": 1870,
+        "text": "            )"
+      },
+      {
+        "line": 1871,
+        "text": "            parser = FunctionCallParser(effective_tools, self.tool_call_parser)"
+      },
+      {
+        "line": 1872,
+        "text": "            tool_call_constraint = parser.get_structure_constraint("
+      },
+      {
+        "line": 1873,
+        "text": "                request.tool_choice,"
+      },
+      {
+        "line": 1874,
+        "text": "                parallel_tool_calls=request.parallel_tool_calls,"
+      },
+      {
+        "line": 1875,
+        "text": "                thinking_mode=True"
+      },
+      {
+        "line": 1876,
+        "text": "                if enable_thinking is None"
+      },
+      {
+        "line": 1877,
+        "text": "                else bool(enable_thinking),"
+      },
+      {
+        "line": 1878,
+        "text": "            )"
+      },
+      {
+        "line": 1879,
+        "text": ""
+      },
+      {
+        "line": 1880,
+        "text": "        # Apply chat template and its stop strings"
+      },
+      {
+        "line": 1881,
+        "text": "        tools = None"
+      },
+      {
+        "line": 1882,
+        "text": "        tool_call_stop = None"
+      },
+      {
+        "line": 1883,
+        "text": "        required_parsed_natively = glm_constraint"
+      },
+      {
+        "line": 1884,
+        "text": "        if effective_tools and request.tool_choice != \"none\":"
+      },
+      {
+        "line": 1885,
+        "text": "            request.skip_special_tokens = False"
+      },
+      {
+        "line": 1886,
+        "text": "            if not isinstance(request.tool_choice, str):"
+      },
+      {
+        "line": 1887,
+        "text": "                tools = ["
+      },
+      {
+        "line": 1888,
+        "text": "                    item.model_dump()"
+      },
+      {
+        "line": 1898,
+        "text": "                    effective_tools,"
+      },
+      {
+        "line": 1899,
+        "text": "                    self.tool_call_parser,"
+      },
+      {
+        "line": 1900,
+        "text": "                    tokenizer=self.tokenizer_manager.tokenizer,"
+      },
+      {
+        "line": 1901,
+        "text": "                )"
+      },
+      {
+        "line": 1902,
+        "text": "                tool_call_constraint = parser.get_structure_constraint("
+      },
+      {
+        "line": 1903,
+        "text": "                    request.tool_choice,"
+      },
+      {
+        "line": 1904,
+        "text": "                    parallel_tool_calls=request.parallel_tool_calls,"
+      },
+      {
+        "line": 1905,
+        "text": "                    thinking_mode=xgrammar_reasoning,"
+      },
+      {
+        "line": 1906,
+        "text": "                )"
+      },
+      {
+        "line": 1907,
+        "text": "                if ("
+      },
+      {
+        "line": 1908,
+        "text": "                    tool_call_constraint is not None"
+      },
+      {
+        "line": 1909,
+        "text": "                    and tool_call_constraint[0] == \"structural_tag\""
+      },
+      {
+        "line": 1910,
+        "text": "                    and self._reasoning_detector is not None"
+      },
+      {
+        "line": 1911,
+        "text": "                    # Template tags exclude their own field closers,"
+      },
+      {
+        "line": 1912,
+        "text": "                    # which can be the think literals (Beam's <|end|>)."
+      },
+      {
+        "line": 1913,
+        "text": "                    and not isinstance(parser.detector, ResponseTemplateToolDetector)"
+      },
+      {
+        "line": 1914,
+        "text": "                ):"
+      },
+      {
+        "line": 1915,
+        "text": "                    # Same ownership rule: the reasoning parser handles think"
+      },
+      {
+        "line": 1916,
+        "text": "                    # tokens, so the grammar must not forbid them in free text."
+      },
+      {
+        "line": 1955,
+        "text": "                    [],"
+      },
+      {
+        "line": 1956,
+        "text": "                    self.tool_call_parser,"
+      },
+      {
+        "line": 1957,
+        "text": "                    tokenizer=self.tokenizer_manager.tokenizer,"
+      },
+      {
+        "line": 1958,
+        "text": "                )"
+      },
+      {
+        "line": 1959,
+        "text": "            tag = template_tool_parser.detector.get_structural_tag("
+      },
+      {
+        "line": 1960,
+        "text": "                tools=template_tool_parser.structural_tag_tools(),"
+      },
+      {
+        "line": 1961,
+        "text": "                tool_choice=request.tool_choice,"
+      },
+      {
+        "line": 1962,
+        "text": "                thinking_mode=xgrammar_reasoning,"
+      },
+      {
+        "line": 1963,
+        "text": "                parallel_tool_calls=request.parallel_tool_calls,"
+      },
+      {
+        "line": 1964,
+        "text": "            )"
+      },
+      {
+        "line": 1965,
+        "text": "            if tag is not None:"
+      },
+      {
+        "line": 1966,
+        "text": "                tool_call_constraint = (\"structural_tag\", tag)"
+      },
+      {
+        "line": 1967,
+        "text": ""
+      },
+      {
+        "line": 1968,
+        "text": "        # When input_ids are provided, skip template tokenization entirely;"
+      },
+      {
+        "line": 1969,
+        "text": "        # only stop tokens and tool_call_constraint are needed."
+      },
+      {
+        "line": 1970,
+        "text": "        if request.input_ids is not None:"
+      },
+      {
+        "line": 1971,
+        "text": "            result = MessageProcessingResult("
+      },
+      {
+        "line": 1972,
+        "text": "                prompt=\"\","
+      },
+      {
+        "line": 1973,
+        "text": "                prompt_ids=request.input_ids,"
+      },
+      {
+        "line": 1994,
+        "text": ""
+      },
+      {
+        "line": 1995,
+        "text": "        # Configured after rendering so the detokenization options never reach"
+      },
+      {
+        "line": 1996,
+        "text": "        # the chat template."
+      },
+      {
+        "line": 1997,
+        "text": "        if self._requires_response_template_detokenization(request):"
+      },
+      {
+        "line": 1998,
+        "text": "            configure_response_template_request(request)"
+      },
+      {
+        "line": 1999,
+        "text": "            result.uses_response_template = True"
+      },
+      {
+        "line": 2000,
+        "text": "        result.tool_call_constraint = tool_call_constraint"
+      },
+      {
+        "line": 2001,
+        "text": "        result.require_reasoning = thinking_mode"
+      },
+      {
+        "line": 2002,
+        "text": "        if template_tool_parser is not None and result.uses_response_template:"
+      },
+      {
+        "line": 2003,
+        "text": "            self._record_template_tool_call_grammar("
+      },
+      {
+        "line": 2004,
+        "text": "                request, result, template_tool_parser"
+      },
+      {
+        "line": 2005,
+        "text": "            )"
+      },
+      {
+        "line": 2006,
+        "text": "        result.skip_special_tokens = request.skip_special_tokens"
+      },
+      {
+        "line": 2007,
+        "text": "        if self.reasoning_parser == \"k2_horizon\" and thinking_mode:"
+      },
+      {
+        "line": 2008,
+        "text": "            parser = ReasoningParser("
+      },
+      {
+        "line": 2009,
+        "text": "                model_type=self.reasoning_parser,"
+      },
+      {
+        "line": 2010,
+        "text": "                stream_reasoning=False,"
+      },
+      {
+        "line": 2011,
+        "text": "                force_reasoning=True,"
+      },
+      {
+        "line": 2012,
+        "text": "                request=request,"
+      },
+      {
+        "line": 2013,
+        "text": "                tokenizer=self.tokenizer_manager.tokenizer,"
+      },
+      {
+        "line": 2014,
+        "text": "            )"
+      },
+      {
+        "line": 2015,
+        "text": "            token_ids = self.tokenizer_manager.tokenizer.encode("
+      },
+      {
+        "line": 2016,
+        "text": "                parser.detector.think_end_token,"
+      },
+      {
+        "line": 2017,
+        "text": "                add_special_tokens=False,"
+      },
+      {
+        "line": 2018,
+        "text": "            )"
+      },
+      {
+        "line": 2046,
+        "text": "        video_data = []"
+      },
+      {
+        "line": 2047,
+        "text": "        audio_data = []"
+      },
+      {
+        "line": 2048,
+        "text": "        modalities = []"
+      },
+      {
+        "line": 2049,
+        "text": ""
+      },
+      {
+        "line": 2050,
+        "text": "        template_content_format = self.template_manager.jinja_template_content_format"
+      },
+      {
+        "line": 2051,
+        "text": ""
+      },
+      {
+        "line": 2052,
+        "text": "        # Try custom encoding first (override in subclass for custom renderers)"
+      },
+      {
+        "line": 2053,
+        "text": "        thinking_mode = ("
+      },
+      {
+        "line": 2054,
+        "text": "            ThinkingMode.THINKING"
+      },
+      {
+        "line": 2055,
+        "text": "            if self._thinking_requested(request)"
+      },
+      {
+        "line": 2056,
+        "text": "            else ThinkingMode.CHAT"
+      },
+      {
+        "line": 2057,
+        "text": "        )"
+      },
+      {
+        "line": 2058,
+        "text": "        messages = [msg.model_dump() for msg in request.messages]"
+      },
+      {
+        "line": 2059,
+        "text": "        strict_tool_call_arguments = ("
+      },
+      {
+        "line": 2060,
+        "text": "            self._encoding_adapter.strict_tool_call_arguments"
+      },
+      {
+        "line": 2061,
+        "text": "            if self._encoding_adapter is not None"
+      },
+      {
+        "line": 2062,
+        "text": "            else self.chat_encoding_spec != \"kimi_k3\""
+      },
+      {
+        "line": 2063,
+        "text": "        )"
+      },
+      {
+        "line": 2064,
+        "text": "        for message in messages:"
+      },
+      {
+        "line": 2065,
+        "text": "            normalize_assistant_tool_call_arguments("
+      },
+      {
+        "line": 2066,
+        "text": "                message, strict=strict_tool_call_arguments"
+      },
+      {
+        "line": 2067,
+        "text": "            )"
+      },
+      {
+        "line": 2068,
+        "text": ""
+      },
+      {
+        "line": 2069,
+        "text": "        prompt_ids = self._encode_messages("
+      },
+      {
+        "line": 2070,
+        "text": "            copy.deepcopy(messages),"
+      },
+      {
+        "line": 2071,
+        "text": "            request,"
+      },
+      {
+        "line": 2072,
+        "text": "            thinking_mode,"
+      },
+      {
+        "line": 2073,
+        "text": "            tools=tools,"
+      },
+      {
+        "line": 2074,
+        "text": "            image_data=image_data,"
+      },
+      {
+        "line": 2075,
+        "text": "        )"
+      },
+      {
+        "line": 2076,
+        "text": ""
+      },
+      {
+        "line": 2077,
+        "text": "        if prompt_ids is not None:"
+      },
+      {
+        "line": 2078,
+        "text": "            if image_data and not is_multimodal:"
+      },
+      {
+        "line": 2079,
+        "text": "                raise ValueError(\"image input is not supported for this model\")"
+      },
+      {
+        "line": 2080,
+        "text": "            collects_openai_media = ("
+      },
+      {
+        "line": 2081,
+        "text": "                self._encoding_adapter.collects_openai_media"
+      },
+      {
+        "line": 2082,
+        "text": "                if self._encoding_adapter is not None"
+      },
+      {
+        "line": 2083,
+        "text": "                else self.chat_encoding_spec == \"kimi_k3\""
+      },
+      {
+        "line": 2131,
+        "text": "            # An empty system message hosts the request tools."
+      },
+      {
+        "line": 2132,
+        "text": "            if messages[0][\"role\"] != \"system\":"
+      },
+      {
+        "line": 2133,
+        "text": "                messages.insert(0, {\"role\": \"system\", \"content\": \"\"})"
+      },
+      {
+        "line": 2134,
+        "text": "            if request_tools:"
+      },
+      {
+        "line": 2135,
+        "text": "                messages[0][\"tools\"] = [tool.model_dump() for tool in request_tools]"
+      },
+      {
+        "line": 2136,
+        "text": ""
+      },
+      {
+        "line": 2137,
+        "text": "            real_input = encoding_dsv32.encode_messages("
+      },
+      {
+        "line": 2138,
+        "text": "                messages, thinking_mode=thinking_mode"
+      },
+      {
+        "line": 2139,
+        "text": "            )"
+      },
+      {
+        "line": 2140,
+        "text": "            prompt_ids = self.tokenizer_manager.tokenizer.encode(real_input)"
+      },
+      {
+        "line": 2141,
+        "text": ""
+      },
+      {
+        "line": 2142,
+        "text": "            # Append assistant prefix if continue_final_message is enabled"
+      },
+      {
+        "line": 2143,
+        "text": "            if assistant_prefix:"
+      },
+      {
+        "line": 2144,
+        "text": "                prompt_ids = self._append_assistant_prefix_to_prompt_ids("
+      },
+      {
+        "line": 2145,
+        "text": "                    prompt_ids, assistant_prefix"
+      },
+      {
+        "line": 2146,
+        "text": "                )"
+      },
+      {
+        "line": 2147,
+        "text": "        else:"
+      },
+      {
+        "line": 2148,
+        "text": "            # The M3 template renders tool results by position, not by tool_call_id."
+      },
+      {
+        "line": 2149,
+        "text": "            if ("
+      },
+      {
+        "line": 2182,
+        "text": "                        openai_compatible_messages, request"
+      },
+      {
+        "line": 2183,
+        "text": "                    )"
+      },
+      {
+        "line": 2184,
+        "text": "                )"
+      },
+      {
+        "line": 2185,
+        "text": ""
+      },
+      {
+        "line": 2186,
+        "text": "            extra_template_kwargs = {}"
+      },
+      {
+        "line": 2187,
+        "text": "            if request.reasoning_effort is not None:"
+      },
+      {
+        "line": 2188,
+        "text": "                extra_template_kwargs[\"reasoning_effort\"] = request.reasoning_effort"
+      },
+      {
+        "line": 2189,
+        "text": "            if request.chat_template_kwargs:"
+      },
+      {
+        "line": 2190,
+        "text": "                extra_template_kwargs.update(request.chat_template_kwargs)"
+      },
+      {
+        "line": 2191,
+        "text": ""
+      },
+      {
+        "line": 2192,
+        "text": "            rc = self.template_manager.reasoning_config"
+      },
+      {
+        "line": 2193,
+        "text": "            if rc is not None and rc.effort_kwarg is not None:"
+      },
+      {
+        "line": 2194,
+        "text": "                if request.reasoning_effort == \"low\":"
+      },
+      {
+        "line": 2195,
+        "text": "                    extra_template_kwargs.setdefault(rc.effort_kwarg, True)"
+      },
+      {
+        "line": 2196,
+        "text": "                elif request.reasoning_effort in (\"medium\", \"high\", \"max\"):"
+      },
+      {
+        "line": 2197,
+        "text": "                    logger.warning("
+      },
+      {
+        "line": 2198,
+        "text": "                        \"Model '%s' supports only 'low' reasoning effort; \""
+      },
+      {
+        "line": 2199,
+        "text": "                        \"requested '%s' treated as default thinking\","
+      },
+      {
+        "line": 2200,
+        "text": "                        self.tokenizer_manager.served_model_name,"
+      },
+      {
+        "line": 2201,
+        "text": "                        request.reasoning_effort,"
+      },
+      {
+        "line": 2202,
+        "text": "                    )"
+      },
+      {
+        "line": 2203,
+        "text": ""
+      },
+      {
+        "line": 2204,
+        "text": "            # Split apply_chat_template(tokenize=True) into render + encode so we"
+      },
+      {
+        "line": 2205,
+        "text": "            # can skip add_special_tokens=False on tokenizers that don't auto-add"
+      },
+      {
+        "line": 2206,
+        "text": "            # specials (Kimi-like, OpenAI-chat analogue of #25265). Chat"
+      },
+      {
+        "line": 2207,
+        "text": "            # templates already include role/special tokens, so the encode must"
+      },
+      {
+        "line": 2208,
+        "text": "            # avoid double BOS on tokenizers that would add it."
+      },
+      {
+        "line": 2209,
+        "text": "            add_special_tokens = request._format_add_special_tokens"
+      },
+      {
+        "line": 2210,
+        "text": "            if add_special_tokens and self._prompt_text_round_trip_is_lossy:"
+      },
+      {
+        "line": 2407,
+        "text": "        else:"
+      },
+      {
+        "line": 2408,
+        "text": "            prompt = conv.get_prompt()"
+      },
+      {
+        "line": 2409,
+        "text": "            if self._get_reasoning_from_request(request) and ("
+      },
+      {
+        "line": 2410,
+        "text": "                self._reasoning_detector is None"
+      },
+      {
+        "line": 2411,
+        "text": "                or not self._reasoning_detector.thinks_internally"
+      },
+      {
+        "line": 2412,
+        "text": "            ):"
+      },
+      {
+        "line": 2413,
+        "text": "                # Models with thinks_internally=True think without a leading <think> token"
+      },
+      {
+        "line": 2414,
+        "text": "                prompt += \"<think>\"  # Note(Xinyuan): hard code thinking token"
+      },
+      {
+        "line": 2415,
+        "text": ""
+      },
+      {
+        "line": 2416,
+        "text": "        image_data = conv.image_data if conv.image_data else None"
+      },
+      {
+        "line": 2417,
+        "text": "        video_data = conv.video_data if conv.video_data else None"
+      },
+      {
+        "line": 2418,
+        "text": "        audio_data = conv.audio_data if conv.audio_data else None"
+      },
+      {
+        "line": 2419,
+        "text": "        modalities = conv.modalities if conv.modalities else []"
+      },
+      {
+        "line": 2420,
+        "text": "        stop = copy.copy(conv.stop_str or [] if not request.ignore_eos else [])"
+      },
+      {
+        "line": 2421,
+        "text": ""
+      },
+      {
+        "line": 2422,
+        "text": "        if request.stop:"
+      },
+      {
+        "line": 2423,
+        "text": "            if isinstance(request.stop, str):"
+      },
+      {
+        "line": 2424,
+        "text": "                stop.append(request.stop)"
+      },
+      {
+        "line": 2425,
+        "text": "            else:"
+      },
+      {
+        "line": 2606,
+        "text": "                        error_aborted = True"
+      },
+      {
+        "line": 2607,
+        "text": "                        break"
+      },
+      {
+        "line": 2608,
+        "text": "                    finish_reasons[index] = finish_reason"
+      },
+      {
+        "line": 2609,
+        "text": ""
+      },
+      {
+        "line": 2610,
+        "text": "                # First chunk with role"
+      },
+      {
+        "line": 2611,
+        "text": "                if is_firsts.get(index, True):"
+      },
+      {
+        "line": 2612,
+        "text": "                    is_firsts[index] = False"
+      },
+      {
+        "line": 2613,
+        "text": "                    # K2 templates require preserved thinking, including empty reasoning."
+      },
+      {
+        "line": 2614,
+        "text": "                    yield build_sse_content("
+      },
+      {
+        "line": 2615,
+        "text": "                        chunk_id=content[\"meta_info\"][\"id\"],"
+      },
+      {
+        "line": 2616,
+        "text": "                        created=created,"
+      },
+      {
+        "line": 2617,
+        "text": "                        model=request.model,"
+      },
+      {
+        "line": 2618,
+        "text": "                        index=index,"
+      },
+      {
+        "line": 2619,
+        "text": "                        role=\"assistant\","
+      },
+      {
+        "line": 2620,
+        "text": "                        content=\"\","
+      },
+      {
+        "line": 2621,
+        "text": "                        reasoning_content=("
+      },
+      {
+        "line": 2622,
+        "text": "                            \"\""
+      },
+      {
+        "line": 2623,
+        "text": "                            if self.reasoning_parser == \"k2_horizon\""
+      },
+      {
+        "line": 2624,
+        "text": "                            and request.separate_reasoning"
+      },
+      {
+        "line": 3417,
+        "text": "    def wrap_reasoning_history(self, reasoning_text: str) -> str:"
+      },
+      {
+        "line": 3418,
+        "text": "        \"\"\"Wrap prior-turn reasoning in the detector's own start/end tokens."
+      },
+      {
+        "line": 3419,
+        "text": ""
+      },
+      {
+        "line": 3420,
+        "text": "        Pulling the delimiters from the detector keeps adapters in lockstep"
+      },
+      {
+        "line": 3421,
+        "text": "        with any future parser that ships non-``<think>`` markers \u2014 Mistral's"
+      },
+      {
+        "line": 3422,
+        "text": "        ``[THINK]``, Gemma4's ``think_start_self_label = \"thought\\\\n\"``, etc."
+      },
+      {
+        "line": 3423,
+        "text": "        Falling back to a plain string is unsafe: it would let prior"
+      },
+      {
+        "line": 3424,
+        "text": "        thinking text reach a non-reasoning model as ordinary assistant"
+      },
+      {
+        "line": 3425,
+        "text": "        content, so the caller must surface this state, not paper over it."
+      },
+      {
+        "line": 3426,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 3427,
+        "text": "        if self._reasoning_detector is None:"
+      },
+      {
+        "line": 3428,
+        "text": "            raise ValueError("
+      },
+      {
+        "line": 3429,
+        "text": "                \"Cannot rewrap thinking history: no reasoning detector is \""
+      },
+      {
+        "line": 3430,
+        "text": "                \"configured for this model\""
+      },
+      {
+        "line": 3431,
+        "text": "            )"
+      },
+      {
+        "line": 3432,
+        "text": "        d = self._reasoning_detector"
+      },
+      {
+        "line": 3433,
+        "text": "        return ("
+      },
+      {
+        "line": 3434,
+        "text": "            f\"{d.think_start_token}{d.think_start_self_label}\""
+      },
+      {
+        "line": 3435,
+        "text": "            f\"{reasoning_text}\\n{d.think_end_token}\""
+      },
+      {
+        "line": 3436,
+        "text": "        )"
+      },
+      {
+        "line": 3437,
+        "text": ""
+      },
+      {
+        "line": 3438,
+        "text": "    def _reasoning_default_mode(self) -> str | None:"
+      },
+      {
+        "line": 3439,
+        "text": "        if self._reasoning_detector is None:"
+      },
+      {
+        "line": 3440,
+        "text": "            return None"
+      },
+      {
+        "line": 3443,
+        "text": "    def _get_reasoning_toggle_param(self) -> str | None:"
+      },
+      {
+        "line": 3444,
+        "text": "        \"\"\"Resolve the chat-template kwarg that toggles reasoning, if any.\"\"\""
+      },
+      {
+        "line": 3445,
+        "text": "        config = self.template_manager.reasoning_config"
+      },
+      {
+        "line": 3446,
+        "text": "        if config is not None:"
+      },
+      {
+        "line": 3447,
+        "text": "            return config.toggle_param"
+      },
+      {
+        "line": 3448,
+        "text": ""
+      },
+      {
+        "line": 3449,
+        "text": "        mode = self._reasoning_default_mode()"
+      },
+      {
+        "line": 3450,
+        "text": "        if mode in (\"thinking\", \"enable_thinking\"):"
+      },
+      {
+        "line": 3451,
+        "text": "            return mode"
+      },
+      {
+        "line": 3452,
+        "text": "        if mode in (\"explicit_thinking\", \"explicit_enable_thinking\"):"
+      },
+      {
+        "line": 3453,
+        "text": "            return mode.replace(\"explicit_\", \"\")"
+      },
+      {
+        "line": 3454,
+        "text": "        return None"
+      },
+      {
+        "line": 3455,
+        "text": ""
+      },
+      {
+        "line": 3456,
+        "text": "    def apply_reasoning_enabled("
+      },
+      {
+        "line": 3457,
+        "text": "        self, request: ChatCompletionRequest, enabled: bool"
+      },
+      {
+        "line": 3458,
+        "text": "    ) -> None:"
+      },
+      {
+        "line": 3459,
+        "text": "        \"\"\"Force the request into the requested reasoning-on/off mode."
+      },
+      {
+        "line": 3460,
+        "text": ""
+      },
+      {
+        "line": 3461,
+        "text": "        Mirrors the read-side logic in ``_get_reasoning_from_request``;"
+      },
+      {
+        "line": 3462,
+        "text": "        the two must stay in sync. Always-on models cannot be disabled,"
+      },
+      {
+        "line": 3463,
+        "text": "        so explicit ``enabled=False`` raises rather than silently leaving"
+      },
+      {
+        "line": 3464,
+        "text": "        reasoning on."
+      },
+      {
+        "line": 3465,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 3466,
+        "text": "        if not self.reasoning_parser:"
+      },
+      {
+        "line": 3467,
+        "text": "            if enabled:"
+      },
+      {
+        "line": 3468,
+        "text": "                raise ValueError("
+      },
+      {
+        "line": 3469,
+        "text": "                    \"Anthropic thinking is not supported for models without \""
+      },
+      {
+        "line": 3470,
+        "text": "                    \"a reasoning parser\""
+      },
+      {
+        "line": 3471,
+        "text": "                )"
+      },
+      {
+        "line": 3472,
+        "text": "            return"
+      },
+      {
+        "line": 3473,
+        "text": ""
+      },
+      {
+        "line": 3474,
+        "text": "        if self.reasoning_parser == \"hunyuan\":"
+      },
+      {
+        "line": 3475,
+        "text": "            config = self.template_manager.reasoning_config"
+      },
+      {
+        "line": 3476,
+        "text": "            if config is not None and config.special_case == \"hunyuan_effort\":"
+      },
+      {
+        "line": 3477,
+        "text": "                request.reasoning_effort = \"high\" if enabled else \"no_think\""
+      },
+      {
+        "line": 3478,
+        "text": "            else:"
+      },
+      {
+        "line": 3479,
+        "text": "                request.reasoning_effort = \"medium\" if enabled else \"no_think\""
+      },
+      {
+        "line": 3480,
+        "text": "            return"
+      },
+      {
+        "line": 3481,
+        "text": ""
+      },
+      {
+        "line": 3482,
+        "text": "        if self.reasoning_parser == \"flint\":"
+      },
+      {
+        "line": 3483,
+        "text": "            if not enabled:"
+      },
+      {
+        "line": 3484,
+        "text": "                raise ValueError("
+      },
+      {
+        "line": 3485,
+        "text": "                    \"Reasoning parser 'flint' has no thinking toggle and cannot \""
+      },
+      {
+        "line": 3486,
+        "text": "                    \"be disabled via Anthropic thinking\""
+      },
+      {
+        "line": 3487,
+        "text": "                )"
+      },
+      {
+        "line": 3488,
+        "text": "            return"
+      },
+      {
+        "line": 3489,
+        "text": ""
+      },
+      {
+        "line": 3490,
+        "text": "        if self.reasoning_parser == \"iquest_q1\":"
+      },
+      {
+        "line": 3491,
+        "text": "            request.chat_template_kwargs = {"
+      },
+      {
+        "line": 3492,
+        "text": "                **(request.chat_template_kwargs or {}),"
+      },
+      {
+        "line": 3493,
+        "text": "                \"thinking\": enabled,"
+      },
+      {
+        "line": 3494,
+        "text": "                \"enable_thinking\": enabled,"
+      },
+      {
+        "line": 3495,
+        "text": "            }"
+      },
+      {
+        "line": 3496,
+        "text": "            return"
+      },
+      {
+        "line": 3497,
+        "text": ""
+      },
+      {
+        "line": 3498,
+        "text": "        if self.reasoning_parser == \"inkling\":"
+      },
+      {
+        "line": 3499,
+        "text": "            # Effort-conditioned, not toggled: \"none\" (0.0) is the off switch."
+      },
+      {
+        "line": 3500,
+        "text": "            if not enabled:"
+      },
+      {
+        "line": 3501,
+        "text": "                request.reasoning_effort = \"none\""
+      },
+      {
+        "line": 3502,
+        "text": "                return"
+      },
+      {
+        "line": 3503,
+        "text": ""
+      },
+      {
+        "line": 3504,
+        "text": "        config = self.template_manager.reasoning_config"
+      },
+      {
+        "line": 3505,
+        "text": "        is_mistral = (config is not None and config.special_case == \"mistral\") or ("
+      },
+      {
+        "line": 3512,
+        "text": "        is_always_on = (config is not None and config.special_case == \"always\") or ("
+      },
+      {
+        "line": 3513,
+        "text": "            config is None and self._reasoning_default_mode() == \"always\""
+      },
+      {
+        "line": 3514,
+        "text": "        )"
+      },
+      {
+        "line": 3515,
+        "text": "        if is_always_on:"
+      },
+      {
+        "line": 3516,
+        "text": "            if not enabled:"
+      },
+      {
+        "line": 3517,
+        "text": "                raise ValueError("
+      },
+      {
+        "line": 3518,
+        "text": "                    f\"Reasoning parser '{self.reasoning_parser}' is always-on \""
+      },
+      {
+        "line": 3519,
+        "text": "                    f\"and cannot be disabled via Anthropic thinking\""
+      },
+      {
+        "line": 3520,
+        "text": "                )"
+      },
+      {
+        "line": 3521,
+        "text": "            return"
+      },
+      {
+        "line": 3522,
+        "text": ""
+      },
+      {
+        "line": 3523,
+        "text": "        toggle_param = self._get_reasoning_toggle_param()"
+      },
+      {
+        "line": 3524,
+        "text": "        # The read side (``_get_reasoning_from_request``) returns False"
+      },
+      {
+        "line": 3525,
+        "text": "        # whenever ``config.toggle_param is None`` OR"
+      },
+      {
+        "line": 3526,
+        "text": "        # ``config.default_enabled is None``. The write side must mirror"
+      },
+      {
+        "line": 3527,
+        "text": "        # both conditions: if ``default_enabled`` is unset we cannot"
+      },
+      {
+        "line": 3528,
+        "text": "        # actually honor an ``enabled=True`` request even when the toggle"
+      },
+      {
+        "line": 3529,
+        "text": "        # name itself is resolvable, so writing the kwarg would set up the"
+      },
+      {
+        "line": 3530,
+        "text": "        # template to emit reasoning tokens while the parser ignores them"
+      },
+      {
+        "line": 3533,
+        "text": "        read_side_supported = toggle_param is not None and ("
+      },
+      {
+        "line": 3534,
+        "text": "            config is None or config.default_enabled is not None"
+      },
+      {
+        "line": 3535,
+        "text": "        )"
+      },
+      {
+        "line": 3536,
+        "text": "        if not read_side_supported:"
+      },
+      {
+        "line": 3537,
+        "text": "            if not enabled:"
+      },
+      {
+        "line": 3538,
+        "text": "                return"
+      },
+      {
+        "line": 3539,
+        "text": "            raise ValueError("
+      },
+      {
+        "line": 3540,
+        "text": "                f\"Anthropic thinking is not supported for reasoning parser \""
+      },
+      {
+        "line": 3541,
+        "text": "                f\"'{self.reasoning_parser}'\""
+      },
+      {
+        "line": 3542,
+        "text": "            )"
+      },
+      {
+        "line": 3543,
+        "text": ""
+      },
+      {
+        "line": 3544,
+        "text": "        chat_template_kwargs = dict(request.chat_template_kwargs or {})"
+      },
+      {
+        "line": 3545,
+        "text": "        chat_template_kwargs[toggle_param] = enabled"
+      },
+      {
+        "line": 3546,
+        "text": "        request.chat_template_kwargs = chat_template_kwargs"
+      },
+      {
+        "line": 3547,
+        "text": ""
+      },
+      {
+        "line": 3548,
+        "text": "    def _thinking_requested(self, request: ChatCompletionRequest) -> bool:"
+      },
+      {
+        "line": 3549,
+        "text": "        return (request.chat_template_kwargs or {}).get("
+      },
+      {
+        "line": 3550,
+        "text": "            \"thinking\", envs.SGLANG_DEFAULT_THINKING.get()"
+      },
+      {
+        "line": 3551,
+        "text": "        )"
+      },
+      {
+        "line": 3552,
+        "text": ""
+      },
+      {
+        "line": 3553,
+        "text": "    def _get_reasoning_from_request(self, request: ChatCompletionRequest) -> bool:"
+      },
+      {
+        "line": 3554,
+        "text": "        \"\"\"Determine whether reasoning mode should be enabled for this request."
+      },
+      {
+        "line": 3555,
+        "text": ""
+      },
+      {
+        "line": 3556,
+        "text": "        NOTE: This is predefined based on model's chat template"
+      },
+      {
+        "line": 3557,
+        "text": "        \"\"\""
+      },
+      {
+        "line": 3558,
+        "text": "        if not self.reasoning_parser:"
+      },
+      {
+        "line": 3559,
+        "text": "            return False"
+      },
+      {
+        "line": 3560,
+        "text": ""
+      },
+      {
+        "line": 3561,
+        "text": "        if self.reasoning_parser == \"iquest_q1\":"
+      },
+      {
+        "line": 3562,
+        "text": "            return IQuestQ1ReasoningDetector.thinking_enabled("
+      },
+      {
+        "line": 3563,
+        "text": "                request.chat_template_kwargs or {}"
+      },
+      {
+        "line": 3564,
+        "text": "            )"
+      },
+      {
+        "line": 3565,
+        "text": ""
+      },
+      {
+        "line": 3566,
+        "text": "        if self.reasoning_parser == \"minimax-m3\":"
+      },
+      {
+        "line": 3567,
+        "text": "            # M3 template prefills <mm:think> for thinking_mode=enabled, so it never"
+      },
+      {
+        "line": 3568,
+        "text": "            # appears in output and reasoning must be forced. Mirrors reasoning_parser.py."
+      },
+      {
+        "line": 3569,
+        "text": "            return (request.chat_template_kwargs or {}).get("
+      },
+      {
+        "line": 3570,
+        "text": "                \"thinking_mode\""
+      },
+      {
+        "line": 3571,
+        "text": "            ) == \"enabled\""
+      },
+      {
+        "line": 3572,
+        "text": ""
+      },
+      {
+        "line": 3573,
+        "text": "        if self.reasoning_parser == \"hunyuan\":"
+      },
+      {
+        "line": 3574,
+        "text": "            config = self.template_manager.reasoning_config"
+      },
+      {
+        "line": 3575,
+        "text": "            if config is not None and config.special_case == \"hunyuan_effort\":"
+      },
+      {
+        "line": 3576,
+        "text": "                return request.reasoning_effort not in (\"none\", \"no_think\")"
+      },
+      {
+        "line": 3577,
+        "text": "            # Hy3-preview template emits no <think> when reasoning_effort is"
+      },
+      {
+        "line": 3578,
+        "text": "            # \"no_think\" / \"none\" / unset; forcing reasoning would route all"
+      },
+      {
+        "line": 3579,
+        "text": "            # output into reasoning_content."
+      },
+      {
+        "line": 3580,
+        "text": "            return request.reasoning_effort not in (None, \"none\", \"no_think\")"
+      },
+      {
+        "line": 3581,
+        "text": ""
+      },
+      {
+        "line": 3593,
+        "text": "            if mode == \"always\":"
+      },
+      {
+        "line": 3594,
+        "text": "                return True"
+      },
+      {
+        "line": 3595,
+        "text": "            if mode == \"mistral\":"
+      },
+      {
+        "line": 3596,
+        "text": "                return ("
+      },
+      {
+        "line": 3597,
+        "text": "                    request.reasoning_effort is not None"
+      },
+      {
+        "line": 3598,
+        "text": "                    and request.reasoning_effort != \"none\""
+      },
+      {
+        "line": 3599,
+        "text": "                )"
+      },
+      {
+        "line": 3600,
+        "text": "            if mode in (\"thinking\", \"enable_thinking\"):"
+      },
+      {
+        "line": 3601,
+        "text": "                return ("
+      },
+      {
+        "line": 3602,
+        "text": "                    not request.chat_template_kwargs"
+      },
+      {
+        "line": 3603,
+        "text": "                    or request.chat_template_kwargs.get(mode) is not False"
+      },
+      {
+        "line": 3604,
+        "text": "                )"
+      },
+      {
+        "line": 3605,
+        "text": "            if mode in (\"explicit_thinking\", \"explicit_enable_thinking\"):"
+      },
+      {
+        "line": 3606,
+        "text": "                toggle = mode.replace(\"explicit_\", \"\")"
+      },
+      {
+        "line": 3607,
+        "text": "                return ("
+      },
+      {
+        "line": 3608,
+        "text": "                    request.chat_template_kwargs is not None"
+      },
+      {
+        "line": 3609,
+        "text": "                    and request.chat_template_kwargs.get(toggle) is True"
+      },
+      {
+        "line": 3610,
+        "text": "                )"
+      },
+      {
+        "line": 3611,
+        "text": "            logger.warning("
+      },
+      {
+        "line": 3612,
+        "text": "                \"Unknown reasoning_default mode '%s', defaulting to reasoning disabled\","
+      },
+      {
+        "line": 3613,
+        "text": "                mode,"
+      },
+      {
+        "line": 3614,
+        "text": "            )"
+      },
+      {
+        "line": 3615,
+        "text": "            return False"
+      },
+      {
+        "line": 3616,
+        "text": ""
+      },
+      {
+        "line": 3617,
+        "text": "        if config.special_case == \"always\":"
+      },
+      {
+        "line": 3618,
+        "text": "            return True"
+      },
+      {
+        "line": 3619,
+        "text": ""
+      },
+      {
+        "line": 3620,
+        "text": "        if config.special_case == \"mistral\":"
+      },
+      {
+        "line": 3624,
+        "text": "            )"
+      },
+      {
+        "line": 3625,
+        "text": ""
+      },
+      {
+        "line": 3626,
+        "text": "        if config.toggle_param is None or config.default_enabled is None:"
+      },
+      {
+        "line": 3627,
+        "text": "            return False"
+      },
+      {
+        "line": 3628,
+        "text": ""
+      },
+      {
+        "line": 3629,
+        "text": "        if config.default_enabled:"
+      },
+      {
+        "line": 3630,
+        "text": "            return ("
+      },
+      {
+        "line": 3631,
+        "text": "                not request.chat_template_kwargs"
+      },
+      {
+        "line": 3632,
+        "text": "                or request.chat_template_kwargs.get(config.toggle_param) is not False"
+      },
+      {
+        "line": 3633,
+        "text": "            )"
+      },
+      {
+        "line": 3634,
+        "text": "        return ("
+      },
+      {
+        "line": 3635,
+        "text": "            request.chat_template_kwargs is not None"
+      },
+      {
+        "line": 3636,
+        "text": "            and request.chat_template_kwargs.get(config.toggle_param) is True"
+      },
+      {
+        "line": 3637,
+        "text": "        )"
+      },
+      {
+        "line": 3638,
+        "text": ""
+      },
+      {
+        "line": 3639,
+        "text": "    async def _process_tool_call_stream("
+      },
+      {
+        "line": 3640,
+        "text": "        self,"
+      },
+      {
+        "line": 3641,
+        "text": "        index: int,"
+      },
+      {
+        "line": 3642,
+        "text": "        delta: str,"
+      },
+      {
+        "line": 3643,
+        "text": "        parser_dict: dict[int, FunctionCallParser],"
+      },
+      {
+        "line": 3644,
+        "text": "        content: dict[str, Any],"
+      },
+      {
+        "line": 3645,
+        "text": "        request: ChatCompletionRequest,"
+      },
+      {
+        "line": 3646,
+        "text": "        has_tool_calls: dict[int, bool],"
+      },
+      {
+        "line": 3647,
+        "text": "        created: int,"
+      }
+    ]
+  },
+  {
+    "path": "srt/entrypoints/openai/protocol.py",
+    "sha256": "79a1b275a88900bee4060d2e84c71be2ada2d076c40ba9fe2214ec3757da6015",
+    "selected_lines": [
+      {
+        "line": 585,
+        "text": ""
+      },
+      {
+        "line": 586,
+        "text": "class ChatCompletionMessageContentTextPart(BaseModel):"
+      },
+      {
+        "line": 587,
+        "text": "    type: Literal[\"text\"]"
+      },
+      {
+        "line": 588,
+        "text": "    text: str"
+      },
+      {
+        "line": 589,
+        "text": ""
+      },
+      {
+        "line": 590,
+        "text": ""
+      },
+      {
+        "line": 591,
+        "text": "class ChatCompletionMessageContentThinkingPart(BaseModel):"
+      },
+      {
+        "line": 592,
+        "text": "    type: Literal[\"thinking\", \"reasoning\"]"
+      },
+      {
+        "line": 593,
+        "text": "    thinking: Optional[str] = None"
+      },
+      {
+        "line": 594,
+        "text": "    text: Optional[str] = None"
+      },
+      {
+        "line": 595,
+        "text": ""
+      },
+      {
+        "line": 596,
+        "text": "    @model_validator(mode=\"after\")"
+      },
+      {
+        "line": 597,
+        "text": "    def validate_payload(self):"
+      },
+      {
+        "line": 598,
+        "text": "        if (self.thinking is None) == (self.text is None):"
+      },
+      {
+        "line": 599,
+        "text": "            raise ValueError("
+      },
+      {
+        "line": 600,
+        "text": "                \"thinking parts require exactly one of 'thinking' or 'text'\""
+      },
+      {
+        "line": 601,
+        "text": "            )"
+      },
+      {
+        "line": 602,
+        "text": "        return self"
+      },
+      {
+        "line": 603,
+        "text": ""
+      },
+      {
+        "line": 604,
+        "text": ""
+      },
+      {
+        "line": 605,
+        "text": "class ChatCompletionMessageContentImageURL(BaseModel):"
+      },
+      {
+        "line": 606,
+        "text": "    url: str"
+      },
+      {
+        "line": 607,
+        "text": "    detail: Optional[Literal[\"auto\", \"low\", \"high\"]] = \"auto\""
+      },
+      {
+        "line": 608,
+        "text": "    max_dynamic_patch: Optional[int] = None"
+      },
+      {
+        "line": 609,
+        "text": "    min_dynamic_patch: Optional[int] = None"
+      },
+      {
+        "line": 610,
+        "text": "    max_long_side_pixel: Optional[int] = None"
+      },
+      {
+        "line": 611,
+        "text": "    content_hash: Optional[str] = None"
+      },
+      {
+        "line": 774,
+        "text": "            if v_lower not in _GENERIC_MESSAGE_ROLES:"
+      },
+      {
+        "line": 775,
+        "text": "                allowed = \", \".join(repr(r) for r in _GENERIC_MESSAGE_ROLES)"
+      },
+      {
+        "line": 776,
+        "text": "                raise ValueError(f\"'role' must be one of {allowed} (case-insensitive).\")"
+      },
+      {
+        "line": 777,
+        "text": "            return v_lower"
+      },
+      {
+        "line": 778,
+        "text": "        raise ValueError(\"'role' must be a string\")"
+      },
+      {
+        "line": 779,
+        "text": ""
+      },
+      {
+        "line": 780,
+        "text": "    @model_validator(mode=\"after\")"
+      },
+      {
+        "line": 781,
+        "text": "    def validate_thinking_parts_role(self):"
+      },
+      {
+        "line": 782,
+        "text": "        if self.role != \"assistant\" and isinstance(self.content, list):"
+      },
+      {
+        "line": 783,
+        "text": "            for part in self.content:"
+      },
+      {
+        "line": 784,
+        "text": "                if isinstance(part, ChatCompletionMessageContentThinkingPart):"
+      },
+      {
+        "line": 785,
+        "text": "                    raise ValueError("
+      },
+      {
+        "line": 786,
+        "text": "                        \"thinking content parts are only valid in assistant messages\""
+      },
+      {
+        "line": 787,
+        "text": "                    )"
+      },
+      {
+        "line": 788,
+        "text": "        return self"
+      },
+      {
+        "line": 789,
+        "text": ""
+      },
+      {
+        "line": 790,
+        "text": ""
+      },
+      {
+        "line": 791,
+        "text": "class ChatCompletionMessageUserParam(BaseModel):"
+      },
+      {
+        "line": 792,
+        "text": "    role: Literal[\"user\"]"
+      },
+      {
+        "line": 793,
+        "text": "    content: Union[str, List[ChatCompletionMessageContentPart]]"
+      },
+      {
+        "line": 794,
+        "text": ""
+      },
+      {
+        "line": 795,
+        "text": "    @model_validator(mode=\"after\")"
+      },
+      {
+        "line": 796,
+        "text": "    def validate_thinking_parts_role(self):"
+      },
+      {
+        "line": 797,
+        "text": "        if isinstance(self.content, list):"
+      },
+      {
+        "line": 798,
+        "text": "            for part in self.content:"
+      },
+      {
+        "line": 799,
+        "text": "                if isinstance(part, ChatCompletionMessageContentThinkingPart):"
+      },
+      {
+        "line": 800,
+        "text": "                    raise ValueError("
+      },
+      {
+        "line": 801,
+        "text": "                        \"thinking content parts are only valid in assistant messages\""
+      },
+      {
+        "line": 802,
+        "text": "                    )"
+      },
+      {
+        "line": 803,
+        "text": "        return self"
+      },
+      {
+        "line": 804,
+        "text": ""
+      },
+      {
+        "line": 805,
+        "text": ""
+      },
+      {
+        "line": 806,
+        "text": "ChatCompletionMessageParam = Union["
+      },
+      {
+        "line": 807,
+        "text": "    ChatCompletionMessageGenericParam, ChatCompletionMessageUserParam"
+      },
+      {
+        "line": 808,
+        "text": "]"
+      },
+      {
+        "line": 809,
+        "text": ""
+      },
+      {
+        "line": 810,
+        "text": ""
+      },
+      {
+        "line": 811,
+        "text": "class Function(BaseModel):"
+      },
+      {
+        "line": 812,
+        "text": "    \"\"\"Function descriptions.\"\"\""
+      },
+      {
+        "line": 986,
+        "text": "    reasoning_effort: ReasoningEffortType = Field("
+      },
+      {
+        "line": 987,
+        "text": "        default=None,"
+      },
+      {
+        "line": 988,
+        "text": "        description=\"Constrains effort on reasoning for reasoning models. \""
+      },
+      {
+        "line": 989,
+        "text": "        \"Accepts string levels ('none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'ultra', 'max') or a \""
+      },
+      {
+        "line": 990,
+        "text": "        \"float in [0.0, 0.99] for fine-grained control. \""
+      },
+      {
+        "line": 991,
+        "text": "        \"'none' disables reasoning entirely, 'low' is the least effort, 'high' is the most effort. \""
+      },
+      {
+        "line": 992,
+        "text": "        \"Reducing reasoning effort can result in faster responses and fewer tokens used on reasoning \""
+      },
+      {
+        "line": 993,
+        "text": "        \"in a response. 'none' defaults thinking and enable_thinking to false in \""
+      },
+      {
+        "line": 994,
+        "text": "        \"chat_template_kwargs (unless explicitly overridden). Not supported in the harmony path.\""
+      },
+      {
+        "line": 995,
+        "text": "        \"'max' is an sglang extension to the OpenAI schema for \""
+      },
+      {
+        "line": 996,
+        "text": "        \"models that expose a maximum-effort tier above 'high'; models that don't \""
+      },
+      {
+        "line": 997,
+        "text": "        \"support it treat it the same as 'high'.\","
+      },
+      {
+        "line": 998,
+        "text": "    )"
+      },
+      {
+        "line": 999,
+        "text": "    thinking: Optional[Any] = Field("
+      },
+      {
+        "line": 1000,
+        "text": "        default=None,"
+      },
+      {
+        "line": 1001,
+        "text": "        description=\"Thinking config such as {'type': 'adaptive'}; read only by \""
+      },
+      {
+        "line": 1002,
+        "text": "        \"models whose chat template defines a thinking mode, ignored otherwise.\","
+      },
+      {
+        "line": 1003,
+        "text": "    )"
+      },
+      {
+        "line": 1004,
+        "text": "    task: Optional["
+      },
+      {
+        "line": 1005,
+        "text": "        Literal[\"action\", \"query\", \"authority\", \"domain\", \"title\", \"read_url\"]"
+      },
+      {
+        "line": 1006,
+        "text": "    ] = Field("
+      },
+      {
+        "line": 1007,
+        "text": "        default=None,"
+      },
+      {
+        "line": 1008,
+        "text": "        description=\"DeepSeek-V4 quick instruction task. When set, the last \""
+      },
+      {
+        "line": 1009,
+        "text": "        \"user/developer message is treated as a single-shot classification prompt \""
+      },
+      {
+        "line": 1010,
+        "text": "        \"and the corresponding task special token (e.g. `<\uff5cdomain\uff5c>`) is appended \""
+      },
+      {
+        "line": 1011,
+        "text": "        \"before generation. Only honored by the dsv4/dsv41 chat encoders; ignored otherwise.\","
+      },
+      {
+        "line": 1012,
+        "text": "    )"
+      },
+      {
+        "line": 1013,
+        "text": ""
+      },
+      {
+        "line": 1025,
+        "text": "    continue_final_message: bool = False"
+      },
+      {
+        "line": 1026,
+        "text": "    skip_special_tokens: bool = True"
+      },
+      {
+        "line": 1027,
+        "text": "    lora_path: Optional[Union[List[Optional[str]], Optional[str]]] = None"
+      },
+      {
+        "line": 1028,
+        "text": "    session_id: Optional[str] = None"
+      },
+      {
+        "line": 1029,
+        "text": "    session_params: Optional[Dict] = None"
+      },
+      {
+        "line": 1030,
+        "text": "    separate_reasoning: bool = True"
+      },
+      {
+        "line": 1031,
+        "text": "    stream_reasoning: bool = True"
+      },
+      {
+        "line": 1032,
+        "text": "    chat_template_kwargs: Optional[Dict] = None"
+      },
+      {
+        "line": 1033,
+        "text": ""
+      },
+      {
+        "line": 1034,
+        "text": "    # SGLang multimodal controls (extensions)"
+      },
+      {
+        "line": 1035,
+        "text": "    max_dynamic_patch: Optional[int] = None"
+      },
+      {
+        "line": 1036,
+        "text": "    min_dynamic_patch: Optional[int] = None"
+      },
+      {
+        "line": 1037,
+        "text": "    use_audio_in_video: bool = False"
+      },
+      {
+        "line": 1038,
+        "text": ""
+      },
+      {
+        "line": 1039,
+        "text": "    images_config: Optional[Dict] = None"
+      },
+      {
+        "line": 1040,
+        "text": "    video_config: Optional[Dict] = None"
+      },
+      {
+        "line": 1041,
+        "text": "    # Per-request processor overrides; MiniCPM-V 4.7 reads them (downsample_mode,"
+      },
+      {
+        "line": 1042,
+        "text": "    # max_slice_nums), flattening images_/videos_kwargs into one request-wide profile."
+      },
+      {
+        "line": 1043,
+        "text": "    # Unlimited-OCR v2 reads them as defaults under images_config."
+      },
+      {
+        "line": 1105,
+        "text": "            raise ValueError(\"reasoning_effort must not be a boolean\")"
+      },
+      {
+        "line": 1106,
+        "text": "        return value"
+      },
+      {
+        "line": 1107,
+        "text": ""
+      },
+      {
+        "line": 1108,
+        "text": "    @model_validator(mode=\"before\")"
+      },
+      {
+        "line": 1109,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 1110,
+        "text": "    def normalize_reasoning_inputs(cls, values: Dict):"
+      },
+      {
+        "line": 1111,
+        "text": "        r = values.get(\"reasoning\")"
+      },
+      {
+        "line": 1112,
+        "text": "        thinking = None"
+      },
+      {
+        "line": 1113,
+        "text": ""
+      },
+      {
+        "line": 1114,
+        "text": "        if r is not None and isinstance(r, dict):"
+      },
+      {
+        "line": 1115,
+        "text": "            effort = r.get(\"effort\")"
+      },
+      {
+        "line": 1116,
+        "text": "            if effort is None:"
+      },
+      {
+        "line": 1117,
+        "text": "                effort = r.get(\"reasoning_effort\")"
+      },
+      {
+        "line": 1118,
+        "text": "            if isinstance(effort, str) and effort in {"
+      },
+      {
+        "line": 1119,
+        "text": "                \"none\","
+      },
+      {
+        "line": 1120,
+        "text": "                \"minimal\","
+      },
+      {
+        "line": 1121,
+        "text": "                \"low\","
+      },
+      {
+        "line": 1122,
+        "text": "                \"medium\","
+      },
+      {
+        "line": 1123,
+        "text": "                \"high\","
+      },
+      {
+        "line": 1142,
+        "text": "                r.get(\"enabled\")"
+      },
+      {
+        "line": 1143,
+        "text": "                if r.get(\"enabled\") is not None"
+      },
+      {
+        "line": 1144,
+        "text": "                else r.get(\"enable\", False)"
+      },
+      {
+        "line": 1145,
+        "text": "            )"
+      },
+      {
+        "line": 1146,
+        "text": "            if isinstance(enabled, str):"
+      },
+      {
+        "line": 1147,
+        "text": "                enabled = enabled.strip().lower() in {\"1\", \"true\", \"yes\", \"y\", \"on\"}"
+      },
+      {
+        "line": 1148,
+        "text": "            if enabled:"
+      },
+      {
+        "line": 1149,
+        "text": "                thinking = True"
+      },
+      {
+        "line": 1150,
+        "text": ""
+      },
+      {
+        "line": 1151,
+        "text": "        effort = values.get(\"reasoning_effort\")"
+      },
+      {
+        "line": 1152,
+        "text": "        if effort is not None:"
+      },
+      {
+        "line": 1153,
+        "text": "            thinking = effort != \"none\""
+      },
+      {
+        "line": 1154,
+        "text": ""
+      },
+      {
+        "line": 1155,
+        "text": "        if thinking is not None:"
+      },
+      {
+        "line": 1156,
+        "text": "            ctk = values.get(\"chat_template_kwargs\")"
+      },
+      {
+        "line": 1157,
+        "text": "            if not isinstance(ctk, dict):"
+      },
+      {
+        "line": 1158,
+        "text": "                ctk = {}"
+      },
+      {
+        "line": 1159,
+        "text": "            # different models check different keys:"
+      },
+      {
+        "line": 1160,
+        "text": "            # - \"thinking\" for deepseek-v3, kimi_k2"
+      },
+      {
+        "line": 1161,
+        "text": "            # - \"enable_thinking\" for qwen3, glm45, nemotron_3, interns1"
+      },
+      {
+        "line": 1162,
+        "text": "            ctk.setdefault(\"thinking\", thinking)"
+      },
+      {
+        "line": 1163,
+        "text": "            ctk.setdefault(\"enable_thinking\", thinking)"
+      },
+      {
+        "line": 1164,
+        "text": "            values[\"chat_template_kwargs\"] = ctk"
+      },
+      {
+        "line": 1165,
+        "text": ""
+      },
+      {
+        "line": 1166,
+        "text": "        return values"
+      },
+      {
+        "line": 1167,
+        "text": ""
+      },
+      {
+        "line": 1168,
+        "text": "    @model_validator(mode=\"before\")"
+      },
+      {
+        "line": 1169,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 1170,
+        "text": "    def set_json_schema(cls, values):"
+      },
+      {
+        "line": 1171,
+        "text": "        response_format = values.get(\"response_format\")"
+      },
+      {
+        "line": 1172,
+        "text": "        if not response_format:"
+      },
+      {
+        "line": 1173,
+        "text": "            return values"
+      },
+      {
+        "line": 1174,
+        "text": ""
+      },
+      {
+        "line": 1175,
+        "text": "        if response_format.get(\"type\") != \"json_schema\":"
+      },
+      {
+        "line": 1215,
+        "text": "                    param_name, self._DEFAULT_SAMPLING_PARAMS[param_name]"
+      },
+      {
+        "line": 1216,
+        "text": "                )"
+      },
+      {
+        "line": 1217,
+        "text": "            return value"
+      },
+      {
+        "line": 1218,
+        "text": ""
+      },
+      {
+        "line": 1219,
+        "text": "        # add per user request"
+      },
+      {
+        "line": 1220,
+        "text": "        spaces_between_special_tokens = ("
+      },
+      {
+        "line": 1221,
+        "text": "            True"
+      },
+      {
+        "line": 1222,
+        "text": "            if self.chat_template_kwargs is None"
+      },
+      {
+        "line": 1223,
+        "text": "            else self.chat_template_kwargs.get(\"spaces_between_special_tokens\", True)"
+      },
+      {
+        "line": 1224,
+        "text": "        )"
+      },
+      {
+        "line": 1225,
+        "text": ""
+      },
+      {
+        "line": 1226,
+        "text": "        sampling_params = {"
+      },
+      {
+        "line": 1227,
+        "text": "            \"temperature\": get_param(\"temperature\"),"
+      },
+      {
+        "line": 1228,
+        "text": "            \"max_new_tokens\": self.max_completion_tokens or self.max_tokens,"
+      },
+      {
+        "line": 1229,
+        "text": "            \"min_new_tokens\": self.min_tokens,"
+      },
+      {
+        "line": 1230,
+        "text": "            \"stop\": stop,"
+      },
+      {
+        "line": 1231,
+        "text": "            \"stop_token_ids\": self.stop_token_ids,"
+      },
+      {
+        "line": 1232,
+        "text": "            \"stop_regex\": self.stop_regex,"
+      },
+      {
+        "line": 1233,
+        "text": "            \"top_p\": get_param(\"top_p\"),"
+      },
+      {
+        "line": 1234,
+        "text": "            \"top_k\": get_param(\"top_k\"),"
+      },
+      {
+        "line": 1655,
+        "text": ""
+      },
+      {
+        "line": 1656,
+        "text": "    input: RequiredDecisionText"
+      },
+      {
+        "line": 1657,
+        "text": "    images: List[DecisionImage] = Field(default_factory=list)"
+      },
+      {
+        "line": 1658,
+        "text": "    questions: List[DecisionQuestion] = Field(min_length=1)"
+      },
+      {
+        "line": 1659,
+        "text": "    # Scales option probabilities only, not label_mass."
+      },
+      {
+        "line": 1660,
+        "text": "    temperature: float = Field(default=1.0, gt=0, allow_inf_nan=False)"
+      },
+      {
+        "line": 1661,
+        "text": "    # Applied over the server defaults, with the template reasoning toggle off."
+      },
+      {
+        "line": 1662,
+        "text": "    chat_template_kwargs: Dict[str, Any] = Field(default_factory=dict)"
+      },
+      {
+        "line": 1663,
+        "text": "    # Pins the server-owned prompt wording. A different served version is refused."
+      },
+      {
+        "line": 1664,
+        "text": "    prompt_format_version: Optional[int] = None"
+      },
+      {
+        "line": 1665,
+        "text": "    return_prompt_token_ids: bool = False"
+      },
+      {
+        "line": 1666,
+        "text": "    model: str = DEFAULT_MODEL_NAME"
+      },
+      {
+        "line": 1667,
+        "text": ""
+      },
+      {
+        "line": 1668,
+        "text": "    @field_validator(\"questions\")"
+      },
+      {
+        "line": 1669,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 1670,
+        "text": "    def _question_ids_distinct(cls, questions):"
+      },
+      {
+        "line": 1671,
+        "text": "        seen = set()"
+      },
+      {
+        "line": 1672,
+        "text": "        for question in questions:"
+      },
+      {
+        "line": 1673,
+        "text": "            if question.id in seen:"
+      },
+      {
+        "line": 1765,
+        "text": "    messages: Optional[List[ChatCompletionMessageParam]] = None"
+      },
+      {
+        "line": 1766,
+        "text": "    tools: Optional[List[Tool]] = Field(default=None, examples=[None])"
+      },
+      {
+        "line": 1767,
+        "text": "    tool_choice: Optional[Union[ToolChoice, Literal[\"auto\", \"required\", \"none\"]]] = ("
+      },
+      {
+        "line": 1768,
+        "text": "        Field(default=None, examples=[\"auto\"])"
+      },
+      {
+        "line": 1769,
+        "text": "    )"
+      },
+      {
+        "line": 1770,
+        "text": "    reasoning_effort: ReasoningEffortType = None"
+      },
+      {
+        "line": 1771,
+        "text": "    continue_final_message: bool = False"
+      },
+      {
+        "line": 1772,
+        "text": "    chat_template_kwargs: Optional[Dict] = None"
+      },
+      {
+        "line": 1773,
+        "text": "    add_special_tokens: bool = Field("
+      },
+      {
+        "line": 1774,
+        "text": "        default=True,"
+      },
+      {
+        "line": 1775,
+        "text": "        description=\"whether to add model-specific special tokens (e.g. BOS/EOS) during encoding.\","
+      },
+      {
+        "line": 1776,
+        "text": "    )"
+      },
+      {
+        "line": 1777,
+        "text": "    add_generation_prompt: Optional[bool] = Field("
+      },
+      {
+        "line": 1778,
+        "text": "        default=None,"
+      },
+      {
+        "line": 1779,
+        "text": "        description=("
+      },
+      {
+        "line": 1780,
+        "text": "            \"With messages: render them as given, passing this to the chat template, \""
+      },
+      {
+        "line": 1781,
+        "text": "            \"and encode with add_special_tokens (default false). Omitted, messages are \""
+      },
+      {
+        "line": 1782,
+        "text": "            \"rendered as for a chat completion.\""
+      },
+      {
+        "line": 1783,
+        "text": "        ),"
+      },
+      {
+        "line": 1979,
+        "text": "    tools: List[ResponseTool] = Field(default_factory=list)"
+      },
+      {
+        "line": 1980,
+        "text": "    top_logprobs: Optional[int] = 0"
+      },
+      {
+        "line": 1981,
+        "text": "    top_p: Optional[float] = None"
+      },
+      {
+        "line": 1982,
+        "text": "    truncation: Optional[Literal[\"auto\", \"disabled\"]] = \"disabled\""
+      },
+      {
+        "line": 1983,
+        "text": "    user: Optional[str] = None"
+      },
+      {
+        "line": 1984,
+        "text": ""
+      },
+      {
+        "line": 1985,
+        "text": "    # Extra SGLang parameters"
+      },
+      {
+        "line": 1986,
+        "text": "    chat_template_kwargs: Optional[Dict[str, Any]] = None"
+      },
+      {
+        "line": 1987,
+        "text": "    request_id: str = Field("
+      },
+      {
+        "line": 1988,
+        "text": "        default_factory=lambda: f\"resp_{uuid.uuid4().hex}\","
+      },
+      {
+        "line": 1989,
+        "text": "        description=\"The request_id related to this request. If the caller does not set it, a random uuid will be generated.\","
+      },
+      {
+        "line": 1990,
+        "text": "    )"
+      },
+      {
+        "line": 1991,
+        "text": "    session_id: Optional[str] = None"
+      },
+      {
+        "line": 1992,
+        "text": "    priority: int = Field(default=0, description=\"Request priority\")"
+      },
+      {
+        "line": 1993,
+        "text": "    extra_key: Optional[str] = Field("
+      },
+      {
+        "line": 1994,
+        "text": "        default=None,"
+      },
+      {
+        "line": 1995,
+        "text": "        description=\"Extra key for caller-defined request classification\","
+      },
+      {
+        "line": 1996,
+        "text": "    )"
+      },
+      {
+        "line": 1997,
+        "text": "    cache_salt: Optional[str] = Field("
+      },
+      {
+        "line": 2021,
+        "text": "    @model_validator(mode=\"before\")"
+      },
+      {
+        "line": 2022,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 2023,
+        "text": "    def _handle_deprecated_dp_rank(cls, values):"
+      },
+      {
+        "line": 2024,
+        "text": "        return _migrate_deprecated_dp_rank(values)"
+      },
+      {
+        "line": 2025,
+        "text": ""
+      },
+      {
+        "line": 2026,
+        "text": "    @model_validator(mode=\"before\")"
+      },
+      {
+        "line": 2027,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 2028,
+        "text": "    def normalize_reasoning_to_thinking(cls, values):"
+      },
+      {
+        "line": 2029,
+        "text": "        \"\"\"Turn reasoning.effort == \"none\" into a thinking toggle, as"
+      },
+      {
+        "line": 2030,
+        "text": "        ChatCompletionRequest does. Both keys are set: families differ"
+      },
+      {
+        "line": 2031,
+        "text": "        (\"thinking\" for deepseek/kimi, \"enable_thinking\" for qwen3/glm).\"\"\""
+      },
+      {
+        "line": 2032,
+        "text": "        if not isinstance(values, dict):"
+      },
+      {
+        "line": 2033,
+        "text": "            return values"
+      },
+      {
+        "line": 2034,
+        "text": "        # mode=\"before\", so reasoning is still raw: a dict from JSON, or a"
+      },
+      {
+        "line": 2035,
+        "text": "        # built param object when constructed in Python."
+      },
+      {
+        "line": 2036,
+        "text": "        r = values.get(\"reasoning\")"
+      },
+      {
+        "line": 2037,
+        "text": "        effort = None"
+      },
+      {
+        "line": 2038,
+        "text": "        if isinstance(r, dict):"
+      },
+      {
+        "line": 2039,
+        "text": "            effort = r.get(\"effort\") or r.get(\"reasoning_effort\")"
+      },
+      {
+        "line": 2040,
+        "text": "        elif isinstance(r, ResponseReasoningParam):"
+      },
+      {
+        "line": 2041,
+        "text": "            effort = r.effort"
+      },
+      {
+        "line": 2042,
+        "text": ""
+      },
+      {
+        "line": 2043,
+        "text": "        if effort == \"none\":"
+      },
+      {
+        "line": 2044,
+        "text": "            existing = values.get(\"chat_template_kwargs\")"
+      },
+      {
+        "line": 2045,
+        "text": "            existing = existing if isinstance(existing, dict) else {}"
+      },
+      {
+        "line": 2046,
+        "text": "            # existing last: an explicit caller value wins."
+      },
+      {
+        "line": 2047,
+        "text": "            values[\"chat_template_kwargs\"] = {"
+      },
+      {
+        "line": 2048,
+        "text": "                \"thinking\": False,"
+      },
+      {
+        "line": 2049,
+        "text": "                \"enable_thinking\": False,"
+      },
+      {
+        "line": 2050,
+        "text": "                **existing,"
+      },
+      {
+        "line": 2051,
+        "text": "            }"
+      },
+      {
+        "line": 2052,
+        "text": "        return values"
+      },
+      {
+        "line": 2053,
+        "text": ""
+      },
+      {
+        "line": 2054,
+        "text": "    @model_validator(mode=\"before\")"
+      },
+      {
+        "line": 2055,
+        "text": "    @classmethod"
+      },
+      {
+        "line": 2056,
+        "text": "    def normalize_responses_input(cls, values):"
+      },
+      {
+        "line": 2057,
+        "text": "        if not isinstance(values, dict):"
+      },
+      {
+        "line": 2058,
+        "text": "            return values"
+      },
+      {
+        "line": 2059,
+        "text": ""
+      },
+      {
+        "line": 2060,
+        "text": "        input_value = values.get(\"input\")"
+      }
+    ]
+  },
+  {
+    "path": "srt/parser/conversation.py",
+    "sha256": "3370f086fa05e7a4759d8b82889a2497ae17d045b0471d0d43bf56acaf26ae3f",
+    "selected_lines": [
+      {
+        "line": 958,
+        "text": ")"
+      },
+      {
+        "line": 959,
+        "text": ""
+      },
+      {
+        "line": 960,
+        "text": "register_conv_template("
+      },
+      {
+        "line": 961,
+        "text": "    Conversation("
+      },
+      {
+        "line": 962,
+        "text": "        name=\"deepseek-vl2\","
+      },
+      {
+        "line": 963,
+        "text": "        system_template=\"{system_message}\","
+      },
+      {
+        "line": 964,
+        "text": "        # system_message=\"You are a helpful assistant. Please answer truthfully and write out your \""
+      },
+      {
+        "line": 965,
+        "text": "        # \"thinking step by step to be sure you get the right answer.\","
+      },
+      {
+        "line": 966,
+        "text": "        system_message=\"\","
+      },
+      {
+        "line": 967,
+        "text": "        roles=(\"<|User|>\", \"<|Assistant|>\"),"
+      },
+      {
+        "line": 968,
+        "text": "        messages=(),"
+      },
+      {
+        "line": 969,
+        "text": "        offset=0,"
+      },
+      {
+        "line": 970,
+        "text": "        sep_style=SeparatorStyle.DeepSeekVL2,"
+      },
+      {
+        "line": 971,
+        "text": "        sep=\"\\n\\n\","
+      },
+      {
+        "line": 972,
+        "text": "        sep2=\"<\uff5cend\u2581of\u2581sentence\uff5c>\","
+      },
+      {
+        "line": 973,
+        "text": "        stop_str=[\"User:\", \"<\uff5cend\u2581of\u2581sentence\uff5c>\"],"
+      },
+      {
+        "line": 974,
+        "text": "    )"
+      },
+      {
+        "line": 975,
+        "text": ")"
+      },
+      {
+        "line": 976,
+        "text": ""
+      }
+    ]
+  }
+]
