@@ -42,3 +42,10 @@ G563严格探针已执行并失败留证：八rank均完成前六组形状的sco
 
 - [G563严格门槛失败的实际rank0](../evidence/native_score_budget_G563_failed/evidence/rank0.json)
 - [G563组件退出与八卡释放](../evidence/native_score_budget_G563_failed/state.json)
+
+
+G570后续诊断实际完成八rank64例：56例score逐位相同，8例FP32权重的8193/lc4097组仍有每rank4–9个score值不同，最大绝对差0.00167083740234375、最大相对差0.0012020663125440478；全部64例原生unsorted-topk索引与集合相同。大形状工作峰值约3.3–4.4GB降为0.41–0.55GB，仅为PyTorch分配计数。组件已结束、八卡清空。原G563严格逐位score门槛仍为失败，不以topk选定例相同覆盖失败或宣称完整模型可部署。实际native queries经过fake_quant_fp4、index-K来自FP4 pack/dequant，而本诊断使用一般BF16输入；下一步核对实际操作数域是否改变数值判断，尚未作新验收。
+
+- [G570完整64例诊断父级复核](../evidence/native_score_difference_G570_diagnostic/parent_diagnostic.json)
+- [G570实际rank0](../evidence/native_score_difference_G570_diagnostic/evidence/rank0.json)
+- [G570八卡释放](../evidence/native_score_difference_G570_diagnostic/state.json)
