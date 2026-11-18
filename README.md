@@ -51,3 +51,5 @@
 [G316 128K 五轮独立预热与正式提交门槛](docs/023-G316-128K-five-independent-warmups.md)
 
 [同机 SGLang 128K 首轮正式冷测与热测](docs/024-matched-SG-first-128K-cold-hot.md)
+
+[G316 D 编译缓存验收更正：128K完整协议未验证](docs/025-G316-D-compile-root-correction.md)

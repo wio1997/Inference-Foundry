@@ -45,6 +45,16 @@ def main():
             if link.startswith(('https://','http://','mailto:','#')):continue
             name=link.split('#',1)[0];assert (p.parent/name).is_file(),(p.relative_to(ROOT),link);links+=1
     runs=json.loads((ROOT/'records/runs.json').read_text());ids=[x['id'] for x in runs];assert len(ids)==len(set(ids))
+    correction=json.loads((ROOT/'evidence/matched_SG_G316/128K/compile_root_correction/G487_G316_D_compile_acceptance_correction.json').read_text())
+    assert correction['full_no_compilation_protocol_accepted'] is False
+    assert correction['active_D_compilation_no_changes']=='UNVERIFIED'
+    proof=json.loads((ROOT/'evidence/matched_SG_G316/128K/compile_root_correction/G483_actual_D_cache_2202_parsed.json').read_text())
+    assert all(not item['same_path'] for item in proof['root_aliases'].values())
+    for ident in ['GLM-RUN-0088','GLM-RUN-0089']:
+        record=json.loads((ROOT/f'records/points/GLM-OPT-0001/runs/{ident}/manifest.json').read_text())['record']
+        assert record['scored'] is True
+        assert record['measurement_qualification']['full_no_compilation_protocol_accepted'] is False
+        assert record['measurement_qualification']['active_D_compilation_no_changes']=='UNVERIFIED'
     rows_total=0;phases=0;scored=0;db_refs=0;latency_values=0
     for entry in runs:
         m=json.loads((ROOT/entry['path']).read_text());e=m.get('raw_evidence')
