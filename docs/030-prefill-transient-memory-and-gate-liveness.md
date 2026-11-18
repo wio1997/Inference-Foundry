@@ -26,3 +26,13 @@ G542 P-only完整模型于07:32:55UTC实际启动，保持G523的0.88/chunk8192/
 - [G537实际rank0](../evidence/engram_lifetime_G537_strict_bits/evidence/rank0.json)
 - [G542实际P-only启动](../evidence/full_model_G542/2203/actual_start_parent_receipt.json)
 - [G542部署源码与AST前置检查](../code/full_model_candidates/prepare_prefill_lifetime_g542.py)
+
+
+G542后续实际结果：八rank均在8192行（8191请求被执行路径padding）记录已进入新的Engram删除引用后路径，实际adapter SHA与候选完全相符；算术再次通过。但8191请求仍HTTP500，07:44:21–22UTC在原生DeepseekV41Indexer.scores的relu/加权头归约临时分配1.00GiB时OOM，可用约791.92–852.02MiB，55.18GiB active/56.10GiB reserved。不是原Engram位置复发，也不能称完整长输入恢复。P于07:45:51UTC已核验八卡清空，D501保留。
+
+从精确停止的P542容器取回原生scoring/full_topk/dsv41_sparse源码，SHA留证。原生_score_chunks将单个BF16[rows,heads,lc]上限设为1GiB，源码明确临时量约为其3倍；改变该原生常量可仅调整独立query行分块，评分、因果mask、topk算式保持。G563候选准备128MiB上限，实际模型32个索引头、head_dim128，仍须实际NPU逐位score/原生unsorted-topk/峰值门槛通过后再考虑完整模型；目前没有新模型或端到端收益。
+
+- [P542完整原始OOM与释放](../evidence/full_model_G542/2203/state.json)
+- [父级新OOM与八rank实际路径判断](../evidence/full_model_G542/2203/parent_indexer_OOM_assessment.json)
+- [原生score预算与3倍临时量注释](../code/fixed_native_score_sources_G559/dsv4/v41_indexer/scoring.py)
+- [G563原生评分分块探针](../code/native_score_budget_G563/probe.py)
