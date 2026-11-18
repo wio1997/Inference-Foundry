@@ -21,3 +21,5 @@ G911保留同一native paged FP4 score kernel和capacity，改用原基线相同
 [920单卡pilot实际启动](../evidence/paged_indexer_G921/G920_REAL_GEOMETRY_PILOT_STARTED_JSON_parsed.json)在NPU0、同不可变镜像重新定位真实两种更大容量，保留空/ragged/奇数小形状，另加单query全可见263435/131717长上下文，并要求两ratio变q/长度/请求表/packed K图重放对照。只做单卡是先降低重复设备异常的定位成本，完整八卡门仍必需；逐位分数、512个排序物理slot和输入不可变标准未变。该pilot结果此刻待审，不宣称成功或收益。
 
 [D918准备清单](../evidence/paged_indexer_G921/sg_D_paged_preparation_g914_manifest.json)只在本地完成：同832原生argv/环境（仅profile路径更新），新增分页候选及每PID路径命中记录。score、top-k和mapper函数AST与组件源码相同。但组件未验收，明确禁止激活。待单卡与八卡完整门后，仍须新模型实际8rank装载、target/draft图、设备路径证据和完整1319题严格质量，再进行四档AISBench、最终匹配profile和端到端收益判断。
+
+后续[035](035-paged-indexer-all8-strict-gate-and-D918.md)记录单卡与完整八卡实际严格验收及D918受控启动。保留本页失败；完整模型/质量/端到端收益仍未通过。

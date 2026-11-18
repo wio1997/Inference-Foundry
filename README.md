@@ -72,3 +72,5 @@
 [2026-11-18上游A2适配范围复核](docs/031-upstream-refresh-20261118.md)：官方main/release已重新固定，现有A2镜像与适配保持。
 
 [SG832完整质量失败与分页索引候选](docs/033-SG832-full-quality-failure-and-paged-indexer-candidate.md)：14条600秒传输超时，完整质量未通过；实际八rank短诊断已留证，候选严格门结果待审。
+
+[分页FP4索引器八卡严格验收与D918启动](docs/035-paged-indexer-all8-strict-gate-and-D918.md)：96个数值用例+96次变输入图重放通过；完整模型正在装载，质量/四档性能/最终匹配profile/端到端收益待验证。
