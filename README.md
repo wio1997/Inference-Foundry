@@ -48,3 +48,5 @@
 [mHC H5120 原生组件门槛、失败和完整候选范围](docs/020-mHC-native-5120-interfaces.md)
 
 [完整 D 图 MoE 路由缺口与 Ascend 数学调用候选](docs/021-native-router-CANN-and-math-lowering.md)
+
+[NPU复数频率索引的逐位兼容门槛](docs/022-complex-frequency-gather.md)
