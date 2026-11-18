@@ -1,3 +1,5 @@
+> 2026-11-18用户更新：G527的0.30镜像配置已被v0.32.0rc1要求替代。本文是历史准备过程；当前镜像要求与未验收项见[当前版本要求](../metadata/current_version_requirement.json)。
+
 # 固定原生压缩KV路径与双角色配置准备
 
 从保留的已停止固定0.30镜像容器读取上游GPU model_runner及tokenizers，15个文件、242651 bytes逐项SHA核对；本分支保存选中的runner、V4.1 tokenizer及此前取回的DFlash speculator原字节。没有启动容器、包导入或NPU操作。
