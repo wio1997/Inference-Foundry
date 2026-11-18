@@ -61,3 +61,5 @@
 [256K首次cold32：18成功、14路由503，hot未提交](docs/028-G316-first256-cold-router-failure.md)
 
 [32K单窗口差异地图与32K/64K客户端配对：非因果](docs/029-single-window-difference-map.md)
+
+[D侧rank0/1逐事件分布：诊断窗口、未匹配工作负载](docs/030-decode-rank-event-distributions.md)
