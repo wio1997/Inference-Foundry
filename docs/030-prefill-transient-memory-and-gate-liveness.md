@@ -49,3 +49,57 @@ G570后续诊断实际完成八rank64例：56例score逐位相同，8例FP32权�
 - [G570完整64例诊断父级复核](../evidence/native_score_difference_G570_diagnostic/parent_diagnostic.json)
 - [G570实际rank0](../evidence/native_score_difference_G570_diagnostic/evidence/rank0.json)
 - [G570八卡释放](../evidence/native_score_difference_G570_diagnostic/state.json)
+
+
+后续G581按实际native per32 UE8M0 FP4-rounded query/index-key操作数域进行同样严格检查；源码来自固定镜像，实际导入fake_quant_fp4文件SHA逐项核对，数值门槛仍为FP32 score整数位模式和原生unsorted-topk完全相同，峰值门槛未改。八rank64例全部通过，包含两种头权重类型、8191/8193/lc4095/4097和lc131072。08:15:32UTC八卡清空。这是限定实际生产操作数域的所选tensor fixture通过，不能恢复一般BF16等价结论，原G563失败和G570差异量保持；也不是完整checkpoint激活分布或模型质量证明。
+
+G587完整模型候选只把native_score_chunks原始code对象放入NPU专用globals副本，将预算设128MiB；CPU原函数和原module 1GiB常量保留，native评分/mask/topk算式不改。限定固定FP4 producer源码、模型32头/维128、BF16 q/k与原生indexer类型；host-only一次真实large-chunk路径记录用于后续验收。CLI/env、P0.88/chunk8192/EP8/DSPARK5、之前Engram liveness及D5010.80保持。完整模型运行、8191/8193/32K、缓存重放及有效图执行仍需真实验收，尚无端到端收益。
+
+- [G581实际FP4域64例严格门槛父级复核](../evidence/actual_FP4_score_gate_G581/parent_scoped_acceptance.json)
+- [G581实际rank0](../evidence/actual_FP4_score_gate_G581/evidence/rank0.json)
+- [G581八卡释放](../evidence/actual_FP4_score_gate_G581/state.json)
+- [限定NPU的原code对象分块预算](../code/full_model_candidates/sg_pd_g587/indexer_score_budget_g587.py)
+
+
+G587已实际运行：算术通过，八rank均记录native128MiB score chunk返回，原module全局1GiB保留、native code对象相同。但8191仍HTTP500，在更后面的Engram gate点积表达式`(original*(q_weight.float()*k_weight.float())*key).sum(-1)`申请642MiB时OOM，可用约155–215MiB、55.28GiB active/56.71GiB reserved。不是此前索引score位置复发；没有完成长输入恢复。08:38:21UTC P八卡清空，D501保留待新peer/状态复核。
+
+G597接下来只准备独立token行分块（256行），维度/H头的归约和原始Quarot计算不分片，完整输出预分配、全部输入仍处理。参考函数与实际G587算术AST相同，去掉host-only路径记录。预注册仍要求BF16 int16输出逐位相同、输入及权重不变、mask原值保持；大形状working peak<768MiB且比参考降低>1GiB，14形状/布局/类型×8rank，未通过不部署。更多kernel launch可能增加时延，不能从显存峰值直接宣称性能收益。
+
+- [G587完整模型失败/八卡释放](../evidence/full_model_G587/2203/state.json)
+- [G587父级新点积OOM判断](../evidence/full_model_G587/2203/parent_Engram_dot_OOM_assessment.json)
+- [G587真实8rank路径记录样例](../evidence/full_model_G587/2203/native_score_budget_hits/worker135.json)
+- [G597行分块探针与预注册边界](../code/engram_rowchunk_G597/mechanism.json)
+
+
+G597行分块被严格门槛拒绝：rank1在513行非连续布局出现BF16 int16位模式差异，其他rank在各自11例左右被torchrun中断，未完成14例。没有放宽或忽略该case，也未将行分块放入完整模型。08:58:46UTC组件八卡清空。D501于08:58UTC实际controller仍存活且/ready=200，旧P失败请求的deferred KV释放超时后释放记录保留；新peer/cache与长形状仍需后续验收。
+
+G600是不同的实现：保持原行数/形状及归约次序，rstd计算后仅复用由原矩阵乘法新分配的original FP32缓冲区，按原顺序原地乘q/k权重积和key，再sum。key、输入和权重都不原地修改。AST反向重建与原参考相同；重新用相同14case/seed检验输出逐位及输入不变，不删除失败的stridedcase。由临时量模型预注册：BF16 KV大形状峰值应从约4个fullFP32 buffer降至输出表达式约3个，至少降低0.8个buffer且低于2.3GiB；FP32 KV的key原已别名输入、输出可能主导，只要求不回归超过1MiB，不声明该型峰值下降。此处尚无组件通过或模型收益结论。
+
+- [G597实际位差异失败rank1](../evidence/engram_rowchunk_G597_rejected/evidence/rank1.json)
+- [G597八卡清空](../evidence/engram_rowchunk_G597_rejected/state.json)
+- [D501当前只读就绪复核](../evidence/full_model_G501/2204/actual_retained_readiness_G599.json)
+- [G600原尺寸buffer复用及预注册](../code/engram_owned_inplace_G600/mechanism.json)
+
+
+G600实际完成八rank112例：BF16 int16输出位模式全同、输入与权重不变，包含原G597失败的513非连续布局及FP32 KV。8191/8193 BF16 KV工作峰值分别2684486144→2013825536、2684815872→2014072832 bytes；FP32 KV8193也实测下降，但不扩大其预注册声明。全部门槛通过，09:09:26UTC八卡清空；这仍是选定eager张量和PyTorch分配计数，不是完整质量、总HBM或端到端收益。
+
+G603 P-only完整模型09:13:28UTC启动；原始数值AST与G600候选逐项相同，新增每worker一次host-only KV dtype/stride路径记录。CLI/env与G587相同，保留native128MiB score预算、dead-reference删除、P0.88、EP8、chunk8192、DSPARK5及D501。D501在09:13UTC同一容器controller仍存活且ready200。完整长请求、缓存、功能与性能仍未验证，后续原始执行记录决定状态。
+
+- [G600严格112例与释放的父级验收](../evidence/engram_owned_inplace_G600/parent_acceptance.json)
+- [G600实际rank1含原失败布局](../evidence/engram_owned_inplace_G600/evidence/rank1.json)
+- [G600八卡清空](../evidence/engram_owned_inplace_G600/state.json)
+- [G603源码固定的完整模型适配](../code/full_model_candidates/sg_pd_g603/adapter.py)
+- [G603实际P-only启动](../evidence/full_model_G603/2203/actual_start_parent_receipt.json)
+- [D501当前身份与只读就绪](../evidence/full_model_G501/2204/actual_retained_readiness_G606.json)
+
+
+G600实际八rank112例严格BF16 int16输出位模式与输入/权重不变门槛全部通过，原G597失败的513非连续case仍保留且通过。8191/8193 BF16 KV的PyTorch工作峰值分别由2684486144/2684815872降至2013825536/2014072832 bytes；FP32 KV大形状也观察到下降，但预注册只要求不回归。09:09:26UTC八卡清空。这支持所选eager Engram缓冲区复用机制，不代表总HBM、整模型质量或端到端收益。
+
+G603 P-only完整模型于09:13:28UTC实际启动；rotated_gate去除host-only记录后的数值AST与已测G600完全相同。新增一次actual path元数据含KV dtype/stride，保留native score128MiB、deadref release、P0.88、chunk8192、EP8、DSPARK5。D501同一容器/进程在09:13UTC仍实际存活且ready200。G604只提交选定功能、8191/8193/32K及缓存重放诊断，尚无完整模型通过或AISBench结果。
+
+- [G600严格112例父级验收](../evidence/engram_owned_inplace_G600/parent_acceptance.json)
+- [G600原始rank1含非连续布局](../evidence/engram_owned_inplace_G600/evidence/rank1.json)
+- [G600组件退出/八卡释放](../evidence/engram_owned_inplace_G600/state.json)
+- [G603实际启动凭证](../evidence/full_model_G603/2203/actual_start_parent_receipt.json)
+- [G603完整模型适配源码](../code/full_model_candidates/sg_pd_g603/adapter.py)
+- [G604所选功能/长输入/缓存重放采集器](../code/full_model_candidates/functional_PD_P603_D501_g604.py)

@@ -1,0 +1,18 @@
+{
+  "status": "PREPARED_ACTUAL_FP4_OPERAND_DOMAIN_STRICT_NOT_RUN",
+  "intervention": "Native _TORCH_SCORE_BUDGET_BYTES 1GiB to128MiB in isolated prefills only. Same native scores, masking and topk; only independent query row partition differs.",
+  "original_budget_bytes": 1073741824,
+  "candidate_budget_bytes": 134217728,
+  "hardware": "8x910B1 aarch64 fixedSG7da963",
+  "index_n_heads": 32,
+  "index_head_dim": 128,
+  "source_sha256": {
+    "native/dsv4/dsv41_sparse.py": "829c867262dfeaf1284f3fd47ff9268f4e3bc01ffce62255e92d9293d27f4197",
+    "native/dsv4/v41_indexer/scoring.py": "fbba62901c066ffc85ff27ec44ccac2c2002a111f852b3840d85bf18958b035f",
+    "native/dsv4/v41_indexer/full_topk.py": "e7085e403db1ac0b6da9922fc6a897fee29e1e90101df64541c7b735676d7e18",
+    "native/fp4_fake_quant.py": "72770fc6635768f49d8c7dc53a053829a6a5e5acead41e555d22cbd385a4cdef"
+  },
+  "gates": "All NPU FP32 score output bit patterns and native unsortedtopk indices unchanged; candidate working peak <768MiB, actualpeakreduction>1GiB on original1GiBcap shapes; inputs unchanged",
+  "scope": "Same strict scorebit/nativeunsorted-topk/peak gates on actual native indexer FP4 UE8M0 per32 rounded operand domain, bothBF16/FP32headweights. Original genericBF16 G563 fails and G570quantification preserved; no generalBF16 equivalence or E2E/modelacceptance.",
+  "actual_domain_source": "Fixed native DeepseekV41Indexer.queries/index_keys call _rope_fq4 defaultcompressedFalse -> nativefake_quant_fp4; native indexpool68byte/page-slot FP4/UE8M0 dequant. G542 npu_backend changes compressed-KV quant only, not indexerfakequant. Tensors synthesized within actual domain; no fullcheckpointactivation distribution guarantee."
+}
