@@ -1,0 +1,15 @@
+{
+  "status": "PREPARED_NOT_RUN",
+  "intervention": "Release key FP32 conversion and original-basis FP32 tensor immediately after computing gate, before final output expression. No arithmetic/layout/shape changes.",
+  "hypothesis": "Tensor liveness keeps two fullT*HC*H FP32 buffers during three-array output expression; freeingdeadreferences reduces peak and avoids observed642MiBallocation failure.",
+  "observable": "SameNPUreference BF16 output bitwise equality acrossactualH5120/HC4/boundarylayouts; lower actualpeak memory allocated for8191/8193. FullmodelP-only path hit/OOM recovery separately required.",
+  "original_adapter_sha256": "7e1263ec2bbaa1bc49474fca101db07e1e4d706d610695c008a027f252b9eafc",
+  "original_function_ast_sha256": "4dc2b2cd3f5a860d835c1a6922efc5ee46308c9d13b37a6d5aa05d59d202f448",
+  "candidate_function_ast_sha256": "8b867c92cde022a8cad643b85dd569286150559351a0b151cbb43a5ac9a4f62b",
+  "full_PD_quality_performance_accepted": false,
+  "preregistered_gates": {
+    "numeric": "Exact BF16 equality, no tolerance relaxation; only ASTDelete(key,original)",
+    "shapes": "H5120/HC4 rows1/16/96/127/512/513/8191/8193; KVbf16+fp32, strided, signedzero, image mask",
+    "memory": "For8191/8193 pre-output live delta reduction >=1.8*T*4*5120*4 bytes; peak allocation delta reduction >=0.8*T*4*5120*4 bytes. Warm both before counters. No total-HBM or E2E gain inference."
+  }
+}

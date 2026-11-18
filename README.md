@@ -64,3 +64,5 @@
 [C1/C2原生前缀缓存：八rank80例组件契约](docs/028-native-lowratio-prefix-cache-contract.md)
 
 [有界CPU客户端：24份同字节数据与448前缀复核](docs/029-CPU-client-readonly-dataset-revalidation.md)
+
+[实际prefill两次峰值与Engram张量存活机制](docs/030-prefill-transient-memory-and-gate-liveness.md)
