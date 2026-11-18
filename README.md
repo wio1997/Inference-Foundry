@@ -21,3 +21,5 @@
 [固定V2运行时和SDK符号检查范围](docs/005-fixed-v2-runtime-and-SDK-scope.md)
 
 [固定原生hybrid PD双角色配置准备](docs/006-native-hybrid-PD-preparation.md)
+
+[当前公共预算下的固定原生hybrid PD准备](docs/007-current-common-workspace-budget.md)

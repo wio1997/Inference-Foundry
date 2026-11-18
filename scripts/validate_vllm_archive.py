@@ -33,6 +33,11 @@ def main():
   a=json.loads(prep.read_text());assert not a['actual_deployed'] and not a['CLI_or_runtime_validated'] and not a['full_model_PD_quality_performance_accepted']
   for e in a['source_files']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['original_and_published_sha256']
   for e in a['candidate_files']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['published_sha256']
+ prep=R/'evidence/native_PD_preparation_G527.json'
+ if prep.is_file():
+  a=json.loads(prep.read_text());assert not a['actual_deployed'] and not a['CLI_or_runtime_validated'] and not a['full_model_PD_quality_performance_accepted']
+  for e in a['source_files']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['original_and_published_sha256']
+  for e in a['candidate_files']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['published_sha256']
  receipt=json.loads((R/'evidence/components/G50_vllm/receipt.json').read_text());result=receipt['results'];assert result['all8_passed'] and result['worker_exit_codes']==[0]*8
  assert {x['rank'] for x in result['reports']}==set(range(8));cases=graphs=replays=0
  for report in result['reports']:
