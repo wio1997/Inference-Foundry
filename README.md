@@ -58,3 +58,5 @@
 [完整target图与草稿RoPE设备分发修正](docs/025-native-draft-rope-dispatch.md)
 
 [主模型和草稿的原生混合通信dtype](docs/026-native-mixed-target-draft-dispatch.md)
+
+[完整target/draft图与待解决的前缀布局契约](docs/027-full-target-draft-graphs-and-radix-layout.md)
