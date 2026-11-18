@@ -26,3 +26,9 @@ SG当前诊断已终止并确认两角色队列/传输为空后，通过原owned
 - [P原生0.32实际启动](../evidence/native_full_model_G630/2203/actual_start.json)
 - [D原生0.32实际启动](../evidence/native_full_model_G630/2204/actual_start.json)
 - [完整原生参数执行入口](../code/native_PD_candidate_G630/launch_pd.py)
+
+
+G634实际09:48UTC：两端native CLI已接受完整参数并开始8个worker的HCCL初始化；/health仍connection refused，没有服务ready或权重/图/PD通过结论。原生日志确认D的`enable_fused_mc2=1`与`multistream_overlap_shared_expert=true`冲突，后者实际被置false；后续报告以实际生效参数为准，不能按CLI意图声称两个优化同时开启。Mamba causal_conv警告来自全局patch导入，尚未证明它是本模型实际执行路径的错误。
+
+- [P实际原生CLI/worker初始化](../evidence/native_full_model_G630/2203/actual_startup_G634.json)
+- [D实际配置冲突与worker初始化](../evidence/native_full_model_G630/2204/actual_startup_G634.json)
