@@ -39,3 +39,32 @@ G280两端各8个target与8个DSPARK draft的原生load ledger全部通过、mis
 - [G294限定的低压缩比分配器](../code/sg_pd_g294/lowratio_allocator.py)
 
 G294已作为新的完整P/D候选启动；此时尚未验收完整引擎分配、目标/草稿图、source/Indexer/candidates、prefix、DSPARK接受/回滚和跨机PD。接线通过或无异常日志不能替代这些实际门槛。
+
+## Draft 共享 allocator 的原生分支
+
+G294两端再次通过32份完整权重ledger，并实际构造target低压缩比池及分配器（日志Memory pool end）。随后DSPARK draft传入已有target allocator，包装器错误地断言其必须为None而退出。原生factory的已有allocator分支不仅返回同一对象，还绑定draft的SWA映射；不能跳过或重新构造它。
+
+G301直接取实际固定镜像factory函数，在CPU接口夹具中复现原断言失败，分别验证普通共享映射与full-capacity identity映射两条原生分支。修正包装器对已有allocator直接委托原生函数，返回身份与映射语义均保持。该检查没有创建torch张量、执行NPU、装载权重或做PD，不作为完整服务验收。G304使用这一修正重新启动完整P/D候选；原失败与释放状态保留。
+
+- [原始D端失败](../evidence/full_model_G294/2204/server.log)
+- [P端终态与释放](../evidence/full_model_G294/2203/state.json)
+- [实际函数CPU控制契约结果](../evidence/shared_allocator_contract_G301.json)
+- [控制契约复现代码](../code/shared_allocator_contract_G301/verify_shared_draft_allocator_g301.py)
+- [G304保留原生draft分支的接线](../code/sg_pd_g304/lowratio_allocator.py)
+
+完整目标/draft图、C1/C2 source/Indexer/candidate、跨机PD与prefix、DSPARK接受回滚和四档性能仍未验收。
+
+## 完整图路径暴露的第二处页大小限制
+
+G304两端各8个rank均通过target/draft严格装载并创建原生共享allocator和实际FULL/SWA池。P端完整引擎启动、原生SDK初始化并开放API。D端进入真实target-verify完整图捕获后，在PagedIndexerMetadata.__post_init__中的固定256页断言退出并释放全部8卡。P API开放不等于模型语义、跨机PD或性能验收；D失败不作为算子正确性结论。
+
+原生低比率索引工厂已将FULL页表展开为实际64-slot索引页表，所有地址和max_seq_len均使用显式page_size/compressed_page_size。G314保留真实128/64几何，仅在V4.1 NPU backend索引工厂的上下文中，且ratio为1/2、TORCH logits路径、无DeepGEMM强制metadata、无topk-v2时放行原生128页。默认调用上下文及其它设备保持256页断言，未伪造页大小，也未切换图、量化、EP、DSPARK参数。原生metadata源文件SHA严格核对后才修改该断言。
+
+CPU接口复现执行实际固定源码的__post_init__，原128页断言失败可复现；ratio1/2、rows_per_request1/6四组合通过，越界上下文/设备/页几何拒绝，256页路径保留。CPU夹具不证明真实张量、图或模型正确。G314仅重启D端，P保持G304；最新观察D仍在装载权重，完整图、source/indexer、跨机PD、奇数长度C2状态和DSPARK回滚仍待验证。
+
+- [D端原始完整图失败](../evidence/full_model_G304_D/server.log)
+- [D端释放状态](../evidence/full_model_G304_D/state.json)
+- [P端完整引擎启动证据](../evidence/full_model_G314/observation_2203.json)
+- [页几何原生方法CPU接口复现](../evidence/G314_paged_metadata_contract.json)
+- [修正的严格上下文和几何约束](../code/sg_pd_g314/paged_indexer_scope_g314.py)
+- [实际D端新候选观察](../evidence/full_model_G314/observation_2204.json)
