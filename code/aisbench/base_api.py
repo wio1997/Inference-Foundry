@@ -1,1016 +1,966 @@
-[
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0001/audit.json",
-    "original_sha256": "cb2034b91d0a48434b38ed8b225a163d105eab253e675caf9b0467fcd8a25117",
-    "published_sha256": "cb2034b91d0a48434b38ed8b225a163d105eab253e675caf9b0467fcd8a25117",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0001/raw/warmup_32768_1024.json",
-    "original_sha256": "76ffbb958eaf1bbaa5ee08ead2db3765832bb6b7bad2722f3f095e18971c45b4",
-    "published_sha256": "eae923a29c5185145a1f206619e44d84a81493afd875afb32ca60bb970bc507c",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0001/raw/warmup_32768_1024.csv",
-    "original_sha256": "e1170359efddf103dec5db6820f53fbd25946296079ebf1375c20c8c0f54c926",
-    "published_sha256": "e1170359efddf103dec5db6820f53fbd25946296079ebf1375c20c8c0f54c926",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0002/audit.json",
-    "original_sha256": "01a72332d35f3f612ff894d1d17cf58aaf6f68ba8e9f3eb4d8c6fb2d3367e8d2",
-    "published_sha256": "01a72332d35f3f612ff894d1d17cf58aaf6f68ba8e9f3eb4d8c6fb2d3367e8d2",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0002/raw/warmup2_32768_1024.json",
-    "original_sha256": "72f4c8747e4d8ed326a2150f9f25c4a9ec97826c012da7842703be31a1098f7e",
-    "published_sha256": "f3001a46badde6c361848f753b869f5df845c767e4d71204ce41f43511875300",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0002/raw/warmup2_32768_1024.csv",
-    "original_sha256": "ff4de7035173095b4a952a2fe51743ac6cf372db3f5d810a7e80b49c3bf12235",
-    "published_sha256": "ff4de7035173095b4a952a2fe51743ac6cf372db3f5d810a7e80b49c3bf12235",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0003/audit.json",
-    "original_sha256": "030d2511aa4b0fffb6a1a2f0b953796522b5b1d2cf9ab856761e8770d362c71f",
-    "published_sha256": "030d2511aa4b0fffb6a1a2f0b953796522b5b1d2cf9ab856761e8770d362c71f",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0003/raw/formal_32768_1024.json",
-    "original_sha256": "cf8450e1d99b31f8e1144a5e610fa69d961ebfff1ad930c6d6d9b5f8f39dafff",
-    "published_sha256": "5ccd49d0f2b29008039d449d4581d4794b43c61da5f554d0a20ec7090abfd494",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0003/raw/formal_32768_1024.csv",
-    "original_sha256": "3eba9bd2a47a36cacc66d4f343a08f265fb7d5b3e195fc205c429c4f1420c5aa",
-    "published_sha256": "3eba9bd2a47a36cacc66d4f343a08f265fb7d5b3e195fc205c429c4f1420c5aa",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0004/audit.json",
-    "original_sha256": "09db389f1bb598e35cbc1d54f2b378ca1bc582685aff7d8587a0d4341044ca48",
-    "published_sha256": "09db389f1bb598e35cbc1d54f2b378ca1bc582685aff7d8587a0d4341044ca48",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0004/raw/formal_32768_1024.json",
-    "original_sha256": "327c0aee62046a8617552d3733b823da28163e4670d2bed600ce606cda99ad54",
-    "published_sha256": "5f8446a23df6ebd7aaeb46b68e487fb21188d187d0802ea2faad0169d29d0a4c",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0004/raw/formal_32768_1024.csv",
-    "original_sha256": "83dfa22dfdfb36d99323655a866545718cd44dfb6075285162016afe0c28683d",
-    "published_sha256": "83dfa22dfdfb36d99323655a866545718cd44dfb6075285162016afe0c28683d",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0005/audit.json",
-    "original_sha256": "59d83138b4188fca79d03114b7b6d902074388bc9e63988aece672f0e95463b0",
-    "published_sha256": "59d83138b4188fca79d03114b7b6d902074388bc9e63988aece672f0e95463b0",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0005/raw/warmup_65536_1024.json",
-    "original_sha256": "f2748f08eace39820b3300755036d25a16189aabe77441c0efe01caf9b3ae718",
-    "published_sha256": "76e837f6ef444737cfd9cfe8cadff3f78963f2e3ab9886f1d4ee19fee014de7e",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0005/raw/warmup_65536_1024.csv",
-    "original_sha256": "e3effdba565f020068d7d49f66a4143f014ea4c595fe34f703153be95728cf36",
-    "published_sha256": "e3effdba565f020068d7d49f66a4143f014ea4c595fe34f703153be95728cf36",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0006/audit.json",
-    "original_sha256": "b87c6c3d51ac7c6d75b05f33792a8c8ad26f18c1c9faf0457f30ffcc2d720905",
-    "published_sha256": "b87c6c3d51ac7c6d75b05f33792a8c8ad26f18c1c9faf0457f30ffcc2d720905",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0006/raw/warmup2_65536_1024.json",
-    "original_sha256": "61c872dc020c6bc10156e396f02b483593a70d44de97b273a562d35173c091df",
-    "published_sha256": "1d4e5265def6e335c0de220cd2df18006f4692cf9de0780551d44096d12c79e8",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0006/raw/warmup2_65536_1024.csv",
-    "original_sha256": "4ab9fd7499abeff27e84b1e197f6cc3d2f340bc7eaaece18431b01cb84f9f2a1",
-    "published_sha256": "4ab9fd7499abeff27e84b1e197f6cc3d2f340bc7eaaece18431b01cb84f9f2a1",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0007/audit.json",
-    "original_sha256": "2aaada65c31f9229f4c9db608ce7a1951ddea3fcafb34d821f51d90574a9a1c2",
-    "published_sha256": "2aaada65c31f9229f4c9db608ce7a1951ddea3fcafb34d821f51d90574a9a1c2",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0007/raw/formal_65536_1024.json",
-    "original_sha256": "42ef1b64354f7f8c79e7dec6fd8b85aeaacdeb4e5ea28e8a3363a548b56b4447",
-    "published_sha256": "a49ec60855345c7544bad12e73f48f7943e52de8e7e4507e4dfdc772780652a4",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0007/raw/formal_65536_1024.csv",
-    "original_sha256": "ad410093845c7f70a22b83ec1d197a57b7991fe312df51695c0d91e2558f4065",
-    "published_sha256": "ad410093845c7f70a22b83ec1d197a57b7991fe312df51695c0d91e2558f4065",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0008/audit.json",
-    "original_sha256": "743f4af1051fc742913084bba96a26006beafd417897d2471e0f86199c3a893c",
-    "published_sha256": "743f4af1051fc742913084bba96a26006beafd417897d2471e0f86199c3a893c",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0008/raw/formal_65536_1024.json",
-    "original_sha256": "0c73e6c200b1081e96096c14e54edbd1958b123034316ef7e2c86b9f87047164",
-    "published_sha256": "04dd9baca2c10643a9587713baf16d41f06fd428e903d2a6d993fe4850da335d",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0008/raw/formal_65536_1024.csv",
-    "original_sha256": "ddf6979fcf74553cff1ae6b1fbb3ca51e12555a48a3843214e27174b5d630691",
-    "published_sha256": "ddf6979fcf74553cff1ae6b1fbb3ca51e12555a48a3843214e27174b5d630691",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0009/audit.json",
-    "original_sha256": "2d0087b1babd57c546ce5cffadc741f4472ad0bbf5f24b48aa9d88a73d227495",
-    "published_sha256": "2d0087b1babd57c546ce5cffadc741f4472ad0bbf5f24b48aa9d88a73d227495",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0009/raw/warmup_131072_1024.json",
-    "original_sha256": "c6ed9f85f11a85c65138aabfb42f35fb16e88ecf5181616e8a46c798fd766399",
-    "published_sha256": "069e5e080bc7787ceabc2702f6bf350bac357923d937b4e5b48ffda7c2862464",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0009/raw/warmup_131072_1024.csv",
-    "original_sha256": "e345910ab3579a6d576deaf130f62c91f3db9fcdc4ac93f76862b6f92ebe3923",
-    "published_sha256": "e345910ab3579a6d576deaf130f62c91f3db9fcdc4ac93f76862b6f92ebe3923",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0010/audit.json",
-    "original_sha256": "ed312a4de0d93c1aa87091bd4e7935097cbdac8a4926f805bfbfab3667a3139f",
-    "published_sha256": "ed312a4de0d93c1aa87091bd4e7935097cbdac8a4926f805bfbfab3667a3139f",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0010/raw/warmup2_131072_1024.json",
-    "original_sha256": "e70080360869f390fe7a5b8b2a10e6925ffbeed7a0becd3f91c3f025311e0158",
-    "published_sha256": "548a1e7b84c8ef5daf5f32b9b05eb5821508a0e840838dd9ff27a7a6a74f734c",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0010/raw/warmup2_131072_1024.csv",
-    "original_sha256": "eb97080da79f2fde3f901a3bf5cc824136fb46cf93c22c46d1bf392a29c48e63",
-    "published_sha256": "eb97080da79f2fde3f901a3bf5cc824136fb46cf93c22c46d1bf392a29c48e63",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0011/audit.json",
-    "original_sha256": "a7f357db390d1b43d7b8d53c2c8c54fff5943cdb9d712c05bb823d462277ab5d",
-    "published_sha256": "a7f357db390d1b43d7b8d53c2c8c54fff5943cdb9d712c05bb823d462277ab5d",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0011/raw/formal_131072_1024.json",
-    "original_sha256": "1b6ca0e6804e69723ad42ec203c2a5476fef067e3a07d9015ccfa0597d479862",
-    "published_sha256": "a41c30690dc3fc162b51f0effe93c8f594e52ca2d68f7666efed8235337a05d5",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0011/raw/formal_131072_1024.csv",
-    "original_sha256": "225a723be11a5957826d6746ddec609cf909d183054d84d56a5a88fbf366965b",
-    "published_sha256": "225a723be11a5957826d6746ddec609cf909d183054d84d56a5a88fbf366965b",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0012/audit.json",
-    "original_sha256": "044bd1bb0ef143c0084f581f91e22a3207feb470e228a82c35cd33ca342fa24e",
-    "published_sha256": "044bd1bb0ef143c0084f581f91e22a3207feb470e228a82c35cd33ca342fa24e",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0012/raw/formal_131072_1024.json",
-    "original_sha256": "90137ef3c616e734525b99d8247a116652cb4ef913dbd1aad28fb65f7effe089",
-    "published_sha256": "683488cdb4883f9d0585426f931b86de24300203b106d3e79c219b54d0b7c982",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0012/raw/formal_131072_1024.csv",
-    "original_sha256": "212fc52e182a0ee0d14b8a12057982db998aea0713009cbbcfa5400eb85f419b",
-    "published_sha256": "212fc52e182a0ee0d14b8a12057982db998aea0713009cbbcfa5400eb85f419b",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0013/audit.json",
-    "original_sha256": "2a29d611d8aab7eb75c4b5a3b74c70de179ccb2304f5734bc2539e3922e87d87",
-    "published_sha256": "2a29d611d8aab7eb75c4b5a3b74c70de179ccb2304f5734bc2539e3922e87d87",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0013/raw/warmup_262144_1024.json",
-    "original_sha256": "779e6e9bf6a4d9e0a378336388620cb58f1c0655ce06c4debc70dfb113133828",
-    "published_sha256": "7dccb3c8509e6598c1c084fcfbb0aea3818425f2f04e5f5f8bb0e94ff52f99fc",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0013/raw/warmup_262144_1024.csv",
-    "original_sha256": "7bc506e881fc3d2cea9950bbd6986481c7d9eb82ed270517c3804540bc3544b3",
-    "published_sha256": "7bc506e881fc3d2cea9950bbd6986481c7d9eb82ed270517c3804540bc3544b3",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0014/audit.json",
-    "original_sha256": "f41c085a01a883c7028140433a59903ca2bc07c7ea478edd11d0b824aa527930",
-    "published_sha256": "f41c085a01a883c7028140433a59903ca2bc07c7ea478edd11d0b824aa527930",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0014/raw/warmup2_262144_1024.json",
-    "original_sha256": "82122d4027e5be7f0e1d9b0add4fc1ac7377a6e3b6a5734bf95ec352196b86f7",
-    "published_sha256": "3029701fb2404683e5551a0669e2d70f7a6f205f7e065bf8826fe7fd385e4d9e",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0014/raw/warmup2_262144_1024.csv",
-    "original_sha256": "20f3d5a7ba5960ae47f99493e81aecd716b362e4b3ff73b30fe5e2b68b8bc793",
-    "published_sha256": "20f3d5a7ba5960ae47f99493e81aecd716b362e4b3ff73b30fe5e2b68b8bc793",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0015/audit.json",
-    "original_sha256": "f0719a326baea4e0d2a7bdfdab34d4746ade9f821620370da8767da5b7f753f7",
-    "published_sha256": "f0719a326baea4e0d2a7bdfdab34d4746ade9f821620370da8767da5b7f753f7",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0015/raw/formal_262144_1024.json",
-    "original_sha256": "a0dba9caa5f03c9e63a1f618d52e6ca13a5b5585657d647d1693f56e9e4c5a4a",
-    "published_sha256": "af16bffe32f0e4e436722052bd6297e9fc5da235827f7250a0ce567a4287dd59",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0015/raw/formal_262144_1024.csv",
-    "original_sha256": "c8990af00de68c84e1fe790dde57d652cec594b3018a5e273da836edc2c47875",
-    "published_sha256": "c8990af00de68c84e1fe790dde57d652cec594b3018a5e273da836edc2c47875",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0016/audit.json",
-    "original_sha256": "871771ea802e92a28d4d5401577ef372a71b9d33e0b2430d0c9e89ce6c5b7050",
-    "published_sha256": "871771ea802e92a28d4d5401577ef372a71b9d33e0b2430d0c9e89ce6c5b7050",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0016/raw/formal_262144_1024.json",
-    "original_sha256": "7f8ae3d3358410cabfa6333f1b2eaf322061caf8ffc5d3950ff6cb8901b938c7",
-    "published_sha256": "ef1cd6e17121f070537c41d3661f3e538660ff549a1bc157e2cf1e5453b2acf8",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0016/raw/formal_262144_1024.csv",
-    "original_sha256": "3a50d6bbcce68773adce552daad55e31095afd8eaf2b27c64c8621e75c314148",
-    "published_sha256": "3a50d6bbcce68773adce552daad55e31095afd8eaf2b27c64c8621e75c314148",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0017/audit.json",
-    "original_sha256": "d5ace19f53a5c95313fbdec9d4e69271b7fe219ed6efd02dbbd9227fac0a19d4",
-    "published_sha256": "d5ace19f53a5c95313fbdec9d4e69271b7fe219ed6efd02dbbd9227fac0a19d4",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0017/raw/warmup_32768_1024.json",
-    "original_sha256": "4cf9785d4223d0c2fc010e144f0872e101b7957e1ab18657d11698b98dcc9a0f",
-    "published_sha256": "70bc28c21981ba4bf6889277ed1812964753f03e44558df9081dd6ed87fb072c",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0017/raw/warmup_32768_1024.csv",
-    "original_sha256": "c2d50c08b27337dba2b88d6b72c8a5054407cea7fd363d846c11d3cf8a36b3db",
-    "published_sha256": "c2d50c08b27337dba2b88d6b72c8a5054407cea7fd363d846c11d3cf8a36b3db",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0018/audit.json",
-    "original_sha256": "8838e67ee52e45f3d94f71cb043f342ef74f1390172e1287ce59f8607d340e5a",
-    "published_sha256": "8838e67ee52e45f3d94f71cb043f342ef74f1390172e1287ce59f8607d340e5a",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0018/raw/warmup2_32768_1024.json",
-    "original_sha256": "52fdc2811933be055d0fb1570be3cec254138afecdada60233e9769686863863",
-    "published_sha256": "8b46998549e9800f2e3bb5b7ce81964d705bbbc63ee2e6514ee9dd009d033255",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0018/raw/warmup2_32768_1024.csv",
-    "original_sha256": "f627b93fbce69624c8e2ac7bd3111d5ad9bf69bdec3d0b4a9be9453ae2be51c0",
-    "published_sha256": "f627b93fbce69624c8e2ac7bd3111d5ad9bf69bdec3d0b4a9be9453ae2be51c0",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0019/audit.json",
-    "original_sha256": "37a7095fe370699b1c55a9d0755e057f5e28f0c9763d1753b4aab3d2b4b58a78",
-    "published_sha256": "37a7095fe370699b1c55a9d0755e057f5e28f0c9763d1753b4aab3d2b4b58a78",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0019/raw/warmup3_32768_1024.json",
-    "original_sha256": "4304ad370249280b818b227751c0b537b3069b22a582bb6533007ca54e090fe8",
-    "published_sha256": "0ea22b45d65992b897415782fd6f72cc0284e5739c6e92c30f083ade66cdb2e9",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0019/raw/warmup3_32768_1024.csv",
-    "original_sha256": "1dcdbd373dff1558a7fafc81f74e4e45cf505f4be7d0b27a230b4b3763d2c099",
-    "published_sha256": "1dcdbd373dff1558a7fafc81f74e4e45cf505f4be7d0b27a230b4b3763d2c099",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0020/audit.json",
-    "original_sha256": "cd2c8385efb1f811c941130b1dbc4a600ae6a864942000916176deae2b645f63",
-    "published_sha256": "cd2c8385efb1f811c941130b1dbc4a600ae6a864942000916176deae2b645f63",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0020/raw/formal_32768_1024.json",
-    "original_sha256": "eb80993d1ba39fe1c3d93ef91cd4c4b98a4aec27d0dc3c3bdb0b791886d21efe",
-    "published_sha256": "a7dbddb2a97da022515d23be5856711e327af40a0743aad3f64994d1dcdf4b88",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0020/raw/formal_32768_1024.csv",
-    "original_sha256": "4c30af8050ed703dc0d2d70cc008950b88eadf6b873738085fbc9580b0151f87",
-    "published_sha256": "4c30af8050ed703dc0d2d70cc008950b88eadf6b873738085fbc9580b0151f87",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0021/audit.json",
-    "original_sha256": "d88b9f517acb2607373083b83f113c7c657be3d2c22733bec64dc86e8a189a72",
-    "published_sha256": "d88b9f517acb2607373083b83f113c7c657be3d2c22733bec64dc86e8a189a72",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0021/raw/formal_32768_1024.json",
-    "original_sha256": "fa8d997315c6b7709d7d8ef906335eb7d739a02a255b71fb20b65fcd10dc09a5",
-    "published_sha256": "4713c94788b4b1339394af94eeb0a8298d04e58c2ef50342689bb8d834c1c71e",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0021/raw/formal_32768_1024.csv",
-    "original_sha256": "1c6e171797355f6b90e394c7da73ab65d375e9fb2125c835a062b49ef82fb4c1",
-    "published_sha256": "1c6e171797355f6b90e394c7da73ab65d375e9fb2125c835a062b49ef82fb4c1",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0022/audit.json",
-    "original_sha256": "3a68a2a2d4c1d8503ec8a845b1d76e3ce0b2c80a3d6a26c653f3eae21154f188",
-    "published_sha256": "3a68a2a2d4c1d8503ec8a845b1d76e3ce0b2c80a3d6a26c653f3eae21154f188",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0022/raw/warmup_32768_1024.json",
-    "original_sha256": "d5a101a629ce02a64c64054e456b565a6ee2f6c3cff682e7e213174541aa73d8",
-    "published_sha256": "1e4d69bdd3838660400ce69290aafbcda1997b4f7558656a70dd3438cbe077cd",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0022/raw/warmup_32768_1024.csv",
-    "original_sha256": "e38a1926d7a8b3c9bc70b457a07f0b5b7f4405b110c8cbd23c8f2f816138bfca",
-    "published_sha256": "e38a1926d7a8b3c9bc70b457a07f0b5b7f4405b110c8cbd23c8f2f816138bfca",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0023/audit.json",
-    "original_sha256": "fa64ae5af3540a5809d5b4d372d7fa4d455afc218ce40eb6257cda7969e3cf31",
-    "published_sha256": "fa64ae5af3540a5809d5b4d372d7fa4d455afc218ce40eb6257cda7969e3cf31",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0023/raw/warmup2_32768_1024.json",
-    "original_sha256": "7a3df41917969418b4116ac41c6ce8f98f1c656039eb9a54b805653e01fa5064",
-    "published_sha256": "ae7d68432c933b3594bf10d22a0b868673ad9d8e7789393601614a5caa2b8579",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0023/raw/warmup2_32768_1024.csv",
-    "original_sha256": "d898a7c803c902f810d7a8f59f477be9eba004cecaa3286b399b741fcd3e58c6",
-    "published_sha256": "d898a7c803c902f810d7a8f59f477be9eba004cecaa3286b399b741fcd3e58c6",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0024/audit.json",
-    "original_sha256": "7d4c4f52750aa2ed367bdb6896341e6cb027cc914403368a0a4f568c40191bb6",
-    "published_sha256": "7d4c4f52750aa2ed367bdb6896341e6cb027cc914403368a0a4f568c40191bb6",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0024/raw/warmup3_32768_1024.json",
-    "original_sha256": "515b4f7a7471107719d44fb4ba0720e5e08ce7bed67e3435544fd8a683eee5a3",
-    "published_sha256": "2477c2e1f2e64a6fcbccb1c0ff3401544af1883dd21cd8f6ff95463ec7ad1f11",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0024/raw/warmup3_32768_1024.csv",
-    "original_sha256": "50a5882ea8bd3b5fa1ecc2d16585c78e6968319114584475869b06f7bebb4a24",
-    "published_sha256": "50a5882ea8bd3b5fa1ecc2d16585c78e6968319114584475869b06f7bebb4a24",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0001/raw/warmup_32768_1024_details.jsonl.xz",
-    "original_sha256": "1c0e3b480572816ba87ec9af9101a3ff4d95094549e49fa74ffa2fb95b857afe",
-    "published_sha256": "432fde9f9a27ec664b6c207aea0d8d3d229c16fa348f63f805ab074464a41e10",
-    "uncompressed_sha256": "1c0e3b480572816ba87ec9af9101a3ff4d95094549e49fa74ffa2fb95b857afe",
-    "uncompressed_bytes": 4002606,
-    "bytes": 792268,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0002/raw/warmup2_32768_1024_details.jsonl.xz",
-    "original_sha256": "77e46b82382e350a4f2741811d8be078843fb75af4bc590f3d38f4c29d0d0562",
-    "published_sha256": "cc45809bb93cdba21115fa4de7bb73a7ee81b4e968b65371a4a5fedce3c48aa2",
-    "uncompressed_sha256": "77e46b82382e350a4f2741811d8be078843fb75af4bc590f3d38f4c29d0d0562",
-    "uncompressed_bytes": 4002230,
-    "bytes": 792308,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0003/raw/formal_32768_1024_details.jsonl.xz",
-    "original_sha256": "4dbb02cabdeb66b13bea4fdbca08bf86c1b95226cc10e9bccef58355a7fc18ad",
-    "published_sha256": "2ec09ada962ad16754e3578a78cd477598c213d1f50b142a48b87c69e65e8698",
-    "uncompressed_sha256": "4dbb02cabdeb66b13bea4fdbca08bf86c1b95226cc10e9bccef58355a7fc18ad",
-    "uncompressed_bytes": 8000396,
-    "bytes": 1584068,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0004/raw/formal_32768_1024_details.jsonl.xz",
-    "original_sha256": "84c517cf2598499819d54745059c3f212912f1e311501a051115cd391e660324",
-    "published_sha256": "cd3b70bc7eee54a6018c9228bfccd72f4b0acbbf252cd14836cad3ddb8e7f29b",
-    "uncompressed_sha256": "84c517cf2598499819d54745059c3f212912f1e311501a051115cd391e660324",
-    "uncompressed_bytes": 8000403,
-    "bytes": 1583856,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0005/raw/warmup_65536_1024_details.jsonl.xz",
-    "original_sha256": "64a1d22b7b0737d5e61e999fb2763ce2c36cc90671551e2bff7f218b1e117f9c",
-    "published_sha256": "8fd66a671c303233e93fa6ae8e4997643bbd5c1039fb643c400f3c6025f67a5f",
-    "uncompressed_sha256": "64a1d22b7b0737d5e61e999fb2763ce2c36cc90671551e2bff7f218b1e117f9c",
-    "uncompressed_bytes": 7930524,
-    "bytes": 1582168,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0006/raw/warmup2_65536_1024_details.jsonl.xz",
-    "original_sha256": "a4e65423b6dc3653db7b6ef5ffa51b6473973976b9d95e7ba488fca4a750fea9",
-    "published_sha256": "70e92722295a00128c638a4799a2a57a96369e5161d5c80655a2c3590456b549",
-    "uncompressed_sha256": "a4e65423b6dc3653db7b6ef5ffa51b6473973976b9d95e7ba488fca4a750fea9",
-    "uncompressed_bytes": 7930630,
-    "bytes": 1582180,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0007/raw/formal_65536_1024_details.jsonl.xz",
-    "original_sha256": "a78ca6b423d2728bca316cef9fd55e5958fa8e54ee0b78d88905ef94e1366ef3",
-    "published_sha256": "85ce025bfd89a5632a67aa06ecea9fef1bd26465cc718f1c46bdbc716d1a10da",
-    "uncompressed_sha256": "a78ca6b423d2728bca316cef9fd55e5958fa8e54ee0b78d88905ef94e1366ef3",
-    "uncompressed_bytes": 15858346,
-    "bytes": 3163776,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0008/raw/formal_65536_1024_details.jsonl.xz",
-    "original_sha256": "c180df20433326342c2e769c5f859894118c7391f4c5c0b9e42fca2dcbbe2c5e",
-    "published_sha256": "70c92a7c421d1025719a0dc2cafee2ac8c4baca43f820c087f869080e84fcfdf",
-    "uncompressed_sha256": "c180df20433326342c2e769c5f859894118c7391f4c5c0b9e42fca2dcbbe2c5e",
-    "uncompressed_bytes": 15858346,
-    "bytes": 3163772,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0009/raw/warmup_131072_1024_details.jsonl.xz",
-    "original_sha256": "cf4bb11c6b0209f77f65d067d18f3c2f65b01ab52201bdf118c917694654808e",
-    "published_sha256": "b95592ee7e0abf92374a0399b8fa2ccbc6b74df2a75e11ed884a586ebcac4525",
-    "uncompressed_sha256": "cf4bb11c6b0209f77f65d067d18f3c2f65b01ab52201bdf118c917694654808e",
-    "uncompressed_bytes": 15789163,
-    "bytes": 3162616,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0010/raw/warmup2_131072_1024_details.jsonl.xz",
-    "original_sha256": "fc19d03378d6f72153bdfc3a757de9255d85980931d591baa0dddc5165b5fd8d",
-    "published_sha256": "5bc29f68ee1eb10a5b4c04e5245e8c075c292d96e2dfa8191cd5975cae3058a5",
-    "uncompressed_sha256": "fc19d03378d6f72153bdfc3a757de9255d85980931d591baa0dddc5165b5fd8d",
-    "uncompressed_bytes": 15788883,
-    "bytes": 3162776,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0011/raw/formal_131072_1024_details.jsonl.xz",
-    "original_sha256": "3e571986fe547ba575d555b329dd16d418858b7d6e139576cd5a0a23acde4732",
-    "published_sha256": "9e95b53c664589ed15424c68224c81cabbe1f19aca344ca19a1f16f72951f7b2",
-    "uncompressed_sha256": "3e571986fe547ba575d555b329dd16d418858b7d6e139576cd5a0a23acde4732",
-    "uncompressed_bytes": 31577698,
-    "bytes": 6323868,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0012/raw/formal_131072_1024_details.jsonl.xz",
-    "original_sha256": "cd774f193b10341a50fd532fa2d031cca49c81fd454944bbd8394255942e26c6",
-    "published_sha256": "6740b02a3bb224f92da622e3d78c1fa226ff8ebcdb0605c313e70a62aca6e35b",
-    "uncompressed_sha256": "cd774f193b10341a50fd532fa2d031cca49c81fd454944bbd8394255942e26c6",
-    "uncompressed_bytes": 31577698,
-    "bytes": 6323824,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0013/raw/warmup_262144_1024_details.jsonl.xz",
-    "original_sha256": "1afb1ed070d9bd633f51417dc5afb80c8285f0a696cdc6c310361ff19386241d",
-    "published_sha256": "e09cdcf739207777aca59e774896a3a60bf75cb8b0c1796a19fe5c392a7e1c18",
-    "uncompressed_sha256": "1afb1ed070d9bd633f51417dc5afb80c8285f0a696cdc6c310361ff19386241d",
-    "uncompressed_bytes": 31502538,
-    "bytes": 6322740,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0014/raw/warmup2_262144_1024_details.jsonl.xz",
-    "original_sha256": "1f1eb8ca73cfd7fe4d4e8c724e00bc6d42af67f8bb77889550dcce17a0722ff2",
-    "published_sha256": "aa95ca17563ec63acf621c1f6c3ec1ad386c70c1d901c48488c0469af521fa79",
-    "uncompressed_sha256": "1f1eb8ca73cfd7fe4d4e8c724e00bc6d42af67f8bb77889550dcce17a0722ff2",
-    "uncompressed_bytes": 31507972,
-    "bytes": 6322776,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0015/raw/formal_262144_1024_details.jsonl.xz",
-    "original_sha256": "ca391b95a61068cddefc9b5b1babaffa7258e834369a8fbcb95993f092677c3a",
-    "published_sha256": "7b356e4cb61fa99b52fc52bf7243b27bac87583b342b3fb138a739e8f2180a40",
-    "uncompressed_sha256": "ca391b95a61068cddefc9b5b1babaffa7258e834369a8fbcb95993f092677c3a",
-    "uncompressed_bytes": 63012588,
-    "bytes": 12641448,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0016/raw/formal_262144_1024_details.jsonl.xz",
-    "original_sha256": "312aa7c175311598c05b30991b40fce91c6540e292ef68cd3d69b7af2bb66deb",
-    "published_sha256": "6ee9cd2d8c666452ad248805efad188115eed761e0269b058ef348a4e24dc827",
-    "uncompressed_sha256": "312aa7c175311598c05b30991b40fce91c6540e292ef68cd3d69b7af2bb66deb",
-    "uncompressed_bytes": 63016789,
-    "bytes": 12641524,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0017/raw/warmup_32768_1024_details.jsonl.xz",
-    "original_sha256": "26c7d9a7a79056244890e5ba4888df4976a7e0c8759a7b0f9038dfe1de2f2724",
-    "published_sha256": "45c40919a4a6b03b2148d240bcea43c4ac30b9c9de770f7710f2d1e42bd3b185",
-    "uncompressed_sha256": "26c7d9a7a79056244890e5ba4888df4976a7e0c8759a7b0f9038dfe1de2f2724",
-    "uncompressed_bytes": 4002606,
-    "bytes": 792200,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0018/raw/warmup2_32768_1024_details.jsonl.xz",
-    "original_sha256": "1da5479c967fdc9785ac8fe3e3bd500b3d5ecdbbd9979b27e623839908999174",
-    "published_sha256": "7905e82f93f428e0f117032aef4e29363663e5183a0276259652c1a610c6f4e3",
-    "uncompressed_sha256": "1da5479c967fdc9785ac8fe3e3bd500b3d5ecdbbd9979b27e623839908999174",
-    "uncompressed_bytes": 4005988,
-    "bytes": 792632,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0019/raw/warmup3_32768_1024_details.jsonl.xz",
-    "original_sha256": "a89d77a364c13f0c2f300d0af29790b4bfc7478f47218a2d6d054d8111073553",
-    "published_sha256": "efb01249d1b6217bd3636088459a73899bde7948afc31da597214aad2a93eab5",
-    "uncompressed_sha256": "a89d77a364c13f0c2f300d0af29790b4bfc7478f47218a2d6d054d8111073553",
-    "uncompressed_bytes": 3999526,
-    "bytes": 792416,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0020/raw/formal_32768_1024_details.jsonl.xz",
-    "original_sha256": "c0b94f153361fbea51c5c78b33fe30c0cb81e5227d5fd8b8849c4ded80ddf3a1",
-    "published_sha256": "f6558a0ff6a2802b818ec509f474f08b79ee512f879847eeb9f1b4f19dae7c30",
-    "uncompressed_sha256": "c0b94f153361fbea51c5c78b33fe30c0cb81e5227d5fd8b8849c4ded80ddf3a1",
-    "uncompressed_bytes": 8000396,
-    "bytes": 1584248,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0001/runs/GLM-RUN-0021/raw/formal_32768_1024_details.jsonl.xz",
-    "original_sha256": "31923b84b93b7d433cf0ec49f30290c9db86b83c744e2e73594b03e82c72cbe8",
-    "published_sha256": "138ec367dddc398011f5fc07d3354ad4deaab4f5bfbd818dc399ce7fe87a4f1d",
-    "uncompressed_sha256": "31923b84b93b7d433cf0ec49f30290c9db86b83c744e2e73594b03e82c72cbe8",
-    "uncompressed_bytes": 8000396,
-    "bytes": 1584088,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0022/raw/warmup_32768_1024_details.jsonl.xz",
-    "original_sha256": "2f52ecb53d4e39cddf723c658647af2c01ddd57f94e9d029c17b92fe1fdd28b8",
-    "published_sha256": "cb6d69ff677e4da99dcf7ba6ce49af03b9ee836acf8d195fa60a6c3da8740e4c",
-    "uncompressed_sha256": "2f52ecb53d4e39cddf723c658647af2c01ddd57f94e9d029c17b92fe1fdd28b8",
-    "uncompressed_bytes": 4002608,
-    "bytes": 792144,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0023/raw/warmup2_32768_1024_details.jsonl.xz",
-    "original_sha256": "852341c2e55cc9224b0c41d3051e89fa179a59b2782b74bdc00858dbed93bcf9",
-    "published_sha256": "98954c5fc5228885958b30bf1e94808a02fe8915c186ba44eb7c670c4436f301",
-    "uncompressed_sha256": "852341c2e55cc9224b0c41d3051e89fa179a59b2782b74bdc00858dbed93bcf9",
-    "uncompressed_bytes": 4002228,
-    "bytes": 792392,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "records/points/GLM-OPT-0002/runs/GLM-RUN-0024/raw/warmup3_32768_1024_details.jsonl.xz",
-    "original_sha256": "18f356b7ead96fcfdf101c160d3edd750ab5e4351628d28ce818ac8e65e95ef5",
-    "published_sha256": "e45f19bd1b8f54808b491636e5272907a380bc5733af54c1c4747c023c957c98",
-    "uncompressed_sha256": "18f356b7ead96fcfdf101c160d3edd750ab5e4351628d28ce818ac8e65e95ef5",
-    "uncompressed_bytes": 3999526,
-    "bytes": 792432,
-    "transformation": "XZ无损打包；解包后逐字节恢复原始请求JSONL"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/role.json",
-    "original_sha256": "fdbbd8dc5f8830c17166bfcdc5f8cf5097dcf24eabdfc89946353341d648668f",
-    "published_sha256": "ba0116e8fd6cbc3952be2b68e6e700504f59c6a0a1d90e99dcb232a70dc4208b",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_3.json",
-    "original_sha256": "c031b78f6370cb48b0cb007580ac5339f19263a614fc7ca8607b53eeb1ad3828",
-    "published_sha256": "3d9f0ca41d68c6cde29c4c533a383740f3ac0c6499c27908362b9a3009ceca89",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_0.json",
-    "original_sha256": "71eb231b20e9ba49db1dca45fdecef6f3145786668d95ae4dfe22056527a3cf7",
-    "published_sha256": "58fa088385b495f4db35520152488013c4a960ff5e37721da4b253d76cd4557d",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_6.json",
-    "original_sha256": "2b02afa9c7464bf0280ac3d226e8e1f5cb6273f7621f4e4c8018a1286b85fafe",
-    "published_sha256": "40a8c226418ce2a3641e8fc41ed87f549dd8d0b0562a0fd2168fe5a9009c6761",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_5.json",
-    "original_sha256": "7615ffd4d28b719f5744b78139490a82ec6fe82c38e1ba205a126425360b46e9",
-    "published_sha256": "4257d9a0e78870f8fff67da7c4692546ca0a68f72a4feaf3398f7d1d588f4b51",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_4.json",
-    "original_sha256": "585f5b857c5eafa144f69551d93721f1257564c0ed921c5cc2030e17ac1a00a7",
-    "published_sha256": "46398286ed19843d4f8abd64689ca37e74add5ba9b9a734fdddd7b86a2a1f619",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_2.json",
-    "original_sha256": "67a2faa31223422468dd2324eef5ed938f7b4fb4b85f8732cb8261407e68eb88",
-    "published_sha256": "0b4e74cc3caa343ac23a8f0d2a81dd24e09c291dd37952d6175ba880e334090b",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_1.json",
-    "original_sha256": "adb078a30e245cd736aeec852d818950985e2cd0949fd4fb01307ae5534867c1",
-    "published_sha256": "c1cec5746d4c07eda4c71ad35e8366d8705d51bb18ff8b7051fbdb45e05a0fa5",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/state.json",
-    "original_sha256": "187b4bb16725aab7ae9ba9125229c4c7b8eafd23012b72553fde956f2af53e17",
-    "published_sha256": "7ff596a300df4690dad953b9d6474dccac1d6c737dcc01e57d8e801d3a45fea1",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/review/rank_7.json",
-    "original_sha256": "372059b0937a6cf4e9a83cde302fef10f1cf3736c09fc46d7a70a422e50e368f",
-    "published_sha256": "08e5ed5eaceb8f5a26b73fac690c6f676cb7300f05a6d335395824c387f097dc",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/p/raw_index.json",
-    "original_sha256": "d0ae69336bbddf492f5d03a9d009c397fc2f4560ff0c82149b4df2ebe3a280e1",
-    "published_sha256": "282f378a1630be5b9a15169c7554cce8a70e4c7b6a15d873598211172b818c4b",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/role.json",
-    "original_sha256": "2b4f62a19e8bd88fb22373ee3f7989bd3cc7752558b3ed7a05657489a620e84b",
-    "published_sha256": "082ffc4648cab5525a673d3ae4a4d579115bd3b36677e85062901911b36b81f4",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_3.json",
-    "original_sha256": "e92af5ebfcbd846e958679fd095101aef09dce9c1ee950605b13e47fa34a9799",
-    "published_sha256": "015e1b0761dcbd56eef2270e7b592c20805a6c8898edf6259225720a271e88c4",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_0.json",
-    "original_sha256": "c50aed50089563f3e8bd99013f5ee1c51abde06a304bc01f09bdaaa670ac6bee",
-    "published_sha256": "85fc854f6d0c2d485d214f4611fb0b9bb5fb981bd4bca652df53b8c6edce3483",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_6.json",
-    "original_sha256": "66979662207dfec88eddd82aa8e32723c9568b163b7c0b01c2dd14ff878712a9",
-    "published_sha256": "d8c451f592d09d5a78428e91981bce6fc6c8d2942ff19a36099c0a2580143787",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_5.json",
-    "original_sha256": "645e356f989998fc2087eee5d08c1e07cfe8b0a54e719d0c106a9bf71699f412",
-    "published_sha256": "c30d874535baab443d471c3d901b599a1e551855e1b47e0f162b61c4ab78e996",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_4.json",
-    "original_sha256": "8f6cc044341caa93dc96faeaf64adaaf730621ebbff9972d1c0e03998b75172d",
-    "published_sha256": "84da8d60be2285c38673bb257016f57b558d63eeb7377e20418aaf40c37ac8e9",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_2.json",
-    "original_sha256": "e0fcd49cea6b27068c117e8259d6e395d8ebdeb89a9c40c3dcb0a420af6dea92",
-    "published_sha256": "e21f0fcd0c10cbc695cd90bfd5aadd5c24d30469b44581890b87569eb0185c75",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_1.json",
-    "original_sha256": "b6ccee726f20eb822dfee9a5487ab9e026e26c6239ca9ddb4704bf8ab17817c4",
-    "published_sha256": "df716a8b7adb0bd5683d93c674682c35a3fb0d41f8b3eaf1792514308b4e7934",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/state.json",
-    "original_sha256": "187b4bb16725aab7ae9ba9125229c4c7b8eafd23012b72553fde956f2af53e17",
-    "published_sha256": "7ff596a300df4690dad953b9d6474dccac1d6c737dcc01e57d8e801d3a45fea1",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/review/rank_7.json",
-    "original_sha256": "324f1b3ea89127b5e6f0e6ce0c0db55200df51a823a9bf6c98090abf06acb93b",
-    "published_sha256": "d79d57ca725465fd0635c69cc3732fd9f4eb2312ff76fd751141994ec63747ec",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/vllm_G3/d/raw_index.json",
-    "original_sha256": "f24383e6316bec1406395010c343dc5bd36a1533c80e0c92366ee288027249d3",
-    "published_sha256": "cde6f3380964927021c597a8a65916d5f9b4221d58cc6b56c468afcf74207fa6",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_6.json",
-    "original_sha256": "de93eee65de66eefb4da7e41efc50b2400c83d668f6256caf974c21511d9365b",
-    "published_sha256": "3f68ec2ca31114e45389b2f97eacc8422c7f2a19e06ed25e0f844812f24c4538",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_3.json",
-    "original_sha256": "2af037adfd107c3974c2507bdd6dfabcacfdcf086335701cd2acdd2ed34592fa",
-    "published_sha256": "edd1e20d10b62678ec1a4a8f825a633c2be756b119f12b5d57a85e21226394d9",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/role_p.json",
-    "original_sha256": "0abfc4ba0ab861f866227ce73ca0029e95172b1ab20234cbac3329780662e01b",
-    "published_sha256": "0abfc4ba0ab861f866227ce73ca0029e95172b1ab20234cbac3329780662e01b",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_0.json",
-    "original_sha256": "eb290516f960441a2af29993919f58ba56ceda38b5b703b3c77323ec15364925",
-    "published_sha256": "0e523af39c0c0bd74b5abaa42b5de4882093ff1c7fd64952fe2942ed08e94f2a",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_2.json",
-    "original_sha256": "4d1a8a144c41255e3a97574f2971d5c310c9982682bf541d2decb69072c3f829",
-    "published_sha256": "443254cf93552659eb698d6b4eaa7a6cd31165ef573b640af7b9651beb79a7fc",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_4.json",
-    "original_sha256": "715df13b1f0e0c4c98b53943bc215280bf204e332b805a8482582a7f50cb90fc",
-    "published_sha256": "3010fcdf2d867e58972fe67df6082812fcad9dc201f7ea84966dbadc7ab7c33f",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_1.json",
-    "original_sha256": "a6327a3e4aa5453bf1090c2a662c02d031680643e425f6bdad8a2288ce54cb0f",
-    "published_sha256": "4f3dff632c94702d108869bfafd2f1f5ceb32231006a2f2081892f09a8938eb4",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_7.json",
-    "original_sha256": "19ad9dfabde5831e3382ecdcda2794a950f775d60f95a0fdedc608bfe2c49c38",
-    "published_sha256": "10b8f2efd21fc0000852667d03fe9746d5e21c7f27a320aafcd92ecfad23d33d",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/rank_p_5.json",
-    "original_sha256": "0f7bf294ce7e2c8fe8b814ddc68de8ea2cb31ffd0c6309ab634fe8933dbfd09b",
-    "published_sha256": "f020dee7561f33f931cc49d958533bb813e86d54d827c029a27d6363ddeec954",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/review/state_p.json",
-    "original_sha256": "4c20d04fe6281afc04107d969913d98f8995ace06b4b1bca1d7c07984962dc33",
-    "published_sha256": "4c20d04fe6281afc04107d969913d98f8995ace06b4b1bca1d7c07984962dc33",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/p/raw_index.json",
-    "original_sha256": "09639d32c3a8d0bae80aa585e9cbccb0f2086596869dd153296a04a1e902b7fb",
-    "published_sha256": "7108d84ddf9924c42f385725c63e3f32c4ea61e563a6da62010db0ec2e887545",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_0.json",
-    "original_sha256": "ec0d5b20650df3c712d960234b8780033fb973dc566e324063273fe6c2fe85e4",
-    "published_sha256": "54cc45c9716554330b3e13266703cbc9a4e539895173dd3ec9925215598b0ccc",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/role_d.json",
-    "original_sha256": "475d3508772e23ca60b9b744ba50bf6490cc5edc5bc22355583ee2f3f72202e2",
-    "published_sha256": "475d3508772e23ca60b9b744ba50bf6490cc5edc5bc22355583ee2f3f72202e2",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_1.json",
-    "original_sha256": "61e873bf6e8eaf91d31233d95f693c991e843710b65d3f77601d45eeacb9bb1f",
-    "published_sha256": "f126521239a3dcbbabdaadede9c940fda092b9c44d63f060923a379a33045640",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_2.json",
-    "original_sha256": "cb2affed52860cbdcab56c3da8c74c71e5591621d917c0efb349dd0865993c74",
-    "published_sha256": "cbe3dd7bb907dc074cc691827fc9b30a70f146e1ea3fd839b5bf7e425fdf9795",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_3.json",
-    "original_sha256": "5e917cc846c9c8a8a6acc2d52e90490881e58cadc317af953d8bbe1c985d60c8",
-    "published_sha256": "0cd9221f30be4064e48fcaa0895a76d8599ad2841c8f3872a7f5df15eaa29f96",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_6.json",
-    "original_sha256": "9900c75628d8999dd3f469a73290d9eced923dd8460e94fb2042b0a36ff50c24",
-    "published_sha256": "708aa1d86bee4b5b2773fb048cba22d128a80aa69b9d2522960d56a957435bae",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/state_d.json",
-    "original_sha256": "ab9afe7ad12441933609ee69d82c7065d377b67a54a8e26cb89634f3fa075bc9",
-    "published_sha256": "ab9afe7ad12441933609ee69d82c7065d377b67a54a8e26cb89634f3fa075bc9",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_4.json",
-    "original_sha256": "b3fbf08191b8bfd7248cae5d5f634bd9da0158758e1ef2fdc035b3a14913f043",
-    "published_sha256": "79a8e6dc0ae77c482b67c4ed5e11f61a61630d031c58b908aa8e6804e8908242",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_7.json",
-    "original_sha256": "8722f565c39641c1f10aa98d522305c5bef8061220b4d3885632769087a4fb20",
-    "published_sha256": "9017baea94833acd081bf4b6873eedfe70073eeb38d13e1061a7892170f554f1",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/review/rank_d_5.json",
-    "original_sha256": "f1db704dc05742a8287007589d17d7f1365148aaeed1aae1b7ca9cddbefcc590",
-    "published_sha256": "a431aacb40e3f36ca392a340b2c9747115fa41164776619711852166a6e61d8d",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profiles/sglang_G30/d/raw_index.json",
-    "original_sha256": "0324b5446d84ffc328e8d5c4b01e973d400f6ad3eea854db1adfe3ad00fd4a0d",
-    "published_sha256": "e89673ad43608646a0b83efb8266e876369706f98a8ca400067d73097aeebf19",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/profile_comparison.json",
-    "original_sha256": "fa2ccaf48d2a2f61ffdec0aada414ff8541659da5954a13b156df506c46782ef",
-    "published_sha256": "78b7c58dd74a85c6cb171a39ef84eabb28e89a58ffaa8f04dcea166e0108f6a5",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/sglang_profile_coverage.json",
-    "original_sha256": "8bb096da27c43b2d6c34e77ca2ff725a51962899c4e8b39b516cb9823225e2be",
-    "published_sha256": "cf34ed545218e1084f78d3f63aff033b4766ed96e81167269561f16a6883dd2f",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/vllm_profile_coverage.json",
-    "original_sha256": "f3b1715d7ac4110e2224510ec6bfd95bb2ecd93afb3c7c4196ce4a39b17cd243",
-    "published_sha256": "f3b1715d7ac4110e2224510ec6bfd95bb2ecd93afb3c7c4196ce4a39b17cd243",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/sinkhorn_component_acceptance.json",
-    "original_sha256": "cd9b12d753625d2b2ce5354ddc350a7355f81e92cf94539b5a7603659ad0857b",
-    "published_sha256": "65281e8230f4cc2e0729088578104a8b49b8ceb4352f05fd4c71defaa4d41a78",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/sinkhorn_component_results.json",
-    "original_sha256": "12e1d8f02e83985f800baf359afa4da1132942e3864ada69dbacbc08a006efb5",
-    "published_sha256": "58f278faecea3245ad9177048af5d96a3eb64c27c95d9ccefd9a34d3769cbe62",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/model_PD_acceptance.json",
-    "original_sha256": "359df1af552d184309c60dbbfa94300cb950e9c32691666b5034b00962a482a3",
-    "published_sha256": "a20f257f10d4d6923ba98ff04d149145c10f56da1ae8ed30544974cd315e6419",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/model_PD_identity.json",
-    "original_sha256": "b4698cef3a43c1ae9cea2a542de5f42a5e11cad1cc74d9dbbcc3470bb86c1b6c",
-    "published_sha256": "c62e5e521974a9ee0db18199d2543c3964981f499ad32175bcb7f7b033e877cf",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/invalid_startup_missing_cache_dir.json",
-    "original_sha256": "979600c84b76a947e8832dc011a26000eedf75ee74c167b158fd32f3594212b4",
-    "published_sha256": "ba4de855caa024df8db78104a06c22cbf18b8491c232cf2ebab55bdd91c0d5ba",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/invalid_client_path.json",
-    "original_sha256": "9203a9db20e73919b8b3ab9f2043e5e8e16b90b8e083db75adfd45ce475bb2f8",
-    "published_sha256": "9a13db0983ad962c69018ff9eaf4c49b72a0f6dece5f3601fe2cea8e334dec3e",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "records/evaluation_contract.json",
-    "original_sha256": "76aa8c1fc4be6f556c4de4058ae446a5c41a8e511d5ee2be6b697fcdf8b36e8f",
-    "published_sha256": "5a613cfcfbb5b2775de84345e4b27e03475b77e557b36a8772ae753cd233ca99",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "evidence/failed_warmup_stability.json",
-    "original_sha256": "fdba013d2390005efa4b89e871259cb3b999df22bb170404ff84f1ffd94aec80",
-    "published_sha256": "fdba013d2390005efa4b89e871259cb3b999df22bb170404ff84f1ffd94aec80",
-    "transformation": "JSON脱敏；数值字段保持原值"
-  },
-  {
-    "artifact": "code/sinkhorn/fused_sinkhorn.py",
-    "original_sha256": "40efd838bcce2ff7ae880b51817022d4c09e7116aa946ae6f86d354777f5f8d7",
-    "published_sha256": "40efd838bcce2ff7ae880b51817022d4c09e7116aa946ae6f86d354777f5f8d7",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "code/sinkhorn/mhc_candidate.py",
-    "original_sha256": "18310320def925e28277cb95d4380a96f79db37ea48e76317fbf060fa41d9ba8",
-    "published_sha256": "18310320def925e28277cb95d4380a96f79db37ea48e76317fbf060fa41d9ba8",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "code/sinkhorn/mhc_baseline.py",
-    "original_sha256": "2438e5973ebafc792071fa07919d64bcd344b4c061f6b32c6f1c124035fe7d3d",
-    "published_sha256": "2438e5973ebafc792071fa07919d64bcd344b4c061f6b32c6f1c124035fe7d3d",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "code/sinkhorn/probe_npu.py",
-    "original_sha256": "5436c5c663df409136713ad17faf1cfc7ac288d3eb038d8f3a3afcd9429efdfd",
-    "published_sha256": "5436c5c663df409136713ad17faf1cfc7ac288d3eb038d8f3a3afcd9429efdfd",
-    "transformation": "字节不变"
-  },
-  {
-    "artifact": "code/aisbench/vllm_custom_api.py",
-    "original_sha256": "8170e1ca344340a4919e05fb61df7bfdcd8d7f7b7cca9d427924d793c89da086",
-    "published_sha256": "8170e1ca344340a4919e05fb61df7bfdcd8d7f7b7cca9d427924d793c89da086",
-    "transformation": "实际AISBench API计数来源源码，字节不变"
-  },
-  {
-    "artifact": "code/aisbench/base_api.py",
-    "original_sha256": "203a416444b972193274a13e1593328a288b6879a3d62e4f201bbb9adfa81755",
-    "published_sha256": "203a416444b972193274a13e1593328a288b6879a3d62e4f201bbb9adfa81755",
-    "transformation": "实际AISBench API计数来源源码，字节不变"
-  }
-]
+import sys
+import json
+import urllib.parse
+import warnings
+import asyncio
+import os.path as osp
+import ipaddress
+from abc import abstractmethod
+from copy import deepcopy
+from typing import Dict, List, Optional, Tuple, Union
+
+import requests
+import aiohttp
+
+from ais_bench.benchmark.utils.logging.logger import AISLogger
+from ais_bench.benchmark.utils.logging.error_codes import MODEL_CODES
+from ais_bench.benchmark.utils.logging.exceptions import (
+    AISBenchNotImplementedError,
+    AISBenchValueError,
+    AISBenchKeyError,
+    AISBenchTypeError,
+    AISBenchRuntimeError,
+    AISBenchImplementationError,
+)
+from ais_bench.benchmark.utils.prompt import PromptList
+from ais_bench.benchmark.models import BaseModel
+from ais_bench.benchmark.models.output import Output
+from ais_bench.benchmark.openicl.icl_inferencer.output_handler.ppl_inferencer_output_handler import (
+    PPLRequestOutput,
+)
+from ais_bench.benchmark.utils.logging.error_codes import ICLI_CODES
+from ais_bench.benchmark.global_consts import REQUEST_TIME_OUT
+
+
+AIOHTTP_TIMEOUT = aiohttp.ClientTimeout(total=REQUEST_TIME_OUT)
+
+PromptType = Union[PromptList, str]
+
+
+class MockAISLogger(AISLogger):
+    """Mock logger for API model. Because model will init in task for warmup and init in infer process,
+    so we mock the logger to avoid the print each log in init process twice.
+
+    Only the informational init/status logs are suppressed; debug logs still pass
+    through so that per-request detail is not silently dropped when the log level
+    is set to DEBUG via global_consts.LOG_LEVEL.
+    """
+
+    def info(self, msg, *args, **kwargs):
+        pass
+
+    def warning(self, msg, *args, **kwargs):
+        pass
+
+
+class BaseAPIModel(BaseModel):
+    """Base class for API model wrapper.
+
+    Args:
+        path (str): Model path or identifier for the specific API model.
+        stream (bool, optional): Whether to enable streaming output. Defaults to False.
+        max_out_len (int, optional): Maximum output length, controlling the maximum number of tokens for generated text. Defaults to 2048.
+        retry (int, optional): Number of retry attempts when request fails. Defaults to 2.
+        api_key (str, optional): API key for the API service. Defaults to empty string.
+        host_ip (str, optional): Host IP address of the API service. Defaults to "localhost".
+        host_port (int, optional): Port number of the API service. Defaults to 8080.
+        url (str, optional): Complete URL address of the API service. Defaults to empty string.
+        meta_template (Dict, optional): Meta template configuration for the model, used to define conversation format and roles. Defaults to None.
+        generation_kwargs (Dict, optional): Generation parameters configuration, additional parameters passed to the API service. Defaults to empty dict.
+        enable_ssl (bool, optional): Whether to enable SSL connection. Defaults to False.
+        verbose (bool, optional): Whether to enable verbose logging output. Defaults to False.
+    """
+
+    is_api: bool = True
+    init_flag: bool = False
+
+    def __init__(
+        self,
+        path: str,
+        stream: bool = False,
+        max_out_len: int = 2048,
+        retry: int = 2,
+        host_ip: str = "localhost",
+        host_port: int = 8080,
+        url: str = "",
+        meta_template: Optional[Dict] = None,
+        generation_kwargs: Dict = dict(),
+        enable_ssl: bool = False,
+        verbose: bool = False,
+        api_key: str = "",
+    ):
+        if not BaseAPIModel.init_flag:
+            self.logger = MockAISLogger()
+            BaseAPIModel.init_flag = True
+        else:
+            self.logger = AISLogger()
+        self.path = path
+        self.stream = stream
+        self.max_out_len = max_out_len
+        self.retry = retry
+        self.headers = {"Content-Type": "application/json"}
+        self.meta_template = meta_template if meta_template else None
+        self.host_ip = host_ip
+        self.host_port = host_port
+        self.url = url
+        self.enable_ssl = enable_ssl
+        self.template_parser = APITemplateParser(self.meta_template)
+        self.generation_kwargs = dict(generation_kwargs or {})
+        # Injected by ConfigManager when response anomaly detection is enabled.
+        # Popped here so it never reaches the service request body.
+        self.response_anomaly_enabled = bool(
+            self.generation_kwargs.pop('response_anomaly_enabled', False)
+        )
+        self.verbose = verbose
+        self.session = None
+        self.base_url = self._get_base_url()
+        if self._logprobs_enabled():
+            self.logger.warning(
+                "logprobs is enabled, which will increase response size and "
+                "may impact evaluation performance and memory usage"
+            )
+
+    @abstractmethod
+    def _get_url(self) -> str:
+        raise AISBenchNotImplementedError(
+            MODEL_CODES.UNKNOWN_ERROR,
+            f"{self.__class__.__name__} does not supported"
+            " to be called in base classes",
+        )
+
+    def _get_base_url(self) -> str:
+        protocol = "https" if self.enable_ssl else "http"
+        clean_url = self.url.strip() if isinstance(self.url, str) else ""
+        if clean_url:
+            self.logger.info(
+                f"Using custom URL: [{clean_url}], [host_ip: {self.host_ip}] and [host_port: {self.host_port}] will be ignored"
+            )
+            # Check if URL already contains protocol
+            if clean_url.startswith("http://") or clean_url.startswith("https://"):
+                url = clean_url
+            else:
+                url = f"{protocol}://{clean_url}"
+            # Ensure trailing slash on path to avoid urljoin dropping the last path segment.
+            # Use urlparse/urlunparse to safely handle URLs with query strings or fragments.
+            parsed = urllib.parse.urlparse(url)
+            if not parsed.path or parsed.path.endswith("/"):
+                return url
+            return urllib.parse.urlunparse(parsed._replace(path=parsed.path + "/"))
+
+        # For IPv6 literals, wrap in brackets when constructing the URL.
+        host = self.host_ip
+        try:
+            ip = ipaddress.ip_address(host)
+            if isinstance(ip, ipaddress.IPv6Address):
+                host = f"[{ip}]"
+        except ValueError:
+            # Not an IP address, so it's a hostname. Use it as is.
+            pass
+        base_url = f"{protocol}://{host}:{self.host_port}/"
+        return base_url
+
+    def _get_service_model_path(self) -> str:
+        try:
+            url = osp.join(self.base_url, "v1/models")
+            headers = self.headers
+            response = requests.get(url, headers=headers, timeout=5)
+
+            if response.status_code == 200:
+                data = response.json()
+                model_id = data["data"][0]["id"]
+                self.logger.debug(f"Service Model ID: {model_id}")
+                return model_id
+            else:
+                response.raise_for_status()
+
+        except requests.exceptions.RequestException as e:
+            raise AISBenchRuntimeError(
+                MODEL_CODES.GET_SERVICE_MODEL_PATH_FAILED,
+                f"Failed to get service model path from {self.base_url}. Error: {e}",
+            )
+
+    async def iter_lines(self, stream):
+        """
+        Split the input stream into lines based on multiple delimiters:
+        - "\n\n" (LF LF)
+        - "\r\n\r\n" (CRLF CRLF)
+        - "\r\r" (CR CR)
+
+        If the received packet does not encounter any of these delimiters,
+        cache it and concatenate it with the subsequent stream.
+        """
+        pending = None
+        async for chunk in stream:
+            if pending is not None:
+                chunk = pending + chunk
+            lines = [
+                d
+                for d in chunk.replace(b"\r\n\r\n", b"\n\n")
+                .replace(b"\r\r", b"\n\n")
+                .split(b"\n\n")
+                if d
+            ]
+            # If there are no lines or the chunk is empty, clear pending
+            if not lines or not chunk:
+                pending = None
+            # If the last line's last byte matches the chunk's last byte,
+            # it means the chunk did not end with '\n\n', so the last segment is incomplete
+            elif lines[-1][-1] == chunk[-1]:
+                pending = lines.pop()
+            else:
+                pending = None
+            for line in lines:
+                yield line
+        # After the stream ends, yield any remaining incomplete data
+        if pending is not None:
+            yield pending
+
+    @abstractmethod
+    async def get_request_body(
+        self, input_data: PromptType, max_out_len: int, output: Output, **args
+    ):
+        raise AISBenchNotImplementedError(
+            MODEL_CODES.UNKNOWN_ERROR,
+            f"{self.__class__.__name__} does not supported"
+            " to be called in base classes",
+        )
+
+    async def _parse_logprobs(self, choice: dict, output: Output) -> None:
+        """
+        基类空实现，子类按需 override。vLLM 系列模型 override 此方法
+        以解析 OpenAI 兼容的 logprobs 响应。
+        """
+        pass
+
+    def _logprobs_enabled(self) -> bool:
+        """检查 generation_kwargs 是否开启了 logprobs 采集。
+
+        chat API: logprobs 为 bool，True 表示开启
+        completions API: logprobs 为 int，> 0 表示开启
+        """
+        if not self.generation_kwargs:
+            return False
+        val = self.generation_kwargs.get("logprobs")
+        if val is None:
+            return False
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, int):
+            return val > 0
+        return False
+
+    async def parse_text_response(self, data, output):
+        raise AISBenchNotImplementedError(
+            MODEL_CODES.PARSE_TEXT_RSP_NOT_IMPLEMENTED,
+            f"{self.__class__.__name__} should be implemented if stream is False",
+        )
+
+    async def parse_stream_response(self, data, output):
+        raise AISBenchNotImplementedError(
+            MODEL_CODES.PARSE_STREAM_RSP_NOT_IMPLEMENTED,
+            f"{self.__class__.__name__} should be implemented if stream is True",
+        )
+
+    @staticmethod
+    def _extract_vllm_token_id(item):
+        """Extract a token id from a vLLM OpenAI-style logprob item."""
+        if not isinstance(item, dict):
+            return None
+        if 'token_id' in item:
+            value = item['token_id']
+            try:
+                return int(value) if not isinstance(value, bool) else None
+            except (TypeError, ValueError):
+                return None
+
+        value = item.get('token')
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+        if isinstance(value, str) and value.startswith('token_id:'):
+            try:
+                return int(value.removeprefix('token_id:'))
+            except ValueError:
+                return None
+        return None
+
+    @classmethod
+    def _extract_vllm_openai_logprobs(cls, candidate: dict, tokens):
+        """Convert choices[0].logprobs.content into msProbe's top-k maps."""
+        logprobs = candidate.get('logprobs')
+        content = logprobs.get('content') if isinstance(logprobs, dict) else None
+        if not isinstance(content, list) or not content:
+            return tokens, None
+
+        sampled_token_ids = []
+        topk_logprobs = []
+        for token_item in content:
+            if not isinstance(token_item, dict):
+                return tokens, None
+            sampled_token_id = cls._extract_vllm_token_id(token_item)
+            sampled_token_ids.append(sampled_token_id)
+
+            topk_items = token_item.get('top_logprobs')
+            if not isinstance(topk_items, list):
+                return tokens, None
+            token_logprobs = {}
+            for topk_item in topk_items:
+                token_id = cls._extract_vllm_token_id(topk_item)
+                if token_id is None or 'logprob' not in topk_item:
+                    return tokens, None
+                token_logprobs[token_id] = topk_item['logprob']
+
+            # Keep the sampled token even when the server omits it from top-k.
+            if (
+                sampled_token_id is not None
+                and 'logprob' in token_item
+                and sampled_token_id not in token_logprobs
+            ):
+                token_logprobs[sampled_token_id] = token_item['logprob']
+            if not token_logprobs:
+                return tokens, None
+            topk_logprobs.append(token_logprobs)
+
+        if not isinstance(tokens, list) or len(tokens) != len(topk_logprobs):
+            if any(token_id is None for token_id in sampled_token_ids):
+                return tokens, None
+            tokens = sampled_token_ids
+        return tokens, topk_logprobs
+
+    @classmethod
+    def _extract_response_anomaly_payload(cls, data: dict):
+        """Extract service-provided token ids and top-k logprobs."""
+        candidate = data
+        choices = data.get('choices') if isinstance(data, dict) else None
+        if isinstance(choices, list) and choices:
+            candidate = choices[0]
+        if not isinstance(candidate, dict):
+            return None, None
+        tokens = candidate.get('token_ids', candidate.get('tokens'))
+        topk_logprobs = candidate.get('topk_logprobs')
+        if tokens is None and isinstance(data, dict):
+            tokens = data.get('token_ids', data.get('tokens'))
+        if topk_logprobs is None and isinstance(data, dict):
+            topk_logprobs = data.get('topk_logprobs')
+        if topk_logprobs is None:
+            tokens, topk_logprobs = cls._extract_vllm_openai_logprobs(
+                candidate, tokens
+            )
+        return tokens, topk_logprobs
+
+    def _record_response_anomaly_payload(self, data: dict, output: Output) -> None:
+        """Preserve service-provided token ids and top-k logprobs for msProbe.
+
+        Compatible services expose these fields either at the response root or
+        in the first choice. Responses without token ids are intentionally not
+        synthesized: msProbe requires the model vocabulary ids.
+        """
+        if not self.response_anomaly_enabled:
+            return
+        tokens, topk_logprobs = self._extract_response_anomaly_payload(data)
+        if isinstance(tokens, list) and isinstance(topk_logprobs, list):
+            output.extra_details_data['response_anomaly_payload'] = {
+                'tokens': tokens,
+                'topk_logprobs': topk_logprobs,
+            }
+
+    def _accumulate_response_anomaly_payload(
+        self, data: dict, output: Output
+    ) -> None:
+        """Accumulate per-chunk token ids/logprobs for streaming responses.
+
+        Supports both incremental chunks (one new token per chunk) and
+        full-snapshot chunks (the service resends the complete list). Some
+        services send the full token list but only the current token's top-k
+        logprobs; those are handled as incremental appends.
+        """
+        if not self.response_anomaly_enabled:
+            return
+        tokens, topk_logprobs = self._extract_response_anomaly_payload(data)
+        if not isinstance(tokens, list) or not isinstance(topk_logprobs, list):
+            return
+
+        current = output.extra_details_data.get('response_anomaly_payload')
+        cur_tokens = (current or {}).get('tokens') or []
+
+        # Mixed format: full token list so far + topk logprobs for the newly
+        # generated token. Treat it as an incremental append of the last token
+        # so the accumulated payload stays aligned.
+        if (
+            len(topk_logprobs) == 1
+            and len(tokens) > 1
+            and len(tokens) == len(cur_tokens) + 1
+            and list(tokens[:-1]) == list(cur_tokens)
+        ):
+            tokens = tokens[-1:]
+        elif len(tokens) != len(topk_logprobs):
+            # A misaligned chunk cannot be merged without corrupting the
+            # accumulated payload; drop it but leave a trace for debugging.
+            self.logger.debug(
+                "Dropping misaligned response anomaly chunk: "
+                "%d token ids vs %d topk logprobs",
+                len(tokens),
+                len(topk_logprobs),
+            )
+            return
+
+        if current is None:
+            current = {'tokens': [], 'topk_logprobs': []}
+            output.extra_details_data['response_anomaly_payload'] = current
+
+        # Full snapshot: the incoming list is strictly longer than what we
+        # have and its prefix matches.  Using ">" (not ">=") ensures that a
+        # single-token chunk equal to the current state (e.g. two consecutive
+        # identical tokens in an incremental stream) falls through to the
+        # incremental-append branch instead of being treated as a no-op
+        # snapshot that drops the duplicate token.
+        if len(tokens) > len(cur_tokens) and list(tokens[:len(cur_tokens)]) == list(cur_tokens):
+            current['tokens'] = list(tokens)
+            current['topk_logprobs'] = list(topk_logprobs)
+        # Incremental stream: one new token per chunk.
+        elif len(tokens) == 1 and cur_tokens:
+            current['tokens'].append(tokens[0])
+            current['topk_logprobs'].append(topk_logprobs[0])
+        # Full snapshot whose prefix differs or whose length matches (e.g. the
+        # service restarted and re-sent a complete list of the same length).
+        elif len(tokens) >= len(cur_tokens):
+            current['tokens'] = list(tokens)
+            current['topk_logprobs'] = list(topk_logprobs)
+
+    async def generate(
+        self,
+        input_data: PromptType,
+        max_out_len: int,
+        output: Output,
+        session: aiohttp.ClientSession = None,
+        **args,
+    ):
+        if not session:
+            self.session = aiohttp.ClientSession(
+                trust_env=True, timeout=AIOHTTP_TIMEOUT
+            )
+            close_session = True
+        else:
+            self.session = session
+            close_session = False
+        request_body = await self.get_request_body(
+            input_data, max_out_len, output, **args
+        )
+        self.logger.debug(f"Request body: {request_body}")
+        retry_count = 0
+        for _ in range(self.retry):
+            try:
+                if self.stream:
+                    await self.stream_infer(request_body, output)
+                else:
+                    await self.text_infer(request_body, output)
+                # break retry loop when request is successful
+                break
+            except asyncio.exceptions.CancelledError as e:
+                output.success = False
+                output.error_info = "Request cancelled by user"
+                break
+            except json.JSONDecodeError:
+                break
+            except Exception as e:
+                # increase retry count and set output to failed
+                retry_count += 1
+                output.success = False
+                # Only print the last exception (the actual error), not the full traceback
+                exc_type = type(e).__name__
+                exc_msg = str(e)
+                output.error_info = (
+                    f"After {retry_count} retries, request failed with exception: "
+                    f"{exc_type}: {exc_msg}"
+                )
+                await output.clear_time_points()
+                continue
+        if close_session:
+            self.logger.debug(f"Waiting for session close ...")
+            await self.session.close()
+        return output
+
+    async def stream_infer(self, request_body: dict, output: Output):
+        await output.record_time_point()
+        async with self.session.post(
+            url=self.url, json=request_body, headers=self.headers
+        ) as response:
+            if response.status == 200:
+                async for raw_chunk in self.iter_lines(response.content):
+                    chunk = raw_chunk.strip()
+                    if not chunk:
+                        continue
+                    chunk = chunk.decode("utf-8")
+                    if chunk.startswith(":") or chunk.startswith("id:"):
+                        continue
+                    chunk = chunk.removeprefix("data:").strip()
+                    if chunk == "[DONE]":
+                        break
+                    await output.record_time_point()
+                    try:
+                        data = json.loads(chunk)
+                    except json.JSONDecodeError as e:
+                        output.success = False
+                        output.error_info = f"Unexpected response format: {raw_chunk}. Please check if server is working correctly."
+                        raise AISBenchValueError(
+                            MODEL_CODES.PARSE_TEXT_RSP_INVALID_FORMAT,
+                            f"Unexpected response format. Please check 'error_info' in ***_failed.jsonl for more information.",
+                        )
+                    await self.parse_stream_response(data, output)
+                    self._accumulate_response_anomaly_payload(data, output)
+                output.success = True
+            else:
+                output.error_info = response.reason
+                output.success = False
+
+    async def text_infer(self, request_body, output: Output):
+        await output.record_time_point()
+        async with self.session.post(
+            url=self.url, json=request_body, headers=self.headers
+        ) as response:
+            if response.status == 200:
+                raw_data = await response.text()
+                await output.record_time_point()
+                try:
+                    data = json.loads(raw_data)
+                except json.JSONDecodeError as e:
+                    output.success = False
+                    output.error_info = f"Unexpected response format: {raw_data}. Please check if server is working correctly."
+                    raise AISBenchValueError(
+                        MODEL_CODES.PARSE_TEXT_RSP_INVALID_FORMAT,
+                        f"Unexpected response format. Please check ***_details.jsonl for more information.",
+                    )
+                await self.parse_text_response(data, output)
+                self._record_response_anomaly_payload(data, output)
+                output.success = True
+            else:
+                output.error_info = response.reason
+                output.success = False
+
+    async def get_ppl(
+        self,
+        input_data: PromptType,
+        max_out_len: int,
+        output: PPLRequestOutput,
+        session: aiohttp.ClientSession = None,
+        **args,
+    ):
+        """Compute perplexity for a given prompt via the remote API.
+        Args:
+            input_data: Prompt text or list structure the backend expects.
+            max_out_len: Maximum completion tokens; forwarded to the API.
+            output: PPLRequestOutput to fill with upstream results (ppl, logprobs, etc.).
+            session: Optional aiohttp session to reuse across calls.
+            **args: Subclass-specific extra parameters.
+        Subclasses must:
+            • Compose the request and call the API.
+            • Parse returned prompt_logprobs, compute negative average logprob as PPL.
+            • Store results in `output` (ppl value, raw logprobs, success flag, error info).
+            • Respect session lifecycle: only close if they created it.
+        """
+        if session is None:
+            self.session = aiohttp.ClientSession(
+                trust_env=True, timeout=AIOHTTP_TIMEOUT
+            )
+            close_session = True
+        else:
+            self.session = session
+            close_session = False
+        request_body = await self.get_ppl_request_body(
+            input_data, max_out_len, output, **args
+        )
+        retry_count = 0
+        for _ in range(self.retry):
+            try:
+                async with self.session.post(
+                    url=self.url, json=request_body, headers=self.headers
+                ) as response:
+                    if response.status == 200:
+                        raw_data = await response.text()
+                        try:
+                            data = json.loads(raw_data)
+                        except json.JSONDecodeError as e:
+                            output.success = False
+                            output.error_info = f"Unexpected response format: {raw_data}. Please check if server is working correctly."
+                            continue
+                        prompt_logprobs = self.get_prompt_logprobs(data)
+                        output.origin_prompt_logprobs = prompt_logprobs
+                        loss = self._calc_ppl(prompt_logprobs)
+                        output.ppl = loss
+                        output.success = True
+                        break
+                    else:
+                        output.error_info = response.reason
+                        output.success = False
+                        continue
+            except asyncio.exceptions.CancelledError as e:
+                output.success = False
+                output.error_info = "Request cancelled by user"
+                break
+            except Exception as e:
+                retry_count += 1
+                output.success = False
+                # Only print the last exception (the actual error), not the full traceback
+                exc_type = type(e).__name__
+                exc_msg = str(e)
+                output.error_info = (
+                    f"After {retry_count} retries, request failed with exception: "
+                    f"{exc_type}: {exc_msg}"
+                )
+                continue
+        if close_session:
+            await self.session.close()
+
+    async def get_ppl_request_body(
+        self, input_data: PromptType, max_out_len: int, output: PPLRequestOutput, **args
+    ):
+        raise AISBenchNotImplementedError(
+            ICLI_CODES.IMPLEMENTATION_ERROR_PPL_METHOD_NOT_IMPLEMENTED,
+            f"PPL is not supported for this model.",
+        )
+
+    def get_prompt_logprobs(self, data: dict):
+        raise AISBenchNotImplementedError(
+            ICLI_CODES.IMPLEMENTATION_ERROR_PPL_METHOD_NOT_IMPLEMENTED,
+            f"PPL is not supported for this model.",
+        )
+
+    def _calc_ppl(self, prompt_logprobs: list):
+        logprobs = [
+            list(item.values())[0]["logprob"]
+            for item in prompt_logprobs
+            if item is not None
+        ]
+        tokenids = [
+            list(item.keys())[0] for item in prompt_logprobs if item is not None
+        ]
+        if len(tokenids) == 0:
+            raise AISBenchImplementationError(
+                ICLI_CODES.PPL_COMPUTE_ERROR_NO_VALID_TOKENS,
+                "No valid tokens with log probabilities found for PPL computation.",
+            )
+        loss = -sum(logprobs) / len(tokenids)
+        return loss
+
+
+class APITemplateParser:
+    """Intermidate prompt template parser, specifically for API models.
+
+    Args:
+        meta_template (Dict): The meta template for the model.
+    """
+
+    def __init__(self, meta_template: Optional[Dict] = None):
+        self.logger = AISLogger()
+        self.meta_template = meta_template
+        # Check meta template
+        if meta_template:
+            if "round" not in meta_template:
+                raise AISBenchTypeError(
+                    MODEL_CODES.MISS_REQUIRED_PARAM_IN_META_TEMPLATE,
+                    "round is required in meta template",
+                )
+            if not isinstance(meta_template["round"], list):
+                raise AISBenchTypeError(
+                    MODEL_CODES.INVALID_TYPE_OF_PARAM_IN_META_TEMPLATE,
+                    "round must be a list in meta template",
+                )
+            keys_to_check = ["round"]
+
+            if "reserved_roles" in meta_template:
+                if not isinstance(meta_template["reserved_roles"], list):
+                    raise AISBenchTypeError(
+                        MODEL_CODES.INVALID_TYPE_OF_PARAM_IN_META_TEMPLATE,
+                        "reserved_roles must be a list in meta template",
+                    )
+                keys_to_check.append("reserved_roles")
+
+            self.roles: Dict[str, dict] = dict()  # maps role name to config
+            for meta_key in keys_to_check:
+                for item in meta_template[meta_key]:
+                    if not isinstance(item, (str, dict)):
+                        raise AISBenchTypeError(
+                            MODEL_CODES.INVALID_TYPE_OF_PARAM_IN_META_TEMPLATE,
+                            f"each item in {meta_key} must be a string or a dict in meta template",
+                        )
+                    if isinstance(item, dict):
+                        if item["role"] in self.roles:
+                            raise AISBenchTypeError(
+                                MODEL_CODES.ROLE_IN_META_TEMPLATE_IS_NOT_UNIQUE,
+                                f"role {item['role']} in meta prompt must be unique!",
+                            )
+                        self.roles[item["role"]] = item.copy()
+
+    def parse_template(self, prompt_template: PromptType, mode: str) -> PromptType:
+        """Parse the intermidate prompt template, and wrap it with meta
+        template if applicable. When the meta template is set and the input is
+        a PromptList, the return value will be a PromptList containing the full
+        conversation history. Each item looks like:
+
+        .. code-block:: python
+
+            {'role': 'user', 'prompt': '...'}).
+
+        Args:
+            prompt_template (List[PromptType]): An intermidate prompt
+                template (potentially before being wrapped by meta template).
+            mode (str): Parsing mode. Choices are 'ppl' and 'gen'.
+
+        Returns:
+            List[PromptType]: The finalized prompt or a conversation.
+        """
+        if not isinstance(prompt_template, (str, list, PromptList, tuple)):
+            raise AISBenchTypeError(
+                MODEL_CODES.PARSE_TEMPLATE_INVALID_TYPE,
+                f"prompt_template must be a string, list of strings, PromptList, or tuple of strings, but got {type(prompt_template)}",
+            )
+
+        if not isinstance(prompt_template, (str, PromptList)):
+            return [self.parse_template(p, mode=mode) for p in prompt_template]
+
+        if not mode in ["ppl", "gen"]:
+            raise AISBenchTypeError(
+                MODEL_CODES.PARSE_TEMPLATE_INVALID_MODE,
+                f"Parsing mode must be 'ppl' or 'gen', but got {mode}",
+            )
+
+        if isinstance(prompt_template, str):
+            return prompt_template
+
+        if self.meta_template:
+            prompt = PromptList()
+            # Whether to keep generating the prompt
+            generate = True
+
+            section_stack = []  # stores tuples: (section_name, start_idx)
+
+            for i, item in enumerate(prompt_template):
+                if not generate:
+                    break
+                if isinstance(item, str):
+                    if item.strip():
+                        # TODO: logger
+                        warnings.warn(
+                            "Non-empty string in prompt template "
+                            "will be ignored in API models."
+                        )
+                elif isinstance(item, dict) and "section" in item:
+                    if item["pos"] == "end":
+                        section_name, start_idx = section_stack.pop(-1)
+                        if not section_name == item["section"]:
+                            raise AISBenchValueError(
+                                MODEL_CODES.UNKNOWN_ERROR,
+                                f"section {item['section']} in prompt template must match the last section {section_name}",
+                            )
+                        if section_name in ["round", "ice"]:
+                            dialogue = prompt_template[start_idx:i]
+                            round_ranges = self._split_rounds(
+                                dialogue, self.meta_template["round"]
+                            )
+                            # Consider inserting multiple round examples into
+                            # template
+                            for i in range(len(round_ranges) - 1):
+                                start = round_ranges[i]
+                                end = round_ranges[i + 1]
+                                round_template = dialogue[start:end]
+                                role_dict = self._update_role_dict(round_template)
+                                api_prompts, generate = self._prompt2api(
+                                    self.meta_template["round"],
+                                    role_dict,
+                                    # Start generating only when the mode is in
+                                    # generation and the template reaches the
+                                    # last round
+                                    for_gen=mode == "gen"
+                                    and section_name == "round"
+                                    and i == len(round_ranges) - 2,
+                                )
+                                prompt += api_prompts
+                    elif item["pos"] == "begin":
+                        if not item["section"] in ["begin", "round", "end", "ice"]:
+                            raise AISBenchValueError(
+                                MODEL_CODES.UNKNOWN_ERROR,
+                                f"section {item['section']} in prompt template is not valid, "
+                                "it must be 'begin', 'round', 'end', or 'ice'",
+                            )
+                        section_stack.append((item["section"], i + 1))
+                    else:
+                        raise AISBenchValueError(
+                            MODEL_CODES.UNKNOWN_ERROR,
+                            f"Invalid prompt template item pos {item['pos']}, legal item pos are 'begin' or 'end'.",
+                        )
+                elif section_stack[-1][0] in ["begin", "end"]:
+                    role_dict = self._update_role_dict(item)
+                    api_prompts, generate = self._prompt2api(
+                        item, role_dict, for_gen=mode == "gen"
+                    )
+                    prompt.append(api_prompts)
+
+            # merge the consecutive prompts assigned to the same role
+            new_prompt = PromptList([prompt[0]])
+            last_role = prompt[0]["role"]
+            for item in prompt[1:]:
+                if item["role"] == last_role:
+                    new_prompt[-1]["prompt"] += "\n" + item["prompt"]
+                else:
+                    last_role = item["role"]
+                    new_prompt.append(item)
+            prompt = new_prompt
+
+            if self.meta_template.get("begin", None):
+                prompt.insert(0, self.meta_template["begin"])
+
+        else:
+            # in case the model does not have any meta template
+            prompt = ""
+            last_sep = ""
+            prompt_mm = []
+            for item in prompt_template:
+                if isinstance(item, dict) and set(["section", "pos"]) == set(
+                    item.keys()
+                ):
+                    continue
+                if isinstance(item, str):
+                    if item:
+                        prompt += last_sep + item
+                elif item.get("prompt", ""):
+                    prompt += last_sep + item.get("prompt", "")
+                elif item.get("prompt_mm", ""):
+                    prompt_mm += item.get("prompt_mm", [])
+                last_sep = "\n"
+        return prompt if prompt else prompt_mm
+
+    def _update_role_dict(self, prompts: Union[List, str]) -> Dict[str, Dict]:
+        """Update the default role dict with the given prompts."""
+        role_dict = deepcopy(self.roles)
+        if isinstance(prompts, str):
+            return role_dict
+        elif isinstance(prompts, dict):
+            prompts = [prompts]
+        for prompt in prompts:
+            if isinstance(prompt, dict):
+                role = prompt["role"]
+                if role not in self.roles:
+                    role = prompt.get("fallback_role", None)
+                    if not role:
+                        self.logger.warning(
+                            f"{prompt} neither has an appropriate role nor "
+                            "a fallback role."
+                        )
+                role_dict[role].update(prompt)
+        return role_dict
+
+    def _split_rounds(
+        self,
+        prompt_template: List[Union[str, Dict]],
+        single_round_template: List[Union[str, Dict]],
+    ) -> List[int]:
+        """Split the prompt template into rounds, based on single round
+        template.
+
+        Return the index ranges of each round. Specifically,
+        prompt_template[res[i]:res[i+1]] represents the i-th round in the
+        template.
+        """
+        role_idxs = {
+            role_cfg["role"]: i
+            for i, role_cfg in enumerate(single_round_template)
+            if not isinstance(role_cfg, str)
+        }
+        last_role_idx = -1
+        cutoff_idxs = [0]
+        for idx, template in enumerate(prompt_template):
+            if isinstance(template, str):
+                continue
+            role_idx = role_idxs.get(template["role"], None)
+            if role_idx is None:
+                try:
+                    role_idx = role_idxs[template["fallback_role"]]
+                except KeyError:
+                    raise AISBenchKeyError(
+                        MODEL_CODES.INVALID_ROLE_IN_PROMPT_TEMPLATE,
+                        f"prompt template item {template} neither has an appropriate "
+                        "role nor a fallback_role.",
+                    )
+            if role_idx <= last_role_idx:
+                cutoff_idxs.append(idx)
+            last_role_idx = role_idx
+        cutoff_idxs.append(len(prompt_template))
+        return cutoff_idxs
+
+    def _prompt2api(
+        self,
+        prompts: Union[List, str],
+        role_dict: Dict[str, Dict],
+        for_gen: bool = False,
+    ) -> Tuple[List, bool]:
+        """Convert the prompts to a API-style prompts, given an updated
+        role_dict.
+
+        Args:
+            prompts (Union[List, str]): The prompts to be converted.
+            role_dict (Dict[str, Dict]): The updated role dict.
+            for_gen (bool): If True, the prompts will be converted for
+                generation tasks. The conversion stops before the first
+                role whose "generate" is set to True.
+
+        Returns:
+            Tuple[List, bool]: The converted string, and whether the follow-up
+            conversion should be proceeded.
+        """
+        cont = True
+        if isinstance(prompts, str):
+            return prompts, cont
+        elif isinstance(prompts, dict):
+            api_role, cont = self._role2api_role(prompts, role_dict, for_gen)
+            return api_role, cont
+
+        res = []
+        for prompt in prompts:
+            if isinstance(prompt, str):
+                raise AISBenchTypeError(
+                    MODEL_CODES.MIX_STR_WITHOUT_EXPLICIT_ROLE,
+                    "Mixing str without explicit role is not allowed in API models!",
+                )
+            else:
+                api_role, cont = self._role2api_role(prompt, role_dict, for_gen)
+                if api_role:
+                    res.append(api_role)
+                if not cont:
+                    break
+        return res, cont
+
+    def _role2api_role(
+        self, role_prompt: Dict, role_dict: Dict[str, Dict], for_gen: bool = False
+    ) -> Tuple[Dict, bool]:
+        """Convert a role prompt to a string, given an updated role_dict.
+
+        Args:
+            role_prompt (Dict): The role prompt to be converted.
+            role_dict (Dict[str, Dict]): The updated role dict.
+            for_gen (bool): If True, the prompts will be converted for
+                generation tasks. The conversion stops before the first
+                role whose "generate" is set to True.
+
+        Returns:
+            Tuple[Dict, bool]: The converted string, and whether the follow-up
+            conversion should be proceeded.
+        """
+        merged_prompt = role_dict.get(
+            role_prompt["role"], role_dict.get(role_prompt.get("fallback_role"))
+        )
+        # res_api_prompt = dict(type='', )
+        if for_gen and merged_prompt.get("generate", False):
+            return None, False
+        res = {}
+        res["role"] = merged_prompt["api_role"]
+        if "prompt" in merged_prompt:
+            res["prompt"] = merged_prompt.get("begin", "")
+            res["prompt"] += merged_prompt.get("prompt", "")
+            res["prompt"] += merged_prompt.get("end", "")
+        elif "prompt_mm" in merged_prompt:
+            res["prompt"] = merged_prompt.get("prompt_mm", [])
+        else:
+            raise AISBenchValueError(
+                MODEL_CODES.INVALID_PROMPT_CONTENT,
+                "Invalid prompt content: without 'prompt' or 'prompt_mm' param!",
+            )
+        return res, True

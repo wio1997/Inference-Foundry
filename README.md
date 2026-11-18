@@ -63,3 +63,5 @@
 [32K单窗口差异地图与32K/64K客户端配对：非因果](docs/029-single-window-difference-map.md)
 
 [D侧rank0/1逐事件分布：诊断窗口、未匹配工作负载](docs/030-decode-rank-event-distributions.md)
+
+[AISBench base API 源码归档更正及语义检查](docs/031-aisbench-base-api-source-correction.md)

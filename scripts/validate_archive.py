@@ -4,6 +4,7 @@ import ast,csv,hashlib,ipaddress,json,lzma,math,re
 import sys
 sys.dont_write_bytecode=True
 from timing_witness import phase_witness
+from aisbench_source_guard import validate_source as validate_aisbench_base_api
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -24,6 +25,8 @@ def main():
         assert p.is_file() and digest(p)==expected,name
     for p in ROOT.rglob('*.py'):
         if '.git' not in p.parts:ast.parse(p.read_text(),filename=str(p))
+    # A JSON list can itself parse as Python; verify the archived source structure.
+    validate_aisbench_base_api(ROOT/'code/aisbench/base_api.py')
     sg_profile=ROOT/'evidence/matched_SG_G181/profile_G240'
     acceptance=json.loads((sg_profile/'G258_matched_SG_16rank_profile_acceptance.json').read_text())
     assert acceptance['profile_dataset_SHA256']=='6e1da60b597d8fb978cc9c7549c720a9de2a8f0b9af956fc73bd9e110f4eaae8'
@@ -37,8 +40,17 @@ def main():
             report=json.loads((base/f'rank_{rank}.json').read_text())
             assert report['physical_npu']==rank and report['device_activity_verified']
             assert report['hardware_X_events']>0 and report['explicit_model_X_events']>0 and report['cpu_X_events']>0
-    provenance={x['artifact']:x for x in json.loads((ROOT/'provenance/artifacts.json').read_text())}
+    provenance_rows=json.loads((ROOT/'provenance/artifacts.json').read_text())
+    provenance={x['artifact']:x for x in provenance_rows}
     for name,e in provenance.items():assert digest(ROOT/name)==e['published_sha256'],name
+    source_receipt=json.loads((ROOT/'evidence/aisbench_base_api_correction.json').read_text())
+    source_name='code/aisbench/base_api.py'
+    assert sum(x['artifact']==source_name for x in provenance_rows)==1, 'duplicate base_api provenance'
+    source_sha=source_receipt['restored_artifact']['original_sha256']
+    assert source_sha==source_receipt['restored_artifact']['published_sha256']==provenance[source_name]['original_sha256']==provenance[source_name]['published_sha256']
+    assert provenance[source_name]['source_receipt']=='evidence/aisbench_base_api_correction.json'
+    contract=json.loads((ROOT/source_receipt['corroborating_evidence']['g45_contract_artifact']).read_text())
+    assert any(x['path'].endswith('/base_api.py') and x['sha256']==source_sha for x in contract['evidence'])
     links=0
     for p in ROOT.rglob('*.md'):
         for link in re.findall(r'\[[^\]]*\]\(([^)]+)\)',p.read_text()):
@@ -179,7 +191,7 @@ def main():
             try:ip=ipaddress.ip_address(addr)
             except ValueError:continue
             assert not ip.is_private or addr in ['0.0.0.0','127.0.0.1'],(p.relative_to(ROOT),addr)
-    print(json.dumps(dict(archive_integrity=True,source_syntax=True,relative_links=links,request_rows=rows_total,validated_phases=phases,scored_phases=scored,raw_count_and_throughput_arithmetic=True,CSV_latency_values_match_original_audits=True,per_request_latencies_rebuilt_from_original_SQLite=True,latency_statistics_checked=latency_values,component_record_consistency=True,private_connection_scan=True,limitations=['离线验档不是新的硬件/质量/优化收益验收','保留AISBench原始采样时钟与流式批量事件口径；事件数不等于生成token数']),ensure_ascii=False))
+    print(json.dumps(dict(archive_integrity=True,source_syntax=True,aisbench_base_api_ast_structure=True,relative_links=links,request_rows=rows_total,validated_phases=phases,scored_phases=scored,raw_count_and_throughput_arithmetic=True,CSV_latency_values_match_original_audits=True,per_request_latencies_rebuilt_from_original_SQLite=True,latency_statistics_checked=latency_values,component_record_consistency=True,private_connection_scan=True,limitations=['离线验档不是新的硬件/质量/优化收益验收','保留AISBench原始采样时钟与流式批量事件口径；事件数不等于生成token数']),ensure_ascii=False))
 
 
 if __name__=='__main__':main()
