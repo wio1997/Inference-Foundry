@@ -27,3 +27,15 @@ decode_scores/write_decode修改函数代码并保留函数对象身份，因此
 失败的质量958保留原始22行，其中14个600秒超时；八个实际响应仅三个通过原严格grader。[冻结响应复核](../evidence/C1_allrank_D974_G982/G979_failed958_response_audit.json)列出原始SHA、expected/extracted及完成原因。部分响应存在格式异常或缺少####，所以消除超时不能替代质量判断；不修改提示、grader、超时预算来制造通过。
 
 下一步先核对D974八rank target/draft严格加载、完整图、PD/SSE及真实C1设备kernel，再执行相同1319题质量门槛。SG四档AISBench、最终匹配P8/D8 profile、逻辑工作量归一化差异地图及E2E收益仍未完成。vLLM原生0.32的既有完整质量和四档原始结果继续留在独立分支；本组件结果不构成框架性能比较。
+
+## 后续实际验证：完整图、PD/SSE、八卡设备路径通过
+
+[D974父级就绪核对](../evidence/D974_readiness_G990/G984_parent_D974_readiness.json)确认八个target各1384参数、八个draft各73参数严格加载通过，missing为空；target宽6、bs4/8/12/16和draft宽5、bs8/16的full graph均有八rank实际begin/end。20:22:42UTC的/ready为200。启动前freeze_gc连接拒绝栈原样保留，随后真实API已就绪，不据早期警告判定服务终止，也不因警告重启。
+
+[限定功能原始记录](../evidence/D974_readiness_G990/functional/result.json)于20:25:46UTC完成，进程随后实际退出。两个固定答案分别为4和Paris；SSE有精确18输入、1024输出及DONE，[父级逐响应SHA和计数核对](../evidence/D974_readiness_G990/G987_parent_D974_functional_mechanism.json)已完成。路由健康恢复期间保留原服务，未重启或重试模型请求。
+
+[短D设备窗口](../evidence/D974_readiness_G990/G986_functional981_profile_2204_parsed.json)的八rank各有10889条compute，device ID逐rank匹配；每rank实际出现16次分页FP4打分、16次selected-K物理映射、零次旧非分页FP4打分。所观察窗口的Index/FloorDiv不再含263435/131717容量形状；其他标量/候选块相关FloorDiv仍存在。Python构图日志同时覆盖C1层20/24/28/32/36及query rows24/48/72/96，不能单独作为图重放证据；这里以真实device kernel补足限定机制验证。
+
+SDK CPU解析已结束，1014个文件、465034381字节按SHA冻结，大型原始trace保留在受控存储。这个18-input/B1/two-step诊断不是最终16个32K请求的匹配profile，不能直接用其duration或10889/11019 compute数量推算端到端收益。P端完整匹配窗口、逻辑工作量归一化和框架差异地图仍未完成。
+
+完整质量988于20:28:05UTC[实际启动](../evidence/D974_readiness_G990/G988_MATCHED_SG974_FULL_QUALITY_START_JSON_parsed.json)，采用原1319题、同一提示/官方严格grader、T0/seed0/thinking=false/max2048/C16、600秒请求预算和零重试；worker task AST与旧958相同。启动前重新核对两端就绪、队列为零、限定功能已退出、SDK已结束、冻结文件未改变以及CPU客户端剩余租期。[实际进程观察](../evidence/D974_readiness_G990/G989_quality988_actual_2204_parsed.json)仅是进行中的部分计数，不是完整分数或通过结论；历史832/941质量失败继续保留，不能用本次限定功能覆盖。
