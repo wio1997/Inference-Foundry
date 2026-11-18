@@ -27,3 +27,5 @@
 [原生0.32功能、计数与已知问题](docs/009-native032-functional-readiness-and-detokenizer-limit.md)；完整质量与性能验收仍待完成。
 
 [AISBench启动目录失败与修复](docs/010-AISBench-readonly-cwd-failure-and-repair.md)。
+
+[首轮正式32K冷/热结果](docs/011-native032-first-32768-cold-hot.md)；其余档位和SGLang对比仍未完成。
