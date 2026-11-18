@@ -86,3 +86,5 @@
 [C16数值/code错误及target-only隔离](docs/040-C16-semantic-faults-and-targetonly-isolation.md)：语义故障已复现；诊断配置不替代最终DSPARK对齐。
 
 [C2 实际 ring8 与完整 DSPARK PD 握手拒绝](docs/041-ring8-physical-contract-and-native-DSPARK-handshake.md)：八卡分配/计价/图通过，跨模式真实请求被原生布局校验拒绝；生成质量仍未通过。
+
+[双端 no-SP 仍复现语义故障](docs/042-paired-NoSP-reproduces-semantic-faults.md)：32条传输完成，短请求仍有算术错误和代码遗漏；DSPARK不是必要条件，完整质量/性能仍未通过。
