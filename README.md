@@ -69,3 +69,5 @@
 [P侧逐事件与形状差异：诊断窗口、尚未完成因果归因](docs/032-p-prefill-event-analysis.md)
 
 [256K→32 未计分诊断与 D rank0 阶段证据](docs/033-256k-diagnostic-stage-evidence.md)
+
+[vLLM G4 混合缓存容量口径和历史 D 采样](docs/034-vllm-hybrid-cache-scope.md)
