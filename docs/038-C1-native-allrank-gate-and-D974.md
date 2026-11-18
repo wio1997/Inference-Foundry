@@ -39,3 +39,5 @@ decode_scores/write_decode修改函数代码并保留函数对象身份，因此
 SDK CPU解析已结束，1014个文件、465034381字节按SHA冻结，大型原始trace保留在受控存储。这个18-input/B1/two-step诊断不是最终16个32K请求的匹配profile，不能直接用其duration或10889/11019 compute数量推算端到端收益。P端完整匹配窗口、逻辑工作量归一化和框架差异地图仍未完成。
 
 完整质量988于20:28:05UTC[实际启动](../evidence/D974_readiness_G990/G988_MATCHED_SG974_FULL_QUALITY_START_JSON_parsed.json)，采用原1319题、同一提示/官方严格grader、T0/seed0/thinking=false/max2048/C16、600秒请求预算和零重试；worker task AST与旧958相同。启动前重新核对两端就绪、队列为零、限定功能已退出、SDK已结束、冻结文件未改变以及CPU客户端剩余租期。[实际进程观察](../evidence/D974_readiness_G990/G989_quality988_actual_2204_parsed.json)仅是进行中的部分计数，不是完整分数或通过结论；历史832/941质量失败继续保留，不能用本次限定功能覆盖。
+
+[后续完整质量失败及C16诊断](039-D974-quality-timeouts-and-C16-diagnostic.md)：质量988已实际停止，16个600秒超时，历史限定通过不代替完整质量。

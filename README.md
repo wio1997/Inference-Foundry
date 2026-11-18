@@ -80,3 +80,7 @@
 [D941真实PD/SSE、C2分页命中与完整质量](docs/037-D941-PD-SSE-real-kernels-and-full-quality.md)：限定功能通过，但1319题尝试出现14个600秒超时后已停止；C1大位置表仍在，完整质量/四档SG性能/最终profile/收益未完成。
 
 [C1八卡原生发布/消费门槛与D974](docs/038-C1-native-allrank-gate-and-D974.md)：144组件用例/144图重放通过；完整模型质量、四档SG矩阵、最终匹配profile和收益仍未完成。
+
+[D974完整质量失败与C16流式诊断](docs/039-D974-quality-timeouts-and-C16-diagnostic.md)：16个实际600秒超时；完整质量/性能收益未通过。
+
+[C16数值/code错误及target-only隔离](docs/040-C16-semantic-faults-and-targetonly-isolation.md)：语义故障已复现；诊断配置不替代最终DSPARK对齐。
