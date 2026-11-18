@@ -13,3 +13,11 @@ P八rank的实际设备/CPU覆盖已验。D0现在由SDK Text和Db两条路径�
 [完整D0副本试验](../evidence/offline_profile_G856/CPU_full_D0_backend_pilot_actual_processing.json)已实际调用Python export db并产生host SQLite，设备节点为空，NPU未初始化；最终8081676 TASK/2358816 compute/913 CPU/21450 query/1812图调用及完整model分组的原生对照仍待验收。原失败rank1副本保留，不重发任何NPU采集。
 
 当前[权威状态](../metadata/profile_epoch_G727.json)仍将D其余7rank、两框架逻辑/物理差异地图、SGLang完整质量与四档首轮矩阵、正确性加端到端优化收益列为未完成。完整Goal继续进行。
+
+## 独立CPU完整对照已完成
+
+后续[父级完整对照](../evidence/offline_profile_G874/parent_full_D0_CPU_parity.json)确认无设备CPU路径与原生SDK Db的8081676 TASK、2358816 compute、913 CPU注释、21450 query、1812 RI调用和全部11组device/model计数相同，原始文件SHA未变。它证明同一全量D0的CPU后台路径覆盖，不宣称每个DB字段逐位相同。
+
+[独立CPU实际结果](../evidence/offline_profile_G874/CPU_full_D0_result.json)完成后，[其余七rank](../evidence/offline_profile_G874/remaining7_CPU_actual_start.json)已在160–171和172–183两个12核槽启动完整副本解析，每rank SDK限2400秒，无NPU设备，不重发采集。其余rank尚未全量父级验收。
+
+旧[原生D727受控退休](../evidence/offline_profile_G874/native_D727_owned_retirement.json)确认controller实际退出、八卡清空且owner released；原容器和所有raw/解析文件保留。P已先行退休，NPU资源转给固定SGLang832，CPU解析独立继续。真实query与设备图/注意力形状关联见[020](020-native032-D0-logical-query-and-device-graph-map.md)。
