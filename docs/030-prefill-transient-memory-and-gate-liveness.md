@@ -103,3 +103,15 @@ G603 P-only完整模型于09:13:28UTC实际启动；rotated_gate去除host-only�
 - [G603实际启动凭证](../evidence/full_model_G603/2203/actual_start_parent_receipt.json)
 - [G603完整模型适配源码](../code/full_model_candidates/sg_pd_g603/adapter.py)
 - [G604所选功能/长输入/缓存重放采集器](../code/full_model_candidates/functional_PD_P603_D501_g604.py)
+
+
+G603/G604父级已检查7个完整原始响应、usage与保存SHA：算术4、8191/8193/127/129/131各32输出和OpenAI短32输出均满足所选门槛。8191越过原Engram dot OOM，八worker实际新buffer复用记录与adapter SHA一致，KV实际BF16及stride已取证；native128MiB score路径也全8命中。此处证明所选完整请求恢复，不是端到端性能收益或完整质量。
+
+32K诊断09:29:07UTC提交，09:34:07触发客户端300秒读超时；无完整响应，后续三个缓存重放未提交。P随后记录clientdisconnect并完成Abort，D也确认AbortReq。不能记为32K通过，也不把客户端超时断言为服务OOM或因此盲目重启。09:37两端连续idle快照确认running/waiting/active/queues及所有PD请求计数为0，router两个workerload0。按用户更新vLLM镜像后，原owned controller收到stop.request，P603在09:42:02UTC、D501在09:41:44UTC核验八卡释放；终态failed_released的Stoprequested是有意框架切换，不是新服务缺陷。原始来源、日志和所有失败保留，无AISBench formal。
+
+- [7例原始响应与SHA父级核验](../evidence/functional_G604/parent_partial_acceptance.json)
+- [32K客户端超时/未完成状态](../evidence/functional_G604/functional/state.json)
+- [P实际8worker路径/BF16KV/idle快照](../evidence/controlled_switch_G629/2203/actual_idle_and_path.json)
+- [D实际idle快照](../evidence/controlled_switch_G629/2204/actual_idle_and_path.json)
+- [P有意切换的8卡释放](../evidence/controlled_switch_G629/2203/owned_release.json)
+- [D有意切换的8卡释放](../evidence/controlled_switch_G629/2204/owned_release.json)
