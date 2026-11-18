@@ -2,7 +2,7 @@
 
 本分支维护固定 SGLang A2 daily 的适配、部署、压测和profile证据。vLLM 独立维护于 [vllm-deepseek-v41flash-w4a8-910b-pd](https://github.com/wio1997/Inference-Foundry/tree/vllm-deepseek-v41flash-w4a8-910b-pd)。历史跨框架组件与源码快照保留原始记录，后续各框架只更新自己的分支。用户当前合同为四档 32K/64K/128K/256K、C16、输出 1024，预热后首轮 cold32 和 hot32。每个 P/D 角色使用完整八卡，两个框架分时使用同一对机器。
 
-95文件权重及两端target/draft严格装载已有证据；完整引擎实际forward已进入，陆续暴露并保留了共享allocator、原生页几何和缺失partial RoPE的失败。原生FP32 complex RoPE组件8卡64用例/64图/192变化回放已通过；G334完整P/D候选正在重新装载。完整目标/草稿图、跨机PD、质量和四档性能尚未验收。组件通过不能代替完整服务或性能结论。
+95文件权重及两端target/draft严格装载已有证据；完整引擎实际forward已进入，陆续暴露并保留了共享allocator、原生页几何和缺失partial RoPE的失败。原生FP32 complex RoPE组件8卡64用例/64图/192变化回放已通过；G334已实际通过RoPE并进入下一处mHC，但D在TileLang依赖处分支失败并释放全部8卡；G346正验证已有原生Triton split/Sinkhorn在NPU的兼容路径。完整目标/草稿图、跨机PD、质量和四档性能尚未验收。组件通过不能代替完整服务或性能结论。
 
 - [权重来源和固定文件](metadata/pinned_files.json)
 - [配置](metadata/config.json)
@@ -42,3 +42,5 @@
 [固定依赖栈 partial RoPE 缺失与原生兼容组件](docs/015-native-partial-RoPE-compatibility.md)
 
 [本分支范围与历史归属](metadata/framework_scope.json) · [分支迁移说明](docs/016-framework-branches-and-reference.md)
+
+[mHC原生split/Sinkhorn平台缺口](docs/017-mhc-native-split-sinkhorn-gap.md)
