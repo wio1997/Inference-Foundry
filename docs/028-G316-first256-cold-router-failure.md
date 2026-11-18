@@ -26,3 +26,17 @@ G565于08:00:12UTC实际启动原生路由，唯一服务策略变化为health-c
 - [有界路由控制器](../code/native_router_ready_G565/router_ready_controller_g565.py)
 - [原身份匹配前置失败](../evidence/native_router_ready_G565/G555_native_ready_router_actual_2201_parsed.json)
 - [旧进程异步退出确认失败](../evidence/native_router_ready_G565/G561_native_ready_router_actual_2201_parsed.json)
+
+
+原CPU G42容器将于10:21UTC到期，实际只剩sleep且没有AISBench，原首次已终止。G576在08:11:23UTC完成空闲期受控替换：固定同一arm64镜像、4CPU（20/44/68/92）、32GiB、无NPU设备，canonical CPU flock/owner覆盖整个72000s生命周期，旧数据/首次记录/ledger未改。新容器只开放自身任务目录读写，旧数据与模型只读。新nonce256K formal资产尚需独立retokenize/所有旧prefix碰撞审查、当前P/D缓存和原80warm证据导入、usage来源、首次新epoch运行器等门槛；此处没有新AISBench提交或修复收益。新数据若用于框架对比，需要相同新数据的vLLM对应试验，不能说与旧vLLM数据逐字节匹配。
+
+- [CPU客户端实际限制/空闲/身份](../evidence/CPU_client_G576/G578_GLM_CPU_refresh_actual_2202_parsed.json)
+- [有界CPU生命周期与旧客户端空闲核验](../code/CPU_client_G576/glm_CPU_client_controller_g576.py)
+- [新nonce资产准备源码，未代表运行通过](../code/CPU_client_G576/prepare_repaired256_assets_g584.py)
+
+
+G584的CPU资产准备已实际完成：32条新nonce formal每条262144输入，首128-token前缀彼此不同，并与原26个数据profile无碰撞；原数据未改，formal SHA bd437f2b8ab1236e655345b352ac2a5b4d007472e89b4f6f04d8b358bb548f03。另复制80条历史warm字节用于证据追溯，没有发起新warm或formal。新controller/当前缓存门槛与正式试验仍未执行。
+
+用户将GLM交给dsh续跑，Codex本会话后续只推进DeepSeek-V4.1 W4A8。GLM交接保留正在运行的服务、router和CPU lease，完整私有操作路径另在目标服务器交接文件交付；本分支继续作为GLM归档权威位置。
+
+- [CPU资产准备实际完成记录](../evidence/CPU_client_G576/G585_repaired256_assets_actual_2202_parsed.json)
