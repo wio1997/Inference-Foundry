@@ -88,3 +88,5 @@
 [C2 实际 ring8 与完整 DSPARK PD 握手拒绝](docs/041-ring8-physical-contract-and-native-DSPARK-handshake.md)：八卡分配/计价/图通过，跨模式真实请求被原生布局校验拒绝；生成质量仍未通过。
 
 [双端 no-SP 仍复现语义故障](docs/042-paired-NoSP-reproduces-semantic-faults.md)：32条传输完成，短请求仍有算术错误和代码遗漏；DSPARK不是必要条件，完整质量/性能仍未通过。
+
+[单节点、首 token 与 C1 串行故障定位](docs/043-standalone-and-serial-semantic-isolation.md)：提示 token 与固定 vLLM 0.32 全部32条相同；语义故障在直接D、no-SP及串行条件下仍复现，完整质量未通过。
