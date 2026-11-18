@@ -59,3 +59,5 @@
 [256K五轮预热与当前P/D独立编译证明，首次正式已失败留证](docs/027-G316-256K-five-warmups-current-cache.md)
 
 [256K首次cold32：18成功、14路由503，hot未提交](docs/028-G316-first256-cold-router-failure.md)
+
+[32K单窗口差异地图与32K/64K客户端配对：非因果](docs/029-single-window-difference-map.md)
