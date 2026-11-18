@@ -36,3 +36,9 @@ G542后续实际结果：八rank均在8192行（8191请求被执行路径padding
 - [父级新OOM与八rank实际路径判断](../evidence/full_model_G542/2203/parent_indexer_OOM_assessment.json)
 - [原生score预算与3倍临时量注释](../code/fixed_native_score_sources_G559/dsv4/v41_indexer/scoring.py)
 - [G563原生评分分块探针](../code/native_score_budget_G563/probe.py)
+
+
+G563严格探针已执行并失败留证：八rank均完成前六组形状的score逐位、原生unsorted-topk和输入不变检查；8191/lc4095组实际工作峰值3322135552→415173120 bytes。但第七组8193/lc4097、FP32头权重在八rank均未通过FP32 score整数位模式比较，探针停止，最后一组没有执行。不能把该峰值下降称作候选通过，也不能据此部署。08:00:40UTC八卡已清空。后续G570仅准备诊断score误差量、原生topk索引/集合是否改变，没有放宽原严格验收或完整模型部署。
+
+- [G563严格门槛失败的实际rank0](../evidence/native_score_budget_G563_failed/evidence/rank0.json)
+- [G563组件退出与八卡释放](../evidence/native_score_budget_G563_failed/state.json)
