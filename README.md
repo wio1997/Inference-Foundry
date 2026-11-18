@@ -33,3 +33,5 @@
 [首次64K冷测/低命中重放](docs/012-native032-first-65536-cold-replay.md)；[四档选定长上下文检查](docs/013-native032-long-context-selected-quality.md)。
 
 [首次128K冷测/零本地命中重放](docs/014-native032-first-131072-cold-replay.md)，含原始SQLite独立复算；256K和SGLang对比仍未完成。
+
+[原生0.32四档首次矩阵](docs/016-native032-four-tier-first-matrix.md)；[256K原始证据与限制](docs/015-native032-first-262144-cold-replay.md)。SGLang对比、双方profile与优化仍待完成。
