@@ -27,7 +27,7 @@ epoch727已完成P/D各8rank原始采集，并从全部16rank的原始CPU记录�
 
 两端worker内置SDK回调都报告daemon进程不能解析，因此HTTP200和完整请求仅证明采集动作结束。离线操作先冻结原始rank文件SHA，再建立独立reflink或普通副本；SDK只在副本写入，结束后重查原始SHA。未缩短或重发NPU负载来绕过解析成本。
 
-[P rank0设备检查](../evidence/profile_capture_G804/P0_parsed_device_review.json)已得到225813条kernel_details记录，device0，Model ID均4294967295，与P eager一致；解析trace中198个scheduler注释与原始CPU记录一致。完整trace约1.624GB、设备DB约531MB，仍留受控存储。P其余7rank已在两个独立8CPU槽并行解析，尚未据此标all-rank设备通过。
+[P rank0设备检查](../evidence/profile_capture_G804/P0_parsed_device_review.json)已得到225813条kernel_details记录，device0，Model ID均4294967295，与P eager一致；解析trace中198个scheduler注释与原始CPU记录一致。完整trace约1.624GB、设备DB约531MB，仍留受控存储。P其余7rank随后在两个独立8CPU槽完成解析。[八rank设备与CPU交叉验收](../evidence/profile_capture_G804/all8_P_device_CPU_review.json)已逐库确认device0–7映射、非零实际compute tasks、198个CPU调度注释及每rank524272个scheduled query，且原始SHA保持一致。每rank实际compute-task行数均为219768；统计不相乘当全局用户tokens。D全八rank设备及完整跨框架profile仍未验收。
 
 [D首次离线失败](../evidence/profile_capture_G804/offline/D_first_offline_timeout.json)明确记录4CPU/600秒解析以124超时，只有约713MB的部分CPU trace，缺op_statistic，原始数据SHA未变。尝试扩核时原解析已退出，实际没有改变线程；该失败保留。后续在新副本上启动16CPU/1800秒D rank0解析，尚未声明通过。
 
