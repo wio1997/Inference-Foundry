@@ -67,3 +67,5 @@
 [AISBench base API 源码归档更正及语义检查](docs/031-aisbench-base-api-source-correction.md)
 
 [P侧逐事件与形状差异：诊断窗口、尚未完成因果归因](docs/032-p-prefill-event-analysis.md)
+
+[256K→32 未计分诊断与 D rank0 阶段证据](docs/033-256k-diagnostic-stage-evidence.md)
