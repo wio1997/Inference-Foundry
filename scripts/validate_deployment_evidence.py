@@ -326,6 +326,20 @@ def main():
         for c in row['cases']:
             assert c['phase']=='passed' and c['graph_captures']==1 and c['changed_input_replays']==3
             assert c['metadata_positions_exact'] and c['independent_FP64_all_rows'] and c['max_abs_error']<.003
+    radix=ROOT/'evidence/native_radix_contract_G495'
+    parent=json.loads((radix/'parent_acceptance.json').read_text())
+    assert parent['component_passed'] and parent['cases']==80 and parent['all8_released']
+    assert parent['full_PD_quality_prefix_performance_accepted'] is False
+    for rank in range(8):
+        row=json.loads((radix/f'evidence/rank{rank}.json').read_text())
+        assert row['rank']==rank and row['phase']=='passed' and len(row['cases'])==10
+        assert row['original_layout_guard_reproduced'] and row['original_absent_C128_failure_reproduced'] and row['hierarchical_guard_preserved']
+        assert row['native_tree_core']=='UnifiedTreeCore'
+        cache=[v for v in row['cases'] if v['kind']=='native_FULL_SWA_insert_match_lock_evict']
+        assert [v['tokens'] for v in cache]==[128,256,512,1024] and all(v['no_allocation_leak'] for v in cache)
+        state=[v for v in row['cases'] if v['kind']=='native_C2_request_state_clear_and_positional_copy']
+        assert [v['length'] for v in state]==[127,128,129,8191,8192,8193] and all(v['neighbor_unchanged'] for v in state)
+    assert (radix/'lowratio_radix_compat.py').read_bytes()==(ROOT/'code/full_model_candidates/sg_pd_g501/lowratio_radix_compat.py').read_bytes()
     sdk=json.loads((ROOT/'evidence/fixed_image_SDK_binary_inventory.json').read_text())['inventory']
     assert sdk['memcache-hybrid']['version']==sdk['memfabric-hybrid']['version']=='1.3.0'
     print(json.dumps({'deployment_provenance_files':len(entries),'pinned_files_per_host':95,'bytes_per_host':528805292902,

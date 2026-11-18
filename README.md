@@ -60,3 +60,5 @@
 [主模型和草稿的原生混合通信dtype](docs/026-native-mixed-target-draft-dispatch.md)
 
 [完整target/draft图与待解决的前缀布局契约](docs/027-full-target-draft-graphs-and-radix-layout.md)
+
+[C1/C2原生前缀缓存：八rank80例组件契约](docs/028-native-lowratio-prefix-cache-contract.md)
