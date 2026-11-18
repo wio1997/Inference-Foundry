@@ -1,0 +1,32 @@
+from pathlib import Path
+import datetime,hashlib,json,re,socket,subprocess,time,urllib.request
+assert socket.gethostname()=='<ROLE_HOSTNAME>'
+root=Path('/PRIVATE_TASK_ROOT');r=root/'vllm_pd_g727';o=r/'warmup_g791'
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+pmeta=json.loads((o/'P_actual_metadata.json').read_text());assert pmeta['guard']['phase']=='holding' and pmeta['guard']['job']=='native727_profile_warm_capture_G790'
+assert pmeta['functional']['passed'] and pmeta['functional']['usage']['completion_tokens']==1024
+s=json.loads((r/'state.json').read_text());assert s['generation']==727 and s['container_id']==pmeta['guard']['D_container_id'];assert str(r/'node_controller.py').encode() in Path('/proc',str(s['pid']),'cmdline').read_bytes()
+c=json.loads(subprocess.check_output(['docker','inspect',s['container_id']]))[0];assert c['State']['Running'] and c['Image']=='sha256:d5492ecfdb3071ff2d4bae3f849245014c54b63035d9eefb35243869461ddae1'
+links=[str(p.resolve()) for p in Path('/proc',str(s['pid']),'fd').iterdir()]
+for i in range(8):
+ key='<ROLE_HOSTNAME>-npu'+str(i);assert '/root/.codex/coord/'+key+'.lock' in links
+ owner=json.loads(Path('/root/.codex/coord',key+'.owner.json').read_text());assert owner['pid']==s['pid'] and owner['state']=='claimed' and owner['run_directory']==str(r)
+actual=json.loads((r/'actual_native_launch.json').read_text());assert actual['all113_actual_source_pins_match'] and not actual['native_source_overlay'] and actual['profile_runtime_source_pins_verified']
+log=(r/'server.log').read_text();done={int(m.group(1)) for m in re.finditer(r'Worker_TP(\d+)_EP\d+ pid=\d+\).*Graph capturing finished',log)};draft={int(m.group(1)) for m in re.finditer(r'Worker_TP(\d+)_EP\d+ pid=\d+\).*Capturing model for DSpark',log)};assert done==draft==set(range(8)) and '13/13' in log and '11/11' in log
+client=json.loads(subprocess.check_output(['docker','inspect','yxy-ds41-aisbench-g503']))[0];assert client['Id']=='900c904de00e543644df6916e089e8b892d9bc78c36f61c438571831feb3c26a' and client['State']['Running'] and not client['HostConfig']['Devices']
+top=subprocess.check_output(['docker','top',client['Id'],'-eo','pid,args'],text=True);assert not any(any(k in l for k in ['ais_bench','run_full_gsm8k.py','profile_inputs_g772.py']) for l in top.splitlines()[1:])
+usage=o/'usage';usage.mkdir()
+evidence=[]
+for name,digest in [('base_api.py','203a416444b972193274a13e1593328a288b6879a3d62e4f201bbb9adfa81755'),('vllm_custom_api.py','8170e1ca344340a4919e05fb61df7bfdcd8d7f7b7cca9d427924d793c89da086')]:
+ raw=subprocess.check_output(['docker','exec',client['Id'],'cat','/benchmark/ais_bench/benchmark/models/api_models/'+name]);assert hashlib.sha256(raw).hexdigest()==digest;(usage/name).write_bytes(raw);evidence.append({'path':name,'sha256':digest})
+(usage/'new_epoch_functional_result.json').write_text(json.dumps(pmeta['functional'],indent=2)+'\n');evidence.append({'path':'new_epoch_functional_result.json','sha256':sha(usage/'new_epoch_functional_result.json')})
+contract={'input_tokens_source':'server_usage.prompt_tokens','output_tokens_source':'server_usage.completion_tokens','reviewed':True,'evidence':evidence,'basis':'ActualsameclienthandlerSHAs plusnew7271024SSEusage andindependentPgeneration1/Dgeneration1024; notSSEeventcount. Rawresponse retainedPfunctional_g788.','epoch':727};(usage/'usage_contract.json').write_text(json.dumps(contract,indent=2)+'\n')
+for role,item in [('prefill',pmeta['prefill']),('decode',pmeta['decode'])]:
+ with urllib.request.urlopen(item['base_url']+'/health',timeout=10) as f:assert f.status==200
+ with urllib.request.urlopen(item['base_url']+'/v1/models',timeout=10) as f:assert json.load(f)['data'][0]['id']=='ds41flash'
+gate={'schema':1,'task_id':root.name,'engine':'vllm','profile_epoch':727,'validated_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'ready':True,'pd_transfer_verified':True,'configuration_verified':True,'resources_verified':True,'model_id':'ds41flash','proxy_url':'http://<ROLE_HOST>:18100','max_model_len':263296,'cold_mode':'novel_prefixes','cold_prefix_audit':'client_ds41_g503/cold_prefix_audit.json','formal_not_previously_submitted':False,'warmup_dataset_phases':['warmup1','warmup2','warmup3','warmup4','warmup5'],'warmup_only':True,'warmup_pause_after':1,'P_compiler_cache_verified_after_warmups':False,'roles':{'prefill':pmeta['prefill'],'decode':{'ready':True,'container_id':c['Id'],'started_at':c['State']['StartedAt'],'base_url':'http://<ROLE_HOST>:19104','metrics_url':'http://<ROLE_HOST>:19104/metrics','prefix_hit_counter':'vllm:prefix_cache_hits_total'}},'actual_decode_compile_target':{'host_run_root':str(r),'container_id':c['Id'],'container_name':s['container']},'all8_D_target_and_draft_graph_captures_verified':True,'workload_guard_actual_verified':True,'workload_guard_metadata':pmeta['guard'],'P_D_last_two_warmups_compile_verified':False,'scope':'Unscoredwarmingonlyonnew727; originalfirstformalalreadyclaimedandcannotresend. Actualprofileinputfresh16separatelyfrozen. Nativecore/mathunchanged; externalCPUprofileannotation subclass.'}
+(o/'service_gate.json').write_text(json.dumps(gate,indent=2)+'\n')
+argv=['python3',str(o/'pipeline/run_aisbench_cold_hot.py'),'--root',str(root),'--engine','vllm','--container','yxy-ds41-aisbench-g503','--image-id',client['Image'],'--gate',str(o/'service_gate.json'),'--lengths','32768','--warmup-passes','5','--phase-timeout','900','--total-timeout','7200','--usage-contract',str(usage/'usage_contract.json'),'--run-id','native032_profile727_warm791']
+(o/'runner_argv.json').write_text(json.dumps(argv,indent=2)+'\n');check=subprocess.run(argv+['--preflight-only'],cwd=root,capture_output=True,text=True,timeout=100);(o/'preflight_result.json').write_text(json.dumps({'returncode':check.returncode,'stdout':check.stdout,'stderr':check.stderr},indent=2)+'\n');assert check.returncode==0,(check.stdout,check.stderr)
+with (o/'warmup1.log').open('x') as stream:p=subprocess.Popen(argv,cwd=root,stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT,start_new_session=True)
+time.sleep(2);h={'pid':p.pid,'argv':argv,'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Dedicatedprofile727warmup1only/16exact32K/O1024thenpauseforPbaseline; fiveindependentwarmingcohorts; profileandformalnotyet'};(o/'actual_handle_warmup1.json').write_text(json.dumps(h,indent=2)+'\n');print('G791_PROFILE_WARMUP1_START_JSON '+json.dumps({'handle':h,'actual_live':p.poll() is None,'immediate_returncode':p.poll(),'gate':gate}),flush=True)
