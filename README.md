@@ -39,3 +39,9 @@
 [同机 SGLang 32K 首轮正式cold/hot及待定位差异](docs/017-matched-SG-first-32K-cold-hot.md)
 
 [同机 SGLang 与G4匹配输入的十六rank模型profile](docs/018-matched-SG-all16-model-profile.md)
+
+[同机 SGLang 64K 五轮独立预热](docs/019-matched-SG-64K-five-independent-warmups.md)
+
+[匹配 profile 的机制差异与高潜力候选](docs/020-profile-mechanisms-and-priority-candidates.md)
+
+[同机 SGLang 64K 首轮正式冷测与热测](docs/021-matched-SG-first-64K-cold-hot.md)
