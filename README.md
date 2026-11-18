@@ -49,3 +49,5 @@
 [首次128K预热失败与原生超时修复](docs/022-first-128K-warmup-failure-and-timeout-repair.md)
 
 [G316 128K 五轮独立预热与正式提交门槛](docs/023-G316-128K-five-independent-warmups.md)
+
+[同机 SGLang 128K 首轮正式冷测与热测](docs/024-matched-SG-first-128K-cold-hot.md)
