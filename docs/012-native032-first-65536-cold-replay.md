@@ -19,3 +19,5 @@
 32条输入的工作集2097152 tokens超过启动日志报告的P1291720/D1812610逻辑容量，低命中与容量/淘汰相符；尚无控制实验或profile证明具体因果。后续[单条长上下文检查](013-native032-long-context-selected-quality.md)显示64K单请求立即重放可以命中，不能据此反推批量低命中的全部原因。
 
 首轮原始输入、prediction/timepoints及失败历史保留受控存储；公开[原始SHA与派生视图说明](../evidence/native64_first_G708/raw_details_index.json)明确删除大input字段的行只是派生视图。没有重发首轮以提高命中。128K/256K矩阵、SGLang同口径质量/性能、双方all-rank profile、差异地图和优化收益仍未完成。
+
+另补[原始SQLite独立复算](../evidence/native64_first_G708/independent_SQLite_timing_G751.json)，两轮实际区间、C16、耗时及延迟/吞吐均与原报表精度一致；[同一复算脚本](../code/native_metrics_G751/raw_sqlite_timing_audit_g751.py)和AISBench计时边界说明见[128K记录](014-native032-first-131072-cold-replay.md)。这不改变既有低命中和未证实收益的资格。

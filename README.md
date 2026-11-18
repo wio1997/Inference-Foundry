@@ -31,3 +31,5 @@
 [首轮正式32K冷/热结果](docs/011-native032-first-32768-cold-hot.md)；其余档位和SGLang对比仍未完成。
 
 [首次64K冷测/低命中重放](docs/012-native032-first-65536-cold-replay.md)；[四档选定长上下文检查](docs/013-native032-long-context-selected-quality.md)。
+
+[首次128K冷测/零本地命中重放](docs/014-native032-first-131072-cold-replay.md)，含原始SQLite独立复算；256K和SGLang对比仍未完成。
