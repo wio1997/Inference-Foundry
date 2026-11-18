@@ -21,3 +21,5 @@ score_paged、select_slots、_map_sorted_selected_slots三个函数AST与已通�
 确认D918 controller实际退出/8卡释放后，[D941实际启动](../evidence/frequency_wrapper_G943/G940_D941_FREQUENCY_FIX_ACTUAL_START_JSON_parsed.json)，复用本任务210111946字节compiler cache副本，原件保留。相同native argv和环境仅更新任务路径，数学变更仅为补回已有频率gather；没有换镜像、降低batch或关闭图。
 
 [实际进程检查](../evidence/frequency_wrapper_G943/G942_D941_ACTUAL_MODEL_REVIEW_JSON_parsed.json)与[当前状态](../metadata/current_pair_P832_D941.json)绑定新controller/容器/八卡owner。仍须实际八rank target/draft完整图捕获、真实模型候选路径和PD生成；新pair guard身份验证后才可提交功能请求。完整1319题同提示/T0/seed0/thinking=false/max2048/C16/严格####grader、SG四档五轮独立预热及首次cold/replay、最终匹配profile与端到端收益均未完成。
+
+后续[037](037-D941-PD-SSE-real-kernels-and-full-quality.md)补充D941实际八rank图、PD/SSE、真实分页kernel与仍存的C1大位置表，完整1319题已启动但结果待验。

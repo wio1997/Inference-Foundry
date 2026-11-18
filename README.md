@@ -76,3 +76,5 @@
 [分页FP4索引器八卡严格验收与D918启动](docs/035-paged-indexer-all8-strict-gate-and-D918.md)：96个数值用例+96次变输入图重放通过；完整模型正在装载，质量/四档性能/最终匹配profile/端到端收益待验证。
 
 [完整模型频率wrapper失败与D941修复](docs/036-D918-complex-frequency-wrapper-failure-and-D941.md)：D918图捕获失败并释放，D941补回原有gather后实际启动；完整模型/质量/性能仍未验收。
+
+[D941真实PD/SSE、C2分页命中与完整质量](docs/037-D941-PD-SSE-real-kernels-and-full-quality.md)：限定功能通过，但1319题尝试出现14个600秒超时后已停止；C1大位置表仍在，完整质量/四档SG性能/最终profile/收益未完成。
