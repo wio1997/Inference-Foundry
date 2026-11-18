@@ -23,3 +23,5 @@
 [固定原生hybrid PD双角色配置准备](docs/006-native-hybrid-PD-preparation.md)
 
 [当前公共预算下的固定原生hybrid PD准备](docs/007-current-common-workspace-budget.md)
+
+[原生0.32功能、计数与已知问题](docs/009-native032-functional-readiness-and-detokenizer-limit.md)；完整质量与性能验收仍待完成。
