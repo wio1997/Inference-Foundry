@@ -1,3 +1,14 @@
+# DeepSeek W4A8 历史混合归档入口
+
+此分支保留历史证据，不再承接新的框架适配或测量。用户已确认按框架在同一Inference-Foundry仓维护独立分支：
+
+- [SGLang DeepSeek-V4.1 W4A8 / 910B PD](https://github.com/wio1997/Inference-Foundry/tree/sglang-deepseek-v41flash-w4a8-910b-pd)
+- [vLLM DeepSeek-V4.1 W4A8 / 910B PD](https://github.com/wio1997/Inference-Foundry/tree/vllm-deepseek-v41flash-w4a8-910b-pd)
+
+分离基点为 `4573c8cadef92f8bd0622fd5543ffe27c011a13b`。以下为原历史README，原结论保持其时间与验收范围，不代表当前就绪状态。
+
+---
+
 # DeepSeek-V4.1-Flash W4A8 · 910B PD 对齐
 
 独立分支记录固定 SGLang A2 daily 与 vLLM-Ascend 0.30.0rc2 的适配、测试和差异证据。用户当前合同为四档 32K/64K/128K/256K、C16、输出 1024，预热后首轮 cold32 和 hot32。每个 P/D 角色使用完整八卡，两个框架分时使用同一对机器。
