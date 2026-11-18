@@ -55,7 +55,9 @@
     "{\"kv_connector\":\"MooncakeHybridConnector\",\"kv_role\":\"kv_producer\",\"kv_port\":30200,\"engine_id\":\"ds41-vllm-g458-p\",\"kv_connector_extra_config\":{\"prefill\":{\"dp_size\":1,\"tp_size\":8},\"decode\":{\"dp_size\":1,\"tp_size\":8}}}",
     "--additional-config",
     "{\"enable_fused_mc2\":1,\"enable_flashcomm1\":false}",
-    "--enforce-eager"
+    "--enforce-eager",
+    "--limit-mm-per-prompt",
+    "{\"image\":0}"
   ],
   "environment": {
     "VLLM_USE_V2_MODEL_RUNNER": "1",
@@ -75,5 +77,6 @@
   "native_cache_note": "BF16 compute with auto KV dtype requires actual BF16 KV verification. Generic hybrid compression uses all configured cache groups; draft context initialization and prefix state remain runtime gates.",
   "prefix_scope": "Native local HBM prefix caching enabled on both roles, matching SG radix capability. No external KV pool requested for this comparison; PR12 external hit was zero but that observation is not proof of equivalent behavior.",
   "graph_scope": "D full target and draft graphs mandatory. P eager permits native full-shape chunked prefill. Graph config is an intent until actual capture/replay evidence.",
-  "NPU_work_or_service_started": false
+  "NPU_work_or_service_started": false,
+  "text_only_scope": "Native VL wrapper constructs vision tower only when get_limit_per_prompt(image)>0; explicit image0 disables it for matched text AISBench. Vision-only router bias is not aliased to text correction bias."
 }

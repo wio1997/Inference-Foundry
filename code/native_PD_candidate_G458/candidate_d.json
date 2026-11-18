@@ -56,7 +56,9 @@
     "--additional-config",
     "{\"enable_fused_mc2\":1,\"enable_flashcomm1\":false}",
     "--compilation-config",
-    "{\"cudagraph_mode\":\"FULL_DECODE_ONLY\"}"
+    "{\"cudagraph_mode\":\"FULL_DECODE_ONLY\"}",
+    "--limit-mm-per-prompt",
+    "{\"image\":0}"
   ],
   "environment": {
     "VLLM_USE_V2_MODEL_RUNNER": "1",
@@ -76,5 +78,6 @@
   "native_cache_note": "BF16 compute with auto KV dtype requires actual BF16 KV verification. Generic hybrid compression uses all configured cache groups; draft context initialization and prefix state remain runtime gates.",
   "prefix_scope": "Native local HBM prefix caching enabled on both roles, matching SG radix capability. No external KV pool requested for this comparison; PR12 external hit was zero but that observation is not proof of equivalent behavior.",
   "graph_scope": "D full target and draft graphs mandatory. P eager permits native full-shape chunked prefill. Graph config is an intent until actual capture/replay evidence.",
-  "NPU_work_or_service_started": false
+  "NPU_work_or_service_started": false,
+  "text_only_scope": "Native VL wrapper constructs vision tower only when get_limit_per_prompt(image)>0; explicit image0 disables it for matched text AISBench. Vision-only router bias is not aliased to text correction bias."
 }
