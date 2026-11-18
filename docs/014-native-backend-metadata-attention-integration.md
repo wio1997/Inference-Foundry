@@ -14,3 +14,15 @@
 这些案例使用 runner 接口夹具与外部提供的物理 KV 选择，没有装载完整模型权重，没有执行原生 source/compressor/Indexer/candidate 选取，也没有网络 PD。各 rank 的 request_window 明确为 false，因此不能声称 BF16 request-window 改写已通过；其完整引擎路径仍待核验。小池不证明263296上下文容量或性能。
 
 G274 将已验证的 G82 target/embedded FLOAT draft 加载适配、G226/G268 池与后端、G254 选定字节计价接入完整模型 P/D，保持 TP8/EP8、DSPARK5、BF16 KV、完整 D 图和原生优化开关。G274 目前仅作为待验收候选代码归档，完整权重覆盖、source/candidate 语义、DSPARK 接收回滚、跨机 PD 状态、图执行、前缀复用与四档性能均须后续实际证据。
+
+## 完整引擎首次接线的校验失败
+
+G274 两端在任何模型权重加载前被 attention_registry.py 的 SHA 校验拦截，随后 controller 清理并确认八卡无进程。新增校验值误取自已有 GLM 工作副本；从实际固定镜像的已停止容器取回源码后逐行核对，attention_registry 的差异是 GLM KDA 路由，kv_cache_configurator 的差异是 GLM draft 池分支，DSV4 分支没有这些修改；request-window 源码完全相同。保留严格校验，G280 改为使用实际固定镜像的 SHA，未删除或放宽指纹检查。
+
+- [P 原始失败](../evidence/full_model_G274/2203/server.log)
+- [D 退出和释放](../evidence/full_model_G274/2204/state.json)
+- [实际固定镜像源码清单](../evidence/G279_fixed_native_sources/manifest.json)
+- [registry 逐行差异](../evidence/G279_fixed_native_sources/attention_registry.py.diff)
+- [G280 指纹](../code/sg_pd_g280/native_integration_sha256.json)
+
+G280 为重新接线的完整候选，不能从启动请求推定模型加载、图、PD 或性能已通过。
