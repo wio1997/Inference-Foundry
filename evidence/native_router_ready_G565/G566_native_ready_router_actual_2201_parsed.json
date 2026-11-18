@@ -1,0 +1,148 @@
+{
+  "at": "2026-11-18T08:01:39.329949+00:00",
+  "handle": {
+    "pid": 1028238,
+    "at": "2026-11-18T08:00:11.252319+00:00",
+    "source_sha256": "0e75e306477783a997f4e875715093a3fb53fdcf9b4aefb8aa68a698588a0d54",
+    "bound_s": 43360,
+    "scope": "Owned router only native /health to /ready; P/D/model/cache unchanged; originalfirstcoldfailure not rerun; longloadrepair/E2Egainunverified"
+  },
+  "actual_controller_live": true,
+  "files": {
+    "state.json": {
+      "phase": "router_ready_long_load_UNVERIFIED",
+      "pid": 1028238,
+      "at": "2026-11-18T08:00:12.158907+00:00",
+      "elapsed_s": 2.81660708039999,
+      "namespace_pid": 86210,
+      "docker_exec_pid": 1028310,
+      "endpoint": "/ready",
+      "bound_s": 43200,
+      "P_D_service_ids_unchanged": true
+    },
+    "after_workers.json": {
+      "workers": [
+        {
+          "id": "ffa53424-c594-4ed9-beb9-29f3d098a1f9",
+          "url": "http://<HOST>:19084",
+          "model_id": "glm53flash",
+          "priority": 50,
+          "cost": 1.0,
+          "worker_type": "decode",
+          "is_healthy": true,
+          "load": 0,
+          "connection_mode": "HTTP",
+          "metadata": {
+            "disaggregation_mode": "decode",
+            "load_balance_method": "round_robin",
+            "served_model_name": "glm53flash",
+            "model_path": "/models/glm53",
+            "dp_size": "1",
+            "architectures": "[\"Glm5NextForConditionalGeneration\"]",
+            "model_type": "glm5_next",
+            "tp_size": "8"
+          },
+          "disable_health_check": false
+        },
+        {
+          "id": "942dfb4c-515a-46ab-87f3-33353a53a28c",
+          "url": "http://<HOST>:19083",
+          "model_id": "glm53flash",
+          "priority": 50,
+          "cost": 1.0,
+          "worker_type": "prefill",
+          "is_healthy": true,
+          "load": 0,
+          "connection_mode": "HTTP",
+          "bootstrap_port": 8998,
+          "metadata": {
+            "tp_size": "8",
+            "served_model_name": "glm53flash",
+            "dp_size": "1",
+            "disaggregation_mode": "prefill",
+            "model_type": "glm5_next",
+            "model_path": "/models/glm53",
+            "architectures": "[\"Glm5NextForConditionalGeneration\"]",
+            "load_balance_method": "follow_bootstrap_room"
+          },
+          "disable_health_check": false
+        }
+      ],
+      "total": 2,
+      "stats": {
+        "prefill_count": 1,
+        "decode_count": 1,
+        "regular_count": 0
+      }
+    },
+    "new_router_command.json": {
+      "argv": [
+        "docker",
+        "exec",
+        "-w",
+        "/task/sg_pd_g316",
+        "yxy-glm53-sg-p-g316",
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=30",
+        "43200",
+        "python3",
+        "-m",
+        "sglang_router.launch_router",
+        "--host",
+        "<HOST>",
+        "--port",
+        "18080",
+        "--pd-disaggregation",
+        "--prefill",
+        "http://<HOST>:19083",
+        "8998",
+        "--decode",
+        "http://<HOST>:19084",
+        "--max-concurrent-requests",
+        "16",
+        "--queue-size",
+        "100",
+        "--request-timeout-secs",
+        "3600",
+        "--disable-retries",
+        "--health-check-endpoint",
+        "/ready"
+      ],
+      "only_router_policy_delta": [
+        "--health-check-endpoint",
+        "/ready"
+      ],
+      "P_D_service_ids_unchanged": true,
+      "requests_unchanged": false,
+      "original_failed_first_untouched": true,
+      "scope": "Availability policy repair only; no repaired long-load acceptance or performance gain"
+    },
+    "new_router_namespace.json": [
+      {
+        "pid": 86210,
+        "argv": [
+          "sglang::router"
+        ],
+        "listen_port": 18080,
+        "socket_inodes": [
+          "154085704"
+        ]
+      }
+    ],
+    "controller.log": "{\"phase\": \"preflight\", \"pid\": 1028238, \"at\": \"2026-11-18T08:00:09.342343+00:00\", \"elapsed_s\": 2.904050052165985e-05}\n{\"phase\": \"verified_exact_old_router_stopped_and_port_free_before_new_start\", \"pid\": 1028238, \"at\": \"2026-11-18T08:00:09.639023+00:00\", \"elapsed_s\": 0.29671096056699753}\n{\"phase\": \"router_ready_long_load_UNVERIFIED\", \"pid\": 1028238, \"at\": \"2026-11-18T08:00:12.158907+00:00\", \"elapsed_s\": 2.81660708039999, \"namespace_pid\": 86210, \"docker_exec_pid\": 1028310, \"endpoint\": \"/ready\", \"bound_s\": 43200, \"P_D_service_ids_unchanged\": true}\n",
+    "router.log": "k/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m220:\u001b[0m Step succeeded \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mregister_workers \u001b[3mduration_ms\u001b[0m\u001b[2m=\u001b[0m0\n\u001b[2m2026-11-18 08:00:11\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::core::steps::worker::shared::activate\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/core/steps/worker/shared/activate.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m31:\u001b[0m Activated 1 worker(s) (marked as healthy)\n\u001b[2m2026-11-18 08:00:11\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m208:\u001b[0m Step started \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mregister_tokenizer \u001b[3mattempt\u001b[0m\u001b[2m=\u001b[0m1\n\u001b[2m2026-11-18 08:00:11\u001b[0m \u001b[33m WARN\u001b[0m \u001b[2msmg::core::steps::worker::shared::update_policies\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/core/steps/worker/shared/update_policies.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m62:\u001b[0m Model glm53flash has conflicting load_balance_method: prefill=Some(\"follow_bootstrap_room\"), decode=Some(\"round_robin\")\n\u001b[2m2026-11-18 08:00:11\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m220:\u001b[0m Step succeeded \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mactivate_workers \u001b[3mduration_ms\u001b[0m\u001b[2m=\u001b[0m0\n\u001b[2m2026-11-18 08:00:11\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m208:\u001b[0m Step started \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mactivate_workers \u001b[3mattempt\u001b[0m\u001b[2m=\u001b[0m1\n\u001b[2m2026-11-18 08:00:11\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m208:\u001b[0m Step started \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mupdate_policies \u001b[3mattempt\u001b[0m\u001b[2m=\u001b[0m1\n\u001b[2m2026-11-18 08:00:11\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m220:\u001b[0m Step succeeded \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mupdate_policies \u001b[3mduration_ms\u001b[0m\u001b[2m=\u001b[0m0\n\u001b[2m2026-11-18 08:00:12\u001b[0m \u001b[32m INFO\u001b[0m \u001b[1mhttp_request\u001b[0m\u001b[1m{\u001b[0m\u001b[3mmethod\u001b[0m\u001b[2m=\u001b[0mGET \u001b[3muri\u001b[0m\u001b[2m=\u001b[0m/workers \u001b[3mversion\u001b[0m\u001b[2m=\u001b[0mHTTP/1.1 \u001b[3mmodule\u001b[0m\u001b[2m=\u001b[0m\"smg\" \u001b[3mrequest_id\u001b[0m\u001b[2m=\u001b[0m\"req-yC47TKbJgR97gNhBnmRXykKZ\"\u001b[1m}\u001b[0m\u001b[2m:\u001b[0m \u001b[2msmg::request\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/middleware.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m310:\u001b[0m started processing request\n\u001b[2m2026-11-18 08:00:12\u001b[0m \u001b[32m INFO\u001b[0m \u001b[1mhttp_request\u001b[0m\u001b[1m{\u001b[0m\u001b[3mmethod\u001b[0m\u001b[2m=\u001b[0mGET \u001b[3muri\u001b[0m\u001b[2m=\u001b[0m/workers \u001b[3mversion\u001b[0m\u001b[2m=\u001b[0mHTTP/1.1 \u001b[3mmodule\u001b[0m\u001b[2m=\u001b[0m\"smg\" \u001b[3mrequest_id\u001b[0m\u001b[2m=\u001b[0m\"req-yC47TKbJgR97gNhBnmRXykKZ\" \u001b[3mstatus_code\u001b[0m\u001b[2m=\u001b[0m200 \u001b[3mlatency\u001b[0m\u001b[2m=\u001b[0m1098\u001b[1m}\u001b[0m\u001b[2m:\u001b[0m \u001b[2msmg::response\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/middleware.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m359:\u001b[0m finished processing request\n\u001b[2m2026-11-18 08:00:13\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::tokenizer::registry\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/tokenizer/registry.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m141:\u001b[0m Successfully registered tokenizer 'glm53flash' with id: 5b2deb1e-7d10-43aa-9cb0-7aa56ef955ab\n\u001b[2m2026-11-18 08:00:13\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m208:\u001b[0m Step started \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m16db40a0-3f5f-4b73-998b-237672befdbe \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mregister_tokenizer \u001b[3mattempt\u001b[0m\u001b[2m=\u001b[0m1\n\u001b[2m2026-11-18 08:00:13\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m220:\u001b[0m Step succeeded \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m16db40a0-3f5f-4b73-998b-237672befdbe \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mregister_tokenizer \u001b[3mduration_ms\u001b[0m\u001b[2m=\u001b[0m1694\n\u001b[2m2026-11-18 08:00:13\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m259:\u001b[0m Workflow completed \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m16db40a0-3f5f-4b73-998b-237672befdbe \u001b[3mduration_ms\u001b[0m\u001b[2m=\u001b[0m2742\n\u001b[2m2026-11-18 08:00:13\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m220:\u001b[0m Step succeeded \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mstep_id\u001b[0m\u001b[2m=\u001b[0mregister_tokenizer \u001b[3mduration_ms\u001b[0m\u001b[2m=\u001b[0m1686\n\u001b[2m2026-11-18 08:00:13\u001b[0m \u001b[32m INFO\u001b[0m \u001b[2msmg::workflow::event\u001b[0m\u001b[2m:\u001b[0m \u001b[2m/home/runner/work/sglang/sglang/src/workflow/event.rs\u001b[0m\u001b[2m:\u001b[0m\u001b[2m259:\u001b[0m Workflow completed \u001b[3minstance_id\u001b[0m\u001b[2m=\u001b[0m90d63ce4-2646-4c5c-af04-2fcc065f5c1d \u001b[3mduration_ms\u001b[0m\u001b[2m=\u001b[0m2742\n"
+  },
+  "http://<HOST>:18080/workers": {
+    "status": 200,
+    "body": "{\"workers\":[{\"id\":\"ffa53424-c594-4ed9-beb9-29f3d098a1f9\",\"url\":\"http://<HOST>:19084\",\"model_id\":\"glm53flash\",\"priority\":50,\"cost\":1.0,\"worker_type\":\"decode\",\"is_healthy\":true,\"load\":0,\"connection_mode\":\"HTTP\",\"metadata\":{\"disaggregation_mode\":\"decode\",\"load_balance_method\":\"round_robin\",\"served_model_name\":\"glm53flash\",\"model_path\":\"/models/glm53\",\"dp_size\":\"1\",\"architectures\":\"[\\\"Glm5NextForConditionalGeneration\\\"]\",\"model_type\":\"glm5_next\",\"tp_size\":\"8\"},\"disable_health_check\":false},{\"id\":\"942dfb4c-515a-46ab-87f3-33353a53a28c\",\"url\":\"http://<HOST>:19083\",\"model_id\":\"glm53flash\",\"priority\":50,\"cost\":1.0,\"worker_type\":\"prefill\",\"is_healthy\":true,\"load\":0,\"connection_mode\":\"HTTP\",\"bootstrap_port\":8998,\"metadata\":{\"tp_size\":\"8\",\"served_model_name\":\"glm53flash\",\"dp_size\":\"1\",\"disaggregation_mode\":\"prefill\",\"model_type\":\"glm5_next\",\"model_path\":\"/models/glm53\",\"architectures\":\"[\\\"Glm5NextForConditionalGeneration\\\"]\",\"load_balance_method\":\"follow_bootstrap_room\"},\"disable_health_check\":false}],\"total\":2,\"stats\":{\"prefill_count\":1,\"decode_count\":1,\"regular_count\":0}}"
+  },
+  "http://<HOST>:19083/ready": {
+    "status": 200,
+    "body": ""
+  },
+  "http://<HOST>:19084/ready": {
+    "status": 200,
+    "body": ""
+  }
+}

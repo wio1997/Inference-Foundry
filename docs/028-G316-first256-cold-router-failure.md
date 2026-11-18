@@ -18,3 +18,11 @@ G316完成五轮独立预热后，首次正式cold32于06:24:35UTC实际启动�
 
 - [实际固定镜像HTTP健康/ready源码](../evidence/matched_SG_G316/256K/first_cold_failed_G541/actual_fixed_health_sources/sglang/srt/entrypoints/http_server.py)
 - [实际固定镜像tokenizer状态源码](../evidence/matched_SG_G316/256K/first_cold_failed_G541/actual_fixed_health_sources/sglang/srt/managers/tokenizer_manager.py)
+
+
+G565于08:00:12UTC实际启动原生路由，唯一服务策略变化为health-check-endpoint=/ready；timeout生命周期包装另行有界。P/D容器和模型参数未改，保留circuit breaker、请求3600s超时与禁止重试。实际监听socket FD与固定launcher setproctitle身份共同核验，仅结束原来归属确定的18080路由。前两轮控制脚本失败原样保留：G553在变更前未匹配已改名进程，G560在精确旧路由终止后等待docker-exec退出确认存在异步时序，G565核验旧进程真正消失和端口可用才启动。08:01:39UTC新控制器存活、两worker healthy/load0，native ready均200。长负载恢复、正式冷热测量和性能收益仍未验证，首次256K失败没有覆盖或重发。
+
+- [新路由实际就绪观察](../evidence/native_router_ready_G565/G566_native_ready_router_actual_2201_parsed.json)
+- [有界路由控制器](../code/native_router_ready_G565/router_ready_controller_g565.py)
+- [原身份匹配前置失败](../evidence/native_router_ready_G565/G555_native_ready_router_actual_2201_parsed.json)
+- [旧进程异步退出确认失败](../evidence/native_router_ready_G565/G561_native_ready_router_actual_2201_parsed.json)
