@@ -15,3 +15,7 @@ TP8/EP8/PP1、P chunk8192/eager、D chunk1024/full target+draft graph、mem .88/
 后续已完成原生vLLM全量D0在无NPU设备CPU路径的覆盖对照，受控释放原生D八卡后，[SG D832实际启动](../evidence/full_model_G832/D_actual_start.json)。这是启动记录，尚未凭此声称D就绪、实际图重放或完整PD通过。
 
 [质量请求worker AST检查](../evidence/full_model_G832/matched_quality_worker_AST_check.json)确认SG与native完整请求worker一致：原始1319题、同提示、T0/seed0/max2048、C16、thinking=false和无重试。继续引用同一官方冻结数据/严格grader原件；[已部署源码](../evidence/full_model_G832/matched_quality_source_staged.json)只更换框架URL、输出目录和镜像标识。[固定镜像聊天源码](../evidence/full_model_G832/fixed_image_chat_thinking_contract.json)也确认chat_template_kwargs的thinking开关。源码匹配不等于实际模型质量通过，必须完成双端就绪与原始请求/响应的全量评分。
+
+## 后续实际结果
+
+双端已就绪且限定功能/SSE通过；随后完整质量实际失败并受控停止。D832已为独占组件验证退休，P保留。以[033实际失败、设备诊断与候选](033-SG832-full-quality-failure-and-paged-indexer-candidate.md)和metadata为当前状态，前文待启动/待采集均为历史阶段。

@@ -70,3 +70,5 @@
 [实际prefill两次峰值与Engram张量存活机制](docs/030-prefill-transient-memory-and-gate-liveness.md)
 
 [2026-11-18上游A2适配范围复核](docs/031-upstream-refresh-20261118.md)：官方main/release已重新固定，现有A2镜像与适配保持。
+
+[SG832完整质量失败与分页索引候选](docs/033-SG832-full-quality-failure-and-paged-indexer-candidate.md)：14条600秒传输超时，完整质量未通过；实际八rank短诊断已留证，候选严格门结果待审。

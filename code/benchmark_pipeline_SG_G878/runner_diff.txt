@@ -1,0 +1,79 @@
+--- native674
++++ SG878
+@@ -13,6 +13,7 @@
+ import urllib.request
+ 
+ from audit_aisbench import atomic, audit_phase, audit_run, sha
++from metric_selectors import select_counter
+ 
+ 
+ def utc():
+@@ -129,7 +130,7 @@
+                 assert p.resolve().is_relative_to(base.resolve()),('Compiler root escapes actual run',str(p))
+                 return p
+         raise AssertionError(('No host mapping for compiler root',value))
+-    keys=['HOME','TMPDIR','TRITON_CACHE_DIR','ASCEND_CACHE_PATH','TORCH_EXTENSIONS_DIR','TORCHINDUCTOR_CACHE_DIR','TORCHAIR_CACHE_HOME','VLLM_CACHE_ROOT','XDG_CACHE_HOME']
++    keys=['HOME','TMPDIR','TRITON_CACHE_DIR','ASCEND_CACHE_PATH','TORCH_EXTENSIONS_DIR','TORCHINDUCTOR_CACHE_DIR','TORCHAIR_CACHE_HOME','VLLM_CACHE_ROOT','XDG_CACHE_HOME','SGLANG_CACHE_DIR','SGLANG_JIT_CACHE_DIR','SGLANG_DG_CACHE_DIR','SGLANG_CUTE_AOT_CACHE_DIR','TILELANG_CACHE_DIR','HUMMING_CACHE_DIR']
+     envs=[dict(x.split('=',1) for x in info['Config']['Env'] if '=' in x)]
+     # Native launch adds compiler variables after docker creation. Inspect actual live container processes as well.
+     pids=subprocess.check_output(['docker','top',info['Id'],'-eo','pid'],text=True).splitlines()[1:]
+@@ -141,12 +142,12 @@
+         except FileNotFoundError:continue
+         envs.append({k:v for item in raw.decode(errors='replace').split('\0') if '=' in item for k,v in [item.split('=',1)] if k in keys})
+     assert len(envs)>1,'Actual live decode process environment unavailable'
+-    roots={base/s for s in ['cache/triton','cache/ascend','cache/torch_extensions','cache/inductor','cache/torchair','home/.cache/vllm','home/.cache/torch','tmp/torchinductor_root']}
++    roots={base/s for s in ['cache/triton','cache/ascend','cache/torch_extensions','cache/inductor','cache/torchair','home/.cache/vllm','home/.cache/torch','home/.cache/sglang','tmp/torchinductor_root']}
+     for env in envs:
+         for key in keys[2:]:
+             if key in env and env[key]:roots.add(host_path(env[key]))
+         if env.get('HOME'):
+-            roots.add(host_path(env['HOME']+'/.cache/vllm'));roots.add(host_path(env['HOME']+'/.cache/torch'))
++            roots.add(host_path(env['HOME']+'/.cache/vllm'));roots.add(host_path(env['HOME']+'/.cache/torch'));roots.add(host_path(env['HOME']+'/.cache/sglang'))
+         if env.get('TMPDIR'):roots.add(host_path(env['TMPDIR']+'/torchinductor_root'))
+     files={q for r in roots for q in r.rglob('*') if q.is_file() and not q.name.endswith('.lock')}
+     return {str(q.relative_to(base)):{'bytes':q.stat().st_size,'mtime_ns':q.stat().st_mtime_ns} for q in sorted(files)}
+@@ -174,7 +175,8 @@
+     root = a.root.resolve(strict=True)
+     assert a.root.is_absolute(), '--root must be explicit absolute host directory'
+     os.chdir(root)
+-    assert a.warmup_passes >= 2, 'At least two same-length full-prefill warmups required'
++    assert a.engine=='sglang', 'This prepared copy is SG only'
++    assert a.warmup_passes >= 5, 'At least five independent full-prefill warmups required'
+     assert all(n in [32768, 65536, 131072, 262144] for n in a.lengths)
+     assert len(set(a.lengths)) == len(a.lengths)
+     gate_path = a.gate or root / f'service_gate_{a.engine}.json'
+@@ -191,6 +193,7 @@
+     warmup_phases = warmup_plan(gate, a.warmup_passes)
+     for r in gate['roles'].values():
+         assert r['ready'] is True and r['container_id'] and r['started_at']
++        assert r['readiness_path']=='/ready', 'SG PD must use readiness without synthetic health generation'
+         if cold_mode == 'flush':
+             assert r['flush_url'] and r['flush_method'] in ['POST', 'GET']
+             assert r['flush_success_regex'], 'Require reviewed actual reset response expression'
+@@ -334,7 +337,7 @@
+     def snapshot(tag, posthoc=False):
+         values = {}
+         for role, r in gate['roles'].items():
+-            health = request(r['base_url'].rstrip('/') + '/health')
++            health = request(r['base_url'].rstrip('/') + r.get('readiness_path','/health'))
+             models = request(r['base_url'].rstrip('/') + '/v1/models')
+             values[role] = {'health': health, 'models': models}
+             if r.get('metrics_url'):
+@@ -427,13 +430,12 @@
+             def counter(snapshot):
+                 metrics = snapshot[role].get('metrics', {})
+                 assert metrics.get('status') == 200, 'Metrics collection failed'
+-                pattern = re.compile(r'^' + re.escape(metric_name) + r'(?:\{[^\n]*\})?\s+([0-9.eE+\-]+)(?:\s+\d+)?$', re.M)
+-                values = [float(x) for x in pattern.findall(metrics['body'])]
+-                assert values, f'Counter {metric_name} absent'
+-                return sum(values)
++                labels=role_gate.get('prefix_hit_counter_labels')
++                assert labels, 'SG prefix counter requires explicit mode/rank/model labels'
++                return select_counter(metrics['body'],metric_name,labels)
+             first, last = counter(before), counter(after)
+             assert last >= first, 'Counter reset during scored phase'
+-            results[role] = {'verified': True, 'counter': metric_name, 'before': first, 'after': last, 'delta': last - first}
++            results[role] = {'verified': True, 'counter': metric_name, 'labels':role_gate['prefix_hit_counter_labels'], 'before': first, 'after': last, 'delta': last - first}
+             if phase_name == 'cold':
+                 assert last == first, f'{role} cold phase had prefix hits; cannot accept cache-cold claim'
+         atomic(out / f'{phase_name}_{length}_cache_audit.json', results)
