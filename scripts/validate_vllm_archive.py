@@ -12,6 +12,18 @@ def main():
  for e in json.loads((R/'evidence/components/provenance.json').read_text()):assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['published_sha256']
  g=json.loads((R/'evidence/native_graph_contract.json').read_text());assert not g['actual_full_model_target_and_draft_graph_replay_verified']
  for e in g['sources'].values():assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['sha256']
+ source=R/'evidence/connector_source_G359.json'
+ if source.is_file():
+  for e in json.loads(source.read_text())['files']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['published_sha256']==e['original_sha256']
+  contract=json.loads((R/'evidence/connector_contract_G365.json').read_text());assert contract['passed'] and len(contract['cases'])==9
+  for name,digest in contract['source_SHA256'].items():assert hashlib.sha256((R/'code/fixed_connectors_G359'/name).read_bytes()).hexdigest()==digest
+ audit=R/'evidence/PR12_source_comparison_G370.json'
+ if audit.is_file():
+  a=json.loads(audit.read_text());assert a['compared_files']==113 and len(a['files'])==113
+  assert a['counts']=={'byte_identical':39,'different':44,'missing_from_fixed':30,'samepath_missing_with_relocated_same_bytes':6}
+  for e in a['selected_native_sources']:assert hashlib.sha256((R/e['artifact']).read_bytes()).hexdigest()==e['sha256']
+  q=json.loads((R/'evidence/PR12_quant_contract_G372.json').read_text());assert q['passed'] and len(q['cases'])==8
+  for label,rel in [('fixed0.30','fixed'),('PR12','reference')]:assert hashlib.sha256((R/'code/pr12_quant_contract'/rel/'patch_dspark.py').read_bytes()).hexdigest()==q['source_sha256'][label]
  receipt=json.loads((R/'evidence/components/G50_vllm/receipt.json').read_text());result=receipt['results'];assert result['all8_passed'] and result['worker_exit_codes']==[0]*8
  assert {x['rank'] for x in result['reports']}==set(range(8));cases=graphs=replays=0
  for report in result['reports']:

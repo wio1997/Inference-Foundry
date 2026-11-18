@@ -1,0 +1,71 @@
+{
+  "kind": "CPU_fixed_native_branch_contract",
+  "source_SHA256": {
+    "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py": "fb7cf7a296a0f405e999d8b95493b7af21712c6825dc13b4ed2801fde423dbc4",
+    "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/dspark_context.py": "296bd051f967d34a21f310cd64561f71819af96d423ff0edceaaeed68e65f93a"
+  },
+  "cases": [
+    {
+      "case": "store_configure",
+      "use_layerwise": false,
+      "data_plane": "gva",
+      "role": "kv_producer",
+      "enabled": false
+    },
+    {
+      "case": "store_configure",
+      "use_layerwise": true,
+      "data_plane": "gva",
+      "role": "kv_producer",
+      "enabled": true
+    },
+    {
+      "case": "store_configure",
+      "use_layerwise": true,
+      "data_plane": "block_key",
+      "role": "kv_producer",
+      "enabled": false
+    },
+    {
+      "case": "store_configure",
+      "use_layerwise": true,
+      "data_plane": "gva",
+      "role": "kv_consumer",
+      "enabled": false
+    },
+    {
+      "case": "layerwise_graph_policy",
+      "layerwise_requires_piecewise": true,
+      "nonlayerwise_requires_piecewise": false
+    },
+    {
+      "case": "sfa_P_guard",
+      "config": {
+        "pcp": 4
+      },
+      "native_error": "P-side DSpark draft KV generation does not support context parallelism."
+    },
+    {
+      "case": "sfa_P_guard",
+      "config": {
+        "prefix": true
+      },
+      "native_error": "P-side DSpark requires local prefix caching disabled; paired AscendStore prefix reuse is separate."
+    },
+    {
+      "case": "sfa_P_guard",
+      "config": {
+        "eager": false
+      },
+      "native_error": "P-side DSpark draft KV generation currently requires eager prefill."
+    },
+    {
+      "case": "native_valid_P_control",
+      "CP1_eager_localprefix_off_accepted": true,
+      "generic_Mooncake_reference_does_not_select_SFA_draft_protocol": true
+    }
+  ],
+  "passed": true,
+  "fixture_scope": "DSparkPrefixKeys.from_config and auxiliary IDs use recording interface fixtures; no real key hashes, tensors, SDK/store, PD, graph, loaded weights or performance acceptance",
+  "conclusion": "Reference MultiConnector mechanism exists; reference nonlayerwiseMooncake doesnot optinto this fixed pairedDSpark prefix path. Preserve native P localprefix/CP/eager guards; P GVA store layerwise and D fullgraphs require role-specific graph policy."
+}

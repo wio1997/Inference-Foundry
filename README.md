@@ -13,3 +13,7 @@
 - [分支范围与共享权重/数据权威指针](metadata/framework_scope.json)
 
 公开产物脱敏，完整权重和大型trace不入Git。`python3 scripts/validate_vllm_archive.py`只做档案核验，不启动模型或NPU。
+
+[固定镜像PD/DSPARK配对prefix源码契约](docs/003-fixed-image-PD-prefix-contract.md)
+
+[PR #12 与固定镜像的逐项源码比较](docs/004-PR12-source-comparison.md)
