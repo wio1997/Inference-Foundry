@@ -50,3 +50,5 @@
 [完整 D 图 MoE 路由缺口与 Ascend 数学调用候选](docs/021-native-router-CANN-and-math-lowering.md)
 
 [NPU复数频率索引的逐位兼容门槛](docs/022-complex-frequency-gather.md)
+
+[完整原生V4频率索引覆盖修正](docs/023-complete-frequency-index-coverage.md)
