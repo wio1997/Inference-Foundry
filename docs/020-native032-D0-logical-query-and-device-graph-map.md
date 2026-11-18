@@ -20,3 +20,5 @@
 906次范围内重放的逻辑query合计21450，对应SparseFlashMla输入首维按重放加总为23370；差额1920全部来自5请求/30 query使用36首维的图，比逻辑query多8.951%。它是输入lane计数，不等于多8.951%的端到端耗时或可消除FLOPs，kernel可能mask padding，分块/算子tile也会影响收益。不能把该比例称为已经取得的优化收益。
 
 这给出一个有直接证据的图bucket候选，但尚需固定源码解释图family、target/draft边界和捕获几何，并与SGLang匹配实际逻辑工作量。诊断中实际微批次最多6请求，客户端C16不能替代内部batch。后续优化仍需正确性和匹配端到端A/B，当前未部署新bucket，未重发NPU采集，未修改模型计算。
+
+后续[021](021-native032-allrank-coverage-and-DSPARK-source-chain.md)补齐D其余rank原始覆盖复核与实际DSPARK工厂、parallel backbone/Markov、sample_tokens/propose和图round-up源码链。原先“其余D待验收”是历史状态；逐step范围外CPU归属和跨框架地图仍未完成。

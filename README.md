@@ -39,3 +39,5 @@
 [原生profiling实例就绪与边界](docs/017-native032-profile-epoch-readiness.md)；实际all-rank trace尚待采集验收。
 
 [原生16-rank采集与实际逻辑工作量](docs/018-native032-profile-capture-and-logical-work.md)；设备解析、SGLang对比与优化收益仍待完成。
+
+[原生P8+D8实际覆盖与DSPARK源码链](docs/021-native032-allrank-coverage-and-DSPARK-source-chain.md)：全部原始rank解析/父级设备与CPU复核完成；保留rank4计数差异，跨框架归一化地图仍待完成。
