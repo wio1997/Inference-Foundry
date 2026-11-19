@@ -1,0 +1,154 @@
+--- a/sglang/srt/disaggregation/ascend/transfer_engine.py
++++ b/sglang/srt/disaggregation/ascend/transfer_engine.py
+@@ -1,5 +1,7 @@
+ import logging
+ import os
++import json
++from pathlib import Path
+ from typing import List
+ 
+ import torch
+@@ -83,14 +85,45 @@
+             logger.error("Ascend Transfer Engine initialization failed.")
+             raise RuntimeError("Ascend Transfer Engine initialization failed.")
+ 
++    @staticmethod
++    def _nonempty_rows(*columns):
++        if len({len(column) for column in columns}) != 1:
++            raise ValueError("Ascend transfer descriptor column lengths differ")
++        rows=[]
++        skipped=[]
++        for index,row in enumerate(zip(*columns)):
++            size=int(row[-1])
++            if size < 0:
++                raise ValueError("Negative transfer byte count")
++            if size == 0:
++                skipped.append(index)
++                continue
++            if any(int(ptr) <= 0 for ptr in row[:-1]):
++                raise ValueError("Nonempty Ascend transfer descriptor has null pointer")
++            rows.append(tuple(int(value) for value in row))
++        return rows,skipped
++
+     def batch_register(self, ptrs: List[int], lengths: List[int]):
+-        try:
+-            ret_value = self.engine.batch_register_memory(ptrs, lengths)
+-        except Exception:
+-            # Mark register as failed
+-            ret_value = -1
++        rows,skipped=self._nonempty_rows(ptrs,lengths)
++        actual_ptrs=[row[0] for row in rows]
++        actual_lengths=[row[1] for row in rows]
++        # NoPE legitimately owns zero-width RoPE tensors. Preserve the logical
++        # PD descriptor order, but never register their null storage with SMEM.
++        ret_value=self.engine.batch_register_memory(actual_ptrs,actual_lengths) if rows else 0
++        directory=os.environ.get('GLM53_LOAD_LEDGER_DIR')
++        if directory:
++            receipt=dict(pid=os.getpid(),requested_entries=len(ptrs),registered_entries=len(rows),skipped_zero_byte_positions=skipped,registered_bytes=sum(actual_lengths),returncode=ret_value,scope='SMEM registration only; no transfer or PD state correctness claim')
++            Path(directory).mkdir(parents=True,exist_ok=True)
++            Path(directory,f'PD_registration_g26.pid{os.getpid()}.json').write_text(json.dumps(receipt,indent=2))
+         if ret_value != 0:
+-            logger.debug(f"Ascend memory registration for ptr {ptrs} failed.")
++            raise RuntimeError(f"Ascend nonempty memory registration failed: {ret_value}")
++        return ret_value
++
++    def batch_transfer_sync(self,session_id,buffers,peer_buffer_addresses,lengths):
++        rows,_=self._nonempty_rows(buffers,peer_buffer_addresses,lengths)
++        if not rows:
++            return 0
++        return super().batch_transfer_sync(session_id,[r[0] for r in rows],[r[1] for r in rows],[r[2] for r in rows])
+ 
+     @staticmethod
+     def _get_transfer_protocol() -> str:
+--- a/sglang/srt/disaggregation/prefill.py
++++ b/sglang/srt/disaggregation/prefill.py
+@@ -1673,6 +1673,13 @@
+             # scoped, so its transfer index must use the logical input length
+             # that decode used to register the destination row.
+             seq_len = min(req.extend_end, transfer_input_len)
++            # Native result processing already fenced copy_done AFTER draft
++            # prefill. Validate state VERSION as well as buffer registration.
++            from glm53_sglang_adapter.pd_drafttails import validate_draft_tail_send
++            validate_draft_tail_send(
++                self.disagg_prefill_bootstrap_queue.draft_token_to_kv_pool,
++                req, seq_len,
++            )
+             c128_seq_len = transfer_input_len
+ 
+             def _mamba_payload():
+--- a/sglang/srt/mem_cache/static_kv_storage.py
++++ b/sglang/srt/mem_cache/static_kv_storage.py
+@@ -682,13 +682,22 @@
+     def append_dsa_tail(pool) -> None:
+         if not pool.kpool_use_compress:
+             return
+-        tail_ptrs, tail_lens, tail_item_lens = pool.get_compress_tail_buf_infos()
++        tail_layer_ids = None
++        if (getattr(pool, "glm53_index_in_owner_kv", False)
++            and draft_token_to_kv_pool is not None):
++            from glm53_sglang_adapter.pd_drafttails import combined_tail_registration
++            tail_ptrs, tail_lens, tail_item_lens, tail_layer_ids = combined_tail_registration(
++                token_to_kv_pool, pool, draft_token_to_kv_pool, total_kv_layers
++            )
++        else:
++            tail_ptrs, tail_lens, tail_item_lens = pool.get_compress_tail_buf_infos()
+         if tail_ptrs:
+             add(
+                 StateType.DSA_TAIL,
+                 tail_ptrs,
+                 tail_lens,
+                 tail_item_lens,
++                layer_ids=tail_layer_ids,
+             )
+ 
+     if isinstance(token_to_kv_pool, MHATokenToKVPoolMXFP8):
+@@ -810,12 +819,10 @@
+             if getattr(token_to_kv_pool, "use_dsa", False):
+                 dsa_pool = token_to_kv_pool.full_kv_pool
+                 dsa_ptrs, dsa_lens, dsa_item_lens = dsa_pool.get_state_buf_infos()
+-                add(
+-                    StateType.DSA,
+-                    dsa_ptrs,
+-                    dsa_lens,
+-                    dsa_item_lens,
+-                )
++                # This scoped NPU child already registers its compressed index
++                # with native owner K/V buffers; avoid a duplicate state entry.
++                if not getattr(dsa_pool, "glm53_index_in_owner_kv", False):
++                    add(StateType.DSA, dsa_ptrs, dsa_lens, dsa_item_lens)
+                 append_dsa_tail(dsa_pool)
+             if isinstance(token_to_kv_pool, QSATokenToKVPool):
+                 qsa_ptrs, qsa_lens, qsa_item_lens = (
+--- a/sglang/srt/model_executor/model_runner.py
++++ b/sglang/srt/model_executor/model_runner.py
+@@ -15,6 +15,7 @@
+ 
+ from __future__ import annotations
+ 
++import os
+ import contextlib
+ import inspect
+ import logging
+@@ -783,6 +784,9 @@
+             is_draft=self.is_draft_worker,
+         )
+         allocate_mega_moe_buffers(self.model)
++        if self.device == "npu" and not self.is_draft_worker and os.environ.get("GLM53_MTP_GRAPH_ASYNC_CANDIDATE") == "1":
++            from glm53_sglang_adapter.comm_profile_g24 import prepare_before_KV_profile
++            prepare_before_KV_profile()
+ 
+     def init_memory_saver_adapter(self):
+         self.memory_saver_adapter = TorchMemorySaverAdapter.create(
+@@ -1875,6 +1879,12 @@
+         skip_attn_backend_init: Optional[bool] = None,  # deprecated
+         pp_proxy_tensors: Optional[PPProxyTensors] = None,
+     ) -> ModelRunnerOutput:
++        if self.device == "npu" and os.environ.get("GLM53_P_RUNTIME_HEADROOM_G29") == "1":
++            from glm53_sglang_adapter.runtime_headroom_g29 import reserve_runtime_headroom
++            reserve_runtime_headroom(
++                torch.npu, role=self.server_args.disaggregation_mode,
++                mode=str(forward_batch.forward_mode), tokens=forward_batch.input_ids.numel(),
++            )
+         # Deprecated kwarg: pre-planners mark the batch themselves now.
+         forward_batch.apply_deprecated_skip_attn_backend_init(skip_attn_backend_init)
+ 

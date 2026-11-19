@@ -1,0 +1,81 @@
+--- a/sglang/srt/hardware_backend/npu/attention/ascend_kda_backend.py
++++ b/sglang/srt/hardware_backend/npu/attention/ascend_kda_backend.py
+@@ -310,25 +310,24 @@
+             )
+         return core_attn_out
+ 
+-    def _prepare_extend_gate_inputs(
+-        self,
+-        layer: RadixLinearAttention,
+-        g: torch.Tensor,
+-        beta: torch.Tensor,
+-    ) -> tuple[
+-        torch.Tensor,
+-        torch.Tensor,
+-        Optional[torch.Tensor],
+-        Optional[torch.Tensor],
+-    ]:
+-        """Activate raw gate and beta projections in FP32 for Ascend prefill."""
++    def _prepare_extend_gate_inputs(self, layer, g, beta):
++        """Preserve token axes; only flatten an explicit (H,K) gate tail."""
++        heads = layer.A_log.numel()
++        dim = layer.head_k_dim
++        if g.ndim == 4:
++            assert g.shape[0] == 1 and g.shape[-2:] == (heads, dim)
++            projection = g.flatten(-2)
++        else:
++            assert g.ndim == 3 and g.shape[0] == 1
++            assert g.shape[-1] == heads * dim
++            projection = g
++        assert beta.ndim == 3 and beta.shape[:2] == projection.shape[:2]
++        assert beta.shape[-1] == heads
+         preactivated_g = fused_kda_gate_npu(
+-            g.flatten(-2),
+-            layer.A_log,
+-            layer.head_k_dim,
+-            gate_bias=layer.dt_bias,
+-            lower_bound=layer.lower_bound,
+-        )
++            projection, layer.A_log, dim,
++            gate_bias=layer.dt_bias, lower_bound=layer.lower_bound,
++        )
++        assert preactivated_g.shape == (*projection.shape[:-1], heads, dim)
+         return preactivated_g, beta.float().sigmoid(), None, None
+ 
+     def _forward_target_verify(
+@@ -412,14 +411,9 @@
+         # Activate the forget gate and beta in FP32 before entering the
+         # recurrent kernel to match the checkpoint's verify contract.
+         # This stays in the Ascend backend so shared/GPU model code is unchanged.
+-        preactivated_a = fused_kda_gate_npu(
+-            dense_a.flatten(-2),
+-            layer.A_log,
+-            layer.head_k_dim,
+-            gate_bias=layer.dt_bias,
+-            lower_bound=layer.lower_bound,
+-        )
+-        preactivated_b = dense_b.float().sigmoid()
++        preactivated_a, preactivated_b, _, _ = self._prepare_extend_gate_inputs(
++            layer, dense_a, dense_b
++        )
+         out = kda_target_verify_npu(
+             A_log=layer.A_log,
+             dt_bias=layer.dt_bias,
+--- a/sglang/srt/layers/attention/attention_registry.py
++++ b/sglang/srt/layers/attention/attention_registry.py
+@@ -614,9 +614,12 @@
+                     runner, KDAAttnBackend
+                 )
+         elif glm5_next_config(runner.model_config) is not None:
+-            linear_attn_backend = _create_linear_attention_backend(
+-                runner, KDAAttnBackend
+-            )
++            if _is_npu:
++                from sglang.srt.hardware_backend.npu.attention.ascend_kda_backend import AscendKDAAttnBackend, AscendKDAHybridLinearAttnBackend
++                linear_attn_backend = _create_linear_attention_backend(runner, AscendKDAAttnBackend)
++                hybrid_backend_cls = AscendKDAHybridLinearAttnBackend
++            else:
++                linear_attn_backend = _create_linear_attention_backend(runner, KDAAttnBackend)
+         elif hybrid_lightning_config(runner.model_config) is not None:
+             linear_attn_backend = LightningAttentionBackend(runner)
+         else:
