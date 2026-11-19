@@ -89,3 +89,5 @@
 [32K D侧逐rank GMM记录形状与事件分布](docs/042-d-gmm-by-recorded-shape.md)
 
 [32K D侧GMM独立序列分段与原始计数器](docs/043-d-gmm-ordinal-counters.md)
+
+[32K D侧GMM主stream原始字段与专家工作量待验证项](docs/044-d-gmm-counter-scope.md)
