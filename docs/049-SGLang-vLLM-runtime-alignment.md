@@ -96,6 +96,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 对当前冷测单次计数增长做实机核对。Router 与 HTTP 请求耗时各增加一次，约 7561.69 秒，同一时间窗内新增原始请求的客户端首条 SSE 耗时 7561.67 秒。计数更新时客户端仍只有 18 条完整记录，新增请求的末条 SSE 至少晚 80.28 秒。这次观察将现有 Router 耗时对齐到了首条响应附近。已暴露的指标按路由聚合，单个 Prefill HTTP 或 Decode 等待时长仍需逐请求事件。 [计数差值和原始客户端时钟](../evidence/SG_usage_recovery_G1276/SG_G1317_actual_Router_histogram_first_SSE_G1483.json) [复算代码](../code/SG_first_token_comparison/audit_router_histogram_boundary_g1483.py)
 
+同一活跃 Router 的下一次计数更新期间，跟踪了两端上游 TCP 连接的接收计数。一条原有 Decode 连接已收到 21936 字节，至少 27.749 秒后才看到一条原有 Prefill 连接首次收到数据。Prefill 首批数据与新增客户端记录的首条 SSE 落在约 2 秒的同一采样窗口。此前 Decode 调度日志也已报告 1 条运行请求和 12 条等待传输。观察只采集连接元数据，另行记录期间新增连接。HTTP 帧内容、响应体结束和同请求配对仍需独立证据。 [双端连接计数、调度日志和客户端时钟](../evidence/SG_usage_recovery_G1276/SG_G1317_actual_Router_upstream_tcp_first_SSE_G1484.json) [复算代码](../code/SG_first_token_comparison/audit_live_router_upstream_tcp_g1484.py)
+
 核对两端现役启动参数及已部署的匹配采集驱动后确认，逐请求时序日志和 OpenTelemetry 均关闭。后续原实例采集会打开 Torch profiler 的详细标记，用于算子、调度和设备事件；独立 Decode 请求标记仍处于源码校验阶段。CPU 用例确认，固定原生日志可随两端各自的请求 ID 输出 `bootstrap_room`，用于另行诊断关联。日志中的 Decode transfer duration 覆盖进入传输队列至进入执行等待队列，设备传输耗时仍需独立事件。 [两端功能核验及 CPU 用例](../evidence/SG_usage_recovery_G1276/SG_G1317_planned_profile_request_observability_G1469.json) [核对代码](../code/SG_PD_request_observability/audit_matched_profile_capabilities_g1469.py)
 
 同轮冷测的 Rank 0 启动日志与占用读数一致。Prefill 全量 KV 池容量为 2,352,384 个槽，快照中活跃 24,576、可驱逐 2,321,664；SWA 池容量为 49,536，活跃 8,320、可驱逐 33,664。Decode 全量池容量为 617,600，活跃 525,312、可驱逐 67,584。按冻结输入各自使用独立的首个 128-token 页计算，Decode 即使把全部全量池用于前缀，也至多同时容纳 18 条完整 32K 前缀。本轮有 32 条请求。这个容量上限用于解释后续重放，逐请求的完整和部分命中需要单独核验。 [容量、占用和冻结输入依据](../evidence/SG_usage_recovery_G1276/SG_G1317_live_cold_KV_pool_residency_G1471.json) [复算代码](../code/SG_KV_pool_observability/audit_cold_KV_pool_residency_g1471.py)
