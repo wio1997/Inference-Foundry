@@ -119,3 +119,5 @@
 [D侧KV资源端点、条件容量及early语义修正](docs/057-kv-resource-and-early-policy.md)
 
 [D侧条件性运行日志与候选源码来源](docs/058-conditional-decode-log-and-source.md)
+
+[vLLM正式32K/64K P/D阶段快照](docs/059-vllm-formal-stage-snapshots.md)
