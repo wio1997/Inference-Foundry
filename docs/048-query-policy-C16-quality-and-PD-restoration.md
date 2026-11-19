@@ -25,3 +25,13 @@ Decode 验收分为八个 rank 的 target 与 draft 装载及图捕获、路由�
 2203 Prefill 的两次空闲快照已用同一实例、镜像和缓存目录对照。常规缓存目录有 3 个文件，另有 73 个 Ascend 工作文件，后者为日志、锁和构建进程元数据。两次快照之间这些文件均未变化，Prefill 的设备前缀命中计数为零。正式预热和计分需在对应阶段边界再次取样。诊断日志与持久编译产物的变化分别归档。[现场快照](../evidence/SG_phase_audit_G1205/G1200_P_idle_compile_baseline_2203_parsed.json) · [两次快照比较](../evidence/SG_phase_audit_G1205/G1204_P_idle_compiler_comparison.json)
 
 当前客户端可读取 vLLM 已验证的四个 32K、64K、128K、256K 长上下文检索请求，原始数据和 tokenizer 均通过 SHA 校验。SGLang 在最终 PD 路由就绪后将逐条核对实际输入 token 数和答案，随后重放同一请求。复用证据将分别记录 Prefill 的本地计数和 PD 响应的合计缓存 token 数。Decode 本地命中需要独立证据。[当前挂载复核](../evidence/SG_phase_audit_G1205/G1203_SG_long_inputs_verified_2204_parsed.json) · [准备记录和源码](../evidence/SG_phase_audit_G1205/source_index.json)
+
+## P/D 联调准备与 profile 字段覆盖
+
+固定镜像的 `/start_profile` 将 `detailed_annotations` 传入调度器 profiler。构建 CPU step span 时，生成路径从 CPU 长度镜像和 spec 元数据给出的 query 宽度得出 `g_sq/g_sqsq/g_sqsk/g_sk`，上下文路径从 chunk 和 prefix 长度得出 `c_*`。宽度字段缺失时源码默认取 1，采集后要按角色、rank 和模式核对字段覆盖以及 VERIFY、DRAFT 实际使用的宽度。响应端的 `cached_tokens` 汇总 PD 请求的令牌计数。P 侧设备、主机内存和存储的命中由 P 自己的指标确认，D 的已计算令牌包含从 P 传来的缓存状态。 [固定镜像源码摘录](../evidence/SG_profile_readiness_G1218/fixed_image_profile_and_usage_source.json)
+
+在两份旧 D 短跑的真实 rank 0 数据库上，G896 的 6 次 `aclmdlRIExecuteAsync` 通过同线程和 CPU 时间范围关联到 4 次 DRAFT 调用和 2 次 VERIFY 调用。G981 的 4 次调用按 2 次 DRAFT 和 2 次 VERIFY 分布。10 次调用都有唯一的 step 和直接 CANN connection 对应的设备任务，后者的 model ID 均为占位值 `4294967295`。这两份 trace 的 query/KV 字段覆盖均为 0/4，支持调用归属复核，逐步逻辑工作量和设备图实例仍待实采。 [旧 trace 关联回执](../evidence/SG_profile_readiness_G1218/G1213_SG_historical_graph_join_2204_parsed.json)
+
+关联脚本已用固定源码生成的 VERIFY、EXTEND、MIXED 标签验证，并在旧真实库上验证数值和文本两种时间戳格式。脚本保留没有唯一范围或设备关联的调用，单列字段覆盖率。当前 G1178 的匹配 profile 尚未采集。 [关联脚本](../code/SG_profile_readiness_G1218/parse_SG_step_graph_g1213.py) [CPU fixture](../evidence/SG_profile_readiness_G1218/G1213_parser_actual_label_fixture.json)
+
+P/D 联调脚本和最终 GSM8K 客户端源码已分别在 P 和 D 校验 SHA。记录时 standalone D1163 的 GSM8K 仍在执行，已返回 859/1319，828 条判对，传输失败和截断均为 0。最终 P/D 质量与四档正式性能还需以切换后的原始输出验收。 [P 部署回执](../evidence/SG_profile_readiness_G1218/G1214_P_runtime_source_staged_2203_parsed.json) [D 客户端回执](../evidence/SG_profile_readiness_G1218/G1215_D_PD_quality_source_staged_2204_parsed.json) [单机进度快照](../evidence/SG_profile_readiness_G1218/G1218_full_quality_observation_2204_parsed.json) [归档 SHA 索引](../evidence/SG_profile_readiness_G1218/source_index.json)
