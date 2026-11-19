@@ -75,3 +75,9 @@ Decode 的 8 个 rank 均通过 target 1384 项、draft 73 项严格装载。tar
 与 vLLM 原生 0.32 P/D 的 1319 份请求逐字节一致。1318 对均成功且未截断的题里，双方均正确 1262，vLLM 单独正确 7，SGLang 单独正确 4，双方均错误 45。总分 vLLM 1270/1319、SGLang 1266/1319。计入全量分母的 SGLang 超时题在 vLLM 答对。 [逐题对照](../evidence/SG_final_quality_G1268/final_SG_PD_native_same_question_comparison.json)
 
 两侧确认空闲后，开始独立 32K/1024 标准 SSE 探针。该输入沿用 vLLM 诊断的相同字节，首轮正式 AISBench 输入继续保留。 [SSE 探针启动](../evidence/SG_final_quality_G1268/actual_32k_sse_usage_probe_launch.json)
+
+## 32K 独立用量检查与恢复
+
+同 vLLM 请求字节的第一轮 32K/O1024 用量探针达到 600 秒总上限，客户端未得到完整 SSE 用量。P 记录了四个 8192-token 分块，前两段分块调度间隔约 120 秒。D 随后使用图回放生成。此次检查的 P 编译产物清单未观察到晚于阈值的新二进制，时间间隔的机制仍需采集实际算子和调度证据。该结果保存为独立协议检查失败。 [终态回执](../evidence/SG_usage_recovery_G1276/first_32K_probe_terminal_failure.json) [P 分块](../evidence/SG_usage_recovery_G1276/first_probe_P_scheduler_records.json) [D 调度](../evidence/SG_usage_recovery_G1276/first_probe_D_scheduler_records.json) [P 编译快照](../evidence/SG_usage_recovery_G1276/first_probe_D_linked_P_compile_snapshot.json)
+
+P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。客户端逐帧落盘，记录首次内容、总时间和失败时的部分字节，单次总上限 1800 秒。第一次观察已保存 80 个完整 SSE 帧，最终用量仍待通过。两次探针均独立于五轮预热和所有正式首轮输入。 [复测源码回执](../evidence/SG_usage_recovery_G1276/G1273_SG_32K_usage_recovery_source_2204_parsed.json) [实际启动](../evidence/SG_usage_recovery_G1276/G1275_PD_32K_usage_recovery_actual_start_2204_usage_parsed.json) [实时 SSE 回执](../evidence/SG_usage_recovery_G1276/G1276_live_32K_usage_retry_2204_parsed.json) [归档索引](../evidence/SG_usage_recovery_G1276/source_index.json)
