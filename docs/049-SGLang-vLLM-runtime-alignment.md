@@ -66,6 +66,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 全量 GSM8K 已挂接到原 32K 正式 runner 的终态。续跑进程先核对两阶段各 32 条请求、同一冻结数据及原始输出 SHA，再核查 P/D 空闲、同一 CPU 客户端和至少 14740 秒的资源窗口。实机只读检查确认预热期间质量启动被共享工作负载锁挡住。当前只是等待链路已就位，实际 GSM8K 请求与成绩仍待正式阶段终态。 [终态核对工具](../code/SG_phase_audit_G1205/verify_SG_formal_terminal_g1427.py) [等待与实机互斥记录](../evidence/SG_usage_recovery_G1276/SG_32K_to_GSM8K_event_continuation_G1427.json)
 
+32K 匹配 profile 的启动校验已按正式测试的角色计数范围更新。校验绑定冻结数据 SHA，要求 Prefill 冷测和重放均有实测计数，冷测命中增量为零。Decode 的两份回执须明确标记计数未观测。用已封存回执构造的离线校验通过，并拒绝了八组异常输入。更新后的校验工具已通过实机加载检查，仍待正式数据和实际 trace。 [校验工具](../code/SG_formal_cache_scope_G1385/verify_SG_matched_profile_cache_g1428.py) [离线与实机回执](../evidence/SG_usage_recovery_G1276/SG_G1317_matched_profile_cache_scope_G1428.json)
+
 ## 64K、128K、256K 的连续运行窗口
 
 现有 G1317 的配对锁进程源码上限为 108000 秒。此前为 128K 和 256K 规划的首次冷测加重放分别需要 136480 和 272480 秒，均超出该上限。此前的长 CPU 租期从正式阶段起算，预热续跑则会校验客户端身份。新的候选租期从预热开始计算，覆盖五轮独立预热、冷测及重放，并为 P/D 初始化留出原规划时间。三个档位的配对锁和 CPU 客户端源码已在实机预置，CPU 只读校验确认三份配置使用同一镜像、CPU 限额和挂载合同。配对锁互斥已在隔离文件验证。真实长档阶段耗时和租期门槛须在各档启动前核验。 [租期预算和实机预置](../evidence/SG_usage_recovery_G1276/SG_wide_full_campaign_lease_preflight_G1424.json) [配对锁](../code/SG_wide_PD_window_G1348/workload_guard_wide_g1424.py) [CPU 配置生成](../code/SG_wide_CPU_window_G1351/prepare_SG_CPU_full_campaign_g1424.py)
