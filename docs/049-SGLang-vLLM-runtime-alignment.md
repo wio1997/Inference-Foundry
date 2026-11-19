@@ -102,6 +102,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 两端现役 torch-npu 导出源码对 CPU 标记先做系统计数到本地单调时间换算，再按 CANN host 启动文件换算为本机墙钟。G896、G981 的实际 Decode 导出中，全部 CPU 事件都落在本机采集起止范围内，SQLite 的 `startNs` 为十进制文本。逐请求读取器已兼容这种存储类型并通过 16 条冻结构造标记的回归。当前两端墙钟相差约 19.92–19.99 秒。实际匹配采集需要同期校时，并分别验证设备与链路时间。 [实际导出、现役源码和回归证据](../evidence/SG_usage_recovery_G1276/SG_actual_CANN_CPU_export_clock_G1486.json) [时钟核对代码](../code/SG_PD_request_observability/audit_exported_host_clock_g1486.py)
 
+只读校时观察器已绑定原始匹配采集的启动与验收进程，两端各 12 次往返预检通过。观察器会在原采集启动前取样，运行中每 180 秒取样，并在确切驱动退出后再取样。验收器根据两端起停回执检查三个采样窗口，报告最大未采样间隔。实际采集尚未启动，离线用例已覆盖缺失窗口、错驱动和单端停止失败。 [现场监听启动回执](../evidence/SG_usage_recovery_G1276/SG_G1317_matched_profile_clock_observer_armed_G1487.json) [采样窗口核对代码](../code/PD_clock_G1460/verify_profile_clock_windows_g1487.py)
+
 核对两端现役启动参数及已部署的匹配采集驱动后确认，逐请求时序日志和 OpenTelemetry 均关闭。后续原实例采集会打开 Torch profiler 的详细标记，用于算子、调度和设备事件；独立 Decode 请求标记仍处于源码校验阶段。CPU 用例确认，固定原生日志可随两端各自的请求 ID 输出 `bootstrap_room`，用于另行诊断关联。日志中的 Decode transfer duration 覆盖进入传输队列至进入执行等待队列，设备传输耗时仍需独立事件。 [两端功能核验及 CPU 用例](../evidence/SG_usage_recovery_G1276/SG_G1317_planned_profile_request_observability_G1469.json) [核对代码](../code/SG_PD_request_observability/audit_matched_profile_capabilities_g1469.py)
 
 同轮冷测的 Rank 0 启动日志与占用读数一致。Prefill 全量 KV 池容量为 2,352,384 个槽，快照中活跃 24,576、可驱逐 2,321,664；SWA 池容量为 49,536，活跃 8,320、可驱逐 33,664。Decode 全量池容量为 617,600，活跃 525,312、可驱逐 67,584。按冻结输入各自使用独立的首个 128-token 页计算，Decode 即使把全部全量池用于前缀，也至多同时容纳 18 条完整 32K 前缀。本轮有 32 条请求。这个容量上限用于解释后续重放，逐请求的完整和部分命中需要单独核验。 [容量、占用和冻结输入依据](../evidence/SG_usage_recovery_G1276/SG_G1317_live_cold_KV_pool_residency_G1471.json) [复算代码](../code/SG_KV_pool_observability/audit_cold_KV_pool_residency_g1471.py)
