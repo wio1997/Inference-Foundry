@@ -63,6 +63,29 @@ def outputs(torch, rows, topk, device):
     )
 
 
+
+def selection_diagnostics(expected, actual):
+    reference = expected.out_raw_indices.cpu()
+    candidate = actual.out_raw_indices.cpu()
+    changed = (reference != candidate).any(dim=-1)
+    slots_changed = (expected.out_page_indices.cpu() != actual.out_page_indices.cpu()).any(dim=-1)
+    # The pinned writer sorts valid local indices and masks the remaining tail.
+    duplicates = ((candidate[:, 1:] >= 0) & (candidate[:, 1:] == candidate[:, :-1])).any(dim=-1)
+    changed_positions = changed.nonzero().flatten()[:8].tolist()
+    return {
+        'canonical_selection_changed_rows': int(changed.sum()),
+        'ordered_physical_slot_changed_rows': int(slots_changed.sum()),
+        'rows_with_duplicate_candidate_valid_indices': int(duplicates.sum()),
+        'examples': [{
+            'row': row,
+            'reference_valid': int((reference[row] >= 0).sum()),
+            'candidate_valid': int((candidate[row] >= 0).sum()),
+            'reference_first_indices': reference[row, :8].tolist(),
+            'candidate_first_indices': candidate[row, :8].tolist(),
+        } for row in changed_positions],
+    }
+
+
 def run_case(case, native, quantize, torch, call, device, repeat):
     rows = case.query
     width = (case.prefix + rows) // 2
@@ -126,6 +149,8 @@ def run_case(case, native, quantize, torch, call, device, repeat):
         'changed_raw_index_rows': int((expected.out_raw_indices != actual.out_raw_indices).any(dim=1).sum().item()),
         'passed_exact_component_gate': passed,
     }
+    if not passed:
+        result['failed_selection_diagnostics'] = selection_diagnostics(expected, actual)
     if passed and width:
         times = {'native_ms': [], 'candidate_ms': []}
         for index in range(repeat):

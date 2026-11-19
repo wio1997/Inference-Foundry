@@ -53,6 +53,14 @@ def deliberately_changed(*args, **kwargs):
     return original, values
 
 
+def deliberately_reordered(*args, **kwargs):
+    indices, values = torch_only_test_double(*args, **kwargs)
+    last = indices[0, -1, 0, :2]
+    assert last[0] >= 0 and last[1] >= 0 and last[0] != last[1]
+    last.copy_(last.flip(0))
+    return indices, values
+
+
 cases = [
     Case('empty-visible-prefix', 0, 1),
     Case('zero-visible-leading-row', 0, 9, zero_weights=True),
@@ -70,6 +78,12 @@ changed = run_case(error_case, native, lambda tensor: tensor, torch,
 assert not invalid['passed_exact_component_gate'] and invalid['invalid_library_indices'] > 0
 assert not changed['passed_exact_component_gate'] and changed['invalid_library_indices'] == 0
 assert not changed['exact_native_ordered_physical_slots']
+assert changed['failed_selection_diagnostics']['canonical_selection_changed_rows'] == changed['actual_fused_calls']
+assert changed['failed_selection_diagnostics']['rows_with_duplicate_candidate_valid_indices'] == changed['actual_fused_calls']
+reordered = run_case(error_case, native, lambda tensor: tensor, torch,
+                     deliberately_reordered, 'cpu', 0)
+assert reordered['passed_exact_component_gate'] and reordered['invalid_library_indices'] == 0
+assert reordered['exact_native_ordered_physical_slots'] and reordered['exact_native_effective_topk_indices']
 assert not glob.glob('/dev/davinci*')
 print('G1426_ACTUAL_A2_CPU_WIRING_FIXTURE_JSON ' + json.dumps({
     'device': 'cpu', 'torch_version': torch.__version__, 'torch_npu_version': torch_npu.__version__,
@@ -79,4 +93,7 @@ print('G1426_ACTUAL_A2_CPU_WIRING_FIXTURE_JSON ' + json.dumps({
     'all_positive_cpu_wiring_fixtures_passed': True,
     'invalid_index_fixture_rejected': True, 'different_native_slots_fixture_rejected': True,
     'positive_cases': outcomes,
+    'pre_writeback_order_change_canonicalized_by_native_writer': True,
+    'failed_duplicate_diagnostics': changed['failed_selection_diagnostics'],
+    'reordered_selection': reordered,
 }, sort_keys=True))

@@ -64,6 +64,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 用固定 A2 镜像的无 NPU 容器确认 `npu::npu_lightning_indexer` 的实际 PyTorch 注册签名。组件探针复用固定 SGLang 的评分和写回源码，保留算子原始输出供无效索引检查。写回前将算子的负数哨兵映射到可见范围之外，由 SGLang 原有排序及槽位映射完成输出。CPU 夹具通过四种形状，并分别拒绝不合法索引和物理槽位变化。真实 fused 算子数值、耗时和模型结果仍待上卡。 [探针](../code/SG_causal_prefill_score_G1362/probe_c2_lightning_indexer_g1426.py) [CPU 夹具与实机注册](../evidence/SG_usage_recovery_G1276/SG_A2_LI_component_probe_CPU_wiring_G1426.json)
 
+C2 探针仍要求写回后的本地索引和物理槽位逐项相同。固定写回源码会先按本地索引排序，CPU 核验确认仅改变算子输出顺序时仍可精确一致。两个奇偶分组分别注入重复索引，两行都被判为选择与槽位不一致。首次演练把两组的失败行误算为一行，按分组修正后通过。历史 CPU 演练与本轮都未调用 stock NPU kernel，设备正确性和组件耗时仍需实测。 [C2 探针](../code/SG_causal_prefill_score_G1362/probe_c2_lightning_indexer_g1426.py) [固定镜像演练](../evidence/SG_usage_recovery_G1276/SG_C2_LI_canonical_writeback_diagnostics_G1449.json)
+
 ## 32K 正式冷测和重放的时间窗口
 
 第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
