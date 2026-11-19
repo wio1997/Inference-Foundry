@@ -101,3 +101,5 @@
 [32K P侧动态量化快慢子群与同stream相邻算子](docs/048-p-dynamic-quant-subgroups.md)
 
 [P侧动态量化CSV与同源设备trace候选对应](docs/049-p-quant-csv-trace-candidates.md)
+
+[P侧动态量化CPU/队列/设备候选与局部时长](docs/050-p-dynamic-quant-queue-chain.md)
