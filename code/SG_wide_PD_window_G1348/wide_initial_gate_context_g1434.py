@@ -24,7 +24,7 @@ def load_plan(path, width):
     return plan, expected
 
 
-def binding(now, plan, plan_sha, run_id, p, d, pd, cpu):
+def binding(now, plan, plan_sha, run_id, p, d, pd, cpu, *, required_seconds=None):
     epoch = plan['epoch']
     workload = plan['workload']
     width = workload['width_tokens']
@@ -63,8 +63,9 @@ def binding(now, plan, plan_sha, run_id, p, d, pd, cpu):
         deadlines[role] = datetime.fromisoformat(handle['at']) + timedelta(seconds=state['lifetime_seconds'])
 
     remaining = {key: (stamp-now).total_seconds() for key, stamp in deadlines.items()}
-    # Protect the full assigned campaign at initial admission and use the same CPU identity throughout.
-    assert min(remaining.values()) > lease['minimum_same_client_lease_from_first_warmup_seconds'], remaining
+    if required_seconds is None:
+        required_seconds = lease['minimum_same_client_lease_from_first_warmup_seconds']
+    assert min(remaining.values()) > required_seconds, remaining
     return {
         'phase_seconds': workload['warmup_phase_seconds'],
         'campaign_seconds': workload['warmup_campaign_seconds'],

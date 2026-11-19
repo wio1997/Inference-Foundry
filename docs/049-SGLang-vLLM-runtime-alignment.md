@@ -83,3 +83,5 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 128K 和 256K 的 P/D 源码已分别部署为候选 G14331 和 G14332，每档两端各校验 58 个源文件。模型启动参数沿用当前版本，Router 单请求超时和 Decode KV 等待分别配置为 36500 秒和 68500 秒。两档 P/D 生命周期分别预留 324130 秒与 620130 秒，已和各自配对锁及 CPU 租期计划核对。实际启动、KV 准入、每档五轮预热及正式冷测和重放仍待验证。 [候选源码校验和与预算](../evidence/SG_usage_recovery_G1276/SG_wide_128K_256K_actual_PD_source_preparation_G1433.json)
 
 三个长档的首次预热校验按各自配置校验和绑定实际 P/D、Router、配对锁和 CPU 客户端。要求 P/D 每端八个 rank 的就绪证据、完成短请求功能检查，以及覆盖该档五轮预热和正式测试的剩余租期。前三轮后保留 Prefill 缓存快照边界。离线验收拒绝了混用实例、Decode rank 等待设置不一致和 CPU 租期不足。工具已在 CPU 主机核对三档实际配置，真实长档就绪及预热结果仍待实测。 [校验逻辑](../code/SG_wide_PD_window_G1348/wide_initial_gate_context_g1434.py) [部署回执和离线验收](../evidence/SG_usage_recovery_G1276/SG_wide_initial_gate_stage_G1434.json)
+
+各长档的后两轮预热和首次正式阶段沿用同一 P/D 和 CPU 客户端，核对已完成预热、原始租期和正式输入提交账本。首次正式阶段比对同一 Prefill 实例的第三、第五轮编译清单，并按该档配置分别保护冷测与重放。三档离线演练覆盖了这三个边界，明确拒绝缓存变化和第五轮审计失败。工具已在实机加载，长档启动及测量仍待执行。 [续跑校验](../code/SG_wide_PD_window_G1348/wide_resume_context_g1435.py) [离线演练和部署回执](../evidence/SG_usage_recovery_G1276/SG_wide_resume_formal_gate_stage_G1435.json)
