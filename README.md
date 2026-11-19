@@ -87,3 +87,5 @@
 [32K P侧全量记录输入shape字段交集与空槽边界](docs/041-p-recorded-shape-overlap.md)
 
 [32K D侧逐rank GMM记录形状与事件分布](docs/042-d-gmm-by-recorded-shape.md)
+
+[32K D侧GMM独立序列分段与原始计数器](docs/043-d-gmm-ordinal-counters.md)
