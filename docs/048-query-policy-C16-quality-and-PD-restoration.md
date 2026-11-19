@@ -143,3 +143,7 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 恢复实例通过 3 条真实 P/D 短请求。算术返回 91，两次 260 输入和 64 输出的请求均完整结束，前缀缓存命中从 0 增为 256 tokens。Prefill 8 个 rank 均记录到 KV 传输，Decode 8 个 rank 均记录到图回放计数增长。终态重新校验了 10 份原始文件，并记录了结果文件的 SHA-256。 [短请求终态及计数](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_short_functional_verified.json)
 
 恢复实例重新启动原形状的 32K／C16／1024 输出预热。现场确认 AISBench runner 和容器内客户端均在运行，首轮使用原先锁定的 16 条预热输入和相同数据 SHA-256。单阶段上限 12900 秒，首轮终态后进入审计检查点。当前尚无该轮终态和正式冷测或重放数据。 [首轮启动](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_32K_warmup1_actual_launch.json) [客户端在飞证据](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_32K_warmup1_actual_inflight.json)
+
+恢复后首轮预热继续在同一实例运行。Prefill rank 0 首两个 8192-token 分块日志相隔 120 秒，后续采样的输入计数已较短请求基线增加 32768。现场暂未看到本轮新增的 KV 传输计数或客户端终态。该记录用于识别长输入推进和阶段预算，正式端到端指标待终态审计。 [Prefill 分块原始摘录](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_P_chunk_progress.json) [同一运行的队列采样](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_D_observed_progress.json) [预热前冻结计数](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_frozen_baseline.json)
+
+已在 Decode 节点部署并校验绑定 G1317 的续跑、正式冷测及重放脚本。匹配 profile 工具在同一节点校验了原先锁定的 16 条输入及两框架配置。后续预热、正式测量和 profile 仍待各自实际门槛通过。 [续跑工具回执](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_AISBench_continuation_tools_staged.json) [匹配 profile 工具与输入回执](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_matched_profile_tools_staged.json)
