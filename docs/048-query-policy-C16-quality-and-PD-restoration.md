@@ -39,3 +39,13 @@ P/D 联调脚本和最终 GSM8K 客户端源码已分别在 P 和 D 校验 SHA�
 旧库中每次 replay 的直接关联包含一条 `MODEL_EXECUTE`，另有设备同步任务。在各条 `MODEL_EXECUTE` 的设备时间窗内，开始执行的非占位 model ID 每次只有一个。G896 重复观察到 DRAFT 43/45、VERIFY 49，G981 重复观察到 DRAFT 44、VERIFY 46。该关联来自同设备的时间重合，可用于复核图族候选。完整 kernel 归属和跨 rank 覆盖仍需单独验收。DSPARK 在固定镜像中将 `draft_token_num` 传到 `DFlashVerifyInput.num_tokens_per_req`，部分 backend 可以不保留 draft 的 CPU 序列长度，因此 query 宽度的源码来源和实采字段覆盖须分别记录。 [设备任务类型](../evidence/SG_phase_audit_G1222/G1220_SG_historical_graph_schema_2204_parsed.json) [设备时间窗](../evidence/SG_phase_audit_G1222/G1221_SG_historical_graph_clock_2204_parsed.json) [固定 spec 源码摘录](../evidence/SG_phase_audit_G1222/DSPARK_query_width_fixed_source.json)
 
 新版 AISBench runner 将实际 D 容器的 `ASCEND_WORK_PATH` 文件纳入编译边界快照。只读探针在 D1163 单机实例发现常规目录 1232 个文件，Ascend 工作目录 766 个文件，扩展快照额外覆盖 48 个 trace 文件，包含 GE Compile 和 FE CompileTd。请求、配置、判分及首轮登记等逻辑的 AST 与原 runner 一致。新版已单独落盘，仍需在 G1178 的预热和正式边界采集实际快照。 [扩展 runner](../code/SG_phase_audit_G1222/run_aisbench_cold_hot_g1222.py) [D 工作目录回执](../evidence/SG_phase_audit_G1222/D_compiler_work_path_stage.json) [归档 SHA 索引](../evidence/SG_phase_audit_G1222/source_index.json)
+
+## D1163 单机 GSM8K 终态
+
+固定 SGLang Ascend A2 镜像和同一 W4A8 权重，以 D1163 单机 TP8/EP8、eager、关闭 DSPARK 验证查询头归一化修正。全量 GSM8K 的 1319 个请求均有终态记录，1269 条判对，1 条传输失败，0 条达到输出上限。可读原始响应逐条复判，冻结文件数为 2642。客户端超时的请求、报错、原始结果和 SHA 已保留。 [终态复判回执](../evidence/SG_D1163_GSM8K_G1234/D1163_final_artifact_freeze.json) [超时证据](../evidence/SG_D1163_GSM8K_G1234/D1163_client_timeout.json)
+
+两套全量 JSON 请求逐题匹配，其中 1319 条保存文件的字节一致。vLLM 原生 0.32 P/D 同题判对 1270 条。1318 对成功且未截断的响应中，双方均正确 1264，仅 vLLM 正确 5，仅 SGLang 正确 5，均错误 44。SGLang 最终 G1178 P/D 的 DSPARK、图回放和质量要以该实例的实际输出验收。 [逐题判分对照](../evidence/SG_D1163_GSM8K_G1234/native630_D1163_paired_grade_counts.json)
+
+最终 P/D 上的 SSE 用量检查复用 vLLM 的同一份独立 32K 输入、1024 输出请求。脚本和请求字节已校验并落盘。AISBench 的服务门槛脚本保存实际配置、设备命中序列、预热和首轮数据 SHA。两项当前为运行准备。 [用量输入部署回执](../evidence/SG_D1163_GSM8K_G1234/G1227_usage_assets_staged_2204_parsed.json) [服务门槛部署回执](../evidence/SG_D1163_GSM8K_G1234/G1229_gate_source_staged_2204_parsed.json) [归档索引](../evidence/SG_D1163_GSM8K_G1234/source_index.json)
+
+D1163 客户端和模型进程均退出、8 卡逐卡清空后，D1178 已按冻结源码启动控制器。控制器启动回执的范围为进程存活，拉起模型与图捕获仍需就绪检查。 [D1163 退役回执](../evidence/SG_D1163_GSM8K_G1234/D1163_retirement_verified.json) [D1178 启动回执](../evidence/SG_D1163_GSM8K_G1234/D1178_controller_launch_verified.json)
