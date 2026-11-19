@@ -129,3 +129,5 @@
 [阶段直方图慢桶事件和的条件边界](docs/062-stage-histogram-event-sum-bounds.md)
 
 [SG候选前缀锁与准入条件：合成检验](docs/063-synthetic-prefix-admission.md)
+
+[SG P/D bootstrap边际桶与观测开关](docs/064-bootstrap-marginals-and-observability.md)
