@@ -10,6 +10,12 @@ P/D 配置已在两台 910B 上校验并落盘，基于以前实际运行的 P83
 
 ## Decode 切换前的准备
 
-已对 2204 实际 CPU 客户端做只读检查。AISBench 请求处理的两份源码和 tokenizer SHA 与原生 vLLM 基线一致。24 个数据文件都在预期的只读挂载中，28 个已落盘的脚本与配置均通过 SHA 复核。数据内容的完整复核和 SGLang 端点的 usage 验证仍待执行。[实际客户端检查](../evidence/PD_runtime_preflight_G1193/G1191_SG_AISBench_client_readonly_2204_parsed.json)
+已对 2204 实际 CPU 客户端做只读检查。AISBench 请求处理的两份源码和 tokenizer SHA 与原生 vLLM 基线一致。24 个数据文件都在预期的只读挂载中，28 个已落盘的脚本与配置均通过 SHA 复核。SGLang 端点的 usage 验证仍待执行。[实际客户端检查](../evidence/PD_runtime_preflight_G1193/G1191_SG_AISBench_client_readonly_2204_parsed.json)
 
 Decode 验收分为八个 rank 的 target 与 draft 装载及图捕获、路由注册、真实请求的 Prefill KV 传输和 Decode 图回放。图日志与计数器解析已用历史原始证据核对。最终 PD 质量脚本的请求构造和评分逻辑与 vLLM 基线保持一致。当前这些新脚本处于准备阶段。[脚本索引](../evidence/PD_runtime_preflight_G1193/source_index.json) · [最终质量运行前检查](../evidence/PD_runtime_preflight_G1193/full_SG_PD_quality_preparation_g1192.json)
+
+## 四档数据和 profile 输入验证
+
+在当前客户端的只读挂载中实际核对了四档共 24 个 JSONL 文件、448 条记录、420250723 字节。数据和 tokenizer 的 SHA 与既有逐条分词审计一致，可以沿用确切输入 token 数和 448 个唯一首 128 token 前缀的证据。校验在独立 CPU 核上运行，未启动客户端推理请求，校验结束后释放了对应锁。后续 AISBench 仍需核对 SGLang 实际返回的 usage 和缓存命中。[当前数据校验](../evidence/SG_bench_inputs_G1198/G1195_dataset_bytes_2204_parsed.json) · [原始逐条分词审计](029-CPU-client-readonly-dataset-revalidation.md)
+
+独立 profile 批次的 16 条请求与 vLLM 已采集批次逐条 SHA 一致，输入 32768 tokens、输出 1024 tokens，均使用 C16。两框架的客户端配置只差框架标签和服务端口。SGLang 采集脚本已准备，待 PD 和 32K 正式测量通过后运行。归因时按实测的 token、缓存命中、target 验证和 draft 工作量对齐，再比较算子、调度及通信。[当前 profile 挂载验证](../evidence/SG_bench_inputs_G1198/G1197_SG_matched_profile_inputs_2204_parsed.json) · [采集计划及源码指纹](../evidence/SG_bench_inputs_G1198/SG_matched_profile_preparation_g1196.json)
