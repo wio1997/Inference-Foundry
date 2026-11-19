@@ -121,3 +121,5 @@
 [D侧条件性运行日志与候选源码来源](docs/058-conditional-decode-log-and-source.md)
 
 [vLLM正式32K/64K P/D阶段快照](docs/059-vllm-formal-stage-snapshots.md)
+
+[P/D候选编排与服务/客户端TTFT口径](docs/060-pd-route-and-ttft-scope.md)
