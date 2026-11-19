@@ -91,3 +91,5 @@ G1317 的 GSM8K 复判工具已在 2204 校验，绑定 32K 正式审计、原 C
 三个长档的首次预热校验按各自配置校验和绑定实际 P/D、Router、配对锁和 CPU 客户端。要求 P/D 每端八个 rank 的就绪证据、完成短请求功能检查，以及覆盖该档五轮预热和正式测试的剩余租期。前三轮后保留 Prefill 缓存快照边界。离线验收拒绝了混用实例、Decode rank 等待设置不一致和 CPU 租期不足。工具已在 CPU 主机核对三档实际配置，真实长档就绪及预热结果仍待实测。 [校验逻辑](../code/SG_wide_PD_window_G1348/wide_initial_gate_context_g1434.py) [部署回执和离线验收](../evidence/SG_usage_recovery_G1276/SG_wide_initial_gate_stage_G1434.json)
 
 各长档的后两轮预热和首次正式阶段沿用同一 P/D 和 CPU 客户端，核对已完成预热、原始租期和正式输入提交账本。首次正式阶段比对同一 Prefill 实例的第三、第五轮编译清单，并按该档配置分别保护冷测与重放。三档离线演练覆盖了这三个边界，明确拒绝缓存变化和第五轮审计失败。工具已在实机加载，长档启动及测量仍待执行。 [续跑校验](../code/SG_wide_PD_window_G1348/wide_resume_context_g1435.py) [离线演练和部署回执](../evidence/SG_usage_recovery_G1276/SG_wide_resume_formal_gate_stage_G1435.json)
+
+长档的只读观察器已在 P/D 两端安装。它核对当前实例的启动清单、每卡锁、权重加载、并行配置和队列空闲。Prefill 回执可用于启动 Router 前后的检查，Decode 回执包含八卡 target/draft 图及每个 scheduler 的实际等待值。两端均确认 64K、128K、256K 的候选目前没有启动句柄，观察器正确拒绝将候选文件判作就绪。 [观察器](../code/SG_wide_PD_window_G1348/observe_SG_wide_role_g1439.py) [部署回执和离线演练](../evidence/SG_usage_recovery_G1276/SG_wide_role_observer_actual_stage_G1439.json)
