@@ -3,7 +3,9 @@
 import argparse
 from collections import Counter, defaultdict
 from contextlib import closing
+from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import sqlite3
 
@@ -13,6 +15,8 @@ from parse_SG_step_graph_g1213 import span_data, sqlite_integer
 
 
 ROLE_MODES = {'prefill': ('EXTEND',), 'decode': ('DRAFT', 'VERIFY')}
+RANK_ANALYSIS_DIRECTORIES = {'ASCEND_PROFILER_OUTPUT', 'logs'}
+SESSION_ANALYSIS_DIRECTORIES = {'analyze', 'mindstudio_profiler_log', 'mindstudio_profiler_output'}
 
 
 def snapshot(path):
@@ -82,7 +86,54 @@ def read_events(path, rank, role):
     }
 
 
-def role_coverage(root, role, identity=None, raw_receipt=None):
+def raise_walk_error(error):
+    raise error
+
+
+def raw_fingerprints(root):
+    """Hash closed CPU/device files with paths, excluding generated SDK output."""
+    files = {}
+    for current, directories, names in os.walk(root, onerror=raise_walk_error):
+        directory = Path(current)
+        if directory == root:
+            directories[:] = [name for name in directories if name not in RANK_ANALYSIS_DIRECTORIES]
+        elif directory.parent == root and directory.name.startswith('PROF_'):
+            directories[:] = [name for name in directories if name not in SESSION_ANALYSIS_DIRECTORIES]
+        if any((directory / name).is_symlink() for name in directories):
+            raise ValueError('Symlink directory in the raw rank capture')
+        for name in names:
+            path = directory / name
+            if path.is_symlink() or not path.is_file():
+                raise ValueError('Non-regular file in the raw rank capture')
+            before = snapshot(path)
+            digest = sha256()
+            with path.open('rb') as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                    digest.update(chunk)
+            assert snapshot(path) == before
+            files[path.relative_to(root).as_posix()] = (before[1], digest.hexdigest())
+    assert files
+    return files
+
+
+def bound_offline_database(original, staged, rank):
+    staged = staged.resolve(strict=True)
+    if original.resolve(strict=True) != original or staged.is_relative_to(original) or original.is_relative_to(staged):
+        raise ValueError('Offline rank must be held apart from original capture')
+    filename = f'ascend_pytorch_profiler_{rank}.db'
+    db = staged / 'ASCEND_PROFILER_OUTPUT' / filename
+    if db.resolve(strict=True) != db or not db.is_file():
+        raise ValueError('Expected regular rank database in the staged copy')
+    original_files, staged_files = raw_fingerprints(original), raw_fingerprints(staged)
+    if original_files != staged_files:
+        raise ValueError('Raw files of staged rank do not match the original')
+    packed = json.dumps(original_files, sort_keys=True, separators=(',', ':')).encode()
+    return db, {'matched_raw_file_count': len(original_files),
+                'matched_raw_bytes': sum(size for size, _ in original_files.values()),
+                'matched_raw_manifest_sha256': sha256(packed).hexdigest()}
+
+
+def role_coverage(root, role, identity=None, raw_receipt=None, offline_rank_roots=None):
     root = root.resolve(strict=True)
     current = inventory(root)
     binding_sha = None
@@ -96,21 +147,29 @@ def role_coverage(root, role, identity=None, raw_receipt=None):
 
     raw_ranks = set(current['raw_cpu_and_device_ranks'])
     db_ranks = set(current['parsed_db_file_ranks'])
-    attempts = raw_ranks & db_ranks
+    offline = offline_rank_roots or {}
+    if offline.keys() - raw_ranks:
+        raise ValueError('Offline rank requires a complete original raw capture')
+    attempts = raw_ranks & (db_ranks | offline.keys())
     receipts, rejected = {}, {}
     for info in sorted(root.glob('*_ascend_pt/profiler_info_*.json')):
         match = PROFILER_INFO.fullmatch(info.name)
         if match is None or (rank := int(match[1])) not in attempts:
             continue
-        database = info.parent / 'ASCEND_PROFILER_OUTPUT' / f'ascend_pytorch_profiler_{rank}.db'
         try:
-            receipts[rank] = read_events(database, rank, role)
+            if rank in offline:
+                database, proof = bound_offline_database(info.parent, offline[rank], rank)
+                receipts[rank] = {**read_events(database, rank, role), 'verified_offline_copy': proof}
+            else:
+                database = info.parent / 'ASCEND_PROFILER_OUTPUT' / f'ascend_pytorch_profiler_{rank}.db'
+                receipts[rank] = read_events(database, rank, role)
         except (AssertionError, OSError, sqlite3.Error, ValueError) as error:
             rejected[rank] = type(error).__name__
-    return {
+    report = {
         'role': role, 'capture_identity_SHA256': binding_sha, 'closed_raw_ranks': sorted(raw_ranks),
         'database_file_ranks': sorted(db_ranks), 'device_event_ranks': sorted(receipts),
-        'raw_complete_rank_needing_export': sorted(raw_ranks - db_ranks), 'rejected_database_ranks': rejected,
+        'raw_complete_rank_needing_export': sorted(raw_ranks - db_ranks - receipts.keys()),
+        'rejected_database_ranks': rejected,
         'all8_device_event_coverage': receipts.keys() == EXPECTED_RANKS,
         'all8_expected_scheduler_modes_seen': (receipts.keys() == EXPECTED_RANKS
                                                and all(row['expected_scheduler_modes_seen'] for row in receipts.values())),
@@ -119,6 +178,9 @@ def role_coverage(root, role, identity=None, raw_receipt=None):
                                                       for row in receipts.values())),
         'ranks': [receipts[rank] for rank in sorted(receipts)],
     }
+    if offline_rank_roots is not None:
+        report['verified_offline_copy_ranks'] = sorted(offline.keys() & receipts.keys())
+    return report
 
 
 if __name__ == '__main__':
@@ -127,9 +189,17 @@ if __name__ == '__main__':
     cli.add_argument('--role', choices=ROLE_MODES, required=True)
     cli.add_argument('--identity', type=Path)
     cli.add_argument('--raw-receipt', type=Path)
+    cli.add_argument('--offline-rank', action='append', nargs=2, metavar=('RANK', 'RANK_DIR'),
+                     help='Closed rank copy generated by the offline exporter')
     args = cli.parse_args()
     if bool(args.identity) != bool(args.raw_receipt):
         cli.error('Both --identity and --raw-receipt are needed to bind a matched capture')
+    offline = None
+    if args.offline_rank:
+        offline = {int(rank): Path(folder) for rank, folder in args.offline_rank}
+        if len(offline) != len(args.offline_rank) or offline.keys() - EXPECTED_RANKS:
+            cli.error('Offline rank IDs must be unique and in 0–7')
     print(json.dumps(role_coverage(args.role_root, args.role,
                                    read(args.identity) if args.identity else None,
-                                   read(args.raw_receipt) if args.raw_receipt else None), sort_keys=True))
+                                   read(args.raw_receipt) if args.raw_receipt else None,
+                                   offline), sort_keys=True))
