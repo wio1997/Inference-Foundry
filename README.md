@@ -97,3 +97,5 @@
 [32K P侧同记录shape/dtype的单事件分布](docs/046-p-shape-dtype-distributions.md)
 
 [32K P侧动态量化的记录格式与设备字段](docs/047-p-quant-format-counters.md)
+
+[32K P侧动态量化快慢子群与同stream相邻算子](docs/048-p-dynamic-quant-subgroups.md)
