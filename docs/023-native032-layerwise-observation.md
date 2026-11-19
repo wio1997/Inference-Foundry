@@ -13,3 +13,5 @@
 全部原始向量继续保留在受控服务器；只将一份rank0副本用于远端CPU客户端比较，公开库不包含向量数据。请求实际退出后两端队列为0，ARM已改名关闭。复制会同步设备，采样延迟不能与正式AISBench结果计算收益。相同rank字节链只支持本前缀、层边界和版本，不能外推其他负载或所有算子。
 
 SGLang部署、响应、独立CPU比较和适配候选归其独立分支；此处只维护原生证据。完整质量、四档矩阵和P8+D8原生profile仍引用各自原epoch归档，最终跨框架地图与收益未完成。
+
+完整跨框架请求驱动由固定SGLang归档维护：[未采样成对驱动](https://github.com/wio1997/Inference-Foundry/blob/3ad49d5896855420b5ba34004c5dc7a16039094e/code/query_norm_mechanism_G1167/same_prefix_unarmed_client_g1148.py)与[逐层成对驱动](https://github.com/wio1997/Inference-Foundry/blob/3ad49d5896855420b5ba34004c5dc7a16039094e/code/query_norm_mechanism_G1167/same_prefix_layer_client_g1149.py)；对应原始SHA已记录于本分支元数据。SGLang条件修正及其数值结论见[固定机制档案](https://github.com/wio1997/Inference-Foundry/blob/3ad49d5896855420b5ba34004c5dc7a16039094e/docs/047-first-layer-query-normalization-mismatch.md)，不转记为原生新实验。
