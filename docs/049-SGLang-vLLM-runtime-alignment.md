@@ -45,3 +45,5 @@ vLLM 的实际快照已逐档复算 D 本地与连接器 logical token。SGLang 
 以两轮较慢的实测预热耗时估算，两个连续 C16 窗口约需 15979 秒。按每个正式阶段预留两个原 12900 秒预热窗口，冷测和重放合计需 52080 秒的实机租期，包含原有收尾余量。原 CPU 客户端租期无法覆盖这个预算。第五轮实际结束后须按现有 P/D、配对锁和续租后的 CPU 最早到期时间复核。重放时间估算保留零命中的情况，正式耗时和命中仍待实测。 [预算和实际租期来源](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_formal_client_window_plan.json)
 
 正式启动脚本按 CPU 容器的实际只读挂载校验输入。现场已核对 32 条冻结请求、C16 配置和两阶段共用的输入 SHA，原测试没有首次正式提交记录或计分产物。启动脚本同时纳入独立阶段上限和 Prefill 计数范围，Decode 命中保留待实测。组合验证使用模拟的第五轮终态门槛，现场仍在运行第三轮预热。 [只读输入和提交账本检查](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_first_formal_mounted_data_precheck.json) [启动门槛组合验证](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_scoped_formal_launch_composition.json)
+
+正式续跑会在第五轮原始请求及稳定性校验通过后，按封存 SHA 读取第三轮和第五轮的同一 Prefill 实例快照。比较范围为持久编译缓存清单的路径、大小和修改时间，Ascend 运行目录另行记录。对比器已部署到 Prefill 主机。隔离演练验证了拒绝预热未完成、缓存元数据改变或剩余租期不足的情况，现场尚未采集这两次终态快照。 [编译快照比较器](../code/SG_phase_audit_G1205/compare_SG_prefill_compile_g1414.py) [Prefill 主机部署回执](../evidence/SG_usage_recovery_G1276/SG_G1317_P_compiler_comparator_physical_stage.json) [正式续跑演练](../evidence/SG_usage_recovery_G1276/SG_G1317_first_formal_event_controller_fixture.json)
