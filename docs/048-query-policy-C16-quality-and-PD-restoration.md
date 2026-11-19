@@ -220,3 +220,9 @@ G1317 原 32K 首轮的最新采样已记录 10 次 KV 传输和 335872 个新�
 通过活进程和文件描述符核对 G1317 的 P、D 两端八卡锁、Router、原配对锁及 CPU 客户端。原配对锁截至 11 月 19 日 13:30 UTC，原 CPU 客户端截至 21:09 UTC。若原首轮通过原始响应审计且两端清空队列，已准备的配对锁交接可覆盖到两端服务最早到期前 600 秒。后续每轮仍按实际剩余时间重新核准。按当前 12900 秒单轮上限计算，原 CPU 客户端能接纳新预热的最后时间约为 17:28 UTC。评估到达该时间前最近的合格暂停点，再决定是否续期 CPU 客户端。 [现场租约和时限](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_live_continuation_admission.json)
 
 独立终态审计增加了 16 个请求 ID 各出现一次的要求，并在终态复算原始记录、输入及配置 SHA 和落盘指标。用历史失败首轮的 16 条真实记录复算得到 7 条满足输入和输出长度，另用重复 ID 用例验证拒绝条件。新审计器已在原 32K 服务器成功识别现有 runner 和活客户端。最新采样累计 434176 个新增输入 token 与 13 次 KV 传输，终态审计仍待完成。 [终态审计器](../code/SG_32K_resume_audit_G1368/audit_SG_32K_W1_requests_g1368.py) [历史和重复 ID 复核](../evidence/SG_usage_recovery_G1276/SG_warmup_terminal_request_ID_fixture.json) [服务器部署回执](../evidence/SG_usage_recovery_G1276/SG_G1317_warmup_terminal_request_auditor_stage.json) [首轮在飞采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_thirteenth_transfer.json)
+
+### G1317 首轮通过，第二轮已启动
+
+原 32K 首轮于 11 月 19 日 11:50:40 UTC 到达暂停检查点。独立复核确认 16 个请求 ID 各出现一次，全部满足实际 32768 输入和 1024 输出。输入数据、配置以及原始明细、汇总 JSON 和 CSV 均按 SHA 核验。AISBench 记录的预热耗时为 7989.66 秒，输入、输出和总吞吐分别为 65.6208、2.0507 和 67.6715 token/s，平均 TTFT 为 4328484.6 ms，平均 TPOT 为 105.7 ms。正式对比仍待完成。 [首轮原始审计和校验索引](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_verified_raw_request_audit.json)
+
+首轮结束且两端队列归零后，原配对锁持有者退出，继任进程接管同一把锁。已确认在同一 P/D 实例上启动第二轮，继续使用原 campaign 的总期限和单轮上限。启动预检复核并跳过首轮，第二轮使用不同输入 SHA，实际容器客户端和 runner 均在运行。 [配对锁交接](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_verified_pair_guard_transfer.json) [第二轮进程和输入](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W2_actual_original_campaign_start.json) [首轮末段 Prefill 分块](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_actual_P_chunk_pacing.json)
