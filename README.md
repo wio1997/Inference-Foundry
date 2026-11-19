@@ -85,3 +85,5 @@
 [32K D侧同物理shape/dtype事件分布：仍非同step因果](docs/040-d-physical-shape-distributions.md)
 
 [32K P侧全量记录输入shape字段交集与空槽边界](docs/041-p-recorded-shape-overlap.md)
+
+[32K D侧逐rank GMM记录形状与事件分布](docs/042-d-gmm-by-recorded-shape.md)
