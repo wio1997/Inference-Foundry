@@ -15,3 +15,5 @@
 SGLang部署、响应、独立CPU比较和适配候选归其独立分支；此处只维护原生证据。完整质量、四档矩阵和P8+D8原生profile仍引用各自原epoch归档，最终跨框架地图与收益未完成。
 
 完整跨框架请求驱动由固定SGLang归档维护：[未采样成对驱动](https://github.com/wio1997/Inference-Foundry/blob/3ad49d5896855420b5ba34004c5dc7a16039094e/code/query_norm_mechanism_G1167/same_prefix_unarmed_client_g1148.py)与[逐层成对驱动](https://github.com/wio1997/Inference-Foundry/blob/3ad49d5896855420b5ba34004c5dc7a16039094e/code/query_norm_mechanism_G1167/same_prefix_layer_client_g1149.py)；对应原始SHA已记录于本分支元数据。SGLang条件修正及其数值结论见[固定机制档案](https://github.com/wio1997/Inference-Foundry/blob/3ad49d5896855420b5ba34004c5dc7a16039094e/docs/047-first-layer-query-normalization-mismatch.md)，不转记为原生新实验。
+
+该观察实例已退出，2203 的八卡资源已释放，原始证据和缓存仍保留。G630 的 PD 基线与原生 profile 仍以各自归档中的配置为准。[退出与释放回执](../evidence/native_layer_probe_G1164/G1180_native_P_retired_2203_parsed.json)
