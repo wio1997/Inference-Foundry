@@ -117,3 +117,9 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 采集控制已改为从预检记录读取负载与导出时限。组装预检和启动采集时都核对 P/D 服务、CPU 客户端及工作负载锁的到期时间，启动前再次读取两侧角色队列。未回复或未确认的采集操作保留实际状态和记录。原生匹配清单、完整 16 条请求、并发、输出长度与 P/D profiler 参数沿用原方案。 [预检代码](../code/SG_long_profile_G1305/build_SG_matched_profile_gate_g1304.py) [采集代码](../code/SG_long_profile_G1305/capture_SG_matched_profile_g1304.py) [源码指纹](../code/SG_long_profile_G1305/source_pins.json)
 
 固定实例上的实际 Prefill 和 Decode 导出挂载均可写，观察时分别剩余约 1.95 TB、1.86 TB。新工具已在 CPU 客户端所在节点核对源文件 SHA 和 Python 编译。离线用例覆盖长负载时限、各资源到期以及保留原采集命令和输入指纹。实际 profiler 未启动，完整时限和导出耗时仍待实跑。同期首轮预热客户端进度为 3/16，终态才核对成功与实际 token 数。 [Prefill 存储](../evidence/SG_usage_recovery_G1276/long_profile_P_storage.json) [Decode 存储](../evidence/SG_usage_recovery_G1276/long_profile_D_storage.json) [服务端工具回执](../evidence/SG_usage_recovery_G1276/long_profile_tools_staged.json) [离线校验](../evidence/SG_usage_recovery_G1276/long_profile_budget_fixture_checks.json) [预热进度](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_AISBench_progress_3_of_16.json)
+
+## 正式冷测与重放时限
+
+正式 runner 已单独落盘。冷测与重放各有配置明确的时限，由同一个持有客户端锁的进程按顺序执行。启动前以实际 P/D 服务、CPU 客户端和工作负载锁的最早到期时间校验两个阶段的完整预算，重放前再检查剩余资源时间。五轮预热仍须在原截止时间内完成并重新审计。原首次提交登记、32 条冷测、同一份 32 条重放以及缓存增量审计保持一致。离线用例验证了已登记输入、缺失预热证据和预算不足均无法进入计分。正式负载尚未启动，需用预热实测耗时选择时限。 [runner 和启动模板](../code/SG_formal_timing_G1307/source_pins.json) [服务端安装回执](../evidence/SG_usage_recovery_G1276/formal_timed_runner_staged.json) [时限与首次提交校验](../evidence/SG_usage_recovery_G1276/independent_formal_deadline_fixture.json)
+
+首轮预热仍在运行。最新 Prefill rank 0 计数较首个现场样本新增 4 次 KV 传输。此时 Prefill 有 11 条等待，Decode 有 1 条在运行、12 条在传输队列，客户端成功数由终态原始响应审计。 [现场队列与计数](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_four_KV_transfers.json)
