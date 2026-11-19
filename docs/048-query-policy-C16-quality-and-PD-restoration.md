@@ -81,3 +81,7 @@ Decode 的 8 个 rank 均通过 target 1384 项、draft 73 项严格装载。tar
 同 vLLM 请求字节的第一轮 32K/O1024 用量探针达到 600 秒总上限，客户端未得到完整 SSE 用量。P 记录了四个 8192-token 分块，前两段分块调度间隔约 120 秒。D 随后使用图回放生成。此次检查的 P 编译产物清单未观察到晚于阈值的新二进制，时间间隔的机制仍需采集实际算子和调度证据。该结果保存为独立协议检查失败。 [终态回执](../evidence/SG_usage_recovery_G1276/first_32K_probe_terminal_failure.json) [P 分块](../evidence/SG_usage_recovery_G1276/first_probe_P_scheduler_records.json) [D 调度](../evidence/SG_usage_recovery_G1276/first_probe_D_scheduler_records.json) [P 编译快照](../evidence/SG_usage_recovery_G1276/first_probe_D_linked_P_compile_snapshot.json)
 
 P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。客户端逐帧落盘，记录首次内容、总时间和失败时的部分字节，单次总上限 1800 秒。第一次观察已保存 80 个完整 SSE 帧，最终用量仍待通过。两次探针均独立于五轮预热和所有正式首轮输入。 [复测源码回执](../evidence/SG_usage_recovery_G1276/G1273_SG_32K_usage_recovery_source_2204_parsed.json) [实际启动](../evidence/SG_usage_recovery_G1276/G1275_PD_32K_usage_recovery_actual_start_2204_usage_parsed.json) [实时 SSE 回执](../evidence/SG_usage_recovery_G1276/G1276_live_32K_usage_retry_2204_parsed.json) [归档索引](../evidence/SG_usage_recovery_G1276/source_index.json)
+
+复测已收到完整 579 个 SSE 帧及 `[DONE]`。末尾用量确认 32768 输入、1024 输出，同输入重放命中 32640 token，首个非空内容在 2.746 秒，完整流 597.647 秒。5 项原始用量证据逐项校验通过，已形成正式 runner 可读取的用量口径。该请求为单并发重放，正式 C16 首轮尚待预热和测量。 [复测终态及用量校验](../evidence/SG_usage_recovery_G1276/32K_SSE_protocol_verified.json)
+
+复测退出并确认双方空闲后，已启动同一套 32K、64K、128K、256K 长上下文检索输入。第一次实际观察已在运行 32K fresh，结果待验收。 [长上下文启动](../evidence/SG_usage_recovery_G1276/long_retrieval_actual_launch.json) [首个请求在飞](../evidence/SG_usage_recovery_G1276/long_retrieval_first_request_live.json)
