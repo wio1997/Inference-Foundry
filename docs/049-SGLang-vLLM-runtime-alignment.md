@@ -46,6 +46,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 固定 Prefill 评分源码按绝对位置计算压缩 K 可见范围。对连续 C2 路径，位置 `p` 可见 `floor((p+1)/2)` 个压缩条目。八个实际 rank 的首块回执均确认 NPU 专用评分预算为 128 MiB，包内默认值为 1 GiB。将 vLLM 封存的 65 步逐请求形状代入同一源码口径，单次索引遍历预计 2589 个评分分块。稠密评分覆盖约 53.58 亿 query–K 对，其中约 42.95 亿对在 top-k 前满足因果范围，均为每个索引头的几何计数。后续 trace 用这些形状核对实际分块和耗时，并分别记录 vLLM 的页容量与有效逻辑长度。 [实机上限与逐步模型](../evidence/SG_usage_recovery_G1276/SG_P_logical_causal_work_at_native_geometry_G1422.json) [计数工具](../code/SG_causal_prefill_score_G1362/prefill_logical_score_work_g1422.py)
 
+在当前 G1317 的 P/D 各八个 scheduler 中，手动起停使用镜像默认的 profiler 路径，请求中的 `GPU` 活动映射到 NPU。两个 trace 分区的可用空间快照分别为 1.95 TB 和 1.86 TB。采集关闭后先清点每 rank 的 CPU op range、设备数据与结束记录，再检查派生数据库。封存的 SGLang G981 Decode 八个 rank 均检出原始文件；清单工具也能识别原始文件齐全、待离线解析的情形。实际 G1317 采集的空间需求和事件覆盖仍待该次导出核验。 [当前运行环境与历史文件核对](../evidence/SG_usage_recovery_G1276/SG_G1317_profile_export_and_raw_rank_inventory_G1423.json) [原始文件清单工具](../code/SG_long_profile_G1305/inventory_SG_raw_profile_g1423.py)
+
 ## 32K 正式冷测和重放的时间窗口
 
 原 vLLM 冷测和重放的各 32 条原始请求均复算出客户端并发峰值 16，第 17 条在首条完成后才开始。两端使用同一固定 AISBench 镜像。SGLang 第二轮原始 SQLite 复算最长单请求用时 7887.70 秒，整轮 7887.82 秒。当前 Router 的 14400 秒为单请求上限，Decode 的 14400 秒为 KV 等待设置。正式 AISBench 整轮上限由独立阶段参数控制。 [vLLM 原始请求并发](https://github.com/wio1997/Inference-Foundry/blob/72a0cf3e22549a59bcdc0742c22c3a325abe2f4e/evidence/native32_first_G691/derived/formal_C16_HTTP_admission_G1408.json) [SGLang 第二轮请求复算](../evidence/SG_usage_recovery_G1276/SG_G1317_W2_raw_client_admission.json) [复算脚本](../code/SG_W1_latency_timeline_G1375/audit_32K_client_admission_g1408.py)
