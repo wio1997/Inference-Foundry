@@ -81,3 +81,5 @@
 [32K D侧rank0独立局部时间轴与显示轴边界](docs/037-d-rank0-observed-timeline.md)
 
 [32K P/D 全32 rank设备 kernel 分布与脱敏范围](docs/039-all-rank-kernel-distributions.md)
+
+[32K D侧同物理shape/dtype事件分布：仍非同step因果](docs/040-d-physical-shape-distributions.md)
