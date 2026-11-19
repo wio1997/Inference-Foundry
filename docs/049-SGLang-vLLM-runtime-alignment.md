@@ -1,6 +1,6 @@
 # DeepSeek-V4.1 W4A8 运行配置对照
 
-对照的是 SGLang G1317 当前运行版与 vLLM G630 四档正式基线。两端各 8 张 Ascend 910B1，aarch64。P、D 两台主机上的历史与当前实际加载清单均匹配同一组 95 项权重校验记录。SGLang 的 24 份输入清单逐项匹配 vLLM 四档实跑清单，覆盖每档 5 份独立预热输入和 1 份正式输入。每个正式输入在 vLLM 的冷测和重放中使用相同 SHA。SGLang 已完成 32K 前三轮预热，第四轮已启动。 [实机配置、权重及数据绑定](../evidence/SG_usage_recovery_G1276/SG_G1317_native630_actual_profile_alignment.json) [vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/cff38e0021cd7f859dea4b8a403b06c3791eb7dd/docs/016-native032-four-tier-first-matrix.md)
+对照的是 SGLang G1317 当前运行版与 vLLM G630 四档正式基线。两端各 8 张 Ascend 910B1，aarch64。P、D 两台主机上的历史与当前实际加载清单均匹配同一组 95 项权重校验记录。SGLang 的 24 份输入清单逐项匹配 vLLM 四档实跑清单，覆盖每档 5 份独立预热输入和 1 份正式输入。每个正式输入在 vLLM 的冷测和重放中使用相同 SHA。SGLang 已完成 32K 前四轮预热，第五轮已启动。 [实机配置、权重及数据绑定](../evidence/SG_usage_recovery_G1276/SG_G1317_native630_actual_profile_alignment.json) [vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/cff38e0021cd7f859dea4b8a403b06c3791eb7dd/docs/016-native032-four-tier-first-matrix.md)
 
 | 项目 | SGLang G1317 | vLLM G630 |
 |:--|:--|:--|
@@ -64,17 +64,19 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 以两轮较慢的实测预热耗时估算，两个连续 C16 窗口约需 15979 秒。按每个正式阶段预留两个原 12900 秒预热窗口，冷测和重放合计需 52080 秒的实机租期，包含原有收尾余量。原 CPU 客户端租期无法覆盖这个预算。第五轮实际结束后须按现有 P/D、配对锁和续租后的 CPU 最早到期时间复核。重放时间估算保留零命中的情况，正式耗时和命中仍待实测。 [预算和实际租期来源](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_formal_client_window_plan.json)
 
-正式启动脚本按 CPU 容器的实际只读挂载校验输入。现场已核对 32 条冻结请求、C16 配置和两阶段共用的输入 SHA，原测试没有首次正式提交记录或计分产物。启动脚本同时纳入独立阶段上限和 Prefill 计数范围，Decode 命中保留待实测。组合验证使用模拟的第五轮终态门槛，现场仍在运行第三轮预热。 [只读输入和提交账本检查](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_first_formal_mounted_data_precheck.json) [启动门槛组合验证](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_scoped_formal_launch_composition.json)
+正式启动脚本按 CPU 容器的实际只读挂载校验输入。现场已核对 32 条冻结请求、C16 配置和两阶段共用的输入 SHA，原测试没有首次正式提交记录或计分产物。启动脚本同时纳入独立阶段上限和 Prefill 计数范围，Decode 命中保留待实测。组合验证使用模拟的第五轮终态门槛，当时现场运行第三轮预热。 [只读输入和提交账本检查](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_first_formal_mounted_data_precheck.json) [启动门槛组合验证](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_scoped_formal_launch_composition.json)
 
 正式续跑会在第五轮原始请求及稳定性校验通过后，按封存 SHA 读取第三轮和第五轮的同一 Prefill 实例快照。比较范围为持久编译缓存清单的路径、大小和修改时间，Ascend 运行目录另行记录。对比器已部署到 Prefill 主机，隔离演练验证了拒绝预热未完成、缓存元数据改变或剩余租期不足的情况。 [编译快照比较器](../code/SG_phase_audit_G1205/compare_SG_prefill_compile_g1414.py) [Prefill 主机部署回执](../evidence/SG_usage_recovery_G1276/SG_G1317_P_compiler_comparator_physical_stage.json) [正式续跑演练](../evidence/SG_usage_recovery_G1276/SG_G1317_first_formal_event_controller_fixture.json)
 
 第三轮 16 条原始请求均与该轮冻结输入匹配，每条实际输入 32768、输出 1024，耗时 7884.90 秒。空闲时采集了同一 Prefill 实例的第三轮快照，封存清单包含 211 个持久编译缓存文件。第四轮在原 P/D 实例和原 CPU 客户端启动，使用独立的第四轮输入，并复核跳过前三轮。 [第三轮原始请求复核](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W3_verified_raw_requests.json) [第三轮编译缓存快照](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_P_compile_snapshot_after_W3.json) [第四轮实机启动](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W4_actual_input_and_worker.json)
 
+第四轮 16 条原始请求全部通过冻结输入和用量校验，整轮耗时 7884.13 秒。空闲后 CPU 客户端完成同容器续租，容器 ID 和配置校验和均一致，随后复核跳过前四轮并启动独立第五轮。续租后的 CPU 窗口至北京时间 11 月 20 日 21:56:07。按现有保护预算，若要为 GSM8K 和匹配 profile 均留足时间，正式冷测与重放需在当天 13:33:57 前完成。第五轮终态和正式成绩仍待验证。 [第四轮审计、续租与第五轮启动](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W4_complete_W5_actual_start_G1436.json)
+
 全量 GSM8K 已挂接到原 32K 正式 runner 的终态。续跑进程先核对两阶段各 32 条请求、同一冻结数据及原始输出 SHA，再核查 P/D 空闲、同一 CPU 客户端和至少 14740 秒的资源窗口。实机只读检查确认预热期间质量启动被共享工作负载锁挡住。当前只是等待链路已就位，实际 GSM8K 请求与成绩仍待正式阶段终态。 [终态核对工具](../code/SG_phase_audit_G1205/verify_SG_formal_terminal_g1427.py) [等待与实机互斥记录](../evidence/SG_usage_recovery_G1276/SG_32K_to_GSM8K_event_continuation_G1427.json)
 
 32K 匹配 profile 的启动校验已按正式测试的角色计数范围更新。校验绑定冻结数据 SHA，要求 Prefill 冷测和重放均有实测计数，冷测命中增量为零。Decode 的两份回执须明确标记计数未观测。用已封存回执构造的离线校验通过，并拒绝了八组异常输入。更新后的校验工具已通过实机加载检查，仍待正式数据和实际 trace。 [校验工具](../code/SG_formal_cache_scope_G1385/verify_SG_matched_profile_cache_g1428.py) [离线与实机回执](../evidence/SG_usage_recovery_G1276/SG_G1317_matched_profile_cache_scope_G1428.json)
 
-匹配 profile 已挂接到原 GSM8K 控制进程，要求实际 worker 终态回执和新的 P/D 空闲、CPU 租期及正式数据校验。实机已只读复核共用的 16 条 32K 输入、SGLang 配置 SHA 和输出挂载。GSM8K 和 profile 串行的合计预留为 30130 秒，当前配对锁对应的两项完整预算截止为北京时间 11 月 20 日 14:41:53。CPU 仍处原租期，实际启动前以续租后的最早到期时间为准。 [续跑回执与租期预算](../evidence/SG_usage_recovery_G1276/SG_G1317_quality_to_matched_profile_capacity_G1429.json) [终态观察器](../code/SG_long_profile_G1305/wait_SG_quality_terminal_g1429.py)
+匹配 profile 已挂接到原 GSM8K 控制进程，要求实际 worker 终态回执和新的 P/D 空闲、CPU 租期及正式数据校验。实机已只读复核共用的 16 条 32K 输入、SGLang 配置 SHA 和输出挂载。GSM8K 和 profile 串行的合计预留为 30130 秒。此前按配对锁单独推算的截止为北京时间 11 月 20 日 14:41:53，实机启动取资源中最早到期时间。 [续跑回执与租期预算](../evidence/SG_usage_recovery_G1276/SG_G1317_quality_to_matched_profile_capacity_G1429.json) [终态观察器](../code/SG_long_profile_G1305/wait_SG_quality_terminal_g1429.py)
 
 ## 64K、128K、256K 的连续运行窗口
 
