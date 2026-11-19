@@ -146,4 +146,6 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 
 恢复后首轮预热继续在同一实例运行。Prefill rank 0 首两个 8192-token 分块日志相隔 120 秒，后续采样的输入计数已较短请求基线增加 32768。现场暂未看到本轮新增的 KV 传输计数或客户端终态。该记录用于识别长输入推进和阶段预算，正式端到端指标待终态审计。 [Prefill 分块原始摘录](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_P_chunk_progress.json) [同一运行的队列采样](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_D_observed_progress.json) [预热前冻结计数](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_frozen_baseline.json)
 
+下一次现场采样已观察到本轮第 1 次 KV 传输，距预热前快照约 13 分 27 秒。客户端仍在运行，逐请求输出及正式指标待终态审计。 [新增 KV 传输计数](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_first_KV_transfer.json)
+
 已在 Decode 节点部署并校验绑定 G1317 的续跑、正式冷测及重放脚本。匹配 profile 工具在同一节点校验了原先锁定的 16 条输入及两框架配置。后续预热、正式测量和 profile 仍待各自实际门槛通过。 [续跑工具回执](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_AISBench_continuation_tools_staged.json) [匹配 profile 工具与输入回执](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_matched_profile_tools_staged.json)
