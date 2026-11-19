@@ -36,3 +36,7 @@ epoch727已完成P/D各8rank原始采集，并从全部16rank的原始CPU记录�
 ## 后续D0与CPU解析状态
 
 完整D0的Text/Db设备和CPU覆盖现已确认；最新失败、独立CPU解析路径与尚未完成项见[019](019-native032-full-D0-and-CPU-offline-analysis.md)。本文前述D解析等待描述保留为此前阶段记录，当前状态以019及metadata/profile_epoch_G727.json为准。
+
+## Prefill 量化索引算子
+
+G804 的 Prefill rank 0 原始采集离线导出中，`VllmAscendQuantLightningIndexerV2` 出现 520 次，设备任务累计 1.3505 秒。另有 520 次 query 量化和 520 次索引整理。固定镜像的实际模型源码调用 `npu_quant_lightning_indexer_v3`，上面的 V2 是设备统计表中的算子名称。设备任务时间可能重叠，逐步归因仍需用 launch 和时间轴关联。 [设备算子统计](../evidence/profile_capture_G804/derived/P0_indexer_operator_aggregate_G1395.json) [镜像原始索引源码](../code/fixed_native_attention_G1130/models/deepseek_v41/indexer.py)
