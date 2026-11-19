@@ -40,3 +40,5 @@ epoch727已完成P/D各8rank原始采集，并从全部16rank的原始CPU记录�
 ## Prefill 量化索引算子
 
 G804 的 Prefill rank 0 原始采集离线导出中，`VllmAscendQuantLightningIndexerV2` 出现 520 次，设备任务累计 1.3505 秒。另有 520 次 query 量化和 520 次索引整理。固定镜像的实际模型源码调用 `npu_quant_lightning_indexer_v3`，上面的 V2 是设备统计表中的算子名称。设备任务时间可能重叠，逐步归因仍需用 launch 和时间轴关联。 [设备算子统计](../evidence/profile_capture_G804/derived/P0_indexer_operator_aggregate_G1395.json) [镜像原始索引源码](../code/fixed_native_attention_G1130/models/deepseek_v41/indexer.py)
+
+同一份 `kernel_details.csv` 的逐任务记录确认，520 次融合索引调用的前两项输入均为 INT8，对应源码中的量化 query 和分页 key。第一项输出均为 `[query_rows, 1, 512]` 的 INT32 索引。CPU 调度的 65 个非零 query 步骤使用 300、8184 或 8188 行，设备记录中各尺寸的出现次数恰为该尺寸调度步数的四倍，共 260 次。其余 260 次设备任务使用 128–256 行。8184 或 8188 行的 256 次调用合计 1.1687 秒，占该算子累计设备任务时间的 86.5%。这里关联的是形状分布，逐步及逐层对应仍需核实 launch。 [逐任务形状及源文件 SHA](../evidence/profile_capture_G804/derived/P0_indexer_operand_shapes_G1418.json) [CPU 调度注释](../evidence/profile_capture_G804/logical/prefill/canonical_annotations.json)
