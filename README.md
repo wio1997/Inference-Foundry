@@ -96,3 +96,5 @@
 [同题原生对照与logprob A/B](docs/045-same16-native-control-and-logprob-AB.md)：相同16份请求原生16/16、SG8/16；确认差异，仍未确定唯一根因或完成全量质量。
 
 [BF16压缩KV候选与未修复结果](docs/046-BF16-compressed-KV-candidate-not-a-quality-fix.md)：八卡路径实际命中，同题严格匹配7/16，仍有算术及抄写错误；没有认定质量或性能收益。
+
+[第0层Query归一化不一致](docs/047-first-layer-query-normalization-mismatch.md)：相同153600元素输入下首层输出显著分歧，实际Q被无条件每头归一化；配置条件修正已完成同题C1短题16/16、八rank实际分支及BOS数值复核，完整质量未验收。
