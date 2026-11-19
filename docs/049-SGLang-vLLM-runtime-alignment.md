@@ -50,6 +50,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 固定 A2 实机包的 `libopapi` 和 910B 算子目录均有 BF16 `LightningIndexer`。CANN 9.1.0 的 V2 文档列出的压缩比为 1、4、128。对已压缩的连续 C2 K，可按 query 位置奇偶拆分。每组内相邻 query 的可见 K 数递增 1，适用常规右下因果掩码。将 65 个已封存的 vLLM 步骤代入，80 个请求分段的逐行可见范围都与 C2 原公式一致，合计 160 组。候选保留现有 FP4 来源的 Q/K。实际 910B dispatch、top-k 集合及次序、物理槽位与耗时仍须上卡验证。 [实机 ABI 与离线几何核验](../evidence/SG_usage_recovery_G1276/SG_A2_lightning_indexer_abi_and_C2_geometry_G1425.json) [分组代码](../code/SG_causal_prefill_score_G1362/c2_lightning_indexer_geometry_g1425.py) [CANN 9.1.0 原生接口](https://github.com/hicann/ops-transformer/blob/9.1.0/attention/lightning_indexer/docs/aclnnLightningIndexer.md) [V2 压缩比说明](https://github.com/hicann/ops-transformer/blob/9.1.0/attention/lightning_indexer_v2/docs/aclnnLightningIndexerV2.md)
 
+用固定 A2 镜像的无 NPU 容器确认 `npu::npu_lightning_indexer` 的实际 PyTorch 注册签名。组件探针复用固定 SGLang 的评分和写回源码，保留算子原始输出供无效索引检查。写回前将算子的负数哨兵映射到可见范围之外，由 SGLang 原有排序及槽位映射完成输出。CPU 夹具通过四种形状，并分别拒绝不合法索引和物理槽位变化。真实 fused 算子数值、耗时和模型结果仍待上卡。 [探针](../code/SG_causal_prefill_score_G1362/probe_c2_lightning_indexer_g1426.py) [CPU 夹具与实机注册](../evidence/SG_usage_recovery_G1276/SG_A2_LI_component_probe_CPU_wiring_G1426.json)
+
 ## 32K 正式冷测和重放的时间窗口
 
 原 vLLM 冷测和重放的各 32 条原始请求均复算出客户端并发峰值 16，第 17 条在首条完成后才开始。两端使用同一固定 AISBench 镜像。SGLang 第二轮原始 SQLite 复算最长单请求用时 7887.70 秒，整轮 7887.82 秒。当前 Router 的 14400 秒为单请求上限，Decode 的 14400 秒为 KV 等待设置。正式 AISBench 整轮上限由独立阶段参数控制。 [vLLM 原始请求并发](https://github.com/wio1997/Inference-Foundry/blob/72a0cf3e22549a59bcdc0742c22c3a325abe2f4e/evidence/native32_first_G691/derived/formal_C16_HTTP_admission_G1408.json) [SGLang 第二轮请求复算](../evidence/SG_usage_recovery_G1276/SG_G1317_W2_raw_client_admission.json) [复算脚本](../code/SG_W1_latency_timeline_G1375/audit_32K_client_admission_g1408.py)
