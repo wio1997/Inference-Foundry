@@ -79,3 +79,5 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 ## 64K、128K、256K 的连续运行窗口
 
 现有 G1317 的配对锁进程源码上限为 108000 秒。此前为 128K 和 256K 规划的首次冷测加重放分别需要 136480 和 272480 秒，均超出该上限。此前的长 CPU 租期从正式阶段起算，预热续跑则会校验客户端身份。新的候选租期从预热开始计算，覆盖五轮独立预热、冷测及重放，并为 P/D 初始化留出原规划时间。三个档位的配对锁和 CPU 客户端源码已在实机预置，CPU 只读校验确认三份配置使用同一镜像、CPU 限额和挂载合同。配对锁互斥已在隔离文件验证。真实长档阶段耗时和租期门槛须在各档启动前核验。 [租期预算和实机预置](../evidence/SG_usage_recovery_G1276/SG_wide_full_campaign_lease_preflight_G1424.json) [配对锁](../code/SG_wide_PD_window_G1348/workload_guard_wide_g1424.py) [CPU 配置生成](../code/SG_wide_CPU_window_G1351/prepare_SG_CPU_full_campaign_g1424.py)
+
+128K 和 256K 的 P/D 源码已分别部署为候选 G14331 和 G14332，每档两端各校验 58 个源文件。模型启动参数沿用当前版本，Router 单请求超时和 Decode KV 等待分别配置为 36500 秒和 68500 秒。两档 P/D 生命周期分别预留 324130 秒与 620130 秒，已和各自配对锁及 CPU 租期计划核对。实际启动、KV 准入、每档五轮预热及正式冷测和重放仍待验证。 [候选源码校验和与预算](../evidence/SG_usage_recovery_G1276/SG_wide_128K_256K_actual_PD_source_preparation_G1433.json)
