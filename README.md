@@ -43,3 +43,5 @@
 [原生P8+D8实际覆盖与DSPARK源码链](docs/021-native032-allrank-coverage-and-DSPARK-source-chain.md)：全部原始rank解析/父级设备与CPU复核完成；保留rank4计数差异，跨框架归一化地图仍待完成。
 
 [原生单节点同题对照](docs/022-native032-standalone-same16-control.md)：原始16条短题全部匹配；限定诊断范围，不能替代完整质量或P/D性能。
+
+[原生相同前缀的40层×8rank观察](docs/023-native032-layerwise-observation.md)：30-token首预测两次均91，320份真实边界数据已冻结；观察数据不作性能baseline。
