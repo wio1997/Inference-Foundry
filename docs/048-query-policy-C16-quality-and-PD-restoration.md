@@ -129,3 +129,11 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 首轮 32K 的 rank 0 Prefill 输入计数在约 2493 秒内增加 172032 token，期间新增 5 次 KV 传输。若该采样速度持续，32K 的五轮预热加首轮 32 条冷测，仅 Prefill 输入就约需 14 小时 46 分钟，比现有 CPU 客户端的有效期长约 102 分钟。该推算未计入最后的 Decode、重放与阶段间隔。把同一速度用于 64K、128K、256K 只得到资源排期情形，各档仍须独立测量。 [实测窗口、公式与各档情形](../evidence/SG_usage_recovery_G1276/SG_current_32K_P_rate_and_walltime_scenarios.json) [现场 CPU 租期](../evidence/SG_usage_recovery_G1276/SG_actual_CPU_original_deadline.json)
 
 已部署同容器续用工具。阶段结束且请求队列排空后，工具使用原 CPU 锁交接持有者，并核对同一个容器 ID、固定镜像、CPU 配额、配置和挂载指纹。预热、正式计分和匹配 profile 的后续预检读取当前实际租期。现场三次只读检查得到同一配置指纹，离线用例覆盖锁冲突、变更挂载、容器启动记录不匹配和交接清理。当前首轮预热继续使用原客户端，现场交接尚未执行。 [源码与启动配置](../code/SG_cpu_lease_continuity_G1311/source_pins.json) [现场检查](../evidence/SG_usage_recovery_G1276/SG_CPU_lease_staged_current_proof.json) [离线用例](../evidence/SG_usage_recovery_G1276/SG_CPU_lease_continuation_fixture.json)
+
+## Decode KV 等待超时与 32K 恢复
+
+首轮 32K/C16 预热终态审计未通过。原始 16 条中，7 条同时达到 32768 输入和 1024 输出，另外 9 条输出为 0。AISBench 明细仍把这 9 条标为 `success=true`，token 数审计已将整轮拦下。Decode 原始日志记录了 9 个不同 bootstrap room 在 `WaitingForInput` 超时，每个 room 均见于八个 rank，耗时 3600.1–3601.0 秒。实际运行的 Ascend 传输继承接收方的等待检查，计时在发送接收方 KV 元数据后开始。八个 Decode rank 的实际环境变量均为 3600 秒。这层等待独立于已调到 14400 秒的 Router 上限。13 份客户端原始文件已逐项固定 SHA，P/D 原始日志继续保留。 [终态审计与冻结](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_terminal_timeout_freeze.json) [运行时配置与源码指纹](../evidence/SG_usage_recovery_G1276/SG_decode_actual_PD_transport_configuration.json)
+
+两端已现场核实运行、等待与传输队列全部为零，原 runner 已退出，正式数据未提交。恢复实例将 Decode 的内部 KV 等待调到 14400 秒，并给 32K 恢复留出 30 小时的 P/D 服务窗口。原 P bootstrap 阈值、镜像、模型权重、推理参数和数据形状沿用。两个角色的 58 份源码均已在目标端校验。实际模型装载、图、双端运行时联调和新 epoch 的五轮独立预热仍需验收。 [构建程序](../code/SG_PD_wait_recovery_G1317/prepare_SG_PD_wait_recovery_g1317.py) [源码准备](../evidence/SG_usage_recovery_G1276/SG_P_D_wait_recovery_source_preparation.json) [Prefill 源码回执](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_source_staged_P.json) [Decode 源码回执](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_source_staged_D.json)
+
+旧 Prefill 和 Decode 控制器均经现场核验退出，各自释放八张卡，随后启动修复实例的两个控制器。原始失败批和冻结索引保留。Prefill 和 Decode 的新服务就绪与请求复测等待各自运行时回执。 [Prefill 启动](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_actual_P_launch.json) [Decode 启动](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_actual_D_launch.json)
