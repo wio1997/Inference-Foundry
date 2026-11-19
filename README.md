@@ -91,3 +91,5 @@
 [32K D侧GMM独立序列分段与原始计数器](docs/043-d-gmm-ordinal-counters.md)
 
 [32K D侧GMM主stream原始字段与专家工作量待验证项](docs/044-d-gmm-counter-scope.md)
+
+[专家工作量的现有证据、源码与补采隐私边界](docs/045-expert-observability-scope.md)
