@@ -107,3 +107,5 @@
 [P侧动态量化CPU投递的step标记覆盖](docs/051-p-quant-cpu-step.md)
 
 [P侧重型算子的逐step候选分布](docs/052-p-heavy-operators-per-step.md)
+
+[P侧indexer及稀疏注意力的记录shape与耗时](docs/053-indexer-attention-shape-duration.md)
