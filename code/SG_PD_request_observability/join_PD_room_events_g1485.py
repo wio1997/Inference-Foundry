@@ -10,6 +10,7 @@ import sqlite3
 
 from audit_decode_prefix_trace_g1389 import MARKER as DECODE_MARKER, PREFIX as DECODE_PREFIX
 from bind_decode_prefix_profile_g1391 import DIGEST, PROMPT_FIELD, verified_requests
+from parse_SG_step_graph_g1213 import sqlite_integer
 from prefill_room_annotation_g1485 import POLL_PREFIX, SEND_PREFIX
 
 
@@ -34,12 +35,14 @@ def sqlite_scopes(path, expected, prefixes):
         raise ValueError('An immutable export is required')
     with closing(sqlite3.connect(path.resolve().as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
         for prefix in prefixes:
-            yield from db.execute(
+            rows = db.execute(
                 'SELECT names.value, api.startNs, api.endNs FROM PYTORCH_API AS api '
                 'JOIN STRING_IDS AS names ON api.name = names.id '
-                'WHERE substr(names.value, 1, ?) = ? ORDER BY api.startNs',
+                'WHERE substr(names.value, 1, ?) = ? ORDER BY CAST(api.startNs AS INTEGER)',
                 (len(prefix), prefix),
             )
+            for label, start, end in rows:
+                yield label, sqlite_integer(start), sqlite_integer(end)
 
 
 def collect_p(rows, prompt_tokens):
