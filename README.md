@@ -105,3 +105,5 @@
 [P侧动态量化CPU/队列/设备候选与局部时长](docs/050-p-dynamic-quant-queue-chain.md)
 
 [P侧动态量化CPU投递的step标记覆盖](docs/051-p-quant-cpu-step.md)
+
+[P侧重型算子的逐step候选分布](docs/052-p-heavy-operators-per-step.md)
