@@ -10,6 +10,7 @@
 - SG 64K cold：D `decode_bootstrap` **35个观测均值100.568秒**，其中21个大于106.748秒。对应 `kv_transfer_alloc_ms` 35个均值100.561秒；这两个值不是独立可相加成本。
 - 正式客户端每轮是32个成功请求，但stage观测数是33、34或35，且冷/热窗口间还有stage计数变化。故不能把这些观测当作那32个请求的逐条配对，不能把P、D、bootstrap、transfer等直方图加总成TTFT，更不能把其差值当成相比vLLM的24.127秒差额。
 - 历史 SG 计数器前后标签一致、bucket增量非负且累计单调，`+Inf` 等于count；但快照缺process start和`_created`，无法排除重置后再次增长。G181的阶段计时源码逐文件SHA未绑定：G316或候选G156的setter语义只能作后续核验假设。
+- 候选源码在P离开bootstrap进入wait queue、D离开prealloc进入transfer queue时才observe对应bootstrap阶段。若现场行为相同，采样窗结束时仍卡住、尚未离开阶段的请求不会出现在该阶段已完成观测中，存在**阶段完成选择偏倚**；不能把直方图当作窗口所有已发起请求的等待分布。现场源码及这些请求身份尚未绑定。
 
 ## SG 正式窗口：阶段指标并列，不是路径求和
 
@@ -51,4 +52,4 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_summarize_stage_056.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_archive.py
 ```
 
-下一步先核实G181实际运行版阶段setter的不可变SHA、服务epoch和各series样本来源；再寻找vLLM**正式同窗**阶段指标及同请求、同batch和资源预算关联。如果这些历史信息不存在，就不能从现有离线汇总反推；任何新的埋点、服务变更、请求或A/B都应先获得独立授权，不能把本页线索宣传为已验证提速或根因。
+下一步先核实G181实际运行版阶段setter的不可变SHA、服务epoch和各series样本来源；已找到[各自正式窗口的vLLM阶段指标](059-vllm-formal-stage-snapshots.md)，但两框架同请求、同batch和资源预算关联仍缺。如果这些历史信息不存在，就不能从现有离线汇总反推；任何新的埋点、服务变更、请求或A/B都应先获得独立授权，不能把本页线索宣传为已验证提速或根因。

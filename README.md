@@ -123,3 +123,7 @@
 [vLLM正式32K/64K P/D阶段快照](docs/059-vllm-formal-stage-snapshots.md)
 
 [P/D候选编排与服务/客户端TTFT口径](docs/060-pd-route-and-ttft-scope.md)
+
+[P侧选定事件的整个观测范围](docs/061-p-selected-event-full-span.md)
+
+[阶段直方图慢桶事件和的条件边界](docs/062-stage-histogram-event-sum-bounds.md)
