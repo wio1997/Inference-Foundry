@@ -184,3 +184,11 @@ Router 的准备工具已验证会拒绝旧实例凭据、任一 Decode rank 的
 128K 和 256K 的 CPU 客户端配置已在 Decode 节点完成现场预检，计划租约分别为 138280 秒和 274280 秒。创建参数引用现场已校验的同一镜像、挂载、32 GiB 内存和四核 CPU 配置，设备权限为空。两份候选均使用现有 CPU 锁。现场验证该锁仍由原客户端持有，第二个持有者无法取得。预检首次遇到 Docker 元数据省略可选的 `DeviceRequests` 字段，已兼容该格式并重新核对了设备权限。新客户端尚未创建，配置一致性将在实际创建后、启动前再按 Docker 元数据对比。 [现场预检](../evidence/SG_usage_recovery_G1276/SG_wide_CPU_client_source_actual_staging.json) [保留的首次失败](../evidence/SG_usage_recovery_G1276/SG_wide_CPU_client_first_preflight_compatibility_failure.json) [生命周期离线用例](../evidence/SG_usage_recovery_G1276/SG_wide_CPU_client_lifecycle_fixture_validation.json) [源码 SHA](../code/SG_wide_CPU_window_G1351/source_pins.json)
 
 同一 32K 预热进程继续运行。最新采样较预热前新增 212992 个 Prefill 输入 token，记录到 6 次 KV 传输。16 条响应仍待终态逐条审计。 [原进程在飞采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_after_wider_CPU_source_staging.json)
+
+## Prefill 索引评分现场核对
+
+G1317 原实例的八个 Prefill rank 都保留了同一次大输入索引评分记录，query 为 8192×32×128，key 为 4096×128。已核对容器实际评分源码 SHA。当前 128 MiB 上限下，首片 512 个 query row，按源码公式整个形状分 16 片。逐 head 的 BF16 分数张量在这次调用中合计对应 2 GiB 逻辑中间量，随后才进行 head 归约和因果掩码。该数量按 rank 和单次调用计算。 [实际操作数、分块和源码工作量](../evidence/SG_usage_recovery_G1276/SG_G1317_P_prefill_score_operand_and_work_bound.json) [工作量复算脚本](../code/SG_prefill_score_work_G1353/audit_P_prefill_score_work_g1353.py)
+
+29 条连续 8192-token 分块日志的相邻间隔为 118–121 秒，中位数 120 秒。两次现场采样的八卡 AICore 读数均为 99–100%，HBM 余量约 478–541 MB。采样时 Prefill 有 1 条运行、8 条排队、1 条传输中，bootstrap 队列为零。两次读数的范围有限，仍需要同负载设备 trace 量化评分、共享 KV attention 和通信的相对耗时。当前显存余量支持先量化各路径开销，再评估扩大评分分块的条件。 [设备采样与原日志定位](../evidence/SG_usage_recovery_G1276/SG_G1317_P_prefill_score_operand_and_work_bound.json)
+
+按无缓存且连续四块的 32K 情景推算，理论上约 20% 的 dense 评分位置最终被因果掩码排除，按现有 query tile 截掉统一无效后缀约可少计算 19.35% 的评分位置。实际 A/B 还需复核分数位模式、原生 top-k 和端到端运行时间。G1317 原预热已记录本轮第 7 次 KV 传输，运行仍在继续。 [估算公式及边界](../evidence/SG_usage_recovery_G1276/SG_G1317_P_prefill_score_operand_and_work_bound.json) [在飞计数](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_seventh_transfer.json)
