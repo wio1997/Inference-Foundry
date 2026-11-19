@@ -244,3 +244,5 @@ Prefill rank 0 在该轮记录 64 个 8192-token 分块，累计覆盖全部 524
 在两台 910B 主机分别核对两个版本各 58 项原始部署清单及文件，并确认镜像和推理启动参数逐项一致。两版同角色只有控制器、启动入口和角色配置文件变更。两端 95 项既有权重校验记录计算出相同目录 SHA。角色配置中除实例目录对应的 profiler 路径外，实际值变化为 Decode 的 KV 等待从 3600 秒增至 14400 秒。 [Prefill 实机源码与权重记录](../evidence/SG_usage_recovery_G1276/SG_G1317_G1178_quality_lineage_P.json) [Decode 实机源码与权重记录](../evidence/SG_usage_recovery_G1276/SG_G1317_G1178_quality_lineage_D.json)
 
 旧 GSM8K 第 304 条在约 600 秒触发客户端超时。历史日志缺少可在客户端与服务端关联该请求的唯一 ID，超时的服务端原因仍待确认。当前版本的质量复测脚本保留同一 1319 题、C16、原始请求与判分逻辑，以及 600 秒客户端请求上限。语料、判分器和脚本均在服务器校验 SHA，等待当前测试的合适空闲边界。第二轮 32K 正按原进程执行，较第二轮自己的基线新增 49152 输入 token 和 1 次 KV 传输。 [旧超时回执](../evidence/SG_final_quality_G1268/D_transport_window.json) [当前质量脚本](../code/SG_G1317_quality_G1378/run_full_gsm8k_SG_PD_g1378.py) [服务器校验回执](../evidence/SG_usage_recovery_G1276/SG_G1317_quality_worker_actual_stage.json) [第二轮实际采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W2_first_KV_transfer.json)
+
+SGLang 当前版本、vLLM 四档基线与两端的实际权重和输入清单已逐项对齐。运行配置和仍需独立测量的差异见 [运行配置对照](049-SGLang-vLLM-runtime-alignment.md)。
