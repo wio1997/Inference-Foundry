@@ -38,3 +38,9 @@ G804 的 D 侧八 rank 使用同一份标准化 scheduler 序列。906 个非零
 输出预算的绝对位置从 32,767 到 33,790，位置从零开始，末尾 prompt token 的 query 对应首个输出。全部 16 条请求覆盖了各自 1,024 个预算内位置。重复位置可能含不同 token，额外图 lane 描述实际输入形状。这两类计数均需结合设备事件判断时间影响。上限外调度占 0.64%，图形状额外 lane 占逻辑 query 的 8.95%。 [实际请求验收](../evidence/profile_capture_G804/parent_diagnostic_raw.json) [设备形状与映射](../evidence/logical_device_map_G867/D0_query_shape_map.json)
 
 调度注释中的 17,875 个 proposal 槽由 17,795 个 cached 请求行槽和 80 个首行槽组成。Decode 服务计数增加 17,795 个 draft token、3,559 次 draft 和 12,864 个接受的 draft token。按已验证的请求批次和逻辑前缀长度保留未压缩因果 query–token 对数，供 SGLang target trace 归一化。当前尚未采得 SGLang 的同批 Decode 事件。 [服务计数器差值](../evidence/profile_capture_G804/actual_spec_counter_deltas.json)
+
+## 范围外图的实际输入容量
+
+G804 D0 有 906 次重放落在非零 target scheduler 标记之外。五类 ModelID 都有直接设备 connection 关联。每次重放各记录 3 个 SparseFlashMla 任务，每个图类的实际 query 首维分别为 5、10、20、25、35。每次重放只计一次输入容量，合计 18,570 个 query lane。范围外图标记下的命名计算任务累计耗时为 2.739 秒，范围内图为 27.494 秒，统计仍为同一物理 rank 的任务耗时之和。 [形状、计数及源摘要](../evidence/profile_capture_G804/derived/D0_outside_target_graph_lanes_G1454.json)
+
+固定 DSPARK 源码的 anchor 路径每请求分配 5 个 draft query。若每个非零 target 步对应一次服务同一活跃请求集合的范围外 draft 重放，则 1、2、4、5、7 请求容量的图可由实际步数唯一分桶。3 请求的 96 步分到容量 4，6 请求的 43 步分到容量 7。该口径下，18,570 个图形状 lane 比原调度的 17,875 个 proposal 槽多 695 个，占 3.89%。逐步 CPU 关联尚未验证，实际执行的掩码 lane 和墙钟收益也未测。 [分桶复算](../code/profile_capture_G804/audit_G804_D0_draft_lanes_g1454.py) [DSPARK 源码链](021-native032-allrank-coverage-and-DSPARK-source-chain.md)
