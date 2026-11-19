@@ -149,3 +149,18 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 下一次现场采样已观察到本轮第 1 次 KV 传输，距预热前快照约 13 分 27 秒。客户端仍在运行，逐请求输出及正式指标待终态审计。 [新增 KV 传输计数](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_first_KV_transfer.json)
 
 已在 Decode 节点部署并校验绑定 G1317 的续跑、正式冷测及重放脚本。匹配 profile 工具在同一节点校验了原先锁定的 16 条输入及两框架配置。后续预热、正式测量和 profile 仍待各自实际门槛通过。 [续跑工具回执](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_AISBench_continuation_tools_staged.json) [匹配 profile 工具与输入回执](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_matched_profile_tools_staged.json)
+
+## 宽输入的阶段时限与分配约束
+
+同一恢复实例的后续 472.46 秒窗口中，Prefill rank 0 新增 32768 个输入 token，区间速率约 69.36 token/s，累计已观察到本轮 2 次 KV 传输。上一组相邻 8192-token 分块给出约 68.27 token/s，作为固定节奏估算的输入。运行中采样只覆盖当前阶段。 [第二次 KV 传输与计数窗口](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_second_transfer_and_rate.json)
+
+| 输入 | 首轮 16 条仅 Prefill 估算 | 五轮预热及首轮冷测 32 条仅 Prefill 估算 |
+| --- | ---: | ---: |
+| 32K | 2.13 小时 | 14.93 小时 |
+| 64K | 4.27 小时 | 29.87 小时 |
+| 128K | 8.53 小时 | 59.73 小时 |
+| 256K | 17.07 小时 | 119.47 小时 |
+
+估算沿用 32K 已观察的分块节奏，假设预热与冷测输入全新，排除传输、Decode、上下文差异和重放。以该节奏，64K 起首轮即超过当前 12900 秒客户端阶段上限，且首轮整体 Prefill 时间超过 14400 秒单请求等待设置。32K 出现首个 KV 传输时，Decode 已有 15 条等待传输。单请求 KV 等待从 metadata 发布计时，宽档启动前须分别核对客户端阶段、Router、KV 等待及两端资源窗口。 [宽输入场景与原始证据哈希](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_wider_shape_phase_budget_scenario.json)
+
+当前容器两端安装的核心调度与传输源码 SHA 一致。调度器先处理已有分块请求，当该步的分块预算耗尽后停止从队列取新请求，这与现场多次采样中的 Prefill 1 条运行及其余排队相符。分块内部的算子、通信和同步耗时仍需匹配 trace 才能分解。Decode 实际采用 `early`，8 个调度 rank 的接收等待均为 14400 秒。镜像中的 `prefill_complete` 检查只允许 Mooncake、单 attention tensor rank 和受支持的 KV 池，同时拒绝 Decode radix cache。当前 Ascend、attention TP8、SWA/C128 KV 状态及 Decode radix 配置均需要保留，因此该模式无法直接接入本轮配置。 [运行参数、源码定位与 SHA](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_live_admission_and_wait_source.json)
