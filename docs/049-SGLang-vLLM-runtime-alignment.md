@@ -59,3 +59,7 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 正式续跑会在第五轮原始请求及稳定性校验通过后，按封存 SHA 读取第三轮和第五轮的同一 Prefill 实例快照。比较范围为持久编译缓存清单的路径、大小和修改时间，Ascend 运行目录另行记录。对比器已部署到 Prefill 主机，隔离演练验证了拒绝预热未完成、缓存元数据改变或剩余租期不足的情况。 [编译快照比较器](../code/SG_phase_audit_G1205/compare_SG_prefill_compile_g1414.py) [Prefill 主机部署回执](../evidence/SG_usage_recovery_G1276/SG_G1317_P_compiler_comparator_physical_stage.json) [正式续跑演练](../evidence/SG_usage_recovery_G1276/SG_G1317_first_formal_event_controller_fixture.json)
 
 第三轮 16 条原始请求均与该轮冻结输入匹配，每条实际输入 32768、输出 1024，耗时 7884.90 秒。空闲时采集了同一 Prefill 实例的第三轮快照，封存清单包含 211 个持久编译缓存文件。第四轮在原 P/D 实例和原 CPU 客户端启动，使用独立的第四轮输入，并复核跳过前三轮。 [第三轮原始请求复核](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W3_verified_raw_requests.json) [第三轮编译缓存快照](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_P_compile_snapshot_after_W3.json) [第四轮实机启动](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W4_actual_input_and_worker.json)
+
+## 64K、128K、256K 的连续运行窗口
+
+现有 G1317 的配对锁进程源码上限为 108000 秒。此前为 128K 和 256K 规划的首次冷测加重放分别需要 136480 和 272480 秒，均超出该上限。此前的长 CPU 租期从正式阶段起算，预热续跑则会校验客户端身份。新的候选租期从预热开始计算，覆盖五轮独立预热、冷测及重放，并为 P/D 初始化留出原规划时间。三个档位的配对锁和 CPU 客户端源码已在实机预置，CPU 只读校验确认三份配置使用同一镜像、CPU 限额和挂载合同。配对锁互斥已在隔离文件验证。真实长档阶段耗时和租期门槛须在各档启动前核验。 [租期预算和实机预置](../evidence/SG_usage_recovery_G1276/SG_wide_full_campaign_lease_preflight_G1424.json) [配对锁](../code/SG_wide_PD_window_G1348/workload_guard_wide_g1424.py) [CPU 配置生成](../code/SG_wide_CPU_window_G1351/prepare_SG_CPU_full_campaign_g1424.py)
