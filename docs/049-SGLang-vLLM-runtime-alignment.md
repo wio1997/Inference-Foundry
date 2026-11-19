@@ -1,6 +1,6 @@
 # DeepSeek-V4.1 W4A8 运行配置对照
 
-对照的是 SGLang G1317 当前运行版与 vLLM G630 四档正式基线。两端各 8 张 Ascend 910B1，aarch64。P、D 两台主机上的历史与当前实际加载清单均匹配同一组 95 项权重校验记录。SGLang 的 24 份输入清单逐项匹配 vLLM 四档实跑清单，覆盖每档 5 份独立预热输入和 1 份正式输入。每个正式输入在 vLLM 的冷测和重放中使用相同 SHA。SGLang 已完成 32K 前四轮预热，第五轮已启动。 [实机配置、权重及数据绑定](../evidence/SG_usage_recovery_G1276/SG_G1317_native630_actual_profile_alignment.json) [vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/cff38e0021cd7f859dea4b8a403b06c3791eb7dd/docs/016-native032-four-tier-first-matrix.md)
+对照的是 SGLang G1317 当前运行版与 vLLM G630 四档正式基线。两端各 8 张 Ascend 910B1，aarch64。P、D 两台主机上的历史与当前实际加载清单均匹配同一组 95 项权重校验记录。SGLang 的 24 份输入清单逐项匹配 vLLM 四档实跑清单，覆盖每档 5 份独立预热输入和 1 份正式输入。每个正式输入在 vLLM 的冷测和重放中使用相同 SHA。32K 正式测试进度见下文。 [实机配置、权重及数据绑定](../evidence/SG_usage_recovery_G1276/SG_G1317_native630_actual_profile_alignment.json) [vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/cff38e0021cd7f859dea4b8a403b06c3791eb7dd/docs/016-native032-four-tier-first-matrix.md)
 
 | 项目 | SGLang G1317 | vLLM G630 |
 |:--|:--|:--|
@@ -13,6 +13,8 @@
 | 量化实现 | 同一 W4A8 权重，FP4 索引 K | 同一 W4A8 权重，Ascend ModelSlim，INT8 索引 K |
 
 SGLang 的 `speculative_num_draft_tokens=6` 应按实际 D 图宽度解释。vLLM 的 `num_speculative_tokens=5` 计的是候选数。配对比较时仍需按每步实际请求、query、KV 长度和 padding 归一化，同时记录预热前缀命中及调度布局。上表的页面参数、分块和内存比例来自运行配置，物理页布局、每步 token 编组和实际 HBM 占用需要分别测量。 [SGLang 源码索引](../code/SG_PD_wait_recovery_G1317/G1317_runtime_source_index.json) [vLLM DSPARK 固定源码和图归因](https://github.com/wio1997/Inference-Foundry/blob/cff38e0021cd7f859dea4b8a403b06c3791eb7dd/docs/021-native032-allrank-coverage-and-DSPARK-source-chain.md)
+
+Prefill 对照还需核实后段层的实际 query 行数。vLLM 的 G804 诊断已用启动日志、固定源码和设备形状核验后段层的专用尾窗。SGLang 同批 trace 需要分别核对全量和后段 query 行数，确认是否存在等效的裁减。scheduler 的输入 token 数无法提供这一层级的工作量。 [vLLM 后段尾窗的实际核验](https://github.com/wio1997/Inference-Foundry/blob/5d5094d6c65990a23cad2abcafeb19876b8d4845/docs/018-native032-profile-capture-and-logical-work.md#prefill-后段层的尾窗工作量)
 
 当前 Decode 的实际后端为 dsv4，scheduler 环境确认静态 VERIFY。固定源码在有 CPU 长度镜像时给标记传入步前逻辑长度加本步验证宽度，镜像缺失时可退回页对齐的分配长度。两种来源写同名 g_sk 字段，缺少镜像的 draft 标记也可以没有 query/KV 字段。已用现役源码的 CPU 函数验证这三种输出。归一化要求逐步提供独立确认的边界，在 vLLM 906 个实际调度步上，两种逻辑边界的公式都重现 711,816,147 个未压缩因果 query–token 对。SGLang 同批实际标记的逐步来源待采集。 [运行源码与验证](../evidence/SG_usage_recovery_G1276/SG_G1317_verify_context_boundary_G1448.json) [逐步归一化工具](../code/SG_D_verify_work_G1448/normalize_verify_work_g1448.py) [vLLM 固定证据](https://github.com/wio1997/Inference-Foundry/blob/1cd4d843dcb21dbd4d063f5e55de2de2f88e36f8/evidence/profile_capture_G804/derived/D0_target_position_ledger_G1447.json)
 
