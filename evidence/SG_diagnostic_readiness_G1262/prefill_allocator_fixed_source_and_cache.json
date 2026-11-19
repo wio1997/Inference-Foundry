@@ -1,0 +1,787 @@
+{
+  "at": "2026-11-19T06:22:03.584905+00:00",
+  "container_id": "bc856ead0101bc90dd6a4c36464517a72ca0092850180868d716b5213424586b",
+  "actual_image": "sha256:7da963869ee54984dfeea2445befdf181710ef846448466db2361247759904ec",
+  "allocator_source": {
+    "kv/alloc/chain.py": {
+      "sha256": "e1ad33d484fe02e84ed92b27063f781db6429a1958173d51c35e8172b0aca5e2",
+      "lines": [
+        [
+          697,
+          "        seq_lens_cpu: torch.Tensor,"
+        ],
+        [
+          698,
+          "        last_loc: torch.Tensor,"
+        ],
+        [
+          699,
+          "        extend_num_tokens: int,"
+        ],
+        [
+          700,
+          "        num_new_pages: int,"
+        ],
+        [
+          701,
+          "    ) -> Callable[[], Optional[torch.Tensor]]:"
+        ],
+        [
+          702,
+          "        def extend_tokens(free_pages: torch.Tensor) -> torch.Tensor:"
+        ],
+        [
+          703,
+          "            bs = len(prefix_lens)"
+        ],
+        [
+          704,
+          "            out_indices = torch.empty("
+        ],
+        [
+          705,
+          "                (extend_num_tokens,), dtype=torch.int64, device=self.device"
+        ],
+        [
+          706,
+          "            )"
+        ],
+        [
+          707,
+          "            # The kernel computes `page_id * page_size + offset`, so the free"
+        ],
+        [
+          708,
+          "            # virtual pages yield virtual token ids."
+        ],
+        [
+          709,
+          "            with record_function(\"ChainAllocator.alloc_extend.kernel\"):"
+        ],
+        [
+          710,
+          "                alloc_extend_kernel[(bs,)]("
+        ],
+        [
+          711,
+          "                    prefix_lens,"
+        ],
+        [
+          712,
+          "                    seq_lens,"
+        ],
+        [
+          713,
+          "                    last_loc,"
+        ],
+        [
+          714,
+          "                    free_pages,"
+        ],
+        [
+          715,
+          "                    out_indices,"
+        ],
+        [
+          716,
+          "                    next_power_of_2(bs),"
+        ],
+        [
+          717,
+          "                    self.full_attn_allocator.page_size,"
+        ],
+        [
+          718,
+          "                )"
+        ],
+        [
+          719,
+          "            return out_indices"
+        ],
+        [
+          720,
+          ""
+        ],
+        [
+          721,
+          "        return lambda: take_new_pages("
+        ],
+        [
+          722,
+          "            self.full_attn_allocator,"
+        ],
+        [
+          723,
+          "            num_new_pages,"
+        ],
+        [
+          724,
+          "            extend_tokens,"
+        ],
+        [
+          725,
+          "            copy_new_pages=False,"
+        ],
+        [
+          726,
+          "        )"
+        ],
+        [
+          727,
+          ""
+        ],
+        [
+          728,
+          "    def alloc_extend("
+        ],
+        [
+          729,
+          "        self,"
+        ],
+        [
+          730,
+          "        prefix_lens: torch.Tensor,"
+        ],
+        [
+          731,
+          "        prefix_lens_cpu: torch.Tensor,"
+        ],
+        [
+          732,
+          "        seq_lens: torch.Tensor,"
+        ],
+        [
+          733,
+          "        seq_lens_cpu: torch.Tensor,"
+        ],
+        [
+          734,
+          "        last_loc: torch.Tensor,"
+        ],
+        [
+          735,
+          "        extend_num_tokens: int,"
+        ]
+      ]
+    },
+    "allocator/paged.py": {
+      "sha256": "c72f28d9c5b953a05fcc0a0451307ecdbfbfb756eca3f0073f7be3eb737d38f6",
+      "lines": [
+        [
+          232,
+          "            if num_new_pages is None:"
+        ],
+        [
+          233,
+          "                num_new_pages = get_num_new_pages("
+        ],
+        [
+          234,
+          "                    seq_lens=seq_lens_cpu,"
+        ],
+        [
+          235,
+          "                    page_size=self.page_size,"
+        ],
+        [
+          236,
+          "                    prefix_lens=prefix_lens_cpu,"
+        ],
+        [
+          237,
+          "                )"
+        ],
+        [
+          238,
+          "            if num_new_pages > len(self.free_pages):"
+        ],
+        [
+          239,
+          "                return None"
+        ],
+        [
+          240,
+          ""
+        ],
+        [
+          241,
+          "        out_indices = torch.empty("
+        ],
+        [
+          242,
+          "            (extend_num_tokens,), dtype=torch.int64, device=self.device"
+        ],
+        [
+          243,
+          "        )"
+        ],
+        [
+          244,
+          ""
+        ],
+        [
+          245,
+          "        if self.use_triton_kernels:"
+        ],
+        [
+          246,
+          "            alloc_extend_kernel[(bs,)]("
+        ],
+        [
+          247,
+          "                prefix_lens,"
+        ],
+        [
+          248,
+          "                seq_lens,"
+        ],
+        [
+          249,
+          "                last_loc,"
+        ],
+        [
+          250,
+          "                self.free_pages,"
+        ],
+        [
+          251,
+          "                out_indices,"
+        ],
+        [
+          252,
+          "                next_power_of_2(bs),"
+        ],
+        [
+          253,
+          "                self.page_size,"
+        ],
+        [
+          254,
+          "            )"
+        ],
+        [
+          255,
+          "        else:"
+        ],
+        [
+          256,
+          "            alloc_extend_naive("
+        ],
+        [
+          257,
+          "                prefix_lens,"
+        ],
+        [
+          258,
+          "                seq_lens,"
+        ],
+        [
+          259,
+          "                last_loc,"
+        ],
+        [
+          260,
+          "                self.free_pages,"
+        ],
+        [
+          261,
+          "                out_indices,"
+        ],
+        [
+          262,
+          "                self.page_size,"
+        ],
+        [
+          263,
+          "                self.device,"
+        ],
+        [
+          264,
+          "            )"
+        ],
+        [
+          265,
+          ""
+        ],
+        [
+          266,
+          "        if self.debug_mode:"
+        ],
+        [
+          267,
+          "            assert len(torch.unique(out_indices)) == len(out_indices)"
+        ],
+        [
+          268,
+          ""
+        ],
+        [
+          269,
+          "        if num_new_pages is None:"
+        ],
+        [
+          270,
+          "            num_new_pages = get_num_new_pages("
+        ],
+        [
+          271,
+          "                seq_lens=seq_lens_cpu,"
+        ],
+        [
+          272,
+          "                page_size=self.page_size,"
+        ]
+      ]
+    },
+    "sglang.kernels.ops.memory.allocator": {
+      "sha256": "9afa04af577797f88f7b41e97d52ff23112904a6b1ecf7e4f6bd7575201b5495",
+      "lines": [
+        [
+          115,
+          "@triton.jit(do_not_specialize=[\"free_page_ptr\"])"
+        ],
+        [
+          116,
+          "def alloc_extend_kernel("
+        ],
+        [
+          117,
+          "    pre_lens_ptr,"
+        ],
+        [
+          118,
+          "    seq_lens_ptr,"
+        ],
+        [
+          119,
+          "    last_loc_ptr,"
+        ],
+        [
+          120,
+          "    free_page_ptr,"
+        ],
+        [
+          121,
+          "    out_indices,"
+        ],
+        [
+          122,
+          "    bs_upper: tl.constexpr,"
+        ],
+        [
+          123,
+          "    page_size: tl.constexpr,"
+        ],
+        [
+          124,
+          "):"
+        ],
+        [
+          125,
+          "    pid = tl.program_id(0)"
+        ],
+        [
+          126,
+          ""
+        ],
+        [
+          127,
+          "    load_offset = tl.arange(0, bs_upper)"
+        ],
+        [
+          128,
+          "    seq_lens = tl.load(seq_lens_ptr + load_offset, mask=load_offset <= pid)"
+        ],
+        [
+          129,
+          "    pre_lens = tl.load(pre_lens_ptr + load_offset, mask=load_offset <= pid)"
+        ],
+        [
+          130,
+          "    extend_lens = seq_lens - pre_lens"
+        ],
+        [
+          131,
+          ""
+        ],
+        [
+          132,
+          "    seq_len = tl.load(seq_lens_ptr + pid)"
+        ],
+        [
+          133,
+          "    pre_len = tl.load(pre_lens_ptr + pid)"
+        ],
+        [
+          134,
+          "    extend_len = seq_len - pre_len"
+        ],
+        [
+          135,
+          ""
+        ],
+        [
+          136,
+          "    sum_extend_lens = tl.sum(extend_lens)"
+        ],
+        [
+          137,
+          "    output_start_loc = sum_extend_lens - extend_len"
+        ],
+        [
+          138,
+          ""
+        ],
+        [
+          139,
+          "    num_pages_after = (seq_lens + page_size - 1) // page_size"
+        ],
+        [
+          140,
+          "    num_pages_before = (pre_lens + page_size - 1) // page_size"
+        ],
+        [
+          141,
+          "    num_new_pages = num_pages_after - num_pages_before"
+        ],
+        [
+          142,
+          ""
+        ],
+        [
+          143,
+          "    num_page_start_loc_self = (seq_len + page_size - 1) // page_size - ("
+        ],
+        [
+          144,
+          "        pre_len + page_size - 1"
+        ],
+        [
+          145,
+          "    ) // page_size"
+        ],
+        [
+          146,
+          "    sum_num_new_pages = tl.sum(num_new_pages)"
+        ],
+        [
+          147,
+          "    new_page_start_loc = sum_num_new_pages - num_page_start_loc_self"
+        ],
+        [
+          148,
+          ""
+        ],
+        [
+          149,
+          "    # Part 1: fill the old partial page"
+        ],
+        [
+          150,
+          "    last_loc = tl.load(last_loc_ptr + pid)"
+        ],
+        [
+          151,
+          "    num_part1 = ("
+        ],
+        [
+          152,
+          "        min(seq_len, (pre_len + page_size - 1) // page_size * page_size) - pre_len"
+        ],
+        [
+          153,
+          "    )"
+        ],
+        [
+          154,
+          "    offset_one_page = tl.arange(0, page_size)"
+        ],
+        [
+          155,
+          "    tl.store("
+        ],
+        [
+          156,
+          "        out_indices + output_start_loc + offset_one_page,"
+        ],
+        [
+          157,
+          "        last_loc + 1 + offset_one_page,"
+        ],
+        [
+          158,
+          "        mask=offset_one_page < num_part1,"
+        ],
+        [
+          159,
+          "    )"
+        ],
+        [
+          160,
+          "    if pre_len + num_part1 == seq_len:"
+        ],
+        [
+          161,
+          "        return"
+        ],
+        [
+          162,
+          ""
+        ],
+        [
+          163,
+          "    # Part 2: fill the new full pages using a dynamic blocked loop."
+        ],
+        [
+          164,
+          "    # The loop bound is derived from num_part2 (runtime value), so Triton"
+        ],
+        [
+          165,
+          "    # generates a real loop instead of unrolling -- no constexpr dependency"
+        ],
+        [
+          166,
+          "    # on extend size and only one kernel compilation."
+        ],
+        [
+          167,
+          "    num_part2 = ("
+        ],
+        [
+          168,
+          "        seq_len // page_size * page_size"
+        ],
+        [
+          169,
+          "        - (pre_len + page_size - 1) // page_size * page_size"
+        ],
+        [
+          170,
+          "    )"
+        ],
+        [
+          171,
+          "    BLOCK_EXTEND: tl.constexpr = 4096"
+        ],
+        [
+          172,
+          "    num_blocks = (num_part2 + BLOCK_EXTEND - 1) // BLOCK_EXTEND"
+        ],
+        [
+          173,
+          "    for block_id in range(num_blocks):"
+        ],
+        [
+          174,
+          "        offset_in_block = tl.arange(0, BLOCK_EXTEND)"
+        ],
+        [
+          175,
+          "        offset = block_id * BLOCK_EXTEND + offset_in_block"
+        ],
+        [
+          176,
+          "        mask = offset < num_part2"
+        ],
+        [
+          177,
+          "        page_start = tl.load("
+        ],
+        [
+          178,
+          "            free_page_ptr + new_page_start_loc + offset // page_size,"
+        ],
+        [
+          179,
+          "            mask=mask,"
+        ],
+        [
+          180,
+          "        )"
+        ],
+        [
+          181,
+          "        tl.store("
+        ],
+        [
+          182,
+          "            out_indices + output_start_loc + num_part1 + offset,"
+        ],
+        [
+          183,
+          "            page_start * page_size + offset % page_size,"
+        ],
+        [
+          184,
+          "            mask=mask,"
+        ],
+        [
+          185,
+          "        )"
+        ],
+        [
+          186,
+          "    if pre_len + num_part1 + num_part2 == seq_len:"
+        ],
+        [
+          187,
+          "        return"
+        ],
+        [
+          188,
+          ""
+        ],
+        [
+          189,
+          "    # Part 3: fill the new partial page"
+        ],
+        [
+          190,
+          "    num_part3 = seq_len - seq_len // page_size * page_size"
+        ],
+        [
+          191,
+          "    start_loc = tl.load("
+        ],
+        [
+          192,
+          "        free_page_ptr + new_page_start_loc + num_page_start_loc_self - 1"
+        ],
+        [
+          193,
+          "    )"
+        ],
+        [
+          194,
+          "    tl.store("
+        ],
+        [
+          195,
+          "        out_indices + output_start_loc + num_part1 + num_part2 + offset_one_page,"
+        ],
+        [
+          196,
+          "        start_loc * page_size + offset_one_page,"
+        ],
+        [
+          197,
+          "        mask=offset_one_page < num_part3,"
+        ],
+        [
+          198,
+          "    )"
+        ]
+      ]
+    }
+  },
+  "allocator_IR_variants_present": 23,
+  "distinct_allocator_IR_SHA256": 8,
+  "latest_allocator_variants": [
+    {
+      "variant": "ZKQ2imRjxkEsocpJB3A-Dr8r9JM-HNXaQZra8UJ7yg0",
+      "mtime_UTC": "2026-11-19T06:14:06.944000+00:00",
+      "npubin_bytes": 6264,
+      "ir_SHA256": "efab76cd2c6bc3d235781e9698f86d58fe2c9aa11f8c486de2a8c29dd577b295",
+      "metadata_SHA256": "5f8f134cef447a08416b83b3c8e01341c0858fbff479180e053f14fee0ba49c5",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    },
+    {
+      "variant": "c-27QksmohqPqbssXDpffqxkI_OIAwlZZQnRD8fR6nc",
+      "mtime_UTC": "2026-11-19T06:14:59.540000+00:00",
+      "npubin_bytes": 6656,
+      "ir_SHA256": "0307424fef8964b2a370612cff1c8aa95872d535e3ac43fcb6a38387d13f45b3",
+      "metadata_SHA256": "73e728dcec5e688f5fa2db41ac6f0213655b71b051a7ca2f7786039364f78ba3",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    },
+    {
+      "variant": "EpYzbUkVYeN40uwkV1bZf4e1BQbIKn-Y2BXvkuSBwAA",
+      "mtime_UTC": "2026-11-19T06:15:23.568000+00:00",
+      "npubin_bytes": 6264,
+      "ir_SHA256": "af6b2a1600e6303b71a93ea19fe95c69e43a7ba7849cf282e5268ed9f47f070d",
+      "metadata_SHA256": "a3df88e674c3f84368269eb223b3328700b0f1f77036cef7d11806e51f8e2b8d",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    },
+    {
+      "variant": "GiUzoFMu7o6o0bh7apbHbWHPJGx16Q_EG1irypqPQQY",
+      "mtime_UTC": "2026-11-19T06:16:12.268000+00:00",
+      "npubin_bytes": 6656,
+      "ir_SHA256": "0307424fef8964b2a370612cff1c8aa95872d535e3ac43fcb6a38387d13f45b3",
+      "metadata_SHA256": "4cee62401b55376c3829f76288ef3d95a5ba6b459b52f2160356de2d2aedd128",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    },
+    {
+      "variant": "FiaQxtYyXjfj2DPH3LkFVgS9A8UCuG287-lUdTCPIbc",
+      "mtime_UTC": "2026-11-19T06:17:27.956000+00:00",
+      "npubin_bytes": 6264,
+      "ir_SHA256": "af6b2a1600e6303b71a93ea19fe95c69e43a7ba7849cf282e5268ed9f47f070d",
+      "metadata_SHA256": "adcbc0b2afc9914432ab6f53d04f5e9ab57bf71e3eb16e53197393a02188c8e2",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    },
+    {
+      "variant": "BJxeriP2qNg55_dG8SHQdxEfqXc1p-V4sS6oJyp0atA",
+      "mtime_UTC": "2026-11-19T06:17:54.624000+00:00",
+      "npubin_bytes": 5272,
+      "ir_SHA256": "aaeb8e6a3f7daa23d945693e54f36c56bb66e19dbf17fc8d3ccd8e5c8cf9cb25",
+      "metadata_SHA256": "1e9d1a5e9c9d1d94873230cba0d7a050e7a40f3a199203b6ae89a79508112392",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    },
+    {
+      "variant": "lhT2757G5aG2QFNytCSXkvlS5UIsRXZ2Iw9lkt-fHLI",
+      "mtime_UTC": "2026-11-19T06:19:34.700000+00:00",
+      "npubin_bytes": 5272,
+      "ir_SHA256": "e829d1df15d398c600967dbb221b73925828ddfa08707bee39067eadce713ba1",
+      "metadata_SHA256": "8aeb2ca4b5dc064b4ad748297f42a5bafa7c68095e9e9426080ca43055de3587",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    },
+    {
+      "variant": "TCCiTQ4u8YlBtlSI_LZ1uHvwmw0a-E-Ew7VLHYyzI-k",
+      "mtime_UTC": "2026-11-19T06:20:30.920000+00:00",
+      "npubin_bytes": 6080,
+      "ir_SHA256": "dca079b0b34828bf6eed43deb3f0f3e359793b7a9c879a5e431232c4040b0087",
+      "metadata_SHA256": "f82d3116b5a293a76121e0f2e889f053282a3b68c8246b8df9f833c23585c3fb",
+      "metadata_selection": {
+        "num_warps": 32,
+        "num_stages": 2,
+        "warp_size": 32,
+        "name": "alloc_extend_kernel"
+      }
+    }
+  ],
+  "scope": "Fixed source and actual files only. No compile-duration or end-to-end impact inferred."
+}

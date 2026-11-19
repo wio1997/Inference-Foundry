@@ -59,3 +59,11 @@ Decode 的 8 个 rank 均通过 target 1384 项、draft 73 项严格装载。tar
 最终 P/D 的 1319 题 GSM8K 已按 C16、2048 输出上限、temperature 0、seed 0 独立启动。首次启动检查中的目录拼写已修复。已复核同一个实际 worker 和首条正确答复。当前全量结果仍待收尾，四档 AISBench 和全 rank 同负载 profile 仍待执行。 [首次检查错误](../evidence/SG_final_PD_G1247/initial_launcher_path_error.json) [实际启动](../evidence/SG_final_PD_G1247/final_PD_GSM8K_actual_launch.json) [实际观察](../evidence/SG_final_PD_G1247/final_PD_GSM8K_actual_initial_observation.json) [归档索引](../evidence/SG_final_PD_G1247/source_index.json)
 
 早期质量采样中，路由的两个 worker 仍健康且均记录负载 16，D 有 15 条在传输队列，1 条已运行。P 的 Triton 工作目录同期新增或更新了 10 个较晚的 `.npubin` 产物，包括 `alloc_extend_kernel`。后续同一质量 worker 已记录 22 条正确响应，D 在运行 12 条。这里保留启动阶段的队列与编译证据，稳定性在正式矩阵的独立预热中另行核查。 [质量初期队列和编译快照](../evidence/SG_final_PD_G1247/early_PD_quality_and_Prefill_compile.json)
+
+## 长上下文和全 rank profile 准备
+
+最终 P/D 已实测导出入口。长上下文和同负载 profile 脚本已在 D 落盘校验，P/D 的 profile 解析脚本使用同一 SHA。新解析程序在保留的旧 G981 Decode trace 上逐 rank 通过，8 张卡各读取 4 次 replay 和 10889 条已关联的计算任务。各类设备时间区间的并集与累计时长分别统计，匹配负载的归一化等待新 trace。 [D 工具部署](../evidence/SG_diagnostic_readiness_G1262/G1254_diagnostic_source_and_allocator_2204_parsed.json) [P 解析工具部署](../evidence/SG_diagnostic_readiness_G1262/G1258_SG_profile_readiness_2203_parsed.json) [历史 8 rank 验证](../evidence/SG_diagnostic_readiness_G1262/G1258_SG_profile_readiness_2204_parsed.json)
+
+正在运行的 G1178 已验证 rank 0 的设备、主机内存、存储缓存命中序列均可读。保存的短 SSE 帧已逐个核对模型 ID、结束与用量字段，下一次独立 32K/O1024 用量检查仍待实际提交。P 的 allocator 源码以 `bs_upper` 和页大小为编译常量，extend 长度由设备运行时动态读取。当前发现 23 个 compiler cache 目录和 8 种 IR 文件 SHA，原始指纹保留，尚无证据将变体逐个归到请求长度或分摊端到端时间。 [P 指标和短流](../evidence/SG_diagnostic_readiness_G1262/G1257_live_SG_quality_and_gate_exports_2203_exports_parsed.json) [D 指标](../evidence/SG_diagnostic_readiness_G1262/G1257_live_SG_quality_and_gate_exports_2204_exports_parsed.json) [编译源码与缓存](../evidence/SG_diagnostic_readiness_G1262/prefill_allocator_fixed_source_and_cache.json) [归档索引](../evidence/SG_diagnostic_readiness_G1262/source_index.json)
+
+匹配 profile 的输入检查已复核两个实际 manifest。24 份正式和预热数据的 SHA 逐项一致，共 448 条。独立 profile 的 16 个前缀锁定到既有 vLLM 采集，已校验为独立输入。profile 门槛脚本已落盘，等当前 32K 首轮数据和预热证据通过后再启用。 [实际资产核对](../evidence/SG_diagnostic_readiness_G1262/G1263_profile_gate_source_staged_2204_parsed.json)
