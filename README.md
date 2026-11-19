@@ -99,3 +99,5 @@
 [32K P侧动态量化的记录格式与设备字段](docs/047-p-quant-format-counters.md)
 
 [32K P侧动态量化快慢子群与同stream相邻算子](docs/048-p-dynamic-quant-subgroups.md)
+
+[P侧动态量化CSV与同源设备trace候选对应](docs/049-p-quant-csv-trace-candidates.md)
