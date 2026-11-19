@@ -249,4 +249,6 @@ Prefill rank 0 在该轮记录 64 个 8192-token 分块，累计覆盖全部 524
 
 质量启动器在当前主机完成只读资产和可写输出挂载校验。现场第三轮持有 AISBench 共用的推理锁，质量启动预检被拒绝，未提交模型请求。质量运行同时使用容器内 14420 秒外层截止和 20 秒强制终止宽限。隔离测试使用真实 Linux 文件锁和模拟容器进程表，验证启动进程退出后锁仍由后台监督进程持有，直至容器内作业退出。实际完整质量任务仍待运行。 [现场互斥校验](../evidence/SG_usage_recovery_G1276/SG_G1317_bounded_GSM8K_guard_active_W3.json) [文件锁转移测试](../evidence/SG_usage_recovery_G1276/SG_G1317_bounded_GSM8K_detached_lock_fixture.json)
 
+配对审计工具在运行主机直接重新读取了 G1178 和原生 vLLM 0.32 的封存请求与响应，逐题核对请求 bytes、回复 SHA、服务端 usage 和官方判分。复算得到 1318 对未截断的成功响应，其中均正确 1262 对、仅 vLLM 正确 7 对、仅 SGLang 正确 4 对、均答错 45 对。SGLang 第 304 条传输失败保留在排除记录中。后续用同一工具审计 G1317 的真实终态。 [配对审计工具](../code/SG_G1317_quality_G1378/audit_paired_gsm8k_g1406.py) [历史原始响应复算](../evidence/SG_usage_recovery_G1276/SG_G1178_native630_raw_GSM8K_regrade_using_current_auditor.json)
+
 SGLang 当前版本、vLLM 四档基线与两端的实际权重和输入清单已逐项对齐。运行配置和仍需独立测量的差异见 [运行配置对照](049-SGLang-vLLM-runtime-alignment.md)。
