@@ -58,6 +58,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 ## 32K 正式冷测和重放的时间窗口
 
+第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
+
 原 vLLM 冷测和重放的各 32 条原始请求均复算出客户端并发峰值 16，第 17 条在首条完成后才开始。两端使用同一固定 AISBench 镜像。SGLang 第二轮原始 SQLite 复算最长单请求用时 7887.70 秒，整轮 7887.82 秒。当前 Router 的 14400 秒为单请求上限，Decode 的 14400 秒为 KV 等待设置。正式 AISBench 整轮上限由独立阶段参数控制。 [vLLM 原始请求并发](https://github.com/wio1997/Inference-Foundry/blob/72a0cf3e22549a59bcdc0742c22c3a325abe2f4e/evidence/native32_first_G691/derived/formal_C16_HTTP_admission_G1408.json) [SGLang 第二轮请求复算](../evidence/SG_usage_recovery_G1276/SG_G1317_W2_raw_client_admission.json) [复算脚本](../code/SG_W1_latency_timeline_G1375/audit_32K_client_admission_g1408.py)
 
 以两轮较慢的实测预热耗时估算，两个连续 C16 窗口约需 15979 秒。按每个正式阶段预留两个原 12900 秒预热窗口，冷测和重放合计需 52080 秒的实机租期，包含原有收尾余量。原 CPU 客户端租期无法覆盖这个预算。第五轮实际结束后须按现有 P/D、配对锁和续租后的 CPU 最早到期时间复核。重放时间估算保留零命中的情况，正式耗时和命中仍待实测。 [预算和实际租期来源](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_formal_client_window_plan.json)
