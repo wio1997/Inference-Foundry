@@ -93,3 +93,5 @@
 [32K D侧GMM主stream原始字段与专家工作量待验证项](docs/044-d-gmm-counter-scope.md)
 
 [专家工作量的现有证据、源码与补采隐私边界](docs/045-expert-observability-scope.md)
+
+[32K P侧同记录shape/dtype的单事件分布](docs/046-p-shape-dtype-distributions.md)
