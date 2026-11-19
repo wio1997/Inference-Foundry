@@ -92,3 +92,5 @@
 [单节点、首 token 与 C1 串行故障定位](docs/043-standalone-and-serial-semantic-isolation.md)：提示 token 与固定 vLLM 0.32 全部32条相同；语义故障在直接D、no-SP及串行条件下仍复现，完整质量未通过。
 
 [Eager 错误与真实 attention / KV 历史核查](docs/044-eager-real-attention-and-KV-history.md)：图关闭且观测未开启仍复现语义错误；两条请求的240份算子快照及192组真实KV历史完成有界核对，完整质量与最终对齐未完成。
+
+[同题原生对照与logprob A/B](docs/045-same16-native-control-and-logprob-AB.md)：相同16份请求原生16/16、SG8/16；确认差异，仍未确定唯一根因或完成全量质量。
