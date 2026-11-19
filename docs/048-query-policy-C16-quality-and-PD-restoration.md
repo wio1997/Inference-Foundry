@@ -238,3 +238,9 @@ Prefill rank 0 在该轮记录 64 个 8192-token 分块，累计覆盖全部 524
 用实际启动回执核对了 G1317 两端各 58 项部署清单。Prefill 的 32 项和 Decode 的 33 项模型适配及容器入口代码均有逐字节匹配的仓库路径，角色复用的源码由索引直接引用。本次补入 Prefill 集成入口和两端共用的容器启动脚本。含现场网络、目录及配置的编排文件在受控的原部署留存，公开索引记录 SHA。 [实际运行源码索引](../code/SG_PD_wait_recovery_G1317/G1317_runtime_source_index.json) [Prefill 集成入口](../code/SG_PD_wait_recovery_G1317/prefill/integration.py) [容器启动脚本](../code/SG_PD_wait_recovery_G1317/run_pd.sh)
 
 已验证范围包括固定镜像下的 910B P/D 部署、短请求、KV 传输和 32K、C16 首轮。1319 题 GSM8K 的 1266 条正确与 1 条超时属于上一版 G1178。当前 G1317 整体质量、四档正式性能、匹配 profile 和优化收益仍待验收。 [上一版质量与恢复配置](#g1178-最终-pd-实测联调) [当前首轮请求回执](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_verified_raw_request_audit.json)
+
+### G1178 质量证据与当前版本的关系
+
+在两台 910B 主机分别核对两个版本各 58 项原始部署清单及文件，并确认镜像和推理启动参数逐项一致。两版同角色只有控制器、启动入口和角色配置文件变更。两端 95 项既有权重校验记录计算出相同目录 SHA。角色配置中除实例目录对应的 profiler 路径外，实际值变化为 Decode 的 KV 等待从 3600 秒增至 14400 秒。 [Prefill 实机源码与权重记录](../evidence/SG_usage_recovery_G1276/SG_G1317_G1178_quality_lineage_P.json) [Decode 实机源码与权重记录](../evidence/SG_usage_recovery_G1276/SG_G1317_G1178_quality_lineage_D.json)
+
+旧 GSM8K 第 304 条在约 600 秒触发客户端超时。历史日志缺少可在客户端与服务端关联该请求的唯一 ID，超时的服务端原因仍待确认。当前版本的质量复测脚本保留同一 1319 题、C16、原始请求与判分逻辑，以及 600 秒客户端请求上限。语料、判分器和脚本均在服务器校验 SHA，等待当前测试的合适空闲边界。第二轮 32K 正按原进程执行，较第二轮自己的基线新增 49152 输入 token 和 1 次 KV 传输。 [旧超时回执](../evidence/SG_final_quality_G1268/D_transport_window.json) [当前质量脚本](../code/SG_G1317_quality_G1378/run_full_gsm8k_SG_PD_g1378.py) [服务器校验回执](../evidence/SG_usage_recovery_G1276/SG_G1317_quality_worker_actual_stage.json) [第二轮实际采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W2_first_KV_transfer.json)
