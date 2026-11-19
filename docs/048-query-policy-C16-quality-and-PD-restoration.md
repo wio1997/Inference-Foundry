@@ -111,3 +111,9 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 首轮预热的前两次现场采样中，Prefill 均有 1 条运行、15 条等待，Decode 尚未运行请求。当时 Router 的两端 worker 负载均为 0，因此队列排空须直接查 P/D 的角色指标。第三次采样时，Prefill 已记录 1 次新增 KV 传输，仍有 1 条运行、14 条等待，Decode 同时运行首条请求且转移队列里有 15 条。第一次到第三次采样相隔约 502 秒，Prefill rank 0 输入计数增加 32768，设备缓存计数无增量。该时间窗包含分块调度与 P/D 状态迁移，首轮端到端指标等待 16 条响应与 AISBench 原始记录。 [首条传输前](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_before_first_transfer.json) [Prefill 处理中](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_processing_first_prefill.json) [Decode 开始](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_first_decode.json)
 
 约 26 分钟时，同一 AISBench 作业客户端的 `finish_count` 已到 2，`total_count` 为 16。原始响应、成功数和计时仍待首轮终态审计。现有匹配 profile 草案给同形状负载的上限为 900 秒，采集前需依据完整首轮的实际耗时重定请求超时与导出预算，保留原 16 条输入和输出长度。 [客户端现场计数](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_AISBench_progress_2_of_16.json) [原匹配采集计划](../evidence/SG_bench_inputs_G1198/SG_matched_profile_preparation_g1196.json)
+
+## 长窗口匹配 profile 准备
+
+采集控制已改为从预检记录读取负载与导出时限。组装预检和启动采集时都核对 P/D 服务、CPU 客户端及工作负载锁的到期时间，启动前再次读取两侧角色队列。未回复或未确认的采集操作保留实际状态和记录。原生匹配清单、完整 16 条请求、并发、输出长度与 P/D profiler 参数沿用原方案。 [预检代码](../code/SG_long_profile_G1305/build_SG_matched_profile_gate_g1304.py) [采集代码](../code/SG_long_profile_G1305/capture_SG_matched_profile_g1304.py) [源码指纹](../code/SG_long_profile_G1305/source_pins.json)
+
+固定实例上的实际 Prefill 和 Decode 导出挂载均可写，观察时分别剩余约 1.95 TB、1.86 TB。新工具已在 CPU 客户端所在节点核对源文件 SHA 和 Python 编译。离线用例覆盖长负载时限、各资源到期以及保留原采集命令和输入指纹。实际 profiler 未启动，完整时限和导出耗时仍待实跑。同期首轮预热客户端进度为 3/16，终态才核对成功与实际 token 数。 [Prefill 存储](../evidence/SG_usage_recovery_G1276/long_profile_P_storage.json) [Decode 存储](../evidence/SG_usage_recovery_G1276/long_profile_D_storage.json) [服务端工具回执](../evidence/SG_usage_recovery_G1276/long_profile_tools_staged.json) [离线校验](../evidence/SG_usage_recovery_G1276/long_profile_budget_fixture_checks.json) [预热进度](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_AISBench_progress_3_of_16.json)
