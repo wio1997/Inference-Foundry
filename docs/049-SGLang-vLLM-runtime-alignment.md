@@ -94,6 +94,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 首轮冷测的前 36 条 Prefill 报告均为单请求、8192 个新 token 和零缓存命中，报告中的等待队列有 14–15 条请求。现役启动配置的 Prefill 总输入上限为 16384，分块预算为 8192，未设置额外的 Prefill 请求数上限。固定源码先处理已有分块，再尝试加入等候请求。CPU 用例复现了一个 8192-token 分块耗尽本轮计算分块预算，即使分配器仍有容量也不能再加入 query；短分块在预算上可以继续申请，仍要满足独立的 KV 分配检查。由此可以解释该窗口的单请求批次，分块时长和改变分块后的端到端影响仍待实测。 [现役参数、批次报告和 CPU 用例](../evidence/SG_usage_recovery_G1276/SG_G1317_cold_prefill_chunk_admission_G1472.json) [复算代码](../code/SG_prefill_scheduler/audit_cold_prefill_admission_g1472.py)
 
+首轮冷测已写出 9 条完整的 AISBench 临时结果。修正进度文件为列表结构后，观察器在读取前后均取得 9/32，并将 9 条临时记录逐条与冻结输入核对，均记录成功且每条为 32768 输入、1024 输出。该读取只使用完整换行记录，终态仍需核对完整的预测、性能文件和服务端用量。 [实机临时记录的验收范围](../evidence/SG_usage_recovery_G1276/SG_G1317_live_cold_client_first_nine_G1473.json) [临时读取器](../code/SG_formal_client_observability/audit_live_AISBench_snapshot_g1473.py)
+
 四档正式对照表已用 vLLM G630 的八份实际冷热结果验证。表生成器检查冻结输入摘要、五轮独立预热、32 条 C16/O1024 正式请求、服务端用量和吞吐计量。重放同时列出 P/D 本地及连接器命中，只有 Prefill 的 SGLang 计数器无法证明 Decode 本地命中。当前无 SGLang 正式终态结果，比较栏为空。 [表生成器](../code/SG_formal_comparison_G1452/build_formal_PD_matrix_g1452.py) [实际 vLLM 基线接入及演练](../evidence/SG_usage_recovery_G1276/SG_formal_matrix_native_reference_admission_G1452.json) [原始 vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/a8c87daf33de03ed794be365cd742609fc3a48bb/docs/016-native032-four-tier-first-matrix.md)
 
 第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
