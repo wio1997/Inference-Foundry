@@ -99,7 +99,9 @@ def run_case(case, native, fake_quant_fp4, torch, device, seed):
                                out_page_indices=torch.full((rows, topk), -1, dtype=torch.int32, device=device))
                for _ in range(2)]
     for original, trimmed in zip(original_chunks, candidate_chunks, strict=True):
-        assert original.rows == trimmed.rows
+        # The native final slice can end past the request. Compare the covered rows.
+        assert original.rows.indices(rows) == trimmed.rows.indices(rows)
+        assert torch.equal(original.tok, trimmed.tok) and torch.equal(original.lens, trimmed.lens)
         assert torch.equal(original.scores.view(torch.int32), trimmed.scores.view(torch.int32)), (case.name, original.rows)
         original_topk = original.scores.topk(topk, dim=-1, sorted=False).indices
         trimmed_topk = trimmed.scores.topk(topk, dim=-1, sorted=False).indices
