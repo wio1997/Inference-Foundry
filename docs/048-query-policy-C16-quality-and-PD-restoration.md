@@ -174,3 +174,9 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 Prefill 匹配使用请求数及 query、extend 后 KV 长度的四个汇总量。Decode 验证步骤只用可统一的 query 工作量，分别保留 vLLM rank 0 的直接 CANN connection 和 `SparseFlashMla` 物理输入形状。设备窗口保留 rank 维度，WAIT 在全类型区间并集中保留。SGLang 对接检查同一输入集的 SHA、16 条完整响应和各侧 8 个 rank，只有详细注释的目标步骤进入匹配。该工具已复算 vLLM 实际证据，SGLang 对接目前只有离线标签与输入边界用例。算子、通信和长尾的时间对比仍待实际匹配采集。 [对齐脚本](../code/PD_logical_work_alignment_G1345/build_PD_logical_work_alignment_g1343.py) [离线输入边界检查](../evidence/SG_usage_recovery_G1276/PD_logical_work_alignment_fixture.json)
 
 原 G1317 32K 首轮预热继续运行，Prefill rank 0 已观察到 139264 个新增输入 token 和 4 次新增 KV 传输。16 条输出的终态审计尚待作业结束。 [在飞采样](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_fourth_transfer.json)
+
+## 64K 宽档部署文件
+
+64K 候选实例的 P/D 部署文件已在两台节点分别校验 58 项。模型参数、图、并行和缓存配置沿用 G1317，候选文件仅调整实例目录、服务生命周期及 Decode 等待。候选 Router 保持 C16 和禁用重试，连同 Decode 等待设为 18500 秒。候选 64K 预热单轮为 18000 秒，冷测和同输入重放各留 34000 秒，均基于先前的同模型 32K 观察估算。现场 G1317 原服务保持运行，宽档候选尚未启动。 [64K 参数及模型参数哈希](../evidence/SG_usage_recovery_G1276/SG_64K_wide_PD_candidate_source_plan.json) [Prefill 文件验证](../evidence/SG_usage_recovery_G1276/SG_64K_wide_PD_candidate_physically_staged_P.json) [Decode 文件验证](../evidence/SG_usage_recovery_G1276/SG_64K_wide_PD_candidate_physically_staged_D.json)
+
+Router 的准备工具已验证会拒绝旧实例凭据、任一 Decode rank 的等待不一致以及资源持有者不匹配。128K 和 256K 也通过了同参数生成检查。若按这批规划值执行且重放阶段几乎无缓存命中，两档的冷测加重放分别需要 136480 秒和 272480 秒的连续 CPU 客户端可用窗口，均超过现有客户端 70000 秒的保守租约。宽档须按实际时限和服务余量做启动校验。 [Router 配置及离线检查](../evidence/SG_usage_recovery_G1276/SG_wide_Router_renderer_fixture.json) [三档配置生成检查及资源窗口](../evidence/SG_usage_recovery_G1276/SG_wide_PD_window_source_validation.json) [生成工具 SHA](../code/SG_wide_PD_window_G1348/source_pins.json)
