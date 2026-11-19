@@ -17,6 +17,8 @@
 
 仅32K重放观察到两端充分的可缓存前缀命中。64K是P0/D50432的低命中重放，128K/256K两端均0；这三档没有证明充分缓存热态或改善。首次样本和失败历史完整保留，不重复发送首轮来提高命中。P/D编译、server usage、原始SHA、同输入检查按各档记录；64/128/256另从原始SQLite重算计时与并发。
 
+四档的 D 连接器命中和本地命中已从原始指标独立复算，见 [P/D 前缀计数](024-native032-PD-prefix-accounting.md)。
+
 该矩阵只覆盖这一原生版本/配置/架构，不能引用旧0.30、不同B3机器或C4/16K历史数据作为本任务结果。实际hostdriver26.1.1；P实际toolkit9.2.1，SGLang固定A2镜像的CANN9.1/TorchNPU post6以及FP4 index与本原生栈的post7/INT8 index差异仍需披露。D fused_mc2实际关闭shared-expert overlap，图捕获不等于已取得replay profile。
 
 完整GSM8K1270/1319和选定长语义/cache案例是独立质量范围，已知raw-ID缺陷保持未解决标记。完整SGLang同口径测试、双方P/D各8rank trace、按逻辑工作量匹配的算子/调度/通信/长尾/无效计算地图及实测优化收益均待完成；本矩阵不代表整个Goal完成，也不构成跨框架收益结论。
