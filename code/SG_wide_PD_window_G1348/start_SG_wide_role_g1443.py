@@ -21,6 +21,22 @@ PREDECESSOR = {65536: 1317, 131072: 1347, 262144: 14331}
 STARTING = {'waiting_verified_weights', 'claimed', 'model_starting'}
 
 
+def verify_predecessor_owner(root, old, pid, role, rank, owner):
+    if (owner['pid'], owner['run_directory']) == (pid, str(old)):
+        return
+    probe = root / 'prefill_C2_li_probe_g1449_verified' / 'actual_short_npu_g1450'
+    assert role == 'p' and rank == 0 and old.name == 'sg_pd_g1317'
+    assert owner['run_directory'] == str(probe) and owner['purpose'] == 'C2 short correctness component probe'
+    prior = owner['predecessor_owner']
+    assert prior['pid'] == pid and prior['run_directory'] == str(old)
+    assert owner['generation'] == prior['generation'] + 1
+    raw = (probe / 'container_cleanup.json').read_bytes()
+    assert sha256(raw).hexdigest() == owner['container_cleanup_receipt_sha256']
+    result = json.loads(raw)
+    assert result['stopped_and_removed'] is True and result['controller_PID'] == owner['pid']
+
+
+
 def release_proof(root, coord, width, role, resources):
     epoch = PREDECESSOR[width]
     old = root / f'sg_pd_g{epoch}'
@@ -47,8 +63,9 @@ def release_proof(root, coord, width, role, resources):
     for rank in resources['devices']:
         owner = read(coord / f"{host}-npu{rank['rank']}.owner.json")
         assert rank['released'] and rank['owner_generation'] == owner['generation']
-        assert owner['state'] == 'released' and owner['pid'] == rank['owner_PID'] == pid
-        assert owner['task_id'] == root.name and owner['run_directory'] == str(old)
+        assert owner['state'] == 'released' and owner['pid'] == rank['owner_PID']
+        assert owner['task_id'] == root.name and owner['host'] == host
+        verify_predecessor_owner(root, old, pid, role, rank['rank'], owner)
 
     container = json.loads(docker('inspect', state['container']))[0]
     labels = container['Config']['Labels']

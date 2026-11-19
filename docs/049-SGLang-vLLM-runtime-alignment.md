@@ -66,6 +66,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 C2 探针仍要求写回后的本地索引和物理槽位逐项相同。固定写回源码会先按本地索引排序，CPU 核验确认仅改变算子输出顺序时仍可精确一致。两个奇偶分组分别注入重复索引，两行都被判为选择与槽位不一致。首次演练把两组的失败行误算为一行，按分组修正后通过。历史 CPU 演练与本轮都未调用 stock NPU kernel，设备正确性和组件耗时仍需实测。 [C2 探针](../code/SG_causal_prefill_score_G1362/probe_c2_lightning_indexer_g1426.py) [固定镜像演练](../evidence/SG_usage_recovery_G1276/SG_C2_LI_canonical_writeback_diagnostics_G1449.json)
 
+C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P/D 工作负载锁、0 号卡与专用 CPU 锁，核对上个 Prefill 控制器正常释放后只映射 0 号卡。短用例容器退出和卡上进程清空均有证据才释放登记。64K 入口保留原角色退出检查，并能识别可核对的单卡短测释放记录。真机预检拦截了当前占用，离线演练验证了锁冲突、释放及异常保留。 [单卡短用例入口](../code/SG_causal_prefill_score_G1362/run_owned_C2_short_probe_g1450.py) [真机预检和离线演练](../evidence/SG_usage_recovery_G1276/SG_C2_single_card_and_wide_handoff_G1450.json)
+
 ## 32K 正式冷测和重放的时间窗口
 
 第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
