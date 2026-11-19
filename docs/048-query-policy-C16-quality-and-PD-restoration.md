@@ -166,3 +166,11 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 当前容器两端安装的核心调度与传输源码 SHA 一致。调度器先处理已有分块请求，当该步的分块预算耗尽后停止从队列取新请求，这与现场多次采样中的 Prefill 1 条运行及其余排队相符。分块内部的算子、通信和同步耗时仍需匹配 trace 才能分解。Decode 实际采用 `early`，8 个调度 rank 的接收等待均为 14400 秒。镜像中的 `prefill_complete` 检查只允许 Mooncake、单 attention tensor rank 和受支持的 KV 池，同时拒绝 Decode radix cache。当前 Ascend、attention TP8、SWA/C128 KV 状态及 Decode radix 配置均需要保留，因此该模式无法直接接入本轮配置。 [运行参数、源码定位与 SHA](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_live_admission_and_wait_source.json)
 
 宽档 runner 已部署到 CPU 客户端所在节点。宽档预热在预检和实际提交前校验原始预热总期限、四项资源租约、Router 请求时限与 Decode 8 个 rank 的 KV 等待设置。每轮仍使用 16 条独立输入，正式阶段仍是 32 条冷测和同输入重放。冷测数据的登记安排在快照及阶段时限检查之后，紧接客户端提交。当前真实 Decode 的 14400 秒设置拦截了一个 18000 秒的宽档预检用例。离线用例通过了 64K、128K、256K 的预算组合及续跑总期限检查，实际宽档仍待具备足够时间窗口的实例。 [已部署源文件与依赖哈希](../code/SG_wider_warmup_G1341/source_pins.json) [runner 部署回执](../evidence/SG_usage_recovery_G1276/SG_wider_warmup_runner_actual_staging.json) [预算生成工具部署回执](../evidence/SG_usage_recovery_G1276/SG_wider_warmup_gate_helper_actual_staging.json) [离线检查](../evidence/SG_usage_recovery_G1276/SG_wider_warmup_runner_fixture_validation.json)
+
+## 同负载 profile 的逻辑工作量参照
+
+原生 vLLM 独立分支提交 `cff38e0021cd7f859dea4b8a403b06c3791eb7dd` 保存了 16 条 32K／C16／输出 1024 诊断的 CPU 和设备证据。以该提交的 P/D 各 8 个 rank 的原始解析汇总为依据，已生成可供 SGLang 匹配的逻辑工作量参照。Prefill 65 个有查询步骤中，50 步处理 1 条请求、15 步处理 2 条，每条请求横跨 5 个步骤，合计调度 32767 个 query token。这个分布支持对相同工作量的单步耗时做进一步归因。 [参照结果及输入 SHA](../evidence/SG_usage_recovery_G1276/PD_native_work_and_device_reference.json)
+
+Prefill 匹配使用请求数及 query、extend 后 KV 长度的四个汇总量。Decode 验证步骤只用可统一的 query 工作量，分别保留 vLLM rank 0 的直接 CANN connection 和 `SparseFlashMla` 物理输入形状。设备窗口保留 rank 维度，WAIT 在全类型区间并集中保留。SGLang 对接检查同一输入集的 SHA、16 条完整响应和各侧 8 个 rank，只有详细注释的目标步骤进入匹配。该工具已复算 vLLM 实际证据，SGLang 对接目前只有离线标签与输入边界用例。算子、通信和长尾的时间对比仍待实际匹配采集。 [对齐脚本](../code/PD_logical_work_alignment_G1345/build_PD_logical_work_alignment_g1343.py) [离线输入边界检查](../evidence/SG_usage_recovery_G1276/PD_logical_work_alignment_fixture.json)
+
+原 G1317 32K 首轮预热继续运行，Prefill rank 0 已观察到 139264 个新增输入 token 和 4 次新增 KV 传输。16 条输出的终态审计尚待作业结束。 [在飞采样](../evidence/SG_usage_recovery_G1276/SG_PD_G1317_32K_W1_fourth_transfer.json)
