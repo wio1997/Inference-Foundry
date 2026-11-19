@@ -74,6 +74,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 全量 GSM8K 已挂接到原 32K 正式 runner 的终态。续跑进程先核对两阶段各 32 条请求、同一冻结数据及原始输出 SHA，再核查 P/D 空闲、同一 CPU 客户端和至少 14740 秒的资源窗口。实机只读检查确认预热期间质量启动被共享工作负载锁挡住。当前只是等待链路已就位，实际 GSM8K 请求与成绩仍待正式阶段终态。 [终态核对工具](../code/SG_phase_audit_G1205/verify_SG_formal_terminal_g1427.py) [等待与实机互斥记录](../evidence/SG_usage_recovery_G1276/SG_32K_to_GSM8K_event_continuation_G1427.json)
 
+G1317 的 GSM8K 复判工具已在 2204 校验，绑定 32K 正式审计、原 CPU 客户端、质量 worker 终态和同一组冻结请求，再与 vLLM 的 1319 条原始请求逐题复判。续租后，GSM8K 单项完整预算可保护到北京时间 17:50:27 启动，匹配 profile 自身则需要在 17:39:37 前开始准备。13:33:57 是保护两项完整预算的正式终态截止。历史 G1178 的 3258.89 秒仅供容量估算，该轮有一条传输失败。 [原始结果复判工具](../code/SG_G1317_quality_G1378/audit_G1317_GSM8K_terminal_g1437.py) [实际租期与校验回执](../evidence/SG_usage_recovery_G1276/SG_G1317_post_formal_renewed_window_and_GSM8K_terminal_stage_G1437.json)
+
 32K 匹配 profile 的启动校验已按正式测试的角色计数范围更新。校验绑定冻结数据 SHA，要求 Prefill 冷测和重放均有实测计数，冷测命中增量为零。Decode 的两份回执须明确标记计数未观测。用已封存回执构造的离线校验通过，并拒绝了八组异常输入。更新后的校验工具已通过实机加载检查，仍待正式数据和实际 trace。 [校验工具](../code/SG_formal_cache_scope_G1385/verify_SG_matched_profile_cache_g1428.py) [离线与实机回执](../evidence/SG_usage_recovery_G1276/SG_G1317_matched_profile_cache_scope_G1428.json)
 
 匹配 profile 已挂接到原 GSM8K 控制进程，要求实际 worker 终态回执和新的 P/D 空闲、CPU 租期及正式数据校验。实机已只读复核共用的 16 条 32K 输入、SGLang 配置 SHA 和输出挂载。GSM8K 和 profile 串行的合计预留为 30130 秒。此前按配对锁单独推算的截止为北京时间 11 月 20 日 14:41:53，实机启动取资源中最早到期时间。 [续跑回执与租期预算](../evidence/SG_usage_recovery_G1276/SG_G1317_quality_to_matched_profile_capacity_G1429.json) [终态观察器](../code/SG_long_profile_G1305/wait_SG_quality_terminal_g1429.py)
