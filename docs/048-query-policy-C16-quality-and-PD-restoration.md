@@ -67,3 +67,11 @@ Decode 的 8 个 rank 均通过 target 1384 项、draft 73 项严格装载。tar
 正在运行的 G1178 已验证 rank 0 的设备、主机内存、存储缓存命中序列均可读。保存的短 SSE 帧已逐个核对模型 ID、结束与用量字段，下一次独立 32K/O1024 用量检查仍待实际提交。P 的 allocator 源码以 `bs_upper` 和页大小为编译常量，extend 长度由设备运行时动态读取。当前发现 23 个 compiler cache 目录和 8 种 IR 文件 SHA，原始指纹保留，尚无证据将变体逐个归到请求长度或分摊端到端时间。 [P 指标和短流](../evidence/SG_diagnostic_readiness_G1262/G1257_live_SG_quality_and_gate_exports_2203_exports_parsed.json) [D 指标](../evidence/SG_diagnostic_readiness_G1262/G1257_live_SG_quality_and_gate_exports_2204_exports_parsed.json) [编译源码与缓存](../evidence/SG_diagnostic_readiness_G1262/prefill_allocator_fixed_source_and_cache.json) [归档索引](../evidence/SG_diagnostic_readiness_G1262/source_index.json)
 
 匹配 profile 的输入检查已复核两个实际 manifest。24 份正式和预热数据的 SHA 逐项一致，共 448 条。独立 profile 的 16 个前缀锁定到既有 vLLM 采集，已校验为独立输入。profile 门槛脚本已落盘，等当前 32K 首轮数据和预热证据通过后再启用。 [实际资产核对](../evidence/SG_diagnostic_readiness_G1262/G1263_profile_gate_source_staged_2204_parsed.json)
+
+## 最终 P/D GSM8K 终态
+
+固定镜像 G1178 在同一对 910B1 主机运行完整 GSM8K，C16、输出上限 2048、temperature 0、seed 0。1319 个请求均有终态，1266 个判对，1 个客户端超时，0 个截断。独立复判验证同一数据集、grader 和所有可读响应，2642 个原始文件留在服务器并固定 SHA。超时请求保留原始记录，未重发。 [复判与冻结](../evidence/SG_final_quality_G1268/final_SG_PD_GSM8K_frozen.json) [超时证据](../evidence/SG_final_quality_G1268/D_transport_window.json)
+
+与 vLLM 原生 0.32 P/D 的 1319 份请求逐字节一致。1318 对均成功且未截断的题里，双方均正确 1262，vLLM 单独正确 7，SGLang 单独正确 4，双方均错误 45。总分 vLLM 1270/1319、SGLang 1266/1319。计入全量分母的 SGLang 超时题在 vLLM 答对。 [逐题对照](../evidence/SG_final_quality_G1268/final_SG_PD_native_same_question_comparison.json)
+
+两侧确认空闲后，开始独立 32K/1024 标准 SSE 探针。该输入沿用 vLLM 诊断的相同字节，首轮正式 AISBench 输入继续保留。 [SSE 探针启动](../evidence/SG_final_quality_G1268/actual_32k_sse_usage_probe_launch.json)
