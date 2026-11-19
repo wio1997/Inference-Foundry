@@ -1,0 +1,85 @@
+--- a/sglang/srt/hardware_backend/npu/graph_runner/npu_cudagraph_backend.py
++++ b/sglang/srt/hardware_backend/npu/graph_runner/npu_cudagraph_backend.py
+@@ -368,6 +368,13 @@
+ 
+     @contextmanager
+     def capture_session(self, stream):
++        if os.environ.get("GLM53_MTP_GRAPH_ASYNC_CANDIDATE") == "1":
++            if stream is None or stream == self._device_module.default_stream(self._device_id):
++                raise RuntimeError("Native NPU capture requires explicit non-default stream")
++            logger.info("GLM MTP native NPU capture stream non-default verified: %s", stream)
++        if os.environ.get("GLM53_MTP_GRAPH_ASYNC_CANDIDATE") == "1":
++            from glm53_sglang_adapter.comm_prewarm_g22 import prepare_native_LL_resources
++            prepare_native_LL_resources()
+         if self._pool is None:
+             self._pool = self._device_module.graph_pool_handle()
+         set_graph_pool_id(self._pool)
+--- a/sglang/srt/managers/scheduler.py
++++ b/sglang/srt/managers/scheduler.py
+@@ -2071,6 +2071,11 @@
+             dispatch_event_loop(self)
+ 
+     def _apply_war_barrier(self):
++        # New graph nodes read shared inputs through replay; fence their full forward.
++        if os.environ.get("GLM53_MTP_GRAPH_ASYNC_CANDIDATE") == "1":
++            self.schedule_stream.wait_stream(self.forward_stream)
++            self.model_worker.last_shared_read_runner.shared_read_done_event = None
++            return
+         # WAR: keep later schedule_stream writes behind this forward's shared reads.
+         # Clearing matters: a phase that skips the publish then falls back to coarse.
+         if not self._war_barrier_enabled:
+--- a/sglang/srt/model_executor/forward_batch_info.py
++++ b/sglang/srt/model_executor/forward_batch_info.py
+@@ -2281,6 +2281,9 @@
+ 
+     return SimpleNamespace(
+         batch_size=bs,
++        num_padding=getattr(forward_batch, "num_padding", 0),
++        _original_batch_size=getattr(forward_batch, "_original_batch_size", None),
++        _original_num_tokens=getattr(forward_batch, "_original_num_tokens", None),
+         forward_mode=forward_mode,
+         actual_forward_mode=forward_batch.forward_mode,
+         input_ids=getattr(forward_batch, "input_ids", None),
+--- a/sglang/srt/speculative/eagle_draft_extend_cuda_graph_runner.py
++++ b/sglang/srt/speculative/eagle_draft_extend_cuda_graph_runner.py
+@@ -660,6 +660,10 @@
+         if seq_lens_sum is not None:
+             seq_lens_sum = seq_lens_sum + (bs - raw_bs) * self.seq_len_fill_value
+         fb_view = SimpleNamespace(
++            positions=buffers.positions[:num_tokens],
++            num_padding=bs - raw_bs,
++            _original_batch_size=getattr(forward_batch, "_original_batch_size", None),
++            _original_num_tokens=getattr(forward_batch, "_original_num_tokens", None),
+             batch_size=bs,
+             forward_mode=self.forward_mode,
+             ragged_verify_layout=None,
+--- a/sglang/srt/speculative/eagle_worker_v2.py
++++ b/sglang/srt/speculative/eagle_worker_v2.py
+@@ -283,6 +283,8 @@
+             self.draft_worker.init_attention_backends()
+             self.init_attention_backend()
+         # the pools and both attention backends exist, no graph is captured yet
++        from glm53_sglang_adapter.mtp_startup import preflight_worker
++        preflight_worker(self)
+         self.megakernel = eagle_megakernel.init_eagle_megakernel(draft_worker=self)
+ 
+     def init_cuda_graphs(self):
+@@ -1076,6 +1078,8 @@
+         )
+         with canary_ctx:
+             logits_output = self.draft_runner.forward(forward_batch).logits_output
++        from glm53_sglang_adapter.pd_drafttails import record_draft_prefill
++        record_draft_prefill(self.draft_runner.token_to_kv_pool, batch, forward_batch)
+         maybe_detect_nan(logits_output.next_token_logits, "draft_extend_for_prefill")
+         maybe_detect_inf(logits_output.next_token_logits, "draft_extend_for_prefill")
+ 
+@@ -1421,6 +1425,9 @@
+ 
+     def init_attention_backends(self):
+         super().init_attention_backends()
++        from glm53_sglang_adapter.mtp_graph_bucket import enabled, register_native_streams
++        if enabled() and self._draft_worker is not None:
++            register_native_streams(self._target_worker.model_runner.forward_stream, self.plan_stream, self._draft_worker.plan_stream)
+         # not in __init__, which the standalone and frozen-KV workers do not run
+         if (
+             self._draft_worker is not None

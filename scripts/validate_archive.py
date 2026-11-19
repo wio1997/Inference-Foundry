@@ -43,6 +43,20 @@ def main():
     provenance_rows=json.loads((ROOT/'provenance/artifacts.json').read_text())
     provenance={x['artifact']:x for x in provenance_rows}
     for name,e in provenance.items():assert digest(ROOT/name)==e['published_sha256'],name
+    g32=json.loads((ROOT/'environment/glm53_g32_source.json').read_text())
+    rebuild=json.loads((ROOT/'evidence/G32_offline_reconstruction.json').read_text())
+    assert g32['final_source_tree_sha256']==rebuild['final_source_tree_sha256']
+    assert g32['base_sglang_commit']==rebuild['base_sglang_commit']
+    assert len(g32['changed_files'])==rebuild['changed_framework_files']==17
+    assert len(g32['runtime_additions'])==rebuild['runtime_additions_sha_verified']==28
+    for path in {item['patch'] for item in g32['changed_files'].values()}:
+        names={line[6:] for line in (ROOT/path).read_text().splitlines() if line.startswith('+++ b/')}
+        assert names=={name for name,item in g32['changed_files'].items() if item['patch']==path}
+    for item in g32['runtime_additions'].values():
+        assert digest(ROOT/item['source'])==item['sha256'],item['source']
+    for path,expected in json.loads((ROOT/'code/sg_pd_g316/runtime_model_sha256.json').read_text()).items():
+        item=g32['changed_files'].get(path) or g32['runtime_additions'][path]
+        assert (item.get('after_sha256') or item.get('sha256'))==expected,path
     source_receipt=json.loads((ROOT/'evidence/aisbench_base_api_correction.json').read_text())
     source_name='code/aisbench/base_api.py'
     assert sum(x['artifact']==source_name for x in provenance_rows)==1, 'duplicate base_api provenance'
