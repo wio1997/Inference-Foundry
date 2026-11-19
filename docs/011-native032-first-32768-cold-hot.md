@@ -21,3 +21,5 @@
 旧只读cwd启动失败保留，未提交模型请求；修复后首轮真实数据从未重发。原始manifest、冷/热相同数据及配置SHA、预热恢复记录、编译和cache计数审计均归档。完整原始details（含输入、prediction、timepoints）保留在受控证据包；[原始SHA索引与派生视图说明](../evidence/native32_first_G691/raw_details_index.json)区分完整原始文件与删除大input字段后的公开派生行，未删除失败或截断样本来取得有效结果。
 
 本档不证明64K/128K/256K，不证明SGLang对齐或任何跨框架收益，不替代all-rank P/D profile/因果地图。完整GSM8K的1270/1319是独立质量结果，已在009记录；已知raw token-ID UTF8/greedy问题保留原失败，不借本档性能通过抹去。
+
+从冷测与重放的原始 SQLite 时间点分别重建 32 条请求区间。两阶段并发峰值均为 16，首条完成前均只有 16 条请求开始。第 17 条分别在首条完成后 2.51 毫秒和 1.96 毫秒记录开始。这些时间点位于 AISBench 客户端时钟。 [请求并发复算](../evidence/native32_first_G691/derived/formal_C16_HTTP_admission_G1408.json)
