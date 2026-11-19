@@ -111,3 +111,5 @@
 [P侧indexer及稀疏注意力的记录shape与耗时](docs/053-indexer-attention-shape-duration.md)
 
 [P侧所选事件的trace坐标重叠](docs/054-p-selected-event-overlap.md)
+
+[P/D同记录签名的分位方向及反例](docs/055-pd-recorded-signature-directions.md)
