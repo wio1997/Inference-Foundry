@@ -57,3 +57,5 @@ Decode 的 8 个 rank 均通过 target 1384 项、draft 73 项严格装载。tar
 三条实际请求通过。算术题返回 91，独立文本与同输入重放均产生 64 个输出 token。260-token 输入的响应缓存命中为 0 和 256。P 侧各 rank 的 KV 传输计数增加 3，D 侧各 rank 的 full graph 回放计数增加 31。原始请求、响应、指标的 SHA 均已复核。 [P/D 实测回执](../evidence/SG_final_PD_G1247/P_D_real_requests_and_runtime_counters.json)
 
 最终 P/D 的 1319 题 GSM8K 已按 C16、2048 输出上限、temperature 0、seed 0 独立启动。首次启动检查中的目录拼写已修复。已复核同一个实际 worker 和首条正确答复。当前全量结果仍待收尾，四档 AISBench 和全 rank 同负载 profile 仍待执行。 [首次检查错误](../evidence/SG_final_PD_G1247/initial_launcher_path_error.json) [实际启动](../evidence/SG_final_PD_G1247/final_PD_GSM8K_actual_launch.json) [实际观察](../evidence/SG_final_PD_G1247/final_PD_GSM8K_actual_initial_observation.json) [归档索引](../evidence/SG_final_PD_G1247/source_index.json)
+
+早期质量采样中，路由的两个 worker 仍健康且均记录负载 16，D 有 15 条在传输队列，1 条已运行。P 的 Triton 工作目录同期新增或更新了 10 个较晚的 `.npubin` 产物，包括 `alloc_extend_kernel`。后续同一质量 worker 已记录 22 条正确响应，D 在运行 12 条。这里保留启动阶段的队列与编译证据，稳定性在正式矩阵的独立预热中另行核查。 [质量初期队列和编译快照](../evidence/SG_final_PD_G1247/early_PD_quality_and_Prefill_compile.json)
