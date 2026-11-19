@@ -103,3 +103,5 @@
 [P侧动态量化CSV与同源设备trace候选对应](docs/049-p-quant-csv-trace-candidates.md)
 
 [P侧动态量化CPU/队列/设备候选与局部时长](docs/050-p-dynamic-quant-queue-chain.md)
+
+[P侧动态量化CPU投递的step标记覆盖](docs/051-p-quant-cpu-step.md)
