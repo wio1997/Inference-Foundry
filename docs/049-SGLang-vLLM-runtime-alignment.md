@@ -1,6 +1,6 @@
 # DeepSeek-V4.1 W4A8 运行配置对照
 
-对照的是 SGLang G1317 当前运行版与 vLLM G630 四档正式基线。两端各 8 张 Ascend 910B1，aarch64。P、D 两台主机上的历史与当前实际加载清单均匹配同一组 95 项权重校验记录。SGLang 的 24 份输入清单逐项匹配 vLLM 四档实跑清单，覆盖每档 5 份独立预热输入和 1 份正式输入。每个正式输入在 vLLM 的冷测和重放中使用相同 SHA。SGLang 当前只完成 32K 首轮预热。 [实机配置、权重及数据绑定](../evidence/SG_usage_recovery_G1276/SG_G1317_native630_actual_profile_alignment.json) [vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/cff38e0021cd7f859dea4b8a403b06c3791eb7dd/docs/016-native032-four-tier-first-matrix.md)
+对照的是 SGLang G1317 当前运行版与 vLLM G630 四档正式基线。两端各 8 张 Ascend 910B1，aarch64。P、D 两台主机上的历史与当前实际加载清单均匹配同一组 95 项权重校验记录。SGLang 的 24 份输入清单逐项匹配 vLLM 四档实跑清单，覆盖每档 5 份独立预热输入和 1 份正式输入。每个正式输入在 vLLM 的冷测和重放中使用相同 SHA。SGLang 已完成 32K 前两轮预热，第三轮已启动。 [实机配置、权重及数据绑定](../evidence/SG_usage_recovery_G1276/SG_G1317_native630_actual_profile_alignment.json) [vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/cff38e0021cd7f859dea4b8a403b06c3791eb7dd/docs/016-native032-four-tier-first-matrix.md)
 
 | 项目 | SGLang G1317 | vLLM G630 |
 |:--|:--|:--|
@@ -29,6 +29,8 @@ vLLM 的实际快照已逐档复算 D 本地与连接器 logical token。SGLang 
 后续匹配采集用完整输入 token 序列的 SHA256，将 Decode 标记关联到冻结清单，再按 `data_id` 核对 AISBench 原始请求全文、成功状态及输入输出 token 数。vLLM 已归档的同批 16 条原始记录全部通过逐条核对。关联逻辑使用这些原始记录和构造的标记验证，缺失、重复和外来标记均无法通过完整性检查。新增标记和关联器已在 Decode 主机校验，SGLang 实际 NPU 标记仍待采集。 [固定请求路径](../evidence/SG_usage_recovery_G1276/SG_G1317_decode_prompt_identity_fixed_source.json) [原始请求校验](../evidence/SG_usage_recovery_G1276/SG_G1317_decode_prompt_identity_native_raw_fixture.json) [标记代码](../code/SG_D_prefix_trace_G1387/decode_prefix_prompt_annotation_g1391.py) [关联器](../code/SG_D_prefix_trace_G1387/bind_decode_prefix_profile_g1391.py) [服务器校验](../evidence/SG_usage_recovery_G1276/SG_G1317_decode_prompt_identity_stage.json)
 
 32K 首轮预热的 16 条 SGLang 原始请求已在运行主机按 `data_id` 逐条与只读输入数据核对，并从原始结果复算服务端 token 数和 AISBench 指标。第二轮同进程仍在线时，复核器返回进行中，留待该轮真实终态再验收。 [首轮原始请求校验证据](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_exact_raw_dataset_binding_W2_live_control.json) [复核器](../code/SG_phase_audit_G1205/audit_SG_32K_warmup_request_binding_g1394.py)
+
+32K 第二轮终态复核通过。16 条原始请求均与第二轮独立冻结输入匹配，服务端每条实际输入 32768、输出 1024，AISBench 耗时 7887.82 秒。随后在同一 P/D 实例启动第三轮，已核对前两轮被复核并跳过、第三轮使用独立输入及实际客户端进程。 [第二轮原始请求复核](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W2_actual_raw_request_binding.json) [第三轮实际启动](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W3_actual_input_and_worker.json)
 
 ## Prefill 索引路径的工作量差异
 
