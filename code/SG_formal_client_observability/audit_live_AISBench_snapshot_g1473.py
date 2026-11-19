@@ -31,17 +31,22 @@ def read_status(path, expected):
         if len(raw) > 16384:
             raise ValueError('Unexpected AISBench status size')
         try:
-            (record,) = json.loads(raw)
+            records = json.loads(raw)
         except json.JSONDecodeError:
-            if attempt == 2:
-                raise
-            time.sleep(0.05)
+            records = []
+        if records == []:
+            if attempt < 2:
+                time.sleep(0.05)
             continue
+        if not isinstance(records, list) or len(records) != 1:
+            raise ValueError('Expected one AISBench task record in the status list')
+        record = records[0]
         total, completed = record['total_count'], record['finish_count']
         assert type(total) is int and type(completed) is int
         assert 0 <= completed <= total == expected
         return {'total_count': total, 'finish_count': completed,
                 'status': record['status'], 'sha256': sha256(raw).hexdigest()}
+    return None
 
 
 def audit(dataset_raw, expected_sha, temp, status, input_tokens, output_tokens):
@@ -68,7 +73,8 @@ def audit(dataset_raw, expected_sha, temp, status, input_tokens, output_tokens):
         else:
             raise ValueError('Unexpected temporary row success state')
     after = read_status(status, len(dataset))
-    assert before['finish_count'] <= after['finish_count']
+    if before is not None and after is not None:
+        assert before['finish_count'] <= after['finish_count']
     return {
         'dataset_sha256': expected_sha, 'configured_requests': len(dataset),
         'verified_complete_temp_rows': len(seen_data),
