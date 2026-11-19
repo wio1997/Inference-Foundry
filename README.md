@@ -94,3 +94,5 @@
 [Eager 错误与真实 attention / KV 历史核查](docs/044-eager-real-attention-and-KV-history.md)：图关闭且观测未开启仍复现语义错误；两条请求的240份算子快照及192组真实KV历史完成有界核对，完整质量与最终对齐未完成。
 
 [同题原生对照与logprob A/B](docs/045-same16-native-control-and-logprob-AB.md)：相同16份请求原生16/16、SG8/16；确认差异，仍未确定唯一根因或完成全量质量。
+
+[BF16压缩KV候选与未修复结果](docs/046-BF16-compressed-KV-candidate-not-a-quality-fix.md)：八卡路径实际命中，同题严格匹配7/16，仍有算术及抄写错误；没有认定质量或性能收益。
