@@ -226,3 +226,15 @@ G1317 原 32K 首轮的最新采样已记录 10 次 KV 传输和 335872 个新�
 原 32K 首轮于 11 月 19 日 11:50:40 UTC 到达暂停检查点。独立复核确认 16 个请求 ID 各出现一次，全部满足实际 32768 输入和 1024 输出。输入数据、配置以及原始明细、汇总 JSON 和 CSV 均按 SHA 核验。AISBench 记录的预热耗时为 7989.66 秒，输入、输出和总吞吐分别为 65.6208、2.0507 和 67.6715 token/s，平均 TTFT 为 4328484.6 ms，平均 TPOT 为 105.7 ms。正式对比仍待完成。 [首轮原始审计和校验索引](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_verified_raw_request_audit.json)
 
 首轮结束且两端队列归零后，原配对锁持有者退出，继任进程接管同一把锁。已确认在同一 P/D 实例上启动第二轮，继续使用原 campaign 的总期限和单轮上限。启动预检复核并跳过首轮，第二轮使用不同输入 SHA，实际容器客户端和 runner 均在运行。 [配对锁交接](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_verified_pair_guard_transfer.json) [第二轮进程和输入](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W2_actual_original_campaign_start.json) [首轮末段 Prefill 分块](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_actual_P_chunk_pacing.json)
+
+### 首轮逐请求时间轴
+
+从封存的 AISBench SQLite 读取 16 条请求的原始时间点，独立复算观测峰值并发、总耗时以及平均 TTFT、TPOT、E2EL，与落盘指标一致。请求起始集中在 120.06 毫秒内，相邻首 token 到达间隔中位数为 480.21 秒。首 token 前的时间占逐请求 E2EL 总和的 97.56%，最慢一条为 96.45%。这段时间覆盖完整的客户端到首 token 路径，包含排队、Prefill、KV 传输和首步生成。预热期的设备阶段占比仍待 profile。复算工具使用已归档的 NumPy SQLite 解码器，实际客户端的三份计时源码 SHA 也与该解码器的既有验证版本一致。 [逐请求时间轴与源库 SHA](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_raw_SQLite_latency_timeline.json) [复算脚本和依赖](../code/SG_W1_latency_timeline_G1375/source_pins.json)
+
+Prefill rank 0 在该轮记录 64 个 8192-token 分块，累计覆盖全部 524288 个输入 token，缓存命中为零。63 个报告间隔中有 62 个在 118–121 秒内，另一个为 1 秒。报告间隔中位数的四倍与客户端首 token 阶梯一致。固定源码确认日志中的瞬时吞吐以两次报告间隔为分母，保留末尾短间隔供审查。两个时钟域仅比较间隔规律，具体请求和设备任务的对应关系仍需匹配 trace。 [完整 Prefill 日志计数及源码定位](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_P_full_chunk_report_cadence.json)
+
+### 当前运行版本源码归档
+
+用实际启动回执核对了 G1317 两端各 58 项部署清单。Prefill 的 32 项和 Decode 的 33 项模型适配及容器入口代码均有逐字节匹配的仓库路径，角色复用的源码由索引直接引用。本次补入 Prefill 集成入口和两端共用的容器启动脚本。含现场网络、目录及配置的编排文件在受控的原部署留存，公开索引记录 SHA。 [实际运行源码索引](../code/SG_PD_wait_recovery_G1317/G1317_runtime_source_index.json) [Prefill 集成入口](../code/SG_PD_wait_recovery_G1317/prefill/integration.py) [容器启动脚本](../code/SG_PD_wait_recovery_G1317/run_pd.sh)
+
+已验证范围包括固定镜像下的 910B P/D 部署、短请求、KV 传输和 32K、C16 首轮。1319 题 GSM8K 的 1266 条正确与 1 条超时属于上一版 G1178。当前 G1317 整体质量、四档正式性能、匹配 profile 和优化收益仍待验收。 [上一版质量与恢复配置](#g1178-最终-pd-实测联调) [当前首轮请求回执](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_verified_raw_request_audit.json)
