@@ -84,6 +84,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 首轮冷测期间利用已认证连接采样主机时钟。各节点有效样本 12 条，按收发时刻夹算，Prefill 主机时钟比 Decode 快约 19.9 秒。当前正式原进程已记账第一个 8,192-token Prefill 分块，本地命中增量为零。这次短窗时差仅用于解释同窗口主机日志，正式压测指标取自 AISBench 原始客户端计时，后续 trace 的设备时钟和采集窗口要独立核验。 [时钟比对工具](../code/PD_clock_G1460/sample_ssh_clock_bounds.py) [原始采样与冷测计数](../evidence/SG_usage_recovery_G1276/SG_G1317_P_D_host_clock_and_live_cold_G1460.json)
 
+首轮冷测的前四次 Prefill KV 交接在同一 rank 的直方图中累计 480.61 秒，发送侧按源码记账 385 MiB。四次均超过 5 秒的最高有限桶。当前 Ascend sender 的计时从 Prefill 末块入队到发送侧轮询确认完成，覆盖队列阶段和轮询观察。链路耗时与实际带宽仍需独立的 SDK 或 trace 事件。Decode 另累计 20 次分配等待，其中 19 次在 25 毫秒以内、1 次超过 2.5 秒。两个角色的样本处于各自请求阶段，点对点对齐需用同一请求标识。 [原始指标差值与固定计时源码](../evidence/SG_usage_recovery_G1276/SG_G1317_first_cold_transfer_histograms_G1467.json) [复算代码](../code/SG_PD_transfer_G1467/audit_cold_transfer_histograms_g1467.py)
+
 四档正式对照表已用 vLLM G630 的八份实际冷热结果验证。表生成器检查冻结输入摘要、五轮独立预热、32 条 C16/O1024 正式请求、服务端用量和吞吐计量。重放同时列出 P/D 本地及连接器命中，只有 Prefill 的 SGLang 计数器无法证明 Decode 本地命中。当前无 SGLang 正式终态结果，比较栏为空。 [表生成器](../code/SG_formal_comparison_G1452/build_formal_PD_matrix_g1452.py) [实际 vLLM 基线接入及演练](../evidence/SG_usage_recovery_G1276/SG_formal_matrix_native_reference_admission_G1452.json) [原始 vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/a8c87daf33de03ed794be365cd742609fc3a48bb/docs/016-native032-four-tier-first-matrix.md)
 
 第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
