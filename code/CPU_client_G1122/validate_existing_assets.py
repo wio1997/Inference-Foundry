@@ -1,0 +1,4 @@
+from pathlib import Path
+import datetime,hashlib,json,torch
+R=Path('/task/client_ds41_g1122');p=Path('/task/client_ds41_g503/quality_g655/grade_school_math/data/test.jsonl');b=p.read_bytes();assert hashlib.sha256(b).hexdigest()=='3730d312f6e3440559ace48831e51066acaca737f6eabec99bccb9e4b3c39d14' and len(b.splitlines())==1319;assert not torch.cuda.is_initialized()
+(R/'assets_state.json').write_text(json.dumps({'phase':'CPU_DIAGNOSTIC_CLIENT_READY','at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'original1319SHAverified':'3730d312f6e3440559ace48831e51066acaca737f6eabec99bccb9e4b3c39d14','Torch':torch.__version__,'datasets_reused_readonly':'client_ds41_g503/quality_g655','no_NPU_devices_requested':True,'formal_AISBench_assets_not_revalidated':True,'scope':'FreshCPUlease/diagnosticclientonly; no model requests, newformalclaims, warmups orperformanceacceptance.'},indent=2)+'\n')
