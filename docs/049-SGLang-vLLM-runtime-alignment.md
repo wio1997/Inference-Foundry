@@ -42,6 +42,8 @@ vLLM 的实际快照已逐档复算 D 本地与连接器 logical token。SGLang 
 
 SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorch 算子，再用同线程 forward 区间核实归属。用封存的 G981 Decode rank 0 核验，72 个任务关联到四个实际步骤，其他任务保留各自的未归属原因。该历史库没有 Prefill score 标记。隔离的 SQLite 用例验证了跨线程 score marker、重复连接和归属冲突。运行分析器时，将 `code/SG_profile_readiness_G1218` 加入 `PYTHONPATH`，并传入冻结数据库路径、SHA256 和输出路径。 [实际历史库与测试结果](../evidence/SG_usage_recovery_G1276/SG_D0_G981_framework_connection_attribution_G1420.json) [分析器](../code/SG_P_step_attribution_G1355/attribute_SG_prefill_steps_g1420.py) [vLLM 逐步参考](https://github.com/wio1997/Inference-Foundry/blob/6045560f4d2ba1fc7db4ab3abbbea0cacfe77380/evidence/profile_capture_G804/derived/P0_indexer_scheduler_bridge_G1419.json)
 
+已核对当前 P/D 容器内的详细步标记源码。纯 `EXTEND` 记录 query、KV、query 平方及 query 与 KV 乘积的总和，KV 以 query 分块末尾的原始逻辑序列长度计。单请求可直接还原，双请求 query 行数不同时可解出各自前缀长度。等长 query 的歧义与其他未覆盖的批次会在输出中标记。用 vLLM 封存的 65 个实际非零步骤先计算同口径汇总再还原，50 个单请求和 15 个双请求的结果均与原始逐请求长度一致。SGLang 实际 trace 待采集，压缩后的可见 K 及设备工作量仍需核对。 [实机源码和离线验证](../evidence/SG_usage_recovery_G1276/SG_G1317_prefill_query_KV_geometry_contract_G1421.json) [还原工具](../code/SG_P_step_attribution_G1355/derive_prefill_request_geometry_g1421.py)
+
 ## 32K 正式冷测和重放的时间窗口
 
 原 vLLM 冷测和重放的各 32 条原始请求均复算出客户端并发峰值 16，第 17 条在首条完成后才开始。两端使用同一固定 AISBench 镜像。SGLang 第二轮原始 SQLite 复算最长单请求用时 7887.70 秒，整轮 7887.82 秒。当前 Router 的 14400 秒为单请求上限，Decode 的 14400 秒为 KV 等待设置。正式 AISBench 整轮上限由独立阶段参数控制。 [vLLM 原始请求并发](https://github.com/wio1997/Inference-Foundry/blob/72a0cf3e22549a59bcdc0742c22c3a325abe2f4e/evidence/native32_first_G691/derived/formal_C16_HTTP_admission_G1408.json) [SGLang 第二轮请求复算](../evidence/SG_usage_recovery_G1276/SG_G1317_W2_raw_client_admission.json) [复算脚本](../code/SG_W1_latency_timeline_G1375/audit_32K_client_admission_g1408.py)
