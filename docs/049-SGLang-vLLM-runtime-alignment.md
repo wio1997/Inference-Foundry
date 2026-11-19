@@ -44,6 +44,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 已核对当前 P/D 容器内的详细步标记源码。纯 `EXTEND` 记录 query、KV、query 平方及 query 与 KV 乘积的总和，KV 以 query 分块末尾的原始逻辑序列长度计。单请求可直接还原，双请求 query 行数不同时可解出各自前缀长度。等长 query 的歧义与其他未覆盖的批次会在输出中标记。用 vLLM 封存的 65 个实际非零步骤先计算同口径汇总再还原，50 个单请求和 15 个双请求的结果均与原始逐请求长度一致。SGLang 实际 trace 待采集，压缩后的可见 K 及设备工作量仍需核对。 [实机源码和离线验证](../evidence/SG_usage_recovery_G1276/SG_G1317_prefill_query_KV_geometry_contract_G1421.json) [还原工具](../code/SG_P_step_attribution_G1355/derive_prefill_request_geometry_g1421.py)
 
+固定 Prefill 评分源码按绝对位置计算压缩 K 可见范围。对连续 C2 路径，位置 `p` 可见 `floor((p+1)/2)` 个压缩条目。八个实际 rank 的首块回执均确认 NPU 专用评分预算为 128 MiB，包内默认值为 1 GiB。将 vLLM 封存的 65 步逐请求形状代入同一源码口径，单次索引遍历预计 2589 个评分分块。稠密评分覆盖约 53.58 亿 query–K 对，其中约 42.95 亿对在 top-k 前满足因果范围，均为每个索引头的几何计数。后续 trace 用这些形状核对实际分块和耗时，并分别记录 vLLM 的页容量与有效逻辑长度。 [实机上限与逐步模型](../evidence/SG_usage_recovery_G1276/SG_P_logical_causal_work_at_native_geometry_G1422.json) [计数工具](../code/SG_causal_prefill_score_G1362/prefill_logical_score_work_g1422.py)
+
 ## 32K 正式冷测和重放的时间窗口
 
 原 vLLM 冷测和重放的各 32 条原始请求均复算出客户端并发峰值 16，第 17 条在首条完成后才开始。两端使用同一固定 AISBench 镜像。SGLang 第二轮原始 SQLite 复算最长单请求用时 7887.70 秒，整轮 7887.82 秒。当前 Router 的 14400 秒为单请求上限，Decode 的 14400 秒为 KV 等待设置。正式 AISBench 整轮上限由独立阶段参数控制。 [vLLM 原始请求并发](https://github.com/wio1997/Inference-Foundry/blob/72a0cf3e22549a59bcdc0742c22c3a325abe2f4e/evidence/native32_first_G691/derived/formal_C16_HTTP_admission_G1408.json) [SGLang 第二轮请求复算](../evidence/SG_usage_recovery_G1276/SG_G1317_W2_raw_client_admission.json) [复算脚本](../code/SG_W1_latency_timeline_G1375/audit_32K_client_admission_g1408.py)
