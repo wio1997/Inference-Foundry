@@ -102,6 +102,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 32K 冷测中途重新读取同一 Prefill 实例的缓存清单。与第 5 轮预热后的封存快照相比，211 个持久编译文件的路径、大小和修改时间一致，单独记录的 Ascend 工作目录中 73 个文件的元数据也一致。同一轮已独立核验 12/32 条临时请求。整轮编译缓存复核和冷测验收仍待完成。 [实机缓存清单和临时请求回执](../evidence/SG_usage_recovery_G1276/SG_G1317_live_32K_cold_prefill_compile_inventory_G1476.json)
 
+已启动冷测和同输入回放的只读终点监听，现场核对了冷测客户端和父进程身份，并在两端试读。监听以原客户端进程退出为触发，采集 Prefill 缓存清单，再复查回放命令或 GSM8K 启动目录是否已出现。若下一阶段已开始，回执会标记采样时序，整轮性能仍以独立的正式请求审计为准。 [终点监听启动回执](../evidence/SG_usage_recovery_G1276/SG_G1317_formal_cold_replay_prefill_terminal_observer_G1477.json)
+
 四档正式对照表已用 vLLM G630 的八份实际冷热结果验证。表生成器检查冻结输入摘要、五轮独立预热、32 条 C16/O1024 正式请求、服务端用量和吞吐计量。重放同时列出 P/D 本地及连接器命中，只有 Prefill 的 SGLang 计数器无法证明 Decode 本地命中。当前无 SGLang 正式终态结果，比较栏为空。 [表生成器](../code/SG_formal_comparison_G1452/build_formal_PD_matrix_g1452.py) [实际 vLLM 基线接入及演练](../evidence/SG_usage_recovery_G1276/SG_formal_matrix_native_reference_admission_G1452.json) [原始 vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/a8c87daf33de03ed794be365cd742609fc3a48bb/docs/016-native032-four-tier-first-matrix.md)
 
 第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
