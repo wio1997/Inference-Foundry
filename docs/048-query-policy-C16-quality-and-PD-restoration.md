@@ -204,3 +204,9 @@ Prefill 逐步归因工具已部署至 CPU 解析环境，并用保留的 G981 r
 4 个设备启动区间为 8.02–8.82 微秒。区间内开始执行的非占位 model ID 依次为 44、46、44、46，每个区间均有 2 条候选任务在结束边界后继续运行。分别统计启动与完整包含后，这份旧 trace 仍只支持图启动和图族候选的复核。完整重放耗时和当前匹配 Prefill 的设备逐步归因仍待采集。工具使用上节的冻结库与步区间解析器，运行时将 `code/SG_profile_readiness_G1218` 放入 `PYTHONPATH`。 [窗口审计工具](../code/SG_P_step_attribution_G1355/audit_SG_graph_launch_windows_g1360.py) [重复连接与跨界校验](../evidence/SG_usage_recovery_G1276/SG_model_execute_window_fixture.json) [固定源码 SHA](../code/SG_P_step_attribution_G1355/source_pins.json)
 
 G1317 原 32K 首轮的最新采样已记录 10 次 KV 传输和 335872 个新增输入 token。客户端原进程仍在运行，完整响应及正式性能指标待终态。 [首轮在飞采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_tenth_transfer.json)
+
+### Prefill 索引评分的因果后缀裁剪
+
+候选沿用原生 128 MiB 的 query row 分块，只将 GEMM 的 K 输入裁到各分块内的最大可见位置。裁剪后继续应用逐行因果掩码，并在调用原生 top-k 前将后缀恢复为 `-inf`，保留原宽度和槽位映射。主机校验覆盖 129 种可见长度排列和 8 个闸门形状，包括不可见整片、并列分数及奇数宽度。四个 32K 建模分块的逻辑评分量合计减少 19.35%。 [候选实现](../code/SG_causal_prefill_score_G1362/causal_score.py) [主机校验和形状账本](../evidence/SG_usage_recovery_G1276/SG_causal_score_host_tile_fixture.json)
+
+固定镜像的 910B 闸门已准备并核对服务器侧源码 SHA。它复用原生 per-32 FP4 fake quant、评分、top-k 和写回，分别要求 FP32 分数位模式、原生选中索引及 raw/page 写回逐项一致。K 宽度变化可能触发不同的算子路径，设备数值仍待实测。后续接入服务需要从可信的主机侧元数据取得各行可见长度，并核对其与设备行顺序的一致性。当前 P/D 实例继续原首轮，新增输入累计 360448 token，已记录 10 次 KV 传输，另有 1 次传输在途。 [910B 正确性闸门](../code/SG_causal_prefill_score_G1362/probe.py) [服务器源码校验](../evidence/SG_usage_recovery_G1276/SG_causal_score_probe_source_staging.json) [原首轮采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_eleven_request_equivalents_input.json)
