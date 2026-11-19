@@ -214,3 +214,9 @@ G1317 原 32K 首轮的最新采样已记录 10 次 KV 传输和 335872 个新�
 从正在运行的固定镜像核对了位置和请求行生成源码。普通连续 eager Prefill 的第 `i` 行位置为 `prefix_len + i`。按现有压缩比，分块内最大可见 K 宽度可由最后一行直接计算，每片只需主机整数运算。规划器校验前缀、扩展长度、原生 K 宽度和总行数，已经用 2139 个随机请求及四个目标长度的末段布局比对逐行参考。接入还需要证明当前 Prefill 的实际设备行来源。替换位置、CP、图填充和尾层路径必须排除在该验证范围外。固定的 G1317 Prefill 参数为 attention CP 1、Prefill 图后端 disabled。 [固定镜像和位置来源](../evidence/SG_usage_recovery_G1276/SG_G1317_indexer_host_source_geometry.json) [主机规划器](../code/SG_causal_prefill_score_G1362/host_geometry.py) [四档布局校验](../evidence/SG_usage_recovery_G1276/SG_causal_score_host_geometry_fixture.json)
 
 首版服务器冒烟校验在 Python 3.9 遇到 `zip(strict=True)` 兼容错误。移除该参数并保留向量长度校验后，原主机冒烟验证通过。固定推理镜像为 Python 3.12，设备数值校验仍待执行。G1317 原首轮新增输入累计 401408 token，已记录 12 次 KV 传输，客户端仍在运行。 [初次失败](../evidence/SG_usage_recovery_G1276/SG_causal_score_host_geometry_initial_failure.json) [修正后服务器回执](../evidence/SG_usage_recovery_G1276/SG_causal_score_host_geometry_stage.json) [首轮在飞采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_twelfth_transfer.json)
+
+### 原 32K 首轮的续跑条件
+
+通过活进程和文件描述符核对 G1317 的 P、D 两端八卡锁、Router、原配对锁及 CPU 客户端。原配对锁截至 11 月 19 日 13:30 UTC，原 CPU 客户端截至 21:09 UTC。若原首轮通过原始响应审计且两端清空队列，已准备的配对锁交接可覆盖到两端服务最早到期前 600 秒。后续每轮仍按实际剩余时间重新核准。按当前 12900 秒单轮上限计算，原 CPU 客户端能接纳新预热的最后时间约为 17:28 UTC。评估到达该时间前最近的合格暂停点，再决定是否续期 CPU 客户端。 [现场租约和时限](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_live_continuation_admission.json)
+
+独立终态审计增加了 16 个请求 ID 各出现一次的要求，并在终态复算原始记录、输入及配置 SHA 和落盘指标。用历史失败首轮的 16 条真实记录复算得到 7 条满足输入和输出长度，另用重复 ID 用例验证拒绝条件。新审计器已在原 32K 服务器成功识别现有 runner 和活客户端。最新采样累计 434176 个新增输入 token 与 13 次 KV 传输，终态审计仍待完成。 [终态审计器](../code/SG_32K_resume_audit_G1368/audit_SG_32K_W1_requests_g1368.py) [历史和重复 ID 复核](../evidence/SG_usage_recovery_G1276/SG_warmup_terminal_request_ID_fixture.json) [服务器部署回执](../evidence/SG_usage_recovery_G1276/SG_G1317_warmup_terminal_request_auditor_stage.json) [首轮在飞采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_thirteenth_transfer.json)
