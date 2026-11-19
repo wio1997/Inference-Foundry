@@ -109,3 +109,5 @@
 [P侧重型算子的逐step候选分布](docs/052-p-heavy-operators-per-step.md)
 
 [P侧indexer及稀疏注意力的记录shape与耗时](docs/053-indexer-attention-shape-duration.md)
+
+[P侧所选事件的trace坐标重叠](docs/054-p-selected-event-overlap.md)
