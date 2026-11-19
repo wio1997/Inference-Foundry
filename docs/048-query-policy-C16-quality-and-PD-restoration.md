@@ -49,3 +49,11 @@ P/D 联调脚本和最终 GSM8K 客户端源码已分别在 P 和 D 校验 SHA�
 最终 P/D 上的 SSE 用量检查复用 vLLM 的同一份独立 32K 输入、1024 输出请求。脚本和请求字节已校验并落盘。AISBench 的服务门槛脚本保存实际配置、设备命中序列、预热和首轮数据 SHA。两项当前为运行准备。 [用量输入部署回执](../evidence/SG_D1163_GSM8K_G1234/G1227_usage_assets_staged_2204_parsed.json) [服务门槛部署回执](../evidence/SG_D1163_GSM8K_G1234/G1229_gate_source_staged_2204_parsed.json) [归档索引](../evidence/SG_D1163_GSM8K_G1234/source_index.json)
 
 D1163 客户端和模型进程均退出、8 卡逐卡清空后，D1178 已按冻结源码启动控制器。控制器启动回执的范围为进程存活，拉起模型与图捕获仍需就绪检查。 [D1163 退役回执](../evidence/SG_D1163_GSM8K_G1234/D1163_retirement_verified.json) [D1178 启动回执](../evidence/SG_D1163_GSM8K_G1234/D1178_controller_launch_verified.json)
+
+## G1178 最终 P/D 实测联调
+
+Decode 的 8 个 rank 均通过 target 1384 项、draft 73 项严格装载。target 6-token VERIFY 和 draft 5-token full graph 均完成捕获，覆盖 bs=16。路由约 161 秒完成 Prefill 初始探测。同一进程复核为两个 worker 健康、负载为 0。 [Decode 就绪回执](../evidence/SG_final_PD_G1247/D1178_ready_graph_all8.json) [路由复核](../evidence/SG_final_PD_G1247/same_router_actual_two_workers.json)
+
+三条实际请求通过。算术题返回 91，独立文本与同输入重放均产生 64 个输出 token。260-token 输入的响应缓存命中为 0 和 256。P 侧各 rank 的 KV 传输计数增加 3，D 侧各 rank 的 full graph 回放计数增加 31。原始请求、响应、指标的 SHA 均已复核。 [P/D 实测回执](../evidence/SG_final_PD_G1247/P_D_real_requests_and_runtime_counters.json)
+
+最终 P/D 的 1319 题 GSM8K 已按 C16、2048 输出上限、temperature 0、seed 0 独立启动。首次启动检查中的目录拼写已修复。已复核同一个实际 worker 和首条正确答复。当前全量结果仍待收尾，四档 AISBench 和全 rank 同负载 profile 仍待执行。 [首次检查错误](../evidence/SG_final_PD_G1247/initial_launcher_path_error.json) [实际启动](../evidence/SG_final_PD_G1247/final_PD_GSM8K_actual_launch.json) [实际观察](../evidence/SG_final_PD_G1247/final_PD_GSM8K_actual_initial_observation.json) [归档索引](../evidence/SG_final_PD_G1247/source_index.json)
