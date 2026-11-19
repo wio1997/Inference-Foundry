@@ -83,3 +83,5 @@
 [32K P/D 全32 rank设备 kernel 分布与脱敏范围](docs/039-all-rank-kernel-distributions.md)
 
 [32K D侧同物理shape/dtype事件分布：仍非同step因果](docs/040-d-physical-shape-distributions.md)
+
+[32K P侧全量记录输入shape字段交集与空槽边界](docs/041-p-recorded-shape-overlap.md)
