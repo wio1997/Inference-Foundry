@@ -39,6 +39,8 @@ epoch727已完成P/D各8rank原始采集，并从全部16rank的原始CPU记录�
 
 ## Prefill 量化索引算子
 
-G804 的 Prefill rank 0 原始采集离线导出中，`VllmAscendQuantLightningIndexerV2` 出现 520 次，设备任务累计 1.3505 秒。另有 520 次 query 量化和 520 次索引整理。固定镜像的实际模型源码调用 `npu_quant_lightning_indexer_v3`，上面的 V2 是设备统计表中的算子名称。设备任务时间可能重叠，逐步归因仍需用 launch 和时间轴关联。 [设备算子统计](../evidence/profile_capture_G804/derived/P0_indexer_operator_aggregate_G1395.json) [镜像原始索引源码](../code/fixed_native_attention_G1130/models/deepseek_v41/indexer.py)
+G804 的 Prefill rank 0 原始采集离线导出中，`VllmAscendQuantLightningIndexerV2` 出现 520 次，设备任务累计 1.3505 秒。另有 520 次 query 量化和 520 次索引整理。固定镜像的实际模型源码调用 `npu_quant_lightning_indexer_v3`，上面的 V2 是设备统计表中的算子名称。设备任务时间可能重叠。 [设备算子统计](../evidence/profile_capture_G804/derived/P0_indexer_operator_aggregate_G1395.json) [镜像原始索引源码](../code/fixed_native_attention_G1130/models/deepseek_v41/indexer.py)
 
-同一份 `kernel_details.csv` 的逐任务记录确认，520 次融合索引调用的前两项输入均为 INT8，对应源码中的量化 query 和分页 key。第一项输出均为 `[query_rows, 1, 512]` 的 INT32 索引。CPU 调度的 65 个非零 query 步骤使用 300、8184 或 8188 行，设备记录中各尺寸的出现次数恰为该尺寸调度步数的四倍，共 260 次。其余 260 次设备任务使用 128–256 行。8184 或 8188 行的 256 次调用合计 1.1687 秒，占该算子累计设备任务时间的 86.5%。这里关联的是形状分布，逐步及逐层对应仍需核实 launch。 [逐任务形状及源文件 SHA](../evidence/profile_capture_G804/derived/P0_indexer_operand_shapes_G1418.json) [CPU 调度注释](../evidence/profile_capture_G804/logical/prefill/canonical_annotations.json)
+同一份 `kernel_details.csv` 的逐任务记录确认，520 次融合索引调用的前两项输入均为 INT8，对应源码中的量化 query 和分页 key。第一项输出均为 `[query_rows, 1, 512]` 的 INT32 索引。8184 或 8188 行的 256 次调用合计 1.1687 秒，占该算子累计设备任务时间的 86.5%。 [逐任务形状及源文件 SHA](../evidence/profile_capture_G804/derived/P0_indexer_operand_shapes_G1418.json)
+
+设备任务与调度步骤已通过 `TASK.connectionId`、`CANN_API`、`CONNECTION_IDS` 和 `PYTORCH_API` 逐条关联。CANN launch 与调度标记位于不同线程，桥接后的 `aclnnVllmAscendQuantLightningIndexerV2` 调用与调度标记位于同一线程、且完整落在标记区间内。520 个设备任务均有唯一映射。65 个非零 query 步骤各有 8 次任务，其中 4 次 query 行数与该步调度量一致，另外 4 次使用 128–256 行。133 个零 query 步骤均无此算子任务。逐层归属及 SGLang 侧同等工作量的时耗仍待验证。 [逐步映射](../evidence/profile_capture_G804/derived/P0_indexer_scheduler_bridge_G1419.json) [提取器](../code/profile_capture_G804/native_P0_indexer_scheduler_bridge.py) [CPU 调度注释](../evidence/profile_capture_G804/logical/prefill/canonical_annotations.json)
