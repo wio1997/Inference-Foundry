@@ -48,6 +48,8 @@ SGLang 的设备归属分析支持通过 `CONNECTION_IDS` 找到实际的 PyTorc
 
 将 vLLM G804 的 rank 0 索引器时间按精确调度步绑定到 C2 逻辑工作量。65 步中，工作量最低和最高四分组的 fused 算子任务累计耗时中位数分别为 12.27 ms 和 31.65 ms。仅用两框架共有的步级聚合字段即可对 57 步给出精确因果对数，其余 8 步的上下界相差 1 对。SGLang 可用同一逻辑口径处理无法逐请求还原的步。其计分标记和 vLLM fused 算子的计时边界不同，两边设备耗时比仍待同批实测及边界核验。 [逐步实测与推导](../evidence/SG_usage_recovery_G1276/SG_C2_work_by_native_P0_indexer_step_G1430.json) [分析工具](../code/SG_causal_prefill_score_G1362/audit_c2_work_by_trace_step_g1430.py)
 
+固定 A2 镜像的 aarch64 CPU 探针执行原评分函数，核实 `aten::einsum` 子调用 `aten::bmm` 的输入为 `[1, Q×32, 128]` 和 `[1, 128, K]`，同一探针中另一种 einsum 的输入形状不同。按当前实例实测第一块代入，候选形状为 `[1, 16384, 128]` 和 `[1, 128, 4096]`。历史 Decode 数据库的 PyTorch 形状为空，设备任务形状仍可通过字符串表查询。CPU 模式的 Ascend 库导出未通过，须在本次 Prefill 实际采集核对形状字段与设备任务关联。 [形状实测和失败记录](../evidence/SG_usage_recovery_G1276/SG_G1317_score_trace_shape_controls_G1438.json) [固定镜像检查](../code/SG_P_step_attribution_G1355/probe_C2_score_trace_shapes_g1438.py)
+
 在当前 G1317 的 P/D 各八个 scheduler 中，手动起停使用镜像默认的 profiler 路径，请求中的 `GPU` 活动映射到 NPU。两个 trace 分区的可用空间快照分别为 1.95 TB 和 1.86 TB。采集关闭后先清点每 rank 的 CPU op range、设备数据与结束记录，再检查派生数据库。封存的 SGLang G981 Decode 八个 rank 均检出原始文件；清单工具也能识别原始文件齐全、待离线解析的情形。实际 G1317 采集的空间需求和事件覆盖仍待该次导出核验。 [当前运行环境与历史文件核对](../evidence/SG_usage_recovery_G1276/SG_G1317_profile_export_and_raw_rank_inventory_G1423.json) [原始文件清单工具](../code/SG_long_profile_G1305/inventory_SG_raw_profile_g1423.py)
 
 匹配采集结束后，验收工具先校对实际 driver、请求审计和 profiler 起停回执，再逐条核对 AISBench 的 16 条冻结输入并生成本次采集的校验和。两端各八个物理 rank 的原始文件按此校验和汇总。工具会报告缺少原始收尾文件以及派生库尚未生成的 rank。用 vLLM G804 实际 16 条请求和构造的 SGLang 控制及导出文件验证了这条链路，P/D 两端已通过加载检查。实际 SGLang 事件覆盖待采集后核对。 [验收工具](../code/SG_long_profile_G1305/intake_SG_matched_profile_g1431.py) [两端回执与离线验证](../evidence/SG_usage_recovery_G1276/SG_G1317_matched_profile_intake_readiness_G1431.json)
