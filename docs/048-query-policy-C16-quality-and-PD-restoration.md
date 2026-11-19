@@ -7,3 +7,9 @@
 P/D 配置已在两台 910B 上校验并落盘，基于以前实际运行的 P832 和 D974 部署。P1178 已就绪，八个 rank 均通过 target 1384 参数和 draft 73 参数严格装载，并记录查询头修正安装。Prefill 的 bootstrap 返回 6 个验证位置及实际传输描述。D1163 继续执行质量测试。恢复 DSPARK 1 步、6 个验证位置、Ascend DEVICE_RDMA、P eager、D target 和 draft full graph、前缀缓存和 overlap。两端 target 都带 D1163 的按配置归一化修正和压缩 KV 的 BF16 路径。SGLang 草稿的既有 Query 实现已判断同一配置标志，因此保留原实现。最终需以实际两端装载、物理缓存布局、图捕获和回放以及 PD 状态传输验证这些参数。正式 AISBench 和对比 profile 待运行。[双端源码和计划](../evidence/Q_head_norm_C16_G1175/PD_source_preparation_manifest.json) · [Prefill 就绪和布局回执](../evidence/Q_head_norm_C16_G1175/G1186_sg_P_observation3_2203_parsed.json)
 
 四档 AISBench 的 24 个匹配配置已按当前 CPU 客户端目录调整并校验，同一套独立预热与计分数据的 SHA 仍需在服务就绪后复核。客户端配置对照仅有框架名、服务端口和容器内数据挂载路径的差异。实际 handler 的 usage 来源、两端编译缓存和计分条件将在运行前确认。[准备清单](../evidence/Q_head_norm_C16_G1175/aisbench_preparation_manifest.json)
+
+## Decode 切换前的准备
+
+已对 2204 实际 CPU 客户端做只读检查。AISBench 请求处理的两份源码和 tokenizer SHA 与原生 vLLM 基线一致。24 个数据文件都在预期的只读挂载中，28 个已落盘的脚本与配置均通过 SHA 复核。数据内容的完整复核和 SGLang 端点的 usage 验证仍待执行。[实际客户端检查](../evidence/PD_runtime_preflight_G1193/G1191_SG_AISBench_client_readonly_2204_parsed.json)
+
+Decode 验收分为八个 rank 的 target 与 draft 装载及图捕获、路由注册、真实请求的 Prefill KV 传输和 Decode 图回放。图日志与计数器解析已用历史原始证据核对。最终 PD 质量脚本的请求构造和评分逻辑与 vLLM 基线保持一致。当前这些新脚本处于准备阶段。[脚本索引](../evidence/PD_runtime_preflight_G1193/source_index.json) · [最终质量运行前检查](../evidence/PD_runtime_preflight_G1193/full_SG_PD_quality_preparation_g1192.json)
