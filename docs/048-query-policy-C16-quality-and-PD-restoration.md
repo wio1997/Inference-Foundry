@@ -94,4 +94,12 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 
 64K 首次请求执行期间，Prefill 三次采样均显示 1 条运行中请求、bootstrap 和传输队列为 0，八个 rank 的传输计数无增量。八卡 AICore 读数在三次采样中依次分布为 99–100%、25–26%、99–100%。设备在这些时点确有活动，仍需 trace 确定任务类型、区间长度以及对分块耗时的贡献。 [三次现场采样](../evidence/SG_usage_recovery_G1276/long_retrieval_64K_P_resource_samples.json)
 
+64K 首次请求的客户端在读取响应状态时触发 900 秒 socket 超时，作业终止，保存了前两条 32K 通过记录。Prefill rank 0 此前已记录四次 8192-token 调度，分块间隔为 120、121、121 秒，第四次记录仍有 32768 token 待处理。64K 未取得可验收响应，64K 重放、128K、256K 均未提交。进程退出后，现场确认 P/D 运行、等待、bootstrap、预分配和传输队列都为零，路由的两个 worker 健康且负载为零。固定 AISBench CPU 镜像中的请求实现设置 `ClientTimeout(total=None)`，C1 检索脚本的 900 秒上限与正式链路各层的上限分别记录。 [客户端终态](../evidence/SG_usage_recovery_G1276/long_retrieval_64K_terminal.json) [四个分块](../evidence/SG_usage_recovery_G1276/long_retrieval_64K_P_chunk_records.json) [实际队列](../evidence/SG_usage_recovery_G1276/long_retrieval_64K_actual_drain.json) [AISBench 客户端源码指纹](../evidence/SG_usage_recovery_G1276/sg_aisbench_client_deadline_source.json)
+
 32K/O1024 的 C1 缓存重放在首个内容之后仍运行约 594.90 秒。即便完全消除该请求的首发阶段，也只节省该次请求总时间的约 0.46%。Decode 优先复核 `_sparse_shared_kv`。旧 G981 设备 trace 的 rank 0 两次 VERIFY 和两次 DRAFT 窗口内，该算子 86 次任务累计 453.74 毫秒，paged FP4 索引累计 20.09 毫秒。当前 kernel 按 `(query row, query head)` 发程序，同一行的索引和 KV loads 不依赖 head id，因此值得验证跨头实际数据复用以及片上容量约束。算子累计值不用于估计可节省的端到端时间。需要同负载全 rank trace 才能判断应先验证哪种改动。 [SSE 时间](../evidence/SG_usage_recovery_G1276/32K_SSE_protocol_verified.json) [历史算子与工作量覆盖](../evidence/SG_usage_recovery_G1276/historical_decode_optimization_selection.json)
+
+## 32K C16 首轮独立预热
+
+按 64K 首次检索观测到的 Prefill 分块间隔，原 Router 的 3600 秒上限存在截断同形状 C16 预热的风险。在两端队列排空后，将 Router 请求上限调到 14400 秒，复用原 P/D 进程、路由并发限制和请求策略。新 Router 上的三个实际短请求通过。八个 P rank 的 KV 传输计数各增加 3，八个 D rank 的图回放计数各增加 38，两个 260/64 SSE 请求的响应缓存计数由 0 增至 256。 [原 Router 配置](../evidence/SG_usage_recovery_G1276/G1178_router_previous_deadline.json) [切换回执](../evidence/SG_usage_recovery_G1276/G1178_router_deadline_actual_launch.json) [切换后短请求复核](../evidence/SG_usage_recovery_G1276/G1178_reconfigured_router_runtime_verified.json)
+
+32K/C16/1024 已通过现场预检并启动第一轮独立预热，输入和用量审计逻辑沿用已校验版本。根据当前实测耗时放宽单阶段墙钟上限到 12900 秒，首轮后停在检查点，随后结合实际时长与资源有效期安排剩余四轮。现场已核对同一 runner 和 AISBench 进程，以及首轮 16 条数据的命令与 SHA。五轮预热、编译成熟度检查、计分首轮及同请求重放仍按原条件执行。 [首轮启动与脚本指纹](../evidence/SG_usage_recovery_G1276/SG_first_32K_AISBench_warmup_launched.json) [首轮实际运行](../evidence/SG_usage_recovery_G1276/SG_first_32K_AISBench_warmup_actual_inflight.json)
