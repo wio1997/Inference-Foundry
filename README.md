@@ -95,3 +95,5 @@
 [专家工作量的现有证据、源码与补采隐私边界](docs/045-expert-observability-scope.md)
 
 [32K P侧同记录shape/dtype的单事件分布](docs/046-p-shape-dtype-distributions.md)
+
+[32K P侧动态量化的记录格式与设备字段](docs/047-p-quant-format-counters.md)
