@@ -90,6 +90,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 核对现役 Prefill 源码确认，批次报告在结果处理阶段产生。该阶段先等待可用的复制完成事件，完成请求先调用末块 KV 发送，再打印报告。实际 64 条报告均为单请求 8192 个新 token，相邻报告间隔中位数 120 秒。按三次主机时钟采样对齐，前 14 个客户端首条 SSE 比每组第 4 条报告晚约 119–122 秒，与随后一条报告相距约 1 秒。该结果按时间顺序对齐，逐请求 KV 完成时间和设备执行区间仍需 trace。 [现役源码与客户端时序复算](../evidence/SG_usage_recovery_G1276/SG_G1317_cold_P_result_cadence_first_SSE_G1480.json) [复算代码](../code/SG_first_token_comparison/audit_prefill_result_cadence_g1480.py)
 
+冷测第 16 次 Prefill rank 0 KV 交接观测落盘后，末块入队至发送侧轮询确认的均值为 120.15 秒。两端现役 Ascend 源码确认，发送请求交给后台线程，该线程处理传输并向 Decode 发布状态。Decode 按本地状态及元数据检查将请求加入等待队列。Prefill 调度器另行轮询本地状态，并完成缓存清理、指标和本端输出。后续需要逐请求记录后台发送、Decode 就绪、Prefill 观察与 Router 首条转发四个时点。 [半程直方图和两端现役源码](../evidence/SG_usage_recovery_G1276/SG_G1317_cold_halfway_KV_worker_poll_path_G1481.json) [复算代码](../code/SG_PD_transfer_G1467/audit_ascend_worker_status_path_g1481.py)
+
 核对两端现役启动参数及已部署的匹配采集驱动后确认，逐请求时序日志和 OpenTelemetry 均关闭。后续原实例采集会打开 Torch profiler 的详细标记，用于算子、调度和设备事件；独立 Decode 请求标记仍处于源码校验阶段。CPU 用例确认，固定原生日志可随两端各自的请求 ID 输出 `bootstrap_room`，用于另行诊断关联。日志中的 Decode transfer duration 覆盖进入传输队列至进入执行等待队列，设备传输耗时仍需独立事件。 [两端功能核验及 CPU 用例](../evidence/SG_usage_recovery_G1276/SG_G1317_planned_profile_request_observability_G1469.json) [核对代码](../code/SG_PD_request_observability/audit_matched_profile_capabilities_g1469.py)
 
 同轮冷测的 Rank 0 启动日志与占用读数一致。Prefill 全量 KV 池容量为 2,352,384 个槽，快照中活跃 24,576、可驱逐 2,321,664；SWA 池容量为 49,536，活跃 8,320、可驱逐 33,664。Decode 全量池容量为 617,600，活跃 525,312、可驱逐 67,584。按冻结输入各自使用独立的首个 128-token 页计算，Decode 即使把全部全量池用于前缀，也至多同时容纳 18 条完整 32K 前缀。本轮有 32 条请求。这个容量上限用于解释后续重放，逐请求的完整和部分命中需要单独核验。 [容量、占用和冻结输入依据](../evidence/SG_usage_recovery_G1276/SG_G1317_live_cold_KV_pool_residency_G1471.json) [复算代码](../code/SG_KV_pool_observability/audit_cold_KV_pool_residency_g1471.py)

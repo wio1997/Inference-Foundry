@@ -1,0 +1,139 @@
+{
+  "actual_cold_prefill_metrics": {
+    "earlier_sample_D_UTC": "2026-11-19T21:25:16.867839+00:00",
+    "first_16_above_max_finite_histogram_bound_s": 5,
+    "first_16_sender_observations_mean_s": 120.15208864299348,
+    "first_4_sender_observations_mean_s": 120.1520744774025,
+    "later_sample_D_UTC": "2026-11-19T22:57:41.851856+00:00",
+    "observations_5_through_16_mean_s": 120.15209336485714,
+    "prefill_rank": 0,
+    "scope": "Histogram spans last-chunk queue entry through Prefill scheduler completion observation. The actual worker, transfer and notification intervals require timestamped events.",
+    "source_before_first_cold_sha256": "3639fe8a522b719d9e36fa0145d38ce762cfad6b3c7b01a6f1f21d64d4e2bf87"
+  },
+  "analysis_source_sha256": "424dfc2770733b127b6a01ae995eb9daca847c8ac2fba16a8fbd306cd49dd7cf",
+  "epoch": 1317,
+  "formal_result_accepted": false,
+  "private_receipts_sha256": {
+    "decode": "739607cf9c17912bff7c8c5c5cc825d74b00be7d0211c7aaf336e95167c29425",
+    "early": "548b84092ee6cfd2d1d6986bb87ef4b4ec165bcd88b8bc055baf7f2f36d7d427",
+    "halfway": "e4baa25d7c0e3615d68fcadad0dc19c0c800886b06531efa964c3dce2697ce4c",
+    "prefill": "7eb0a7f514599fc8f48f651aaf936d0e1874e0184d79eba134142960663a727d"
+  },
+  "runtime_source_boundaries": {
+    "scope": "The background worker can publish transfer success to Decode and local state. Decode uses its local status and metadata checks to make the request eligible. Prefill scheduler polling observes local completion and feeds Prefill cleanup, metrics and its own output stream. Client response routing requires a separate join.",
+    "source_sha256_by_module": {
+      "disaggregation/ascend/conn.py": "ba9b4862d9f4e732c467ab367c9a2ad57509e5fb4bf3ce01c0e93e85cd0b1935",
+      "disaggregation/common/conn.py": "b89eb8fb2ec137d8229094e3762f73f8f1c675e067187c2cebd7996af92f96bf",
+      "disaggregation/decode.py": "39cf972b6bcc04cc8c150c650d845daaa68ccb511a69a71c5b0b8bdf7322a70d",
+      "disaggregation/mooncake/conn.py": "bbcb8a78a84f817efff214d9c91f668b24ae0b0c08c716894598e7ea332638b4",
+      "disaggregation/prefill.py": "b185dcc192b765a19ac2048e204ac24cb49c09116bab7773a37f2a4925aa5bb1",
+      "observability/req_time_stats.py": "21e17d68d3f18ffdb1a1203fe814f2ddcea9869021a3fa9f43210222d114a1e6"
+    },
+    "source_sites": {
+      "background_transfer_and_status": [
+        {
+          "function": "MooncakeKVManager.__init__",
+          "line_numbers_in_order": [
+            373
+          ]
+        },
+        {
+          "function": "MooncakeKVManager.transfer_worker",
+          "line_numbers_in_order": [
+            2522,
+            2722,
+            2839
+          ]
+        },
+        {
+          "function": "CommonKVManager.conclude_transfer",
+          "line_numbers_in_order": [
+            932,
+            937
+          ]
+        }
+      ],
+      "decode_state_and_ready_queue": [
+        {
+          "function": "MooncakeKVManager.start_decode_thread",
+          "line_numbers_in_order": [
+            3091,
+            3095,
+            3102
+          ]
+        },
+        {
+          "function": "CommonKVManager.apply_prefill_status",
+          "line_numbers_in_order": [
+            1003
+          ]
+        },
+        {
+          "function": "CommonKVReceiver._poll",
+          "line_numbers_in_order": [
+            2637
+          ]
+        },
+        {
+          "function": "DecodeTransferQueue.pop_transferred_with_outcomes",
+          "line_numbers_in_order": [
+            3166,
+            3250,
+            3271,
+            3288
+          ]
+        },
+        {
+          "function": "SchedulerDisaggregationDecodeMixin.process_decode_queue",
+          "line_numbers_in_order": [
+            3933,
+            3939
+          ]
+        }
+      ],
+      "enqueue": [
+        {
+          "function": "MooncakeKVSender.send",
+          "line_numbers_in_order": [
+            3357
+          ]
+        },
+        {
+          "function": "CommonKVSender.send",
+          "line_numbers_in_order": [
+            2371
+          ]
+        },
+        {
+          "function": "MooncakeKVManager.add_transfer_request",
+          "line_numbers_in_order": [
+            3150
+          ]
+        }
+      ],
+      "prefill_scheduler_cleanup_and_histogram": [
+        {
+          "function": "SchedulerDisaggregationPrefillMixin.process_disagg_prefill_transfer_queue",
+          "line_numbers_in_order": [
+            1220,
+            1288,
+            1301,
+            1321,
+            1332
+          ]
+        }
+      ]
+    },
+    "startup_resolved": {
+      "disable_overlap_schedule": [
+        "False"
+      ],
+      "disaggregation_decode_polling_interval": [
+        "1"
+      ],
+      "disaggregation_transfer_backend": [
+        "'ascend'"
+      ]
+    }
+  }
+}
