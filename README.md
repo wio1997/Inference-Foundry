@@ -113,3 +113,5 @@
 [P侧所选事件的trace坐标重叠](docs/054-p-selected-event-overlap.md)
 
 [P/D同记录签名的分位方向及反例](docs/055-pd-recorded-signature-directions.md)
+
+[正式32K/64K阶段快照与秒级候选](docs/056-formal-stage-snapshots.md)
