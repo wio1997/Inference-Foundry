@@ -137,3 +137,9 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 两端已现场核实运行、等待与传输队列全部为零，原 runner 已退出，正式数据未提交。恢复实例将 Decode 的内部 KV 等待调到 14400 秒，并给 32K 恢复留出 30 小时的 P/D 服务窗口。原 P bootstrap 阈值、镜像、模型权重、推理参数和数据形状沿用。两个角色的 58 份源码均已在目标端校验。实际模型装载、图、双端运行时联调和新 epoch 的五轮独立预热仍需验收。 [构建程序](../code/SG_PD_wait_recovery_G1317/prepare_SG_PD_wait_recovery_g1317.py) [源码准备](../evidence/SG_usage_recovery_G1276/SG_P_D_wait_recovery_source_preparation.json) [Prefill 源码回执](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_source_staged_P.json) [Decode 源码回执](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_source_staged_D.json)
 
 旧 Prefill 和 Decode 控制器均经现场核验退出，各自释放八张卡，随后启动修复实例的两个控制器。原始失败批和冻结索引保留。Prefill 和 Decode 的新服务就绪与请求复测等待各自运行时回执。 [Prefill 启动](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_actual_P_launch.json) [Decode 启动](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_actual_D_launch.json)
+
+恢复后的 P/D 均通过 `/ready` 和各自 8 个 rank 的权重核对。Decode 的主模型和草稿模型图均在 8 个 rank 完成捕获。逐个读取 Decode 调度进程环境，8 个 rank 的 KV 等待均为 14400 秒。Router 使用 14400 秒请求时限，在同一进程完成两个 worker 的健康注册。 [Prefill 就绪](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_actual_P_readiness.json) [Decode 就绪及实际等待配置](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_actual_D_readiness.json) [Router 就绪](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_actual_router_readiness.json)
+
+恢复实例通过 3 条真实 P/D 短请求。算术返回 91，两次 260 输入和 64 输出的请求均完整结束，前缀缓存命中从 0 增为 256 tokens。Prefill 8 个 rank 均记录到 KV 传输，Decode 8 个 rank 均记录到图回放计数增长。终态重新校验了 10 份原始文件，并记录了结果文件的 SHA-256。 [短请求终态及计数](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_short_functional_verified.json)
+
+恢复实例重新启动原形状的 32K／C16／1024 输出预热。现场确认 AISBench runner 和容器内客户端均在运行，首轮使用原先锁定的 16 条预热输入和相同数据 SHA-256。单阶段上限 12900 秒，首轮终态后进入审计检查点。当前尚无该轮终态和正式冷测或重放数据。 [首轮启动](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_32K_warmup1_actual_launch.json) [客户端在飞证据](../evidence/SG_usage_recovery_G1276/SG_PD_wait_recovery_32K_warmup1_actual_inflight.json)
