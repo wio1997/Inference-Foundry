@@ -75,3 +75,5 @@
 [256K 冷轮执行器工作目录错误与 claim 保全](docs/035-cold-executor-cwd-failure.md)
 
 [32K P侧rank0独立局部时间轴与取整边界](docs/036-p-rank0-observed-timeline.md)
+
+[32K D侧rank0独立局部时间轴与显示轴边界](docs/037-d-rank0-observed-timeline.md)
