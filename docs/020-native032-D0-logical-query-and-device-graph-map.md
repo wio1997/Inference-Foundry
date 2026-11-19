@@ -2,7 +2,7 @@
 
 本节只描述epoch727同一次32768输入/1024输出/C16诊断的完整D0窗口，不把TP8复制计数相加当用户tokens。原始输入、环境与913个scheduler注释见018，完整设备覆盖见019。完整跨框架地图仍待SGLang和其余D rank验收。
 
-[实际connection映射](../evidence/logical_device_map_G867/D0_first_actual_connection_map.json)遍历8081676条TASK，将1812次aclmdlRIExecuteAsync全部关联到实际设备ModelID。906次调用各自完整落在同线程的906个非零scheduler范围内，每个非零范围恰一条；另外906次位于这些范围外。它们的ModelID分布为26:81、27:58、28:404、29:320、30:43，暂不以最近时间强行指定逻辑step。该结果纠正“一个scheduler CPU范围包含target与draft两次图执行”的简单假定；CPU注释只包execute_model，不能涵盖范围外的全部工作。
+[实际connection映射](../evidence/logical_device_map_G867/D0_first_actual_connection_map.json)遍历8081676条TASK，将1812次aclmdlRIExecuteAsync全部关联到实际设备ModelID。906次调用各自完整落在同线程的906个非零scheduler范围内，每个非零范围恰一条；另外906次位于这些范围外。它们的ModelID分布为26:81、27:58、28:404、29:320、30:43，原始连接映射保留了逐次调用顺序，后续配对见下节。该结果纠正“一个scheduler CPU范围包含target与draft两次图执行”的简单假定；CPU注释只包execute_model，不能涵盖范围外的全部工作。
 
 [query与设备形状检查](../evidence/logical_device_map_G867/D0_query_shape_map.json)按CANN connection对应图家族，再核对同家族真实SparseFlashMla输入的首维：
 
@@ -21,7 +21,7 @@
 
 这给出一个有直接证据的图bucket候选，但尚需固定源码解释图family、target/draft边界和捕获几何，并与SGLang匹配实际逻辑工作量。诊断中实际微批次最多6请求，客户端C16不能替代内部batch。后续优化仍需正确性和匹配端到端A/B，当前未部署新bucket，未重发NPU采集，未修改模型计算。
 
-后续[021](021-native032-allrank-coverage-and-DSPARK-source-chain.md)补齐D其余rank原始覆盖复核与实际DSPARK工厂、parallel backbone/Markov、sample_tokens/propose和图round-up源码链。原先“其余D待验收”是历史状态；逐step范围外CPU归属和跨框架地图仍未完成。
+后续[021](021-native032-allrank-coverage-and-DSPARK-source-chain.md)补齐D其余rank原始覆盖复核与实际DSPARK工厂、parallel backbone/Markov、sample_tokens/propose和图round-up源码链。原先“其余D待验收”是历史状态；范围外重放的逐步顺序与容量复核见下文，完整跨框架地图仍待同批 SGLang 采集。
 
 ## 同一 cohort 的 target 调度位置
 
@@ -43,4 +43,6 @@ G804 的 D 侧八 rank 使用同一份标准化 scheduler 序列。906 个非零
 
 G804 D0 有 906 次重放落在非零 target scheduler 标记之外。五类 ModelID 都有直接设备 connection 关联。每次重放各记录 3 个 SparseFlashMla 任务，每个图类的实际 query 首维分别为 5、10、20、25、35。每次重放只计一次输入容量，合计 18,570 个 query lane。范围外图标记下的命名计算任务累计耗时为 2.739 秒，范围内图为 27.494 秒，统计仍为同一物理 rank 的任务耗时之和。 [形状、计数及源摘要](../evidence/profile_capture_G804/derived/D0_outside_target_graph_lanes_G1454.json)
 
-固定 DSPARK 源码的 anchor 路径每请求分配 5 个 draft query。若每个非零 target 步对应一次服务同一活跃请求集合的范围外 draft 重放，则 1、2、4、5、7 请求容量的图可由实际步数唯一分桶。3 请求的 96 步分到容量 4，6 请求的 43 步分到容量 7。该口径下，18,570 个图形状 lane 比原调度的 17,875 个 proposal 槽多 695 个，占 3.89%。逐步 CPU 关联尚未验证，实际执行的掩码 lane 和墙钟收益也未测。 [分桶复算](../code/profile_capture_G804/audit_G804_D0_draft_lanes_g1454.py) [DSPARK 源码链](021-native032-allrank-coverage-and-DSPARK-source-chain.md)
+固定 DSPARK 源码的 anchor 路径每请求分配 5 个 draft query。先用总数约束推导出候选分桶，再用 G860 逐次连接记录独立核对。1,812 次 CANN API 调用按主机时钟严格交替，每个 target 重放后紧接一个已关联设备图的 draft 重放。按同一 scheduler 步的请求数核验，906 个 draft 图均使用能容纳对应 target 批次的最小已观测容量。若匹配后一轮 target，905 对中有 14 对的 draft 容量容不下它。源码中，`sample_tokens` 读取该轮 `execute_model` 保存的 `input_batch` 并传入 `propose`。 [逐次重放核对](../evidence/profile_capture_G804/derived/D0_ordered_target_draft_replays_G1461.json) [核对代码](../code/profile_capture_G804/audit_G804_D0_replay_pairing_g1461.py) [DSPARK 源码链](021-native032-allrank-coverage-and-DSPARK-source-chain.md)
+
+3 请求的 96 步用容量 4，6 请求的 43 步用容量 7，两类合计多出 695 个图形状 lane，占 17,875 个逻辑 proposal 槽的 3.89%。范围外 draft 调用自身缺少 scheduler 步编号，配对依据是调用顺序、实际图容量和源码传参。API 时间差描述主机提交，掩码 lane 的设备执行成本和端到端收益仍待实测。 [原始分桶复算](../code/profile_capture_G804/audit_G804_D0_draft_lanes_g1454.py)

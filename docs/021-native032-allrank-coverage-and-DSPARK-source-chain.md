@@ -16,6 +16,6 @@ epoch727使用用户指定v0.32.0rc1的arm64不可变镜像d5492ecf，vLLM源码
 
 实际DSpark _generate_draft先一次parallel backbone forward，再在其hidden states上顺序Markov sampling，非五次自回归backbone。sample_from_anchor缺省true，num_query_per_req等于num_speculative_steps=5；target另验证root+5，共6 query/request。源文件原始SHA与镜像内实际来源保留在[883](../evidence/native_allrank_G909/G883_native_DSPARK_source_actual_source_receipt.json)、[890](../evidence/native_allrank_G909/G890_native_DSPARK_base_source_actual_source_receipt.json)及provenance。
 
-V2上游[model runner](../code/native_DSPARK_G909/vllm/vllm/v1/worker/gpu/model_runner.py)的execute_model运行target；sample_tokens随后调用speculator.propose，DFlash propose按query_cudagraph_manager选择一次FULL draft图。外部CPU注释仅包execute_model，不包后面的sample_tokens/propose。结合020的直接connection证据，范围内ModelID37–41支持target家族归因，范围外26–30符合该独立draft源码链；后者是源码与图形状支持的归因，尚无逐step直接CPU注释，不能就近配对906条调用。
+V2上游[model runner](../code/native_DSPARK_G909/vllm/vllm/v1/worker/gpu/model_runner.py)的execute_model运行target；sample_tokens随后调用speculator.propose，DFlash propose按query_cudagraph_manager选择一次FULL draft图。外部CPU注释仅包execute_model，不包后面的sample_tokens/propose。结合020的直接connection证据，范围内ModelID37–41支持target家族归因，范围外26–30符合该独立draft源码链；该 draft 路径没有独立的 scheduler 步标记。后续以原始 CANN 调用交替顺序和设备图容量核对了 906 组配对。 [逐次重放核对](../evidence/profile_capture_G804/derived/D0_ordered_target_draft_replays_G1461.json)
 
 [图管理器](../code/native_DSPARK_G909/vllm/vllm/v1/worker/gpu/cudagraph_utils.py)按decode_query_len将capture token数round_up。020中逻辑30 query映射实际36首维与此机制一致；1920个多余shape lane、8.951%比例仍不是已执行FLOPs或墙钟收益。尚未改变bucket或部署任何该方向优化。
