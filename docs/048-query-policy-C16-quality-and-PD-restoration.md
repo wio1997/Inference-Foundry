@@ -196,3 +196,11 @@ G1317 原实例的八个 Prefill rank 都保留了同一次大输入索引评分
 Prefill 逐步归因工具已部署至 CPU 解析环境，并用保留的 G981 rank 0 数据库核对了所需六张 SQLite 表的字段。设备任务以唯一 CANN connection ID 连接到同线程的 CPU 前向区间，计算与通信重叠在设备时钟域内求并集。重复连接、跨线程和多重前向包含分别保留。专用评分标记已在离线调用用例中验证，仅在启用详细注释时包裹原评分调用。当前服务尚未加载标记，普通 `einsum` 留作待确认线索。本轮只完成字段及边界核对，匹配的 Prefill trace 仍待采集。 [已部署回执](../evidence/SG_usage_recovery_G1276/SG_P_step_attribution_actual_CPU_staging.json) [连接与时间区间验证](../evidence/SG_usage_recovery_G1276/SG_P_step_attribution_metadata_fixture.json) [评分标记验证](../evidence/SG_usage_recovery_G1276/SG_P_score_marker_fixture.json) [源码和依赖](../code/SG_P_step_attribution_G1355/source_pins.json)
 
 32K 原首轮继续运行，Prefill rank 0 已记录本轮第 8 次 KV 传输和 278528 个新增输入 token，完整响应及指标仍待终态审计。 [首轮在飞采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_eighth_transfer.json)
+
+### G981 旧 Decode trace 的图启动边界
+
+在物理 910B 的 G981 rank 0 封存库上，4 次 `aclmdlRIExecuteAsync` 各有唯一的同线程前向区间和直接关联的设备 `MODEL_EXECUTE` 任务，前向顺序为 DRAFT、VERIFY、DRAFT、VERIFY。直接按 CANN connection 关联计算和通信时，19083 条设备记录中有 18424 条缺少匹配的 CANN API，659 条的 CANN API 位于这些前向区间之外。图启动的设备锚点单独统计。 [直接计算与通信关联实验](../evidence/SG_usage_recovery_G1276/SG_G981_direct_compute_comm_attribution.json) [实际设备锚点回执](../evidence/SG_usage_recovery_G1276/SG_G981_model_execute_window_audit.json)
+
+4 个设备启动区间为 8.02–8.82 微秒。区间内开始执行的非占位 model ID 依次为 44、46、44、46，每个区间均有 2 条候选任务在结束边界后继续运行。分别统计启动与完整包含后，这份旧 trace 仍只支持图启动和图族候选的复核。完整重放耗时和当前匹配 Prefill 的设备逐步归因仍待采集。工具使用上节的冻结库与步区间解析器，运行时将 `code/SG_profile_readiness_G1218` 放入 `PYTHONPATH`。 [窗口审计工具](../code/SG_P_step_attribution_G1355/audit_SG_graph_launch_windows_g1360.py) [重复连接与跨界校验](../evidence/SG_usage_recovery_G1276/SG_model_execute_window_fixture.json) [固定源码 SHA](../code/SG_P_step_attribution_G1355/source_pins.json)
+
+G1317 原 32K 首轮的最新采样已记录 10 次 KV 传输和 335872 个新增输入 token。客户端原进程仍在运行，完整响应及正式性能指标待终态。 [首轮在飞采样](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_tenth_transfer.json)
