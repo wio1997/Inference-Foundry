@@ -98,6 +98,10 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 
 32K/O1024 的 C1 缓存重放在首个内容之后仍运行约 594.90 秒。即便完全消除该请求的首发阶段，也只节省该次请求总时间的约 0.46%。Decode 优先复核 `_sparse_shared_kv`。旧 G981 设备 trace 的 rank 0 两次 VERIFY 和两次 DRAFT 窗口内，该算子 86 次任务累计 453.74 毫秒，paged FP4 索引累计 20.09 毫秒。当前 kernel 按 `(query row, query head)` 发程序，同一行的索引和 KV loads 不依赖 head id，因此值得验证跨头实际数据复用以及片上容量约束。算子累计值不用于估计可节省的端到端时间。需要同负载全 rank trace 才能判断应先验证哪种改动。 [SSE 时间](../evidence/SG_usage_recovery_G1276/32K_SSE_protocol_verified.json) [历史算子与工作量覆盖](../evidence/SG_usage_recovery_G1276/historical_decode_optimization_selection.json)
 
+用 G981 原始 rank 0 数据库重算设备区间并集，86 次 `_sparse_shared_kv` 共占 453.74 毫秒。同一设备时钟下，这些区间未与其他已归类的计算或通信任务重叠，占该短采样中计算和通信区间并集 618.76 毫秒的 73.3%。原始表支持算子和任务区间核对。内存流量和当前 C16 的占比需分别实采。 [原始库指纹与区间统计](../evidence/SG_usage_recovery_G1276/historical_decode_G981_sparse_interval_union.json)
+
+已准备独立候选内核，每个程序加载一次 KV tile，为两个相邻的 query heads 分别执行 FP32 在线 softmax。C1/C2 物理地址、候选顺序、BF16 布局、掩码和各头 sink 保持与 G1178 一致。以 8192 行、每行 640 个有效候选、每 rank 8 个头为例，源码中有效 KV 元素的逻辑读取量由 40 GiB 降到 20 GiB。硬件实际访存仍受编译器、缓存和片上空间影响。组件探针对同一张 910B、同一输入和固定原内核做 ABBA/BAAB 计时，并覆盖无压缩、C1/C2、高地址 bank、全掩码与三次变更输入图重放。当前完成源码核对，Ascend 编译、图重放和端到端收益等待实测。 [候选源码](../code/SFA_two_heads_G1300/lowratio_sparse_attention_two_heads.py) [组件探针](../code/SFA_two_heads_G1300/probe.py) [源码指纹和逻辑读取公式](../code/SFA_two_heads_G1300/source_pins.json)
+
 ## 32K C16 首轮独立预热
 
 按 64K 首次检索观测到的 Prefill 分块间隔，原 Router 的 3600 秒上限存在截断同形状 C16 预热的风险。在两端队列排空后，将 Router 请求上限调到 14400 秒，复用原 P/D 进程、路由并发限制和请求策略。新 Router 上的三个实际短请求通过。八个 P rank 的 KV 传输计数各增加 3，八个 D rank 的图回放计数各增加 38，两个 260/64 SSE 请求的响应缓存计数由 0 增至 256。 [原 Router 配置](../evidence/SG_usage_recovery_G1276/G1178_router_previous_deadline.json) [切换回执](../evidence/SG_usage_recovery_G1276/G1178_router_deadline_actual_launch.json) [切换后短请求复核](../evidence/SG_usage_recovery_G1276/G1178_reconfigured_router_runtime_verified.json)
@@ -105,3 +109,5 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 32K/C16/1024 已通过现场预检并启动第一轮独立预热，输入和用量审计逻辑沿用已校验版本。根据当前实测耗时放宽单阶段墙钟上限到 12900 秒，首轮后停在检查点，随后结合实际时长与资源有效期安排剩余四轮。现场已核对同一 runner 和 AISBench 进程，以及首轮 16 条数据的命令与 SHA。五轮预热、编译成熟度检查、计分首轮及同请求重放仍按原条件执行。 [首轮启动与脚本指纹](../evidence/SG_usage_recovery_G1276/SG_first_32K_AISBench_warmup_launched.json) [首轮实际运行](../evidence/SG_usage_recovery_G1276/SG_first_32K_AISBench_warmup_actual_inflight.json)
 
 首轮预热的前两次现场采样中，Prefill 均有 1 条运行、15 条等待，Decode 尚未运行请求。当时 Router 的两端 worker 负载均为 0，因此队列排空须直接查 P/D 的角色指标。第三次采样时，Prefill 已记录 1 次新增 KV 传输，仍有 1 条运行、14 条等待，Decode 同时运行首条请求且转移队列里有 15 条。第一次到第三次采样相隔约 502 秒，Prefill rank 0 输入计数增加 32768，设备缓存计数无增量。该时间窗包含分块调度与 P/D 状态迁移，首轮端到端指标等待 16 条响应与 AISBench 原始记录。 [首条传输前](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_before_first_transfer.json) [Prefill 处理中](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_processing_first_prefill.json) [Decode 开始](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_first_decode.json)
+
+约 26 分钟时，同一 AISBench 作业客户端的 `finish_count` 已到 2，`total_count` 为 16。原始响应、成功数和计时仍待首轮终态审计。现有匹配 profile 草案给同形状负载的上限为 900 秒，采集前需依据完整首轮的实际耗时重定请求超时与导出预算，保留原 16 条输入和输出长度。 [客户端现场计数](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_AISBench_progress_2_of_16.json) [原匹配采集计划](../evidence/SG_bench_inputs_G1198/SG_matched_profile_preparation_g1196.json)
