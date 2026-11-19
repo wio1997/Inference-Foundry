@@ -127,3 +127,5 @@
 [P侧选定事件的整个观测范围](docs/061-p-selected-event-full-span.md)
 
 [阶段直方图慢桶事件和的条件边界](docs/062-stage-histogram-event-sum-bounds.md)
+
+[SG候选前缀锁与准入条件：合成检验](docs/063-synthetic-prefix-admission.md)
