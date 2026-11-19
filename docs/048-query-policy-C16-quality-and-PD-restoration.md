@@ -229,9 +229,9 @@ G1317 原 32K 首轮的最新采样已记录 10 次 KV 传输和 335872 个新�
 
 ### 首轮逐请求时间轴
 
-从封存的 AISBench SQLite 读取 16 条请求的原始时间点，独立复算观测峰值并发、总耗时以及平均 TTFT、TPOT、E2EL，与落盘指标一致。请求起始集中在 120.06 毫秒内，相邻首 token 到达间隔中位数为 480.21 秒。首 token 前的时间占逐请求 E2EL 总和的 97.56%，最慢一条为 96.45%。这段时间覆盖完整的客户端到首 token 路径，包含排队、Prefill、KV 传输和首步生成。预热期的设备阶段占比仍待 profile。复算工具使用已归档的 NumPy SQLite 解码器，实际客户端的三份计时源码 SHA 也与该解码器的既有验证版本一致。 [逐请求时间轴与源库 SHA](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_raw_SQLite_latency_timeline.json) [复算脚本和依赖](../code/SG_W1_latency_timeline_G1375/source_pins.json)
+从封存的 AISBench SQLite 读取 16 条请求的原始时间点，独立复算观测峰值并发、总耗时以及平均 TTFT、TPOT、E2EL，与落盘指标一致。请求起始集中在 120.06 毫秒内，相邻请求的首次 SSE data 到达间隔中位数为 480.21 秒。首次 SSE data 前的时间占逐请求 E2EL 总和的 97.56%，最慢一条为 96.45%。固定客户端先记录响应事件，再解析内容。该口径覆盖客户端到首次响应事件的完整路径，设备阶段占比仍待 profile。复算工具使用已归档的 NumPy SQLite 解码器，实际客户端的三份计时源码 SHA 也与该解码器的既有验证版本一致。 [逐请求时间轴与源库 SHA](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_raw_SQLite_latency_timeline.json) [复算脚本和依赖](../code/SG_W1_latency_timeline_G1375/source_pins.json)
 
-Prefill rank 0 在该轮记录 64 个 8192-token 分块，累计覆盖全部 524288 个输入 token，缓存命中为零。63 个报告间隔中有 62 个在 118–121 秒内，另一个为 1 秒。报告间隔中位数的四倍与客户端首 token 阶梯一致。固定源码确认日志中的瞬时吞吐以两次报告间隔为分母，保留末尾短间隔供审查。两个时钟域仅比较间隔规律，具体请求和设备任务的对应关系仍需匹配 trace。 [完整 Prefill 日志计数及源码定位](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_P_full_chunk_report_cadence.json)
+Prefill rank 0 在该轮记录 64 个 8192-token 分块，累计覆盖全部 524288 个输入 token，缓存命中为零。63 个报告间隔中有 62 个在 118–121 秒内，另一个为 1 秒。报告间隔中位数的四倍与客户端首次 SSE data 的阶梯一致。固定源码确认日志中的瞬时吞吐以两次报告间隔为分母，保留末尾短间隔供审查。两个时钟域仅比较间隔规律，具体请求和设备任务的对应关系仍需匹配 trace。 [完整 Prefill 日志计数及源码定位](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_W1_P_full_chunk_report_cadence.json)
 
 ### 当前运行版本源码归档
 
