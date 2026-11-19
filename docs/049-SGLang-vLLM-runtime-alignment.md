@@ -101,3 +101,5 @@ G1317 的 GSM8K 复判工具已在 2204 校验，绑定 32K 正式审计、原 C
 长档切换前的只读检查在 P/D 两端分别校验了三档各 58 个部署文件。两端八张卡的登记与内核独占锁均对应 32K 实例，三档候选都拒绝继续启动。离线演练覆盖登记缺失、登记先于锁释放、正常释放和主机不符。后续实际认领仍由对应模型控制器在持锁后执行。 [检查入口](../code/SG_wide_PD_window_G1348/check_SG_wide_role_resources_g1442.py) [双端实测和离线演练](../evidence/SG_usage_recovery_G1276/SG_wide_role_resources_G1442.json)
 
 64K 的角色启动入口已在 P/D 两端安装。执行启动前会核对旧控制器退出、原容器停止、八张卡的登记与进程清单，以及本轮独占工作负载锁。Decode 还需要本轮 Prefill 的已验证启动回执及 SHA256。离线 CPU 演练验证了重复启动拦截和回执时效；两端真机预检均确认 32K 仍占用资源，64K 未启动。 [角色启动入口](../code/SG_wide_PD_window_G1348/start_SG_wide_role_g1443.py) [双端预检和离线演练](../evidence/SG_usage_recovery_G1276/SG_wide_role_start_G1443.json)
+
+32K 切换前的证据审查已接到实际采集队列，等待原采集进程退出。它核对 32K 冷热原始审计、同一轮 GSM8K 正式评分、冻结的 16 条采集输入和 P/D 两端各八个 rank 的原始收尾文件。离线演练确认缺失 raw rank 或质量终态绑定错误会阻止通过。解析后的事件覆盖需继续验收。 [证据核对](../code/SG_long_profile_G1305/review_SG_32K_exit_evidence_g1444.py) [实际监听和离线演练](../evidence/SG_usage_recovery_G1276/SG_32K_profile_intake_observer_G1444.json)
