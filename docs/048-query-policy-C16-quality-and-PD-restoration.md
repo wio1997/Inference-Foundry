@@ -123,3 +123,9 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 正式 runner 已单独落盘。冷测与重放各有配置明确的时限，由同一个持有客户端锁的进程按顺序执行。启动前以实际 P/D 服务、CPU 客户端和工作负载锁的最早到期时间校验两个阶段的完整预算，重放前再检查剩余资源时间。五轮预热仍须在原截止时间内完成并重新审计。原首次提交登记、32 条冷测、同一份 32 条重放以及缓存增量审计保持一致。离线用例验证了已登记输入、缺失预热证据和预算不足均无法进入计分。正式负载尚未启动，需用预热实测耗时选择时限。 [runner 和启动模板](../code/SG_formal_timing_G1307/source_pins.json) [服务端安装回执](../evidence/SG_usage_recovery_G1276/formal_timed_runner_staged.json) [时限与首次提交校验](../evidence/SG_usage_recovery_G1276/independent_formal_deadline_fixture.json)
 
 首轮预热仍在运行。最新 Prefill rank 0 计数较首个现场样本新增 4 次 KV 传输。此时 Prefill 有 11 条等待，Decode 有 1 条在运行、12 条在传输队列，客户端成功数由终态原始响应审计。 [现场队列与计数](../evidence/SG_usage_recovery_G1276/SG_32K_warmup1_four_KV_transfers.json)
+
+## 资源租期与 CPU 客户端续用
+
+首轮 32K 的 rank 0 Prefill 输入计数在约 2493 秒内增加 172032 token，期间新增 5 次 KV 传输。若该采样速度持续，32K 的五轮预热加首轮 32 条冷测，仅 Prefill 输入就约需 14 小时 46 分钟，比现有 CPU 客户端的有效期长约 102 分钟。该推算未计入最后的 Decode、重放与阶段间隔。把同一速度用于 64K、128K、256K 只得到资源排期情形，各档仍须独立测量。 [实测窗口、公式与各档情形](../evidence/SG_usage_recovery_G1276/SG_current_32K_P_rate_and_walltime_scenarios.json) [现场 CPU 租期](../evidence/SG_usage_recovery_G1276/SG_actual_CPU_original_deadline.json)
+
+已部署同容器续用工具。阶段结束且请求队列排空后，工具使用原 CPU 锁交接持有者，并核对同一个容器 ID、固定镜像、CPU 配额、配置和挂载指纹。预热、正式计分和匹配 profile 的后续预检读取当前实际租期。现场三次只读检查得到同一配置指纹，离线用例覆盖锁冲突、变更挂载、容器启动记录不匹配和交接清理。当前首轮预热继续使用原客户端，现场交接尚未执行。 [源码与启动配置](../code/SG_cpu_lease_continuity_G1311/source_pins.json) [现场检查](../evidence/SG_usage_recovery_G1276/SG_CPU_lease_staged_current_proof.json) [离线用例](../evidence/SG_usage_recovery_G1276/SG_CPU_lease_continuation_fixture.json)
