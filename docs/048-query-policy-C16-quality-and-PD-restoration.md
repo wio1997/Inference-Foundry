@@ -85,3 +85,13 @@ P/D 复核空闲后，在同一实例对同一诊断输入启动独立复测。�
 复测已收到完整 579 个 SSE 帧及 `[DONE]`。末尾用量确认 32768 输入、1024 输出，同输入重放命中 32640 token，首个非空内容在 2.746 秒，完整流 597.647 秒。5 项原始用量证据逐项校验通过，已形成正式 runner 可读取的用量口径。该请求为单并发重放，正式 C16 首轮尚待预热和测量。 [复测终态及用量校验](../evidence/SG_usage_recovery_G1276/32K_SSE_protocol_verified.json)
 
 复测退出并确认双方空闲后，已启动同一套 32K、64K、128K、256K 长上下文检索输入。第一次实际观察已在运行 32K fresh，结果待验收。 [长上下文启动](../evidence/SG_usage_recovery_G1276/long_retrieval_actual_launch.json) [首个请求在飞](../evidence/SG_usage_recovery_G1276/long_retrieval_first_request_live.json)
+
+32K 首次请求和逐字节相同的重放均精确找回三项指定值，分别返回 32768 输入、29 输出及 `stop`。Prefill rank 0 的设备缓存计数增量为 0 和 32640，与两次 PD 响应的 `cached_tokens` 一致。主机和存储计数均无增量，Decode 本地命中未独立计量。该 C1 检索快照已进入 64K 首次请求，后续档位仍待完成。 [两次实际用量及请求与响应 SHA](../evidence/SG_usage_recovery_G1276/long_retrieval_32K_actual.json)
+
+## Prefill 与 Decode 优化候选
+
+32K 首次检索在同一 Prefill 主机记录到两个 8192-token 分块调度事件，间隔约 120 秒，与前一轮独立 32K 探针的量级一致。优先检查两次调度之间的设备任务、CPU 调度与传输等待。当前日志只支持同主机事件间隔，仍需设备 trace 区分各项时间。 [本轮分块记录](../evidence/SG_usage_recovery_G1276/long_retrieval_32K_P_stage_sample.json) [前一轮分块记录](../evidence/SG_usage_recovery_G1276/first_probe_P_scheduler_records.json)
+
+64K 首次请求执行期间，Prefill 三次采样均显示 1 条运行中请求、bootstrap 和传输队列为 0，八个 rank 的传输计数无增量。八卡 AICore 读数在三次采样中依次分布为 99–100%、25–26%、99–100%。设备在这些时点确有活动，仍需 trace 确定任务类型、区间长度以及对分块耗时的贡献。 [三次现场采样](../evidence/SG_usage_recovery_G1276/long_retrieval_64K_P_resource_samples.json)
+
+32K/O1024 的 C1 缓存重放在首个内容之后仍运行约 594.90 秒。即便完全消除该请求的首发阶段，也只节省该次请求总时间的约 0.46%。Decode 优先复核 `_sparse_shared_kv`。旧 G981 设备 trace 的 rank 0 两次 VERIFY 和两次 DRAFT 窗口内，该算子 86 次任务累计 453.74 毫秒，paged FP4 索引累计 20.09 毫秒。当前 kernel 按 `(query row, query head)` 发程序，同一行的索引和 KV loads 不依赖 head id，因此值得验证跨头实际数据复用以及片上容量约束。算子累计值不用于估计可节省的端到端时间。需要同负载全 rank trace 才能判断应先验证哪种改动。 [SSE 时间](../evidence/SG_usage_recovery_G1276/32K_SSE_protocol_verified.json) [历史算子与工作量覆盖](../evidence/SG_usage_recovery_G1276/historical_decode_optimization_selection.json)
