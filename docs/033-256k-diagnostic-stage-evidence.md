@@ -17,12 +17,12 @@
 | D rank0 指标 | 第一窗口 | 第二窗口 | 含义与边界 |
 |---|---:|---:|---|
 | `decode_bootstrap` | 4 个；总和 4410.119252 秒；均值 1102.529813 秒 | 8 个；总和 9386.526219 秒；均值 1173.315777 秒 | 阶段直方图的局部增量，不是请求配对或墙钟总和。 |
-| `kv_transfer_bootstrap_ms` | 4 个；总和 72.240471 ms；均值 18.060118 ms | 8 个；总和 140.404890 ms；均值 17.550611 ms | 握手子段的局部直方图增量。 |
+| `kv_transfer_bootstrap_ms` | 4 个；总和 72.240471 ms；均值 18.060118 ms | 8 个；总和 140.404890 ms；均值 17.550611 ms | D prealloc入口到首次poll观察`WaitingForInput`的候选子段；不能当作已证网络握手或纯wire时间，见[语义修正](057-kv-resource-and-early-policy.md)。 |
 | **条件性整体减子段** | **1102.511753 秒/样本** | **1173.298227 秒/样本** | 仅在下述同 setter、同样本和采样条件成立时，作为剩余区间均值；不等于纯网络。 |
 
 既有源码只读核验记录指出，两指标由同一 setter 更新：整体为 `decode_transfer_queue_entry_time − decode_prealloc_queue_entry_time`，子段为 `bootstrap_done_time − decode_prealloc_queue_entry_time`。**仅当没有进程/标签重置、抓取没有跨过该 setter 两个指标的更新、且两组增量确实属于相同样本**，才可用 `(整体增量秒 − 子段增量毫秒/1000) / 样本数` 得到上表条件差值。两个计数相等本身**不能证明样本身份相同**；也没有请求 ID 关联，不能断言它们全部来自当前诊断。
 
-剩余区间可包含握手完成后到 transfer queue 的等待、准入、分配等，不是单个算子耗时，也不是纯网络 wire time。P 端各指标的更新时点不同，不能因为第一窗口都有 4 个样本就直接相减；第二窗口甚至出现 P 阶段 8 个而握手指标 9 个样本。不能跨 P/D、跨 rank、跨重叠窗口求和或当作请求端到端墙钟。
+剩余区间可包含首次观察接收侧 `WaitingForInput` 状态后到 transfer queue 的等待、准入、分配等，不是单个算子耗时，也不是纯网络 wire time；此前称该状态为“握手完成”证据不足，详见[语义修正](057-kv-resource-and-early-policy.md)。P 端各指标的更新时点不同，不能因为第一窗口都有 4 个样本就直接相减；第二窗口甚至出现 P 阶段 8 个而 bootstrap 子指标 9 个样本。不能跨 P/D、跨 rank、跨重叠窗口求和或当作请求端到端墙钟。
 
 ## 3. KV 资源准入：有条件的候选，不是根因
 
@@ -46,4 +46,4 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_reconstruct_033.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate_archive.py
 ```
 
-[复算脚本](../scripts/reconstruct_033.py)只从仓内六份脱敏数值重建两个窗口，拒绝非 rank0、缺失指标、计数回退、异常数值或不匹配角色；计数不等时不输出条件差值，并始终标注样本身份未证实。[测试](../scripts/test_reconstruct_033.py)覆盖计数不等、重置、非零和无计数、非有限值和额外字段；这只复现归档的聚合算术，不复核未入仓原始请求、SSE、设备 trace 或源码行为。
+[复算脚本](../scripts/reconstruct_033.py)只从仓内六份脱敏数值重建两个窗口，历史兼容字段名含 `handshake` 但指的是 `kv_transfer_bootstrap_ms`，不证明网络握手；拒绝非 rank0、缺失指标、计数回退、异常数值或不匹配角色；计数不等时不输出条件差值，并始终标注样本身份未证实。[测试](../scripts/test_reconstruct_033.py)覆盖计数不等、重置、非零和无计数、非有限值和额外字段；这只复现归档的聚合算术，不复核未入仓原始请求、SSE、设备 trace 或源码行为。

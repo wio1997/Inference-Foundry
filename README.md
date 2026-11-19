@@ -115,3 +115,5 @@
 [P/D同记录签名的分位方向及反例](docs/055-pd-recorded-signature-directions.md)
 
 [正式32K/64K阶段快照与秒级候选](docs/056-formal-stage-snapshots.md)
+
+[D侧KV资源端点、条件容量及early语义修正](docs/057-kv-resource-and-early-policy.md)

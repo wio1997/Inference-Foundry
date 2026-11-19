@@ -22,6 +22,7 @@ class ReconstructionTests(unittest.TestCase):
         self.assertEqual((b['whole_count'], b['handshake_count']), (8, 8))
         self.assertAlmostEqual(a['conditional_mean_seconds'], 1102.5117529698182)
         self.assertAlmostEqual(b['conditional_mean_seconds'], 1173.2982267262414)
+        self.assertIn('do not prove remote network handshake', result['legacy_field_note'])
         self.assertFalse(a['same_sample_identity_verified'])
         self.assertFalse(b['same_sample_identity_verified'])
         self.assertEqual(result, subject.reconstruct(self.doc))

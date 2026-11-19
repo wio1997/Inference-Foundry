@@ -64,6 +64,7 @@ def reconstruct(doc):
     if set(doc['snapshots']) != {'p', 'd'}:
         raise ValueError('expected exactly P and D')
     output = {'scope': 'rank0 histogram deltas; windows overlap; no request identity, causality or cross-role sums',
+              'legacy_field_note': 'Fields containing handshake retain old schema names but refer to kv_transfer_bootstrap_ms; they do not prove remote network handshake completion or wire time.',
               'windows': {}}
     for label, index in (('partial', 1), ('to_completion', 2)):
         result = {}
