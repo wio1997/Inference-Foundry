@@ -134,6 +134,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 32K 冷测和同输入重放可分别复算。单阶段工具绑定原运行的封存回执、归档 SHA256、五轮预热、冻结输入、C16/O1024 服务端用量、原始 AISBench 文件和计时库，再与 vLLM 同阶段的已验收基线比较。重放另外核对原冷测的输入和配置摘要。离线校验已接入实际 vLLM 基线，并验证单独冷测可以验收，以及缺少回放、配置变化、原始文件变化、输入摘要错配、用量缺失和吞吐不一致会被拒绝。SGLang 的实际阶段结果等待原进程封存。 [单阶段复算](../code/SG_formal_comparison_G1452/compare_original_32K_phase_g1494.py)
 
+原 32K 首次冷测已结束，32 条原始请求逐条匹配冻结输入和服务端用量，SQLite 计时与 AISBench 汇总已独立复算。原运行在 Decode 编译门槛停止，冷测试次标为无效，同输入重放未提交。Decode 持久清单从 437 增到 442 个文件，变化为 `alloc_extend_kernel` 的一组五个新缓存产物，写入落在冷测开始后约 14 分钟。新组的 TTIR 和设备二进制都与三个预先存在的缓存组逐字节相同，缓存键变化的原因仍需核对。Prefill 在重放前的 211 个持久文件与第五轮预热一致；冷测原始端点快照显示 P rank 0 input 增加 1,048,576，设备、主机及存储命中均无增量。已封存失败试次和原始请求，正式对照矩阵仍等待有效试次。 [失败判据与原始证据索引](../evidence/SG_usage_recovery_G1276/SG_G1317_original_32K_cold_rejected_D_compile_G1495.json)
+
 四档正式对照表已用 vLLM G630 的八份实际冷热结果验证。表生成器检查冻结输入摘要、五轮独立预热、32 条 C16/O1024 正式请求、服务端用量和吞吐计量。重放同时列出 P/D 本地及连接器命中，只有 Prefill 的 SGLang 计数器无法证明 Decode 本地命中。当前无 SGLang 正式终态结果，比较栏为空。 [表生成器](../code/SG_formal_comparison_G1452/build_formal_PD_matrix_g1452.py) [实际 vLLM 基线接入及演练](../evidence/SG_usage_recovery_G1276/SG_formal_matrix_native_reference_admission_G1452.json) [原始 vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/a8c87daf33de03ed794be365cd742609fc3a48bb/docs/016-native032-four-tier-first-matrix.md)
 
 第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
