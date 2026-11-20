@@ -1,0 +1,38 @@
+--- a/sglang/kernels/ops/attention/dsv4/sparse_prefill_kernels.py
++++ b/sglang/kernels/ops/attention/dsv4/sparse_prefill_kernels.py
+@@ -71,6 +71,7 @@
+     PADDED_WIDTH: tl.constexpr,
+     BLOCK_T: tl.constexpr,
+     SEARCH_STEPS: tl.constexpr,
++    READ_TOPK: tl.constexpr,
+ ):
+     # BLOCK_T consecutive tokens per program, so the grid scales with tokens, not requests.
+     token = tl.program_id(0) * BLOCK_T + tl.arange(0, BLOCK_T)
+@@ -117,9 +118,16 @@
+     # [top-k (-1 holes kept) | window | -1 up to WIDTH].
+     offset = tl.arange(0, PADDED_WIDTH)[None, :]
+     in_topk = offset < topk_len[:, None]
+-    topk_vals = tl.load(
+-        topk_indices_ptr + topk_row + offset, mask=valid[:, None] & in_topk, other=-1
+-    )
++    if READ_TOPK:
++        topk_vals = tl.load(
++            topk_indices_ptr + topk_row + offset,
++            mask=valid[:, None] & in_topk,
++            other=-1,
++        )
++    else:
++        # Ascend can lower a masked vector load to a copy before applying
++        # the column mask. The C0 caller supplies a one-column dummy tensor.
++        topk_vals = tl.full((BLOCK_T, PADDED_WIDTH), -1, tl.int32)
+     # Workspace SWA index: swa_base[r] + (gather_offset_in_buffer).
+     # For positions [pos - swa_len + 1, pos], the buffer offsets are
+     # [pos - swa_len + 1 - gather_start, pos - gather_start].
+@@ -253,6 +261,7 @@
+         PADDED_WIDTH=triton.next_power_of_2(combined_topk),
+         BLOCK_T=block_t,
+         SEARCH_STEPS=max(num_reqs, 1).bit_length(),
++        READ_TOPK=topk > 0,
+         num_warps=2,
+     )
+     return combined_indices, combined_lens
