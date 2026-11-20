@@ -146,6 +146,10 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 新的采集入口已接上两端校时和原始 trace 核验。两端各 12 次往返的时钟预检通过。观察器绑定同一实际驱动，在启动前、运行期间和退出后取样。关闭后，验收器核对冻结输入、实际起停回执、已复判的 GSM8K 和 P/D 各八个 rank 的原始文件。离线用例拒绝错配的质量、worker 终态和采集身份，缺卡时保持未验收。实际 trace 和解析后的事件覆盖仍待采集。 [两个实际观察器的启动证据](../evidence/SG_usage_recovery_G1276/SG_G1317_independent_profile_intake_and_clock_armed_G1499.json) [原始 trace 与质量绑定](../code/SG_long_profile_G1305/review_independent_profile_closure_g1499.py)
 
+G1317 的独立 GSM8K 已终止并逐题复判。1,319 条请求中 708 条传输失败，其中 25 条为 Decode KV 传输相关的 HTTP 500，随后 683 条为 Router 找不到 Prefill worker 的 HTTP 503。双方均返回有效响应的 611 道题中，SGLang 答对 586 道，vLLM 答对 589 道。SGLang 全量质量验收未通过，vLLM 的全量结果为 1,270／1,319。后续匹配采集因质量门槛退出，未提交采集流量。 [逐题复判、终态与原始证据校验](../evidence/SG_usage_recovery_G1276/SG_G1317_full_GSM8K_transport_failure_prefill_device_G1501.json)
+
+Prefill 的四份 CANN 异常转储均指向 `_combine_topk_swa_indices_kernel`。设备报告向量核错误 `0x800000`，随后流同步返回错误并触发 HCCL watchdog。日志列出 GM 地址无效和跨设备访存超时两种可能，触发输入与越界位置仍待验证。现场复核时 Prefill 已释放八张卡，Router 已停止响应，Decode 容器仍运行且 `/ready` 返回 200。 [设备日志、任务号及服务现场回执](../evidence/SG_usage_recovery_G1276/SG_G1317_full_GSM8K_transport_failure_prefill_device_G1501.json)
+
 四档正式对照表已用 vLLM G630 的八份实际冷热结果验证。表生成器检查冻结输入摘要、五轮独立预热、32 条 C16/O1024 正式请求、服务端用量和吞吐计量。重放同时列出 P/D 本地及连接器命中，只有 Prefill 的 SGLang 计数器无法证明 Decode 本地命中。当前无 SGLang 正式终态结果，比较栏为空。 [表生成器](../code/SG_formal_comparison_G1452/build_formal_PD_matrix_g1452.py) [实际 vLLM 基线接入及演练](../evidence/SG_usage_recovery_G1276/SG_formal_matrix_native_reference_admission_G1452.json) [原始 vLLM 四档结果](https://github.com/wio1997/Inference-Foundry/blob/a8c87daf33de03ed794be365cd742609fc3a48bb/docs/016-native032-four-tier-first-matrix.md)
 
 第四轮 32K 独立预热的原 Prefill 实例已记录 51 个 8192-token 分块，相邻 50 次报告间隔均在 118–121 秒，中位数为 120 秒，与第一轮完整记录一致。这段日志的 Prefill 本地命中为零。当次两端设备快照的 AI Core 均为 99–100%，只覆盖采样时刻。第一轮实际全批耗时 7989.66 秒，最后一个首 token 在 7706.06 秒到达。若固定每条请求的首 token 时刻，只消除首 token 后耗时，整批最长可缩短 283.60 秒，即 3.55%。优先核对首 token 前的 Prefill、通信和交接。报告间隔尚无法分配到具体算子。 [分块记录、设备快照和收益上限](../evidence/SG_usage_recovery_G1276/SG_G1317_W4_prefill_cadence_and_W1_post_first_ceiling_G1432.json)
