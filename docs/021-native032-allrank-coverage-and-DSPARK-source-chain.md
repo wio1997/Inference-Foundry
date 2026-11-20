@@ -23,3 +23,7 @@ epoch727使用用户指定v0.32.0rc1的arm64不可变镜像d5492ecf，vLLM源码
 V2上游[model runner](../code/native_DSPARK_G909/vllm/vllm/v1/worker/gpu/model_runner.py)的execute_model运行target；sample_tokens随后调用speculator.propose，DFlash propose按query_cudagraph_manager选择一次FULL draft图。外部CPU注释仅包execute_model，不包后面的sample_tokens/propose。结合020的直接connection证据，范围内ModelID37–41支持target家族归因，范围外26–30符合该独立draft源码链；该 draft 路径没有独立的 scheduler 步标记。后续以原始 CANN 调用交替顺序和设备图容量核对了 906 组配对。 [逐次重放核对](../evidence/profile_capture_G804/derived/D0_ordered_target_draft_replays_G1461.json)
 
 [图管理器](../code/native_DSPARK_G909/vllm/vllm/v1/worker/gpu/cudagraph_utils.py)按decode_query_len将capture token数round_up。020中逻辑30 query映射实际36首维与此机制一致；1920个多余shape lane、8.951%比例仍不是已执行FLOPs或墙钟收益。尚未改变bucket或部署任何该方向优化。
+
+## Decode rank 0 的图内计算与 HCCL
+
+同一轮 G804 的 Decode rank 0 以已核对的 906 对 target 和 draft replay 区分图 ID。各类图的计算区间并集分别为 26.322 秒和 2.657 秒，有明确类型和正字节数的 HCCL 搬运区间分别为 0.228 秒和 0.037 秒。此类搬运与计算在 rank 0 的全程交集为 0 ns。图内通知等待区间分别为 1.373 秒和 0.260 秒。复核完整数据库发现 3,273,124 条通信元数据的类型为 `N/A` 且字节数为 -1，单列在证据中。这里的搬运统计覆盖显式 `Memcpy` 和 `Reduce_Inline`。结论只覆盖这张卡；其余 rank、跨节点 KV 和端到端影响仍需独立证据。 [实际区间与覆盖校验](../evidence/profile_capture_G804/derived/D0_target_draft_compute_HCCL_coverage_G1491.json) [复算工具](../code/profile_capture_G804/audit_D0_graph_HCCL_coverage_g1491.py)
