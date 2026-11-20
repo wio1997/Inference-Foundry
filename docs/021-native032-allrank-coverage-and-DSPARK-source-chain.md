@@ -10,6 +10,10 @@ epoch727使用用户指定v0.32.0rc1的arm64不可变镜像d5492ecf，vLLM源码
 
 结合此前P八rank的实际219768条compute、198条CPU注释和524272 scheduled query，原生诊断的P8+D8原始设备与CPU覆盖复核完成。它不是两框架逻辑工作归一化地图完成，更不代表优化收益；SGLang仍须最终相同cohort的P/D采集与有效工作匹配。
 
+## Prefill 计算与 HCCL 设备时间
+
+复核同一轮 G804 的八卡只读数据库，每卡计算区间并集为 28.121–28.993 秒，HCCL 的正字节 `Memcpy` 和 `Reduce_Inline` 区间并集为 3.478–3.490 秒。八张卡上，这两类区间的交集均为 0 ns。`Notify_Wait` 单列，每卡区间并集为 2.400–3.245 秒。每卡全任务并集和任务数与封存的覆盖回执一致。这些读数使用每张卡内部的时间轴，关键路径及 P/D 跨节点 KV 传输需要独立时序。 [八卡证据](../evidence/profile_capture_G804/derived/P8_compute_HCCL_coverage_G1490.json) [复算工具](../code/profile_capture_G804/audit_P_device_overlap_g1490.py)
+
 ## 实际DSPARK源码链，区分target与draft
 
 [Ascend V2工厂](../code/native_DSPARK_G909/vllm-ascend/vllm_ascend/worker/v2/spec_decode/__init__.py)在use_dspark分支构造AscendDSparkSpeculator。[实际Ascend类](../code/native_DSPARK_G909/vllm-ascend/vllm_ascend/worker/v2/spec_decode/dspark/speculator.py)继承[上游DSparkSpeculator](../code/native_DSPARK_G909/vllm/vllm/v1/worker/gpu/spec_decode/dspark/speculator.py)，继承DFlash propose路径。这里没有使用target_dependent_ar的多步自回归实现来解释DSPARK。
