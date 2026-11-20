@@ -118,6 +118,8 @@ C2 短用例入口已在 Prefill 节点安装。实际启动需要同时取得 P
 
 以冻结数据中的请求编号与完整输入 SHA256 配对，已完成的 14 条 SGLang 临时记录在 vLLM 原始冷测中均属首批 C16。两端客户端从提交到首条 SSE 的平均时间分别为 3840.92 秒和 17.73 秒，首条到末条 SSE 分别为 92.14 秒和 10.79 秒。该子集平均端到端差距的 97.9% 在首条 SSE 之前。若保持首条 SSE 的时间不变，即使消除 SGLang 此后的全部时间，也只能缩小该子集平均差距的 2.36%。后续 trace 优先拆分首条输出前的请求准入、Prefill 算子、KV 交接和 Decode 工作，整轮成绩仍待验收。 [同输入客户端时序复算](../evidence/SG_usage_recovery_G1276/SG_G1317_32K_partial_first_SSE_gap_vs_native_G1479.json) [复算代码](../code/SG_first_token_comparison/compare_first_wave_g1479.py) [vLLM 首轮 32K 正式审计](https://github.com/wio1997/Inference-Foundry/blob/5d5094d6c65990a23cad2abcafeb19876b8d4845/evidence/native32_first_G691/audit_results.json)
 
+原冷测的 24 条完整临时结果现已覆盖首批 C16 和后续 8 条已返回请求。先前封存的 14 组客户端时间戳逐字节一致。首批两端均在约 0.127 秒内提交同一组输入，比较所得平均 TTFT 为 4321.13 秒和 19.93 秒，首条 SSE 前占平均端到端时差的 98.2%。后续 8 条各自从实际提交起计，平均 TTFT 为 7588.09 秒和 24.79 秒，对应比例为 99.1%。后续请求等待客户端并发名额的时间单列，未计入 TTFT。在两个子集中，SGLang 相邻首条 SSE 的中位间隔均约 480.22 秒。该读数覆盖同输入客户端时序，剩余八条及整轮统计待原始运行审计。 [分组计时及输入核对](../evidence/SG_usage_recovery_G1276/SG_G1317_partial_32K_first_C16_and_later_admissions_G1489.json) [复算工具](../code/SG_first_token_comparison/compare_c16_cohorts_g1489.py)
+
 原冷测随后写出 11 条符合冻结输入和用量的完整临时记录。与先前同进程的 9 条快照比较，临时 JSONL 的旧前缀逐字节一致，9 组旧时间戳的 SQLite 数组也逐条一致。进度文件在本次读取中有时为空，临时记录及独立副本可继续用于验证写入连续性。 [两次实际快照的比对](../evidence/SG_usage_recovery_G1276/SG_G1317_live_cold_temp_append_verified_G1475.json)
 
 32K 冷测中途重新读取同一 Prefill 实例的缓存清单。与第 5 轮预热后的封存快照相比，211 个持久编译文件的路径、大小和修改时间一致，单独记录的 Ascend 工作目录中 73 个文件的元数据也一致。同一轮已独立核验 12/32 条临时请求。整轮编译缓存复核和冷测验收仍待完成。 [实机缓存清单和临时请求回执](../evidence/SG_usage_recovery_G1276/SG_G1317_live_32K_cold_prefill_compile_inventory_G1476.json)
